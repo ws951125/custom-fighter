@@ -1,0 +1,89 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate-web:
+    name: Godot + Web + Browser
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Godot 4.7.2
+        uses: chickensoft-games/setup-godot@v2
+        with:
+          version: 4.7.2
+          use-dotnet: false
+          include-templates: true
+
+      - name: Verify Godot
+        run: godot --version
+
+      - name: Import project headlessly
+        run: godot --headless --path . --import
+
+      - name: Boot main scene headlessly
+        run: godot --headless --path . --quit-after 2
+
+      - name: Run domain tests
+        run: godot --headless --path . --script res://tests/test_runner.gd
+
+      - name: Export Web build
+        run: |
+          mkdir -p build/web
+          godot --headless --path . --export-release "Web" build/web/index.html
+          test -f build/web/index.html
+
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install browser-test dependencies
+        run: |
+          npm install --no-audit --no-fund
+          npx playwright install --with-deps chromium
+
+      - name: Smoke-test exported Web game in Chromium
+        run: |
+          python3 -m http.server 8000 --directory build/web >/tmp/custom-fighter-http.log 2>&1 &
+          SERVER_PID=$!
+          trap 'kill $SERVER_PID || true' EXIT
+
+          READY=0
+          for i in {1..30}; do
+            if curl -fsS -o /dev/null http://127.0.0.1:8000/index.html; then
+              READY=1
+              break
+            fi
+            sleep 1
+          done
+
+          if [ "$READY" -ne 1 ]; then
+            cat /tmp/custom-fighter-http.log
+            exit 1
+          fi
+
+          npm run smoke:web
+
+      - name: Upload Web build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: custom-fighter-web
+          path: build/web
+          if-no-files-found: error
