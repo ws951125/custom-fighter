@@ -6,13 +6,18 @@ const CombatBox = preload("res://game/core/combat/combat_box.gd")
 const AttackChainState = preload("res://game/core/combat/attack_chain_state.gd")
 const KnockbackState = preload("res://game/core/combat/knockback_state.gd")
 const KnockdownState = preload("res://game/core/combat/knockdown_state.gd")
+const SkillDefinition = preload("res://game/core/skills/skill_definition.gd")
+const SkillCastState = preload("res://game/core/skills/skill_cast_state.gd")
+const ProjectileState = preload("res://game/core/skills/projectile_state.gd")
 
 const MOVE_SPEED := 360.0
 const DEPTH_SPEED := 0.72
 const RUN_MULTIPLIER := 1.60
 const GUARD_MOVE_MULTIPLIER := 0.35
+const SKILL_MOVE_MULTIPLIER := 0.20
 const DUMMY_HURTBOX_HALF_WIDTH := 30.0
 const DUMMY_HURTBOX_HALF_DEPTH := 0.11
+const FIREBALL_SKILL_PATH := "res://content/skills/fireball.sample.json"
 
 var player_x := 280.0
 var player_depth := 0.58
@@ -24,27 +29,39 @@ var attack_visual_timer := 0.0
 var attack_latched := false
 var jump_latched := false
 var dash_latched := false
+var skill_latched := false
 var player_guarding := false
 var player_running := false
 var dummy_hit_timer := 0.0
+var fireball_impact_timer := 0.0
+var fireball_impact_x := 0.0
 var web_sync_accumulator := 0.0
 var last_attack_step := 0
 var last_attack_hit := false
+var fireball_last_hit := false
+var fireball_hit_count := 0
 
+var player_state := CombatantState.new(100, 100)
 var dummy_state := CombatantState.new(100, 0)
 var movement_state := MovementState.new()
 var attack_chain_state := AttackChainState.new()
 var dummy_knockback_state := KnockbackState.new()
 var dummy_recovery_state := KnockdownState.new()
+var fireball_skill := SkillDefinition.new()
+var fireball_cast_state := SkillCastState.new()
+var fireball_projectile := ProjectileState.new()
 var status_label: Label
+var skill_label: Label
 
 func _ready() -> void:
 	_ensure_input_actions()
+	_load_fireball_skill()
 	_create_label("CUSTOM FIGHTER", Vector2(48, 28), 34)
-	_create_label("Milestone 1 · Knockdown / Recovery", Vector2(50, 72), 20)
-	_create_label("Move: WASD / Arrows   Run: Shift   Jump: Space   Attack: J   Dash: K   Guard: L", Vector2(50, 108), 16)
-	_create_label("Training goal: complete J → J → J, then watch DOWN → RECOVERING → INVULNERABLE → READY", Vector2(50, 138), 15)
-	status_label = _create_label("", Vector2(50, 174), 17)
+	_create_label("Milestone 2 · Data-Driven Projectile Skill", Vector2(50, 72), 20)
+	_create_label("Move: WASD / Arrows   Run: Shift   Jump: Space   Attack: J   Dash: K   Guard: L   Skill 1: U", Vector2(50, 108), 16)
+	_create_label("Training goal: press U to cast the JSON-driven fireball, then test J → J → J knockdown", Vector2(50, 138), 15)
+	status_label = _create_label("", Vector2(50, 170), 16)
+	skill_label = _create_label("", Vector2(50, 198), 16)
 	_set_web_state()
 	queue_redraw()
 
@@ -53,6 +70,14 @@ func _process(delta: float) -> void:
 	movement_state.tick(delta)
 	attack_chain_state.tick(delta)
 	dummy_recovery_state.tick(delta)
+	fireball_cast_state.tick(delta)
+	if fireball_cast_state.consume_activation():
+		_spawn_fireball()
+
+	var projectile_was_active := fireball_projectile.active
+	fireball_projectile.tick(delta)
+	if projectile_was_active:
+		_resolve_fireball_collision()
 
 	dummy_x += dummy_knockback_state.tick(delta)
 	dummy_x = clampf(dummy_x, 90.0, maxf(size.x, 1280.0) - 90.0)
@@ -64,13 +89,18 @@ func _process(delta: float) -> void:
 	if move_vector.length_squared() > 1.0:
 		move_vector = move_vector.normalized()
 
-	player_guarding = Input.is_action_pressed("guard") and not movement_state.is_dashing()
+	player_guarding = (
+		Input.is_action_pressed("guard")
+		and not movement_state.is_dashing()
+		and not fireball_cast_state.is_casting()
+	)
 	player_running = (
 		Input.is_action_pressed("run")
 		and move_vector.length_squared() > 0.01
 		and not player_guarding
 		and not movement_state.is_dashing()
 		and not attack_chain_state.is_attacking()
+		and not fireball_cast_state.is_casting()
 	)
 
 	if movement_state.is_dashing():
@@ -81,6 +111,8 @@ func _process(delta: float) -> void:
 			speed_multiplier *= GUARD_MOVE_MULTIPLIER
 		if attack_chain_state.is_attacking():
 			speed_multiplier *= 0.30
+		if fireball_cast_state.is_casting():
+			speed_multiplier *= SKILL_MOVE_MULTIPLIER
 		player_x += move_vector.x * MOVE_SPEED * speed_multiplier * delta
 		player_depth += move_vector.y * DEPTH_SPEED * speed_multiplier * delta
 
@@ -90,12 +122,20 @@ func _process(delta: float) -> void:
 		player_facing = signf(move_vector.x)
 
 	var attacking := Input.is_action_pressed("attack")
-	if attacking and not attack_latched and not player_guarding and not movement_state.is_dashing():
+	if (
+		attacking
+		and not attack_latched
+		and not player_guarding
+		and not movement_state.is_dashing()
+		and not fireball_cast_state.is_casting()
+	):
 		_begin_attack()
 	attack_latched = attacking
 
 	attack_visual_timer = maxf(0.0, attack_visual_timer - delta)
 	dummy_hit_timer = maxf(0.0, dummy_hit_timer - delta)
+	fireball_impact_timer = maxf(0.0, fireball_impact_timer - delta)
+	player_state.tick(delta)
 	dummy_state.tick(delta)
 
 	status_label.text = "Dummy HP: %d / %d    Distance: %d    Combo: %d    Dummy: %s    Player: %s" % [
@@ -106,6 +146,14 @@ func _process(delta: float) -> void:
 		dummy_recovery_state.state_name(),
 		_player_state_name()
 	]
+	var skill_name := fireball_skill.skill_name if fireball_skill.loaded else "Skill unavailable"
+	skill_label.text = "MP: %d / %d    [U] %s    Phase: %s    Cooldown: %.2fs" % [
+		player_state.mp,
+		player_state.max_mp,
+		skill_name,
+		fireball_cast_state.phase_name(),
+		fireball_cast_state.cooldown_remaining
+	]
 
 	web_sync_accumulator += delta
 	if web_sync_accumulator >= 0.05:
@@ -115,7 +163,7 @@ func _process(delta: float) -> void:
 
 func _handle_action_edges() -> void:
 	var jump_pressed := Input.is_action_pressed("jump")
-	if jump_pressed and not jump_latched:
+	if jump_pressed and not jump_latched and not fireball_cast_state.is_casting():
 		movement_state.start_jump()
 		_set_web_state()
 	jump_latched = jump_pressed
@@ -127,10 +175,72 @@ func _handle_action_edges() -> void:
 		and not Input.is_action_pressed("guard")
 		and not movement_state.jumping
 		and not attack_chain_state.is_attacking()
+		and not fireball_cast_state.is_casting()
 	):
 		movement_state.start_dash(player_facing)
 		_set_web_state()
 	dash_latched = dash_pressed
+
+	var skill_pressed := Input.is_action_pressed("skill_1")
+	if (
+		skill_pressed
+		and not skill_latched
+		and not Input.is_action_pressed("guard")
+		and not movement_state.jumping
+		and not movement_state.is_dashing()
+		and not attack_chain_state.is_attacking()
+	):
+		_try_cast_fireball()
+	skill_latched = skill_pressed
+
+func _load_fireball_skill() -> void:
+	var errors := fireball_skill.load_from_file(FIREBALL_SKILL_PATH)
+	if not errors.is_empty():
+		push_error("Failed to load fireball skill: %s" % " | ".join(errors))
+		return
+	fireball_cast_state.configure(fireball_skill)
+
+func _try_cast_fireball() -> void:
+	if not fireball_cast_state.start_cast(player_state.mp):
+		return
+	player_state.spend_mp(fireball_skill.mp_cost)
+	fireball_last_hit = false
+	_set_web_state()
+
+func _spawn_fireball() -> void:
+	if not fireball_skill.loaded or fireball_skill.skill_type != "projectile":
+		return
+	var projectile_lifetime := (fireball_skill.range / maxf(1.0, fireball_skill.speed)) + 0.25
+	fireball_projectile.spawn(
+		player_x + player_facing * 62.0,
+		player_depth,
+		player_facing,
+		fireball_skill.speed,
+		fireball_skill.range,
+		projectile_lifetime
+	)
+	_set_web_state()
+
+func _resolve_fireball_collision() -> void:
+	if dummy_state.is_defeated() or not dummy_recovery_state.can_be_hit():
+		return
+	var projectile_box := fireball_projectile.swept_hitbox(
+		fireball_skill.hitbox_half_width,
+		fireball_skill.hitbox_half_depth
+	)
+	if not projectile_box.overlaps(_dummy_hurtbox()):
+		return
+
+	dummy_state.apply_damage(fireball_skill.damage)
+	dummy_state.apply_hitstun(fireball_skill.hitstun)
+	dummy_knockback_state.apply_impulse(fireball_projectile.direction * fireball_skill.knockback)
+	dummy_hit_timer = fireball_skill.hitstun
+	fireball_impact_timer = 0.30
+	fireball_impact_x = dummy_x
+	fireball_last_hit = true
+	fireball_hit_count += 1
+	fireball_projectile.deactivate()
+	_set_web_state()
 
 func _begin_attack() -> void:
 	var step := attack_chain_state.try_start_attack()
@@ -211,7 +321,12 @@ func _draw() -> void:
 		_draw_dummy(dummy_feet)
 		_draw_fighter(player_ground_feet, Color("62d8ff"), player_facing, false, jump_offset, player_guarding)
 
-	_draw_health_bar(Vector2(50.0, 214.0), 320.0, dummy_state.hp, dummy_state.max_hp)
+	_draw_fireball(arena_top, arena_bottom)
+	_draw_fireball_impact(arena_top, arena_bottom)
+
+	_draw_meter(Vector2(50.0, 236.0), 320.0, dummy_state.hp, dummy_state.max_hp, Color("ff6d78"))
+	_draw_meter(Vector2(50.0, 264.0), 320.0, player_state.mp, player_state.max_mp, Color("62d8ff"))
+	_draw_cooldown_meter(Vector2(50.0, 292.0), 320.0)
 	if dummy_recovery_state.can_be_hit():
 		_draw_combat_box(_dummy_hurtbox(), arena_top, arena_bottom, Color(1.0, 0.45, 0.52, 0.72))
 
@@ -247,6 +362,29 @@ func _draw_knocked_down_dummy(ground_feet: Vector2, body_color: Color) -> void:
 	if recovering:
 		draw_arc(Vector2(dummy_x, body_y - 42.0), 34.0, PI, TAU, 20, Color("9cf5d4"), 4.0)
 
+func _draw_fireball(arena_top: float, arena_bottom: float) -> void:
+	if not fireball_projectile.active:
+		return
+	var center := Vector2(
+		fireball_projectile.x,
+		lerpf(arena_top, arena_bottom, fireball_projectile.depth) - 76.0
+	)
+	var direction := fireball_projectile.direction
+	draw_line(center - Vector2(direction * 74.0, 0.0), center - Vector2(direction * 20.0, 0.0), Color(1.0, 0.38, 0.12, 0.32), 12.0)
+	draw_circle(center, 30.0, Color(1.0, 0.30, 0.08, 0.22))
+	draw_circle(center, 20.0, Color("ff7b2c"))
+	draw_circle(center, 10.0, Color("ffe7a6"))
+	draw_arc(center, 25.0, 0.0, TAU, 24, Color("ffd166"), 3.0)
+
+func _draw_fireball_impact(arena_top: float, arena_bottom: float) -> void:
+	if fireball_impact_timer <= 0.0:
+		return
+	var center := Vector2(fireball_impact_x, lerpf(arena_top, arena_bottom, dummy_depth) - 72.0)
+	var progress := clampf(fireball_impact_timer / 0.30, 0.0, 1.0)
+	var radius := 34.0 + (1.0 - progress) * 42.0
+	draw_circle(center, radius * 0.55, Color(1.0, 0.45, 0.12, 0.12 * progress))
+	draw_arc(center, radius, 0.0, TAU, 30, Color(1.0, 0.78, 0.24, progress), 5.0)
+
 func _draw_attack_effect(player_ground_feet: Vector2, jump_offset: float) -> void:
 	var player_y := player_ground_feet.y - jump_offset
 	var step_scale := 1.0 + float(maxi(0, last_attack_step - 1)) * 0.24
@@ -281,11 +419,17 @@ func _draw_combat_box(box: CombatBox, arena_top: float, arena_bottom: float, col
 	draw_rect(rect, fill_color, true)
 	draw_rect(rect, color, false, 2.0)
 
-func _draw_health_bar(at: Vector2, width: float, current: int, maximum: int) -> void:
+func _draw_meter(at: Vector2, width: float, current: int, maximum: int, fill_color: Color) -> void:
 	var ratio := clampf(float(current) / float(maxi(1, maximum)), 0.0, 1.0)
 	draw_rect(Rect2(at, Vector2(width, 18.0)), Color("30394f"))
-	draw_rect(Rect2(at, Vector2(width * ratio, 18.0)), Color("ff6d78"))
+	draw_rect(Rect2(at, Vector2(width * ratio, 18.0)), fill_color)
 	draw_rect(Rect2(at, Vector2(width, 18.0)), Color("e6edf8"), false, 2.0)
+
+func _draw_cooldown_meter(at: Vector2, width: float) -> void:
+	var ready_ratio := 1.0 - fireball_cast_state.cooldown_ratio()
+	draw_rect(Rect2(at, Vector2(width, 12.0)), Color("30394f"))
+	draw_rect(Rect2(at, Vector2(width * ready_ratio, 12.0)), Color("ffd166"))
+	draw_rect(Rect2(at, Vector2(width, 12.0)), Color("e6edf8"), false, 2.0)
 
 func _dummy_color() -> Color:
 	if dummy_hit_timer > 0.0:
@@ -370,6 +514,7 @@ func _ensure_input_actions() -> void:
 	_register_key_action("attack", [KEY_J])
 	_register_key_action("dash", [KEY_K])
 	_register_key_action("guard", [KEY_L])
+	_register_key_action("skill_1", [KEY_U])
 
 func _register_key_action(action_name: StringName, keys: Array) -> void:
 	if not InputMap.has_action(action_name):
@@ -382,6 +527,8 @@ func _register_key_action(action_name: StringName, keys: Array) -> void:
 		InputMap.action_add_event(action_name, event)
 
 func _player_state_name() -> String:
+	if fireball_cast_state.is_casting():
+		return "SKILL_%s" % fireball_cast_state.phase_name()
 	if player_guarding:
 		return "GUARD"
 	if movement_state.is_dashing():
@@ -408,6 +555,8 @@ func _set_web_state() -> void:
 		"document.documentElement.dataset.dummyInvulnerable='%s';" % _bool_text(dummy_recovery_state.is_invulnerable()) +
 		"document.documentElement.dataset.playerX='%.2f';" % player_x +
 		"document.documentElement.dataset.playerDepth='%.3f';" % player_depth +
+		"document.documentElement.dataset.playerMp='%d';" % player_state.mp +
+		"document.documentElement.dataset.playerMaxMp='%d';" % player_state.max_mp +
 		"document.documentElement.dataset.playerJumping='%s';" % _bool_text(movement_state.jumping) +
 		"document.documentElement.dataset.playerJumpOffset='%.2f';" % movement_state.jump_offset() +
 		"document.documentElement.dataset.playerDashing='%s';" % _bool_text(movement_state.is_dashing()) +
@@ -418,7 +567,16 @@ func _set_web_state() -> void:
 		"document.documentElement.dataset.lastHitStep='%d';" % (last_attack_step if last_attack_hit else 0) +
 		"document.documentElement.dataset.lastAttackHit='%s';" % _bool_text(last_attack_hit) +
 		"document.documentElement.dataset.hitboxActive='%s';" % _bool_text(attack_visual_timer > 0.0) +
-		"console.log('CUSTOM_FIGHTER_STATE dummyHp=%d combo=%d recovery=%s state=%s');" % [dummy_state.hp, attack_chain_state.combo_step, dummy_recovery_state.state_name(), _player_state_name()]
+		"document.documentElement.dataset.skillLoaded='%s';" % _bool_text(fireball_skill.loaded) +
+		"document.documentElement.dataset.skillId='%s';" % fireball_skill.skill_id +
+		"document.documentElement.dataset.skillPhase='%s';" % fireball_cast_state.phase_name() +
+		"document.documentElement.dataset.skillCooldown='%.3f';" % fireball_cast_state.cooldown_remaining +
+		"document.documentElement.dataset.skillCanCast='%s';" % _bool_text(fireball_cast_state.can_cast(player_state.mp)) +
+		"document.documentElement.dataset.projectileActive='%s';" % _bool_text(fireball_projectile.active) +
+		"document.documentElement.dataset.projectileX='%.2f';" % fireball_projectile.x +
+		"document.documentElement.dataset.lastSkillHit='%s';" % _bool_text(fireball_last_hit) +
+		"document.documentElement.dataset.skillHitCount='%d';" % fireball_hit_count +
+		"console.log('CUSTOM_FIGHTER_STATE dummyHp=%d mp=%d combo=%d skill=%s recovery=%s state=%s');" % [dummy_state.hp, player_state.mp, attack_chain_state.combo_step, fireball_cast_state.phase_name(), dummy_recovery_state.state_name(), _player_state_name()]
 	)
 
 func _bool_text(value: bool) -> String:
