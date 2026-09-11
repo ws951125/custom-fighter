@@ -1,0 +1,25 @@
+; Engine configuration file.
+; Custom Fighter — Godot 4.7.2 stable
+; Keep runtime settings Web/mobile compatible unless a documented exception exists.
+
+config_version=5
+
+[application]
+
+config/name="Custom Fighter"
+run/main_scene="res://game/runtime/main.tscn"
+config/features=PackedStringArray("4.7", "GL Compatibility")
+
+[display]
+
+window/size/viewport_width=1280
+window/size/viewport_height=720
+window/size/window_width_override=1280
+window/size/window_height_override=720
+window/stretch/mode="canvas_items"
+
+[rendering]
+
+renderer/rendering_method="gl_compatibility"
+renderer/rendering_method.mobile="gl_compatibility"
+environment/defaults/default_clear_color=Color(0.045, 0.059, 0.098, 1)
