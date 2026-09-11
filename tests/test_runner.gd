@@ -10,6 +10,7 @@ const MovementState = preload("res://game/core/movement/movement_state.gd")
 const SkillDefinition = preload("res://game/core/skills/skill_definition.gd")
 const SkillCastState = preload("res://game/core/skills/skill_cast_state.gd")
 const ProjectileState = preload("res://game/core/skills/projectile_state.gd")
+const DashAttackState = preload("res://game/core/skills/dash_attack_state.gd")
 
 var failures := 0
 
@@ -27,6 +28,7 @@ func _run() -> void:
 	_test_skill_definition()
 	_test_skill_cast_state()
 	_test_projectile_state()
+	_test_dash_attack_state()
 
 	if failures == 0:
 		print("ALL_TESTS_PASSED")
@@ -108,15 +110,12 @@ func _test_knockdown_state() -> void:
 	_check(recovery.state_name() == "DOWN" and recovery.is_knocked_down(), "knockdown enters down phase")
 	_check(not recovery.can_be_hit() and recovery.is_invulnerable(), "down phase is protected")
 	_check(not recovery.knock_down(), "knockdown cannot restart while protected")
-
 	recovery.tick(KnockdownState.DOWN_SECONDS + 0.01)
 	_check(recovery.state_name() == "RECOVERING", "knockdown advances to recovery")
 	_check(recovery.is_knocked_down() and not recovery.can_be_hit(), "recovery remains protected")
-
 	recovery.tick(KnockdownState.RECOVERY_SECONDS + 0.01)
 	_check(recovery.state_name() == "INVULNERABLE", "recovery advances to standing invulnerability")
 	_check(not recovery.is_knocked_down() and recovery.is_invulnerable(), "standing protection is not a down pose")
-
 	recovery.tick(KnockdownState.INVULNERABLE_SECONDS + 0.01)
 	_check(recovery.state_name() == "READY", "invulnerability expires")
 	_check(recovery.can_be_hit() and not recovery.is_invulnerable(), "fighter becomes hittable after recovery")
@@ -130,7 +129,6 @@ func _test_movement_state() -> void:
 	_check(movement.jumping and movement.jump_offset() > 0.0, "jump arc rises")
 	movement.tick(0.50)
 	_check(not movement.jumping and is_zero_approx(movement.jump_offset()), "jump returns to ground")
-
 	_check(movement.start_dash(1.0), "dash starts")
 	_check(movement.is_dashing() and movement.dash_velocity() > 0.0, "dash moves right")
 	_check(not movement.start_dash(-1.0), "dash cannot restart while active")
@@ -147,6 +145,12 @@ func _load_fireball_definition():
 	_check(errors.is_empty(), "fireball definition validates: %s" % ", ".join(errors))
 	return skill
 
+func _load_dash_slash_definition():
+	var skill := SkillDefinition.new()
+	var errors := skill.load_from_file("res://content/skills/dash_slash.sample.json")
+	_check(errors.is_empty(), "dash slash definition validates: %s" % ", ".join(errors))
+	return skill
+
 func _test_skill_definition() -> void:
 	var skill = _load_fireball_definition()
 	_check(skill.loaded, "skill definition marks valid data as loaded")
@@ -157,9 +161,24 @@ func _test_skill_definition() -> void:
 	_check(is_equal_approx(skill.speed, 560.0) and is_equal_approx(skill.range, 900.0), "projectile motion loads from JSON")
 	_check(is_equal_approx(skill.hitbox_half_width, 28.0), "projectile hitbox loads from JSON")
 
+	var dash_skill = _load_dash_slash_definition()
+	_check(dash_skill.loaded and dash_skill.skill_type == "dash", "dash skill loads through the same schema")
+	_check(dash_skill.damage == 16 and dash_skill.mp_cost == 20, "dash damage and MP load from JSON")
+	_check(is_equal_approx(dash_skill.speed, 1000.0) and is_equal_approx(dash_skill.range, 260.0), "dash motion loads from JSON")
+	_check(is_equal_approx(dash_skill.hitbox_half_width, 44.0), "dash hitbox loads from JSON")
+
 	var invalid := SkillDefinition.new()
 	var invalid_errors := invalid.load_from_dictionary({"schema_version": 1})
 	_check(not invalid_errors.is_empty() and not invalid.loaded, "invalid skill data is rejected")
+
+	var invalid_dash := SkillDefinition.new()
+	var invalid_dash_errors := invalid_dash.load_from_dictionary({
+		"schema_version": 1, "id": "bad_dash", "name": "Bad Dash", "type": "dash",
+		"damage": 1, "mp_cost": 1, "cooldown": 1.0, "startup": 0.1, "active": 0.1,
+		"recovery": 0.1, "speed": 0, "range": 0, "hitbox_half_width": 0,
+		"hitbox_half_depth": 0, "visual": "x", "impact_visual": "y"
+	})
+	_check(not invalid_dash_errors.is_empty() and not invalid_dash.loaded, "invalid dash motion data is rejected")
 
 func _test_skill_cast_state() -> void:
 	var skill = _load_fireball_definition()
@@ -171,19 +190,24 @@ func _test_skill_cast_state() -> void:
 	_check(cast.phase_name() == "STARTUP", "skill cast enters startup")
 	_check(is_equal_approx(cast.cooldown_remaining, skill.cooldown), "skill cast starts cooldown")
 	_check(not cast.start_cast(100), "skill cast rejects recast while active")
-
 	cast.tick(skill.startup - 0.01)
 	_check(cast.phase_name() == "STARTUP" and not cast.consume_activation(), "startup does not activate early")
 	cast.tick(0.02)
 	_check(cast.phase_name() == "ACTIVE", "startup advances to active")
 	_check(cast.consume_activation(), "active transition emits one activation event")
 	_check(not cast.consume_activation(), "activation event is consumed once")
-
 	cast.tick(skill.active + skill.recovery + 0.10)
 	_check(cast.phase_name() == "READY", "skill cast returns to ready after recovery")
 	_check(cast.cooldown_remaining > 0.0 and not cast.can_cast(100), "cooldown continues after animation recovery")
 	cast.tick(skill.cooldown)
 	_check(cast.can_cast(100), "skill becomes castable after cooldown")
+
+	var dash_skill = _load_dash_slash_definition()
+	var dash_cast := SkillCastState.new()
+	dash_cast.configure(dash_skill)
+	_check(dash_cast.start_cast(100), "generic cast state accepts dash template")
+	dash_cast.tick(dash_skill.startup + 0.01)
+	_check(dash_cast.consume_activation(), "dash template receives the generic activation event")
 
 func _test_projectile_state() -> void:
 	var projectile := ProjectileState.new()
@@ -195,15 +219,27 @@ func _test_projectile_state() -> void:
 	_check(swept_box.overlaps(crossed_target), "projectile swept hitbox catches crossed target")
 	projectile.deactivate()
 	_check(not projectile.active, "projectile can deactivate after impact")
-
 	_check(projectile.spawn(0.0, 0.50, -1.0, 100.0, 10.0, 2.0), "projectile can spawn facing left")
 	projectile.tick(0.20)
 	_check(projectile.x < 0.0 and not projectile.active, "projectile expires at configured range")
+
+func _test_dash_attack_state() -> void:
+	var dash := DashAttackState.new()
+	_check(dash.start(100.0, 0.50, 1.0, 1000.0, 260.0), "dash attack starts with valid motion data")
+	dash.tick(0.10)
+	_check(dash.active and is_equal_approx(dash.x, 200.0), "dash attack advances by configured speed")
+	var swept_box := dash.swept_hitbox(44.0, 0.10)
+	var crossed_target := CombatBox.new(Vector2(150.0, 0.50), Vector2(4.0, 0.05))
+	_check(swept_box.overlaps(crossed_target), "dash swept hitbox catches crossed target")
+	dash.tick(0.20)
+	_check(not dash.active and is_equal_approx(dash.travelled, 260.0), "dash attack stops at configured range")
+	_check(dash.start(360.0, 0.50, -1.0, 800.0, 80.0), "dash attack can start facing left")
+	dash.tick(0.10)
+	_check(is_equal_approx(dash.x, 280.0) and not dash.active, "left dash respects configured range")
 
 func _check(condition: bool, label: String) -> void:
 	if condition:
 		print("PASS: %s" % label)
 		return
-
 	failures += 1
 	printerr("FAIL: %s" % label)

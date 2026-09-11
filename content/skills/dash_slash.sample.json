@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "id": "dash_slash_001",
+  "name": "Training Dash Slash",
+  "type": "dash",
+  "damage": 16,
+  "mp_cost": 20,
+  "cooldown": 2.4,
+  "startup": 0.12,
+  "active": 0.32,
+  "recovery": 0.26,
+  "speed": 1000,
+  "range": 260,
+  "hitstun": 0.25,
+  "knockback": 340,
+  "hitbox_half_width": 44,
+  "hitbox_half_depth": 0.10,
+  "visual": "prototype_dash_slash",
+  "impact_visual": "prototype_dash_impact"
+}
