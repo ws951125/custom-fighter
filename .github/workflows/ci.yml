@@ -101,10 +101,63 @@ jobs:
         with:
           path: build/web
 
+  windows-edge-local:
+    name: Windows + Microsoft Edge
+    needs: validate-web
+    runs-on: windows-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Download validated Web build
+        uses: actions/download-artifact@v4
+        with:
+          name: custom-fighter-web
+          path: build/web
+
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: 24
+
+      - name: Install test dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Smoke-test Web build in installed Microsoft Edge
+        shell: pwsh
+        env:
+          BROWSER_CHANNEL: msedge
+          CUSTOM_FIGHTER_WEB_URL: http://127.0.0.1:8000
+        run: |
+          $server = Start-Process -FilePath python -ArgumentList '-m','http.server','8000','--directory','build/web' -PassThru -WindowStyle Hidden
+          try {
+            $ready = $false
+            for ($i = 0; $i -lt 30; $i++) {
+              try {
+                $response = Invoke-WebRequest -UseBasicParsing -Uri 'http://127.0.0.1:8000/index.html' -TimeoutSec 2
+                if ($response.StatusCode -eq 200) {
+                  $ready = $true
+                  break
+                }
+              } catch {}
+              Start-Sleep -Seconds 1
+            }
+            if (-not $ready) {
+              throw 'Local Web server did not become ready.'
+            }
+            npm run smoke:web
+          } finally {
+            if ($server -and -not $server.HasExited) {
+              Stop-Process -Id $server.Id -Force
+            }
+          }
+
   deploy-pages:
     name: Deploy Web Demo
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    needs: validate-web
+    needs: [validate-web, windows-edge-local]
     runs-on: ubuntu-latest
     environment:
       name: github-pages
@@ -143,3 +196,28 @@ jobs:
             "$LIVE_URL"
           test -s /tmp/custom-fighter-live.html
           echo "PUBLIC_WEB_DEMO_REACHABLE"
+
+  windows-edge-production:
+    name: Windows Edge Production Game
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: deploy-pages
+    runs-on: windows-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: 24
+
+      - name: Install test dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Run real game flow against GitHub Pages in Microsoft Edge
+        env:
+          BROWSER_CHANNEL: msedge
+          CUSTOM_FIGHTER_WEB_URL: https://ws951125.github.io/custom-fighter/
+        run: npm run smoke:web

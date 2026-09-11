@@ -133,7 +133,7 @@ func _dummy_color() -> Color:
 func _draw_fighter(feet: Vector2, body_color: Color, facing: float, is_dummy: bool) -> void:
 	var direction := 1.0 if facing >= 0.0 else -1.0
 	var shadow_scale := clampf(0.75 + ((feet.y / maxf(size.y, 720.0)) * 0.35), 0.78, 1.08)
-	draw_ellipse(feet + Vector2(0.0, 4.0), Vector2(34.0, 10.0) * shadow_scale, Color(0.02, 0.03, 0.06, 0.45))
+	_draw_shadow_ellipse(feet + Vector2(0.0, 4.0), Vector2(34.0, 10.0) * shadow_scale, Color(0.02, 0.03, 0.06, 0.45))
 
 	var head := feet + Vector2(0.0, -118.0)
 	var torso_top := feet + Vector2(-18.0, -94.0)
@@ -151,7 +151,7 @@ func _draw_fighter(feet: Vector2, body_color: Color, facing: float, is_dummy: bo
 		var weapon_end := feet + Vector2(direction * 82.0, -96.0)
 		draw_line(weapon_start, weapon_end, Color("e9edf7"), 5.0)
 
-func draw_ellipse(center: Vector2, radii: Vector2, color: Color) -> void:
+func _draw_shadow_ellipse(center: Vector2, radii: Vector2, color: Color) -> void:
 	var points := PackedVector2Array()
 	for index in range(25):
 		var angle := TAU * float(index) / 24.0
