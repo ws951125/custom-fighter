@@ -7,6 +7,9 @@ const AttackChainState = preload("res://game/core/combat/attack_chain_state.gd")
 const KnockbackState = preload("res://game/core/combat/knockback_state.gd")
 const KnockdownState = preload("res://game/core/combat/knockdown_state.gd")
 const MovementState = preload("res://game/core/movement/movement_state.gd")
+const SkillDefinition = preload("res://game/core/skills/skill_definition.gd")
+const SkillCastState = preload("res://game/core/skills/skill_cast_state.gd")
+const ProjectileState = preload("res://game/core/skills/projectile_state.gd")
 
 var failures := 0
 
@@ -21,7 +24,9 @@ func _run() -> void:
 	_test_knockback_state()
 	_test_knockdown_state()
 	_test_movement_state()
-	_test_skill_fixture()
+	_test_skill_definition()
+	_test_skill_cast_state()
+	_test_projectile_state()
 
 	if failures == 0:
 		print("ALL_TESTS_PASSED")
@@ -136,27 +141,64 @@ func _test_movement_state() -> void:
 	_check(movement.can_dash(), "dash cooldown completes")
 	_check(movement.start_dash(-1.0) and movement.dash_velocity() < 0.0, "dash supports left direction")
 
-func _test_skill_fixture() -> void:
-	var raw := FileAccess.get_file_as_string("res://content/skills/fireball.sample.json")
-	_check(not raw.is_empty(), "skill fixture exists")
-	if raw.is_empty():
-		return
+func _load_fireball_definition():
+	var skill := SkillDefinition.new()
+	var errors := skill.load_from_file("res://content/skills/fireball.sample.json")
+	_check(errors.is_empty(), "fireball definition validates: %s" % ", ".join(errors))
+	return skill
 
-	var parsed = JSON.parse_string(raw)
-	_check(typeof(parsed) == TYPE_DICTIONARY, "skill fixture parses as dictionary")
-	if typeof(parsed) != TYPE_DICTIONARY:
-		return
+func _test_skill_definition() -> void:
+	var skill = _load_fireball_definition()
+	_check(skill.loaded, "skill definition marks valid data as loaded")
+	_check(skill.skill_id == "fireball_001" and skill.skill_type == "projectile", "skill identity loads from JSON")
+	_check(skill.skill_name == "Training Fireball", "skill display name loads from JSON")
+	_check(skill.damage == 18 and skill.mp_cost == 25, "skill damage and MP load from JSON")
+	_check(is_equal_approx(skill.cooldown, 1.8) and is_equal_approx(skill.startup, 0.22), "skill timing loads from JSON")
+	_check(is_equal_approx(skill.speed, 560.0) and is_equal_approx(skill.range, 900.0), "projectile motion loads from JSON")
+	_check(is_equal_approx(skill.hitbox_half_width, 28.0), "projectile hitbox loads from JSON")
 
-	var required_fields := [
-		"schema_version", "id", "name", "type", "damage", "mp_cost", "cooldown",
-		"startup", "active", "recovery", "visual", "impact_visual"
-	]
-	for field in required_fields:
-		_check(parsed.has(field), "skill fixture field: %s" % field)
+	var invalid := SkillDefinition.new()
+	var invalid_errors := invalid.load_from_dictionary({"schema_version": 1})
+	_check(not invalid_errors.is_empty() and not invalid.loaded, "invalid skill data is rejected")
 
-	_check(parsed.get("type", "") == "projectile", "skill fixture type")
-	_check(float(parsed.get("damage", -1)) > 0.0, "skill fixture positive damage")
-	_check(float(parsed.get("cooldown", -1)) >= 0.0, "skill fixture non-negative cooldown")
+func _test_skill_cast_state() -> void:
+	var skill = _load_fireball_definition()
+	var cast := SkillCastState.new()
+	cast.configure(skill)
+	_check(cast.phase_name() == "READY" and cast.can_cast(100), "skill cast starts ready")
+	_check(not cast.can_cast(skill.mp_cost - 1), "skill cast rejects insufficient MP")
+	_check(cast.start_cast(100), "skill cast starts with enough MP")
+	_check(cast.phase_name() == "STARTUP", "skill cast enters startup")
+	_check(is_equal_approx(cast.cooldown_remaining, skill.cooldown), "skill cast starts cooldown")
+	_check(not cast.start_cast(100), "skill cast rejects recast while active")
+
+	cast.tick(skill.startup - 0.01)
+	_check(cast.phase_name() == "STARTUP" and not cast.consume_activation(), "startup does not activate early")
+	cast.tick(0.02)
+	_check(cast.phase_name() == "ACTIVE", "startup advances to active")
+	_check(cast.consume_activation(), "active transition emits one activation event")
+	_check(not cast.consume_activation(), "activation event is consumed once")
+
+	cast.tick(skill.active + skill.recovery + 0.10)
+	_check(cast.phase_name() == "READY", "skill cast returns to ready after recovery")
+	_check(cast.cooldown_remaining > 0.0 and not cast.can_cast(100), "cooldown continues after animation recovery")
+	cast.tick(skill.cooldown)
+	_check(cast.can_cast(100), "skill becomes castable after cooldown")
+
+func _test_projectile_state() -> void:
+	var projectile := ProjectileState.new()
+	_check(projectile.spawn(0.0, 0.50, 1.0, 560.0, 900.0, 2.0), "projectile spawns with valid motion data")
+	projectile.tick(0.10)
+	_check(projectile.active and projectile.x > 50.0, "projectile advances by speed")
+	var swept_box := projectile.swept_hitbox(28.0, 0.08)
+	var crossed_target := CombatBox.new(Vector2(50.0, 0.50), Vector2(4.0, 0.05))
+	_check(swept_box.overlaps(crossed_target), "projectile swept hitbox catches crossed target")
+	projectile.deactivate()
+	_check(not projectile.active, "projectile can deactivate after impact")
+
+	_check(projectile.spawn(0.0, 0.50, -1.0, 100.0, 10.0, 2.0), "projectile can spawn facing left")
+	projectile.tick(0.20)
+	_check(projectile.x < 0.0 and not projectile.active, "projectile expires at configured range")
 
 func _check(condition: bool, label: String) -> void:
 	if condition:
