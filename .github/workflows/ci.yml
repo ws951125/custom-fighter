@@ -54,7 +54,9 @@ jobs:
           fi
 
       - name: Run domain tests
-        run: godot --headless --path . --script res://tests/test_runner.gd
+        run: |
+          godot --headless --path . --script res://tests/test_runner.gd
+          godot --headless --path . --script res://tests/formation_test_runner.gd
 
       - name: Export Web build
         run: |
