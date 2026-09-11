@@ -72,8 +72,9 @@ try {
 
   const initialHp = await readNumber('dummyHp');
   const initialX = await readNumber('playerX');
-  if (initialHp !== 100 || !Number.isFinite(initialX)) {
-    throw new Error(`Unexpected initial state: hp=${initialHp} playerX=${initialX}`);
+  const initialDummyX = await readNumber('dummyX');
+  if (initialHp !== 100 || !Number.isFinite(initialX) || !Number.isFinite(initialDummyX)) {
+    throw new Error(`Unexpected initial state: hp=${initialHp} playerX=${initialX} dummyX=${initialDummyX}`);
   }
 
   // Guard should become observable and return to READY when released.
@@ -146,31 +147,55 @@ try {
     throw new Error(`Dash distance too small: before=${afterRunX} after=${afterDashX}`);
   }
 
-  // Walk into a safe attack range without relying on frame-exact timing.
+  // Walk close enough that all three explicit hitboxes overlap the dummy hurtbox.
   let currentX = afterDashX;
-  for (let step = 0; step < 30 && currentX < 750; step += 1) {
+  let currentDummyX = await readNumber('dummyX');
+  for (let step = 0; step < 40 && currentDummyX - currentX > 105; step += 1) {
     await page.keyboard.down('d');
-    await page.waitForTimeout(70);
+    await page.waitForTimeout(55);
     await page.keyboard.up('d');
-    await page.waitForTimeout(30);
+    await page.waitForTimeout(25);
     currentX = await readNumber('playerX');
+    currentDummyX = await readNumber('dummyX');
   }
 
-  if (currentX < 730 || currentX > 860) {
-    throw new Error(`Failed to approach dummy safely: playerX=${currentX}`);
+  if (currentDummyX - currentX > 125 || currentDummyX - currentX < 20) {
+    throw new Error(`Failed to approach combo range: playerX=${currentX} dummyX=${currentDummyX}`);
   }
 
-  await page.keyboard.press('j');
-  await page.waitForFunction(
-    () => Number(document.documentElement.dataset.dummyHp) < 100,
-    null,
-    { timeout: 5_000 },
-  );
+  const comboExpectations = [
+    { step: 1, hp: 88, waitAfterMs: 180 },
+    { step: 2, hp: 74, waitAfterMs: 200 },
+    { step: 3, hp: 54, waitAfterMs: 260 },
+  ];
 
-  const hpAfterHit = await readNumber('dummyHp');
+  for (const expected of comboExpectations) {
+    await page.keyboard.press('j');
+    await page.waitForFunction(
+      ({ step, hp }) =>
+        Number(document.documentElement.dataset.lastHitStep) === step &&
+        Number(document.documentElement.dataset.dummyHp) === hp &&
+        document.documentElement.dataset.lastAttackHit === 'true',
+      expected,
+      { timeout: 3_000 },
+    );
+
+    const observedComboStep = await readNumber('comboStep');
+    if (observedComboStep !== expected.step) {
+      throw new Error(`Expected combo step ${expected.step}; observed ${observedComboStep}`);
+    }
+    await page.waitForTimeout(expected.waitAfterMs);
+  }
+
+  const hpAfterCombo = await readNumber('dummyHp');
+  const dummyXAfterCombo = await readNumber('dummyX');
   const finalState = await readText('playerState');
-  if (hpAfterHit !== 80) {
-    throw new Error(`Expected one 20-damage hit; dummy HP is ${hpAfterHit}`);
+
+  if (hpAfterCombo !== 54) {
+    throw new Error(`Expected three-hit combo to leave 54 HP; dummy HP is ${hpAfterCombo}`);
+  }
+  if (!(dummyXAfterCombo > initialDummyX + 20)) {
+    throw new Error(`Expected visible knockback: initialDummyX=${initialDummyX} afterCombo=${dummyXAfterCombo}`);
   }
 
   if (pageErrors.length > 0 || consoleErrors.length > 0) {
@@ -180,7 +205,7 @@ try {
   }
 
   console.log(
-    `WEB_MOVEMENT_COMBAT_SMOKE_PASSED initialX=${initialX} afterRun=${afterRunX} afterDash=${afterDashX} dummyHp=${hpAfterHit} finalState=${finalState}`,
+    `WEB_COMBO_SMOKE_PASSED initialX=${initialX} afterDash=${afterDashX} dummyHp=${hpAfterCombo} dummyX=${dummyXAfterCombo} finalState=${finalState}`,
   );
 } finally {
   await browser.close();

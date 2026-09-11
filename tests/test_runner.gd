@@ -2,6 +2,9 @@ extends SceneTree
 
 const CombatMath = preload("res://game/core/combat/combat_math.gd")
 const CombatantState = preload("res://game/core/combat/combatant_state.gd")
+const CombatBox = preload("res://game/core/combat/combat_box.gd")
+const AttackChainState = preload("res://game/core/combat/attack_chain_state.gd")
+const KnockbackState = preload("res://game/core/combat/knockback_state.gd")
 const MovementState = preload("res://game/core/movement/movement_state.gd")
 
 var failures := 0
@@ -12,6 +15,9 @@ func _init() -> void:
 func _run() -> void:
 	_test_combat_math()
 	_test_combatant_state()
+	_test_combat_boxes()
+	_test_attack_chain()
+	_test_knockback_state()
 	_test_movement_state()
 	_test_skill_fixture()
 
@@ -48,6 +54,45 @@ func _test_combatant_state() -> void:
 	_check(is_equal_approx(fighter.hitstun_remaining, 0.15), "hitstun ticks down")
 	fighter.apply_damage(999)
 	_check(fighter.hp == 0 and fighter.is_defeated(), "combatant defeat clamps HP")
+
+func _test_combat_boxes() -> void:
+	var hitbox := CombatBox.new(Vector2(100.0, 0.50), Vector2(40.0, 0.12))
+	var overlapping_hurtbox := CombatBox.new(Vector2(138.0, 0.58), Vector2(20.0, 0.08))
+	var separated_x := CombatBox.new(Vector2(180.0, 0.50), Vector2(20.0, 0.08))
+	var separated_depth := CombatBox.new(Vector2(110.0, 0.90), Vector2(20.0, 0.08))
+
+	_check(hitbox.overlaps(overlapping_hurtbox), "hitbox overlaps hurtbox")
+	_check(not hitbox.overlaps(separated_x), "hitbox rejects horizontal miss")
+	_check(not hitbox.overlaps(separated_depth), "hitbox rejects depth miss")
+	_check(is_equal_approx(hitbox.left(), 60.0) and is_equal_approx(hitbox.right(), 140.0), "combat box horizontal bounds")
+
+func _test_attack_chain() -> void:
+	var chain := AttackChainState.new()
+	_check(chain.combo_step == 0 and not chain.is_attacking(), "attack chain starts idle")
+	_check(chain.try_start_attack() == 1, "combo starts at step one")
+	_check(chain.damage_for_step(1) == 12, "step one damage")
+	_check(chain.try_start_attack() == 0, "attack lock rejects mash during recovery")
+	chain.tick(0.15)
+	_check(chain.try_start_attack() == 2, "combo advances to step two")
+	_check(chain.damage_for_step(2) == 14, "step two damage")
+	chain.tick(0.17)
+	_check(chain.try_start_attack() == 3, "combo advances to step three")
+	_check(chain.damage_for_step(3) == 20, "step three damage")
+	_check(chain.knockback_for_step(3) > chain.knockback_for_step(2), "finisher has stronger knockback")
+	_check(chain.hitbox_half_width_for_step(3) > chain.hitbox_half_width_for_step(1), "finisher has larger hitbox")
+	chain.tick(0.25)
+	chain.tick(0.40)
+	_check(chain.combo_step == 0, "combo resets after timeout")
+
+func _test_knockback_state() -> void:
+	var knockback := KnockbackState.new()
+	knockback.apply_impulse(430.0)
+	_check(knockback.is_active() and is_equal_approx(knockback.last_impulse, 430.0), "knockback accepts impulse")
+	var first_displacement := knockback.tick(0.10)
+	_check(first_displacement > 40.0, "knockback produces displacement")
+	_check(knockback.velocity > 0.0 and knockback.velocity < 430.0, "knockback drag reduces velocity")
+	knockback.tick(0.50)
+	_check(not knockback.is_active(), "knockback settles to rest")
 
 func _test_movement_state() -> void:
 	var movement := MovementState.new()
