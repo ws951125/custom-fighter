@@ -7,7 +7,7 @@
   "mp_cost": 25,
   "cooldown": 1.8,
   "startup": 0.22,
-  "active": 1.8,
+  "active": 0.08,
   "recovery": 0.3,
   "speed": 560,
   "range": 900,
