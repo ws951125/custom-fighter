@@ -331,7 +331,9 @@ try {
     { step: 3, hp: 20, waitAfterMs: 100 },
   ];
   for (const expected of comboExpectations) {
-    await page.keyboard.press('j');
+    // Hold J across at least one Godot frame. A synthetic press can otherwise go down/up
+    // entirely between frames on a busy CI runner and never reach Input.is_action_pressed().
+    await nudge('j', 90);
     await page.waitForFunction(
       ({ step, hp }) =>
         Number(document.documentElement.dataset.lastHitStep) === step &&
@@ -380,7 +382,7 @@ try {
 
   await waitForDummyToSettle();
   await approachDummy();
-  await page.keyboard.press('j');
+  await nudge('j', 90);
   await page.waitForFunction(
     () => Number(document.documentElement.dataset.dummyHp) === 8,
     null,
