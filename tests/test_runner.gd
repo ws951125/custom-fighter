@@ -5,6 +5,7 @@ const CombatantState = preload("res://game/core/combat/combatant_state.gd")
 const CombatBox = preload("res://game/core/combat/combat_box.gd")
 const AttackChainState = preload("res://game/core/combat/attack_chain_state.gd")
 const KnockbackState = preload("res://game/core/combat/knockback_state.gd")
+const KnockdownState = preload("res://game/core/combat/knockdown_state.gd")
 const MovementState = preload("res://game/core/movement/movement_state.gd")
 
 var failures := 0
@@ -18,6 +19,7 @@ func _run() -> void:
 	_test_combat_boxes()
 	_test_attack_chain()
 	_test_knockback_state()
+	_test_knockdown_state()
 	_test_movement_state()
 	_test_skill_fixture()
 
@@ -93,6 +95,26 @@ func _test_knockback_state() -> void:
 	_check(knockback.velocity > 0.0 and knockback.velocity < 430.0, "knockback drag reduces velocity")
 	knockback.tick(0.50)
 	_check(not knockback.is_active(), "knockback settles to rest")
+
+func _test_knockdown_state() -> void:
+	var recovery := KnockdownState.new()
+	_check(recovery.state_name() == "READY" and recovery.can_be_hit(), "knockdown starts ready")
+	_check(recovery.knock_down(), "knockdown can start")
+	_check(recovery.state_name() == "DOWN" and recovery.is_knocked_down(), "knockdown enters down phase")
+	_check(not recovery.can_be_hit() and recovery.is_invulnerable(), "down phase is protected")
+	_check(not recovery.knock_down(), "knockdown cannot restart while protected")
+
+	recovery.tick(KnockdownState.DOWN_SECONDS + 0.01)
+	_check(recovery.state_name() == "RECOVERING", "knockdown advances to recovery")
+	_check(recovery.is_knocked_down() and not recovery.can_be_hit(), "recovery remains protected")
+
+	recovery.tick(KnockdownState.RECOVERY_SECONDS + 0.01)
+	_check(recovery.state_name() == "INVULNERABLE", "recovery advances to standing invulnerability")
+	_check(not recovery.is_knocked_down() and recovery.is_invulnerable(), "standing protection is not a down pose")
+
+	recovery.tick(KnockdownState.INVULNERABLE_SECONDS + 0.01)
+	_check(recovery.state_name() == "READY", "invulnerability expires")
+	_check(recovery.can_be_hit() and not recovery.is_invulnerable(), "fighter becomes hittable after recovery")
 
 func _test_movement_state() -> void:
 	var movement := MovementState.new()
