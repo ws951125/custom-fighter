@@ -2,6 +2,7 @@ extends SceneTree
 
 const CombatMath = preload("res://game/core/combat/combat_math.gd")
 const CombatantState = preload("res://game/core/combat/combatant_state.gd")
+const MovementState = preload("res://game/core/movement/movement_state.gd")
 
 var failures := 0
 
@@ -11,6 +12,7 @@ func _init() -> void:
 func _run() -> void:
 	_test_combat_math()
 	_test_combatant_state()
+	_test_movement_state()
 	_test_skill_fixture()
 
 	if failures == 0:
@@ -46,6 +48,26 @@ func _test_combatant_state() -> void:
 	_check(is_equal_approx(fighter.hitstun_remaining, 0.15), "hitstun ticks down")
 	fighter.apply_damage(999)
 	_check(fighter.hp == 0 and fighter.is_defeated(), "combatant defeat clamps HP")
+
+func _test_movement_state() -> void:
+	var movement := MovementState.new()
+	_check(not movement.jumping and not movement.is_dashing(), "movement starts grounded")
+	_check(movement.start_jump(), "jump starts")
+	_check(not movement.start_jump(), "double jump rejected")
+	movement.tick(0.13)
+	_check(movement.jumping and movement.jump_offset() > 0.0, "jump arc rises")
+	movement.tick(0.50)
+	_check(not movement.jumping and is_zero_approx(movement.jump_offset()), "jump returns to ground")
+
+	_check(movement.start_dash(1.0), "dash starts")
+	_check(movement.is_dashing() and movement.dash_velocity() > 0.0, "dash moves right")
+	_check(not movement.start_dash(-1.0), "dash cannot restart while active")
+	movement.tick(0.20)
+	_check(not movement.is_dashing(), "dash duration completes")
+	_check(not movement.can_dash(), "dash cooldown remains")
+	movement.tick(0.30)
+	_check(movement.can_dash(), "dash cooldown completes")
+	_check(movement.start_dash(-1.0) and movement.dash_velocity() < 0.0, "dash supports left direction")
 
 func _test_skill_fixture() -> void:
 	var raw := FileAccess.get_file_as_string("res://content/skills/fireball.sample.json")
