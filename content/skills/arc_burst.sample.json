@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "id": "arc_burst_001",
+  "name": "Training Arc Burst",
+  "type": "area",
+  "damage": 22,
+  "mp_cost": 30,
+  "cooldown": 3.0,
+  "startup": 0.30,
+  "active": 0.36,
+  "recovery": 0.38,
+  "speed": 0,
+  "range": 0,
+  "hitstun": 0.28,
+  "knockback": 320,
+  "hitbox_half_width": 155,
+  "hitbox_half_depth": 0.20,
+  "visual": "prototype_arc_burst",
+  "impact_visual": "prototype_arc_impact"
+}
