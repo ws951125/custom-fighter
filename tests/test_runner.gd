@@ -1,6 +1,7 @@
 extends SceneTree
 
 const CombatMath = preload("res://game/core/combat/combat_math.gd")
+const CombatantState = preload("res://game/core/combat/combatant_state.gd")
 
 var failures := 0
 
@@ -9,6 +10,7 @@ func _init() -> void:
 
 func _run() -> void:
 	_test_combat_math()
+	_test_combatant_state()
 	_test_skill_fixture()
 
 	if failures == 0:
@@ -30,6 +32,20 @@ func _test_combat_math() -> void:
 	_check(is_equal_approx(CombatMath.remaining_mp(50.0, 20.0), 30.0), "remaining MP")
 	_check(is_equal_approx(CombatMath.knockback_direction(10.0, 20.0), 1.0), "right knockback")
 	_check(is_equal_approx(CombatMath.knockback_direction(20.0, 10.0), -1.0), "left knockback")
+
+func _test_combatant_state() -> void:
+	var fighter := CombatantState.new(100, 50)
+	_check(fighter.hp == 100 and fighter.mp == 50, "combatant initializes resources")
+	_check(fighter.apply_damage(30) == 30 and fighter.hp == 70, "combatant applies damage")
+	_check(fighter.apply_damage(20, true) == 7 and fighter.hp == 63, "guard reduces damage")
+	_check(fighter.restore_hp(100) == 37 and fighter.hp == 100, "healing clamps to max HP")
+	_check(fighter.spend_mp(20) and fighter.mp == 30, "combatant spends MP")
+	_check(not fighter.spend_mp(31) and fighter.mp == 30, "combatant rejects insufficient MP")
+	fighter.apply_hitstun(0.25)
+	fighter.tick(0.10)
+	_check(is_equal_approx(fighter.hitstun_remaining, 0.15), "hitstun ticks down")
+	fighter.apply_damage(999)
+	_check(fighter.hp == 0 and fighter.is_defeated(), "combatant defeat clamps HP")
 
 func _test_skill_fixture() -> void:
 	var raw := FileAccess.get_file_as_string("res://content/skills/fireball.sample.json")
