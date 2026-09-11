@@ -1,0 +1,26 @@
+# Godot generated files
+.godot/
+
+# Builds
+build/
+dist/
+
+# Node / Playwright
+node_modules/
+playwright-report/
+test-results/
+
+# OS / editor noise
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Secrets / local environment
+.env
+.env.*
+!.env.example
+
+# Generated AI/VFX scratch assets
+.generated/
+.tmp/
