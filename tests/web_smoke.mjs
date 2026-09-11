@@ -39,7 +39,25 @@ async function readText(datasetKey) {
   return String(await page.evaluate((key) => document.documentElement.dataset[key] ?? '', datasetKey));
 }
 
+async function approachDummy(maxGap = 105) {
+  let currentX = await readNumber('playerX');
+  let currentDummyX = await readNumber('dummyX');
+  for (let step = 0; step < 45 && currentDummyX - currentX > maxGap; step += 1) {
+    await page.keyboard.down('d');
+    await page.waitForTimeout(55);
+    await page.keyboard.up('d');
+    await page.waitForTimeout(25);
+    currentX = await readNumber('playerX');
+    currentDummyX = await readNumber('dummyX');
+  }
+  if (currentDummyX - currentX > 125 || currentDummyX - currentX < 20) {
+    throw new Error(`Failed to approach attack range: playerX=${currentX} dummyX=${currentDummyX}`);
+  }
+  return { currentX, currentDummyX };
+}
+
 try {
+  const startupStartedAt = Date.now();
   const response = await page.goto(baseUrl, {
     waitUntil: 'domcontentloaded',
     timeout: 60_000,
@@ -70,6 +88,37 @@ try {
     throw error;
   }
 
+  const startupMs = Date.now() - startupStartedAt;
+  const resourceTiming = await page.evaluate(() =>
+    performance
+      .getEntriesByType('resource')
+      .filter((entry) => entry.name.endsWith('.wasm') || entry.name.endsWith('.pck'))
+      .map((entry) => ({
+        name: entry.name.split('/').pop(),
+        duration: Math.round(entry.duration),
+        transferSize: entry.transferSize ?? 0,
+        decodedBodySize: entry.decodedBodySize ?? 0,
+      })),
+  );
+  console.log(`WEB_STARTUP_TIMING ms=${startupMs} resources=${JSON.stringify(resourceTiming)}`);
+
+  const serviceWorkerReady = await page.evaluate(async () => {
+    if (!('serviceWorker' in navigator)) return false;
+    try {
+      const registration = await Promise.race([
+        navigator.serviceWorker.ready,
+        new Promise((resolve) => setTimeout(() => resolve(null), 5000)),
+      ]);
+      return Boolean(registration?.active);
+    } catch {
+      return false;
+    }
+  });
+  if (!serviceWorkerReady) {
+    throw new Error('PWA service worker did not become ready');
+  }
+  console.log('PWA_SERVICE_WORKER_READY');
+
   const initialHp = await readNumber('dummyHp');
   const initialX = await readNumber('playerX');
   const initialDummyX = await readNumber('dummyX');
@@ -77,7 +126,6 @@ try {
     throw new Error(`Unexpected initial state: hp=${initialHp} playerX=${initialX} dummyX=${initialDummyX}`);
   }
 
-  // Guard should become observable and return to READY when released.
   await page.keyboard.down('l');
   await page.waitForFunction(
     () => document.documentElement.dataset.playerGuarding === 'true',
@@ -91,7 +139,6 @@ try {
     { timeout: 2_000 },
   );
 
-  // Jump should produce a positive vertical arc and land again.
   await page.keyboard.press('Space');
   await page.waitForFunction(
     () => document.documentElement.dataset.playerJumping === 'true',
@@ -109,7 +156,6 @@ try {
     { timeout: 2_000 },
   );
 
-  // Run briefly to verify the modifier is wired through the real input layer.
   await page.keyboard.down('Shift');
   await page.keyboard.down('d');
   await page.waitForFunction(
@@ -130,7 +176,6 @@ try {
     throw new Error(`Run did not move far enough: initial=${initialX} afterRun=${afterRunX}`);
   }
 
-  // Dash should cover a noticeable burst distance and respect the real animation state.
   await page.keyboard.press('k');
   await page.waitForFunction(
     () => document.documentElement.dataset.playerDashing === 'true',
@@ -147,26 +192,12 @@ try {
     throw new Error(`Dash distance too small: before=${afterRunX} after=${afterDashX}`);
   }
 
-  // Walk close enough that all three explicit hitboxes overlap the dummy hurtbox.
-  let currentX = afterDashX;
-  let currentDummyX = await readNumber('dummyX');
-  for (let step = 0; step < 40 && currentDummyX - currentX > 105; step += 1) {
-    await page.keyboard.down('d');
-    await page.waitForTimeout(55);
-    await page.keyboard.up('d');
-    await page.waitForTimeout(25);
-    currentX = await readNumber('playerX');
-    currentDummyX = await readNumber('dummyX');
-  }
-
-  if (currentDummyX - currentX > 125 || currentDummyX - currentX < 20) {
-    throw new Error(`Failed to approach combo range: playerX=${currentX} dummyX=${currentDummyX}`);
-  }
+  await approachDummy();
 
   const comboExpectations = [
     { step: 1, hp: 88, waitAfterMs: 180 },
     { step: 2, hp: 74, waitAfterMs: 200 },
-    { step: 3, hp: 54, waitAfterMs: 260 },
+    { step: 3, hp: 54, waitAfterMs: 100 },
   ];
 
   for (const expected of comboExpectations) {
@@ -179,7 +210,6 @@ try {
       expected,
       { timeout: 3_000 },
     );
-
     const observedComboStep = await readNumber('comboStep');
     if (observedComboStep !== expected.step) {
       throw new Error(`Expected combo step ${expected.step}; observed ${observedComboStep}`);
@@ -187,15 +217,59 @@ try {
     await page.waitForTimeout(expected.waitAfterMs);
   }
 
+  await page.waitForFunction(
+    () => document.documentElement.dataset.dummyRecoveryState === 'DOWN',
+    null,
+    { timeout: 2_000 },
+  );
+  if (await readText('dummyCanBeHit') !== 'false') {
+    throw new Error('Downed dummy must not be hittable');
+  }
+
+  await page.waitForFunction(
+    () => document.documentElement.dataset.dummyRecoveryState === 'RECOVERING',
+    null,
+    { timeout: 2_000 },
+  );
+  await page.waitForFunction(
+    () => document.documentElement.dataset.dummyRecoveryState === 'INVULNERABLE',
+    null,
+    { timeout: 2_000 },
+  );
+  if (await readText('dummyInvulnerable') !== 'true') {
+    throw new Error('Standing recovery protection must be invulnerable');
+  }
+
+  await page.waitForFunction(
+    () => document.documentElement.dataset.dummyRecoveryState === 'READY',
+    null,
+    { timeout: 3_000 },
+  );
+  if (await readText('dummyCanBeHit') !== 'true') {
+    throw new Error('Recovered dummy must become hittable');
+  }
+
   const hpAfterCombo = await readNumber('dummyHp');
   const dummyXAfterCombo = await readNumber('dummyX');
-  const finalState = await readText('playerState');
-
   if (hpAfterCombo !== 54) {
     throw new Error(`Expected three-hit combo to leave 54 HP; dummy HP is ${hpAfterCombo}`);
   }
   if (!(dummyXAfterCombo > initialDummyX + 20)) {
     throw new Error(`Expected visible knockback: initialDummyX=${initialDummyX} afterCombo=${dummyXAfterCombo}`);
+  }
+
+  await approachDummy();
+  await page.keyboard.press('j');
+  await page.waitForFunction(
+    () => Number(document.documentElement.dataset.dummyHp) === 42,
+    null,
+    { timeout: 3_000 },
+  );
+
+  const hpAfterRecoveryHit = await readNumber('dummyHp');
+  const finalState = await readText('playerState');
+  if (hpAfterRecoveryHit !== 42) {
+    throw new Error(`Expected first post-recovery hit to leave 42 HP; got ${hpAfterRecoveryHit}`);
   }
 
   if (pageErrors.length > 0 || consoleErrors.length > 0) {
@@ -205,7 +279,7 @@ try {
   }
 
   console.log(
-    `WEB_COMBO_SMOKE_PASSED initialX=${initialX} afterDash=${afterDashX} dummyHp=${hpAfterCombo} dummyX=${dummyXAfterCombo} finalState=${finalState}`,
+    `WEB_KNOCKDOWN_SMOKE_PASSED startupMs=${startupMs} initialX=${initialX} afterDash=${afterDashX} hpAfterCombo=${hpAfterCombo} hpAfterRecoveryHit=${hpAfterRecoveryHit} dummyX=${dummyXAfterCombo} finalState=${finalState}`,
   );
 } finally {
   await browser.close();
