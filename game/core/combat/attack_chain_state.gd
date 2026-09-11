@@ -2,6 +2,8 @@ class_name AttackChainState
 extends RefCounted
 
 const COMBO_RESET_SECONDS := 0.62
+const HITCH_THRESHOLD_SECONDS := 0.50
+const HITCH_COMBO_TIMER_DELTA := 0.10
 
 var combo_step := 0
 var attack_lock_remaining := 0.0
@@ -9,8 +11,13 @@ var combo_reset_remaining := 0.0
 
 func tick(delta: float) -> void:
 	var safe_delta := maxf(0.0, delta)
+	# Preserve normal timing exactly. Only treat a single frame over 500ms as a browser
+	# hitch, because the player had no usable input frames during that pause.
+	var combo_delta := safe_delta
+	if safe_delta > HITCH_THRESHOLD_SECONDS:
+		combo_delta = HITCH_COMBO_TIMER_DELTA
 	attack_lock_remaining = maxf(0.0, attack_lock_remaining - safe_delta)
-	combo_reset_remaining = maxf(0.0, combo_reset_remaining - safe_delta)
+	combo_reset_remaining = maxf(0.0, combo_reset_remaining - combo_delta)
 	if combo_reset_remaining <= 0.0 and attack_lock_remaining <= 0.0:
 		combo_step = 0
 

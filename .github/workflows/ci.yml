@@ -100,7 +100,7 @@ jobs:
             exit 1
           fi
 
-          npm run smoke:web
+          npm run smoke:all
 
       - name: Upload Web build artifact
         uses: actions/upload-artifact@v4
@@ -167,7 +167,7 @@ jobs:
             if (-not $ready) {
               throw 'Local Web server did not become ready.'
             }
-            npm run smoke:web
+            npm run smoke:all
           } finally {
             if ($server -and -not $server.HasExited) {
               Stop-Process -Id $server.Id -Force
@@ -240,4 +240,4 @@ jobs:
         env:
           BROWSER_CHANNEL: msedge
           CUSTOM_FIGHTER_WEB_URL: https://ws951125.github.io/custom-fighter/
-        run: npm run smoke:web
+        run: npm run smoke:all

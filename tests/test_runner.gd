@@ -11,6 +11,7 @@ const SkillDefinition = preload("res://game/core/skills/skill_definition.gd")
 const SkillCastState = preload("res://game/core/skills/skill_cast_state.gd")
 const ProjectileState = preload("res://game/core/skills/projectile_state.gd")
 const DashAttackState = preload("res://game/core/skills/dash_attack_state.gd")
+const AreaAttackState = preload("res://game/core/skills/area_attack_state.gd")
 
 var failures := 0
 
@@ -29,6 +30,7 @@ func _run() -> void:
 	_test_skill_cast_state()
 	_test_projectile_state()
 	_test_dash_attack_state()
+	_test_area_attack_state()
 
 	if failures == 0:
 		print("ALL_TESTS_PASSED")
@@ -114,7 +116,7 @@ func _test_knockdown_state() -> void:
 	_check(recovery.state_name() == "RECOVERING", "knockdown advances to recovery")
 	_check(recovery.is_knocked_down() and not recovery.can_be_hit(), "recovery remains protected")
 	recovery.tick(KnockdownState.RECOVERY_SECONDS + 0.01)
-	_check(recovery.state_name() == "INVULNERABLE", "recovery advances to standing invulnerability")
+	_check(recovery.state_name() == "INVULNERABLE", "knockdown advances to standing invulnerability")
 	_check(not recovery.is_knocked_down() and recovery.is_invulnerable(), "standing protection is not a down pose")
 	recovery.tick(KnockdownState.INVULNERABLE_SECONDS + 0.01)
 	_check(recovery.state_name() == "READY", "invulnerability expires")
@@ -151,6 +153,12 @@ func _load_dash_slash_definition():
 	_check(errors.is_empty(), "dash slash definition validates: %s" % ", ".join(errors))
 	return skill
 
+func _load_arc_burst_definition():
+	var skill := SkillDefinition.new()
+	var errors := skill.load_from_file("res://content/skills/arc_burst.sample.json")
+	_check(errors.is_empty(), "arc burst definition validates: %s" % ", ".join(errors))
+	return skill
+
 func _test_skill_definition() -> void:
 	var skill = _load_fireball_definition()
 	_check(skill.loaded, "skill definition marks valid data as loaded")
@@ -167,6 +175,12 @@ func _test_skill_definition() -> void:
 	_check(is_equal_approx(dash_skill.speed, 1000.0) and is_equal_approx(dash_skill.range, 260.0), "dash motion loads from JSON")
 	_check(is_equal_approx(dash_skill.hitbox_half_width, 44.0), "dash hitbox loads from JSON")
 
+	var area_skill = _load_arc_burst_definition()
+	_check(area_skill.loaded and area_skill.skill_type == "area", "area skill loads through the same schema")
+	_check(area_skill.damage == 22 and area_skill.mp_cost == 30, "area damage and MP load from JSON")
+	_check(is_equal_approx(area_skill.active, 0.36), "area active window loads from JSON")
+	_check(is_equal_approx(area_skill.hitbox_half_width, 155.0) and is_equal_approx(area_skill.hitbox_half_depth, 0.20), "area hitbox loads from JSON")
+
 	var invalid := SkillDefinition.new()
 	var invalid_errors := invalid.load_from_dictionary({"schema_version": 1})
 	_check(not invalid_errors.is_empty() and not invalid.loaded, "invalid skill data is rejected")
@@ -179,6 +193,15 @@ func _test_skill_definition() -> void:
 		"hitbox_half_depth": 0, "visual": "x", "impact_visual": "y"
 	})
 	_check(not invalid_dash_errors.is_empty() and not invalid_dash.loaded, "invalid dash motion data is rejected")
+
+	var invalid_area := SkillDefinition.new()
+	var invalid_area_errors := invalid_area.load_from_dictionary({
+		"schema_version": 1, "id": "bad_area", "name": "Bad Area", "type": "area",
+		"damage": 1, "mp_cost": 1, "cooldown": 1.0, "startup": 0.1, "active": 0.0,
+		"recovery": 0.1, "hitbox_half_width": 0, "hitbox_half_depth": 0,
+		"visual": "x", "impact_visual": "y"
+	})
+	_check(not invalid_area_errors.is_empty() and not invalid_area.loaded, "invalid area timing/hitbox data is rejected")
 
 func _test_skill_cast_state() -> void:
 	var skill = _load_fireball_definition()
@@ -209,6 +232,13 @@ func _test_skill_cast_state() -> void:
 	dash_cast.tick(dash_skill.startup + 0.01)
 	_check(dash_cast.consume_activation(), "dash template receives the generic activation event")
 
+	var area_skill = _load_arc_burst_definition()
+	var area_cast := SkillCastState.new()
+	area_cast.configure(area_skill)
+	_check(area_cast.start_cast(100), "generic cast state accepts area template")
+	area_cast.tick(area_skill.startup + 0.01)
+	_check(area_cast.consume_activation(), "area template receives the generic activation event")
+
 func _test_projectile_state() -> void:
 	var projectile := ProjectileState.new()
 	_check(projectile.spawn(0.0, 0.50, 1.0, 560.0, 900.0, 2.0), "projectile spawns with valid motion data")
@@ -236,6 +266,22 @@ func _test_dash_attack_state() -> void:
 	_check(dash.start(360.0, 0.50, -1.0, 800.0, 80.0), "dash attack can start facing left")
 	dash.tick(0.10)
 	_check(is_equal_approx(dash.x, 280.0) and not dash.active, "left dash respects configured range")
+
+func _test_area_attack_state() -> void:
+	var area := AreaAttackState.new()
+	_check(area.start(Vector2(500.0, 0.50), 155.0, 0.20, 0.36), "area attack starts with valid dimensions/timing")
+	_check(area.active and area.can_hit(), "area attack begins active and hittable")
+	var near_target := CombatBox.new(Vector2(620.0, 0.58), Vector2(30.0, 0.10))
+	var far_target := CombatBox.new(Vector2(760.0, 0.58), Vector2(30.0, 0.10))
+	_check(area.hitbox().overlaps(near_target), "area hitbox reaches nearby target")
+	_check(not area.hitbox().overlaps(far_target), "area hitbox rejects distant target")
+	_check(area.consume_hit(), "area attack consumes its first hit")
+	_check(not area.can_hit() and not area.consume_hit(), "area attack cannot hit twice in one activation")
+	area.tick(0.20)
+	_check(area.active, "area attack remains active inside configured window")
+	area.tick(0.20)
+	_check(not area.active, "area attack expires after configured active window")
+	_check(not area.start(Vector2.ZERO, 0.0, 0.20, 0.36), "area attack rejects invalid dimensions")
 
 func _check(condition: bool, label: String) -> void:
 	if condition:
