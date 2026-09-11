@@ -36,18 +36,35 @@ jobs:
         run: godot --version
 
       - name: Import project headlessly
-        run: godot --headless --path . --import
+        run: |
+          set -o pipefail
+          godot --headless --path . --import 2>&1 | tee /tmp/godot-import.log
+          if grep -E "SCRIPT ERROR:|Parse Error:|ERROR: Failed to load script|FATAL:" /tmp/godot-import.log; then
+            echo "::error::Godot import emitted a script/fatal diagnostic."
+            exit 1
+          fi
 
       - name: Boot main scene headlessly
-        run: godot --headless --path . --quit-after 2
+        run: |
+          set -o pipefail
+          godot --headless --path . --quit-after 2 2>&1 | tee /tmp/godot-boot.log
+          if grep -E "SCRIPT ERROR:|Parse Error:|ERROR: Failed to load script|FATAL:" /tmp/godot-boot.log; then
+            echo "::error::Godot boot emitted a script/fatal diagnostic."
+            exit 1
+          fi
 
       - name: Run domain tests
         run: godot --headless --path . --script res://tests/test_runner.gd
 
       - name: Export Web build
         run: |
+          set -o pipefail
           mkdir -p build/web
-          godot --headless --path . --export-release "Web" build/web/index.html
+          godot --headless --path . --export-release "Web" build/web/index.html 2>&1 | tee /tmp/godot-export.log
+          if grep -E "SCRIPT ERROR:|Parse Error:|ERROR: Failed to load script|FATAL:" /tmp/godot-export.log; then
+            echo "::error::Godot export emitted a script/fatal diagnostic."
+            exit 1
+          fi
           test -f build/web/index.html
 
       - name: Setup Node
