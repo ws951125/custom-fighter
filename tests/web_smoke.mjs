@@ -95,6 +95,8 @@ try {
       godotReady: document.documentElement.dataset.godotReady ?? null,
       dummyHp: document.documentElement.dataset.dummyHp ?? null,
       playerState: document.documentElement.dataset.playerState ?? null,
+      skillLoaded: document.documentElement.dataset.skillLoaded ?? null,
+      skillPhase: document.documentElement.dataset.skillPhase ?? null,
       statusText: document.querySelector('#status-notice')?.textContent?.trim() ?? null,
       statusHtml: document.querySelector('#status')?.innerHTML?.slice(0, 2000) ?? null,
       crossOriginIsolated: globalThis.crossOriginIsolated ?? null,
@@ -139,8 +141,63 @@ try {
   const initialHp = await readNumber('dummyHp');
   const initialX = await readNumber('playerX');
   const initialDummyX = await readNumber('dummyX');
-  if (initialHp !== 100 || !Number.isFinite(initialX) || !Number.isFinite(initialDummyX)) {
-    throw new Error(`Unexpected initial state: hp=${initialHp} playerX=${initialX} dummyX=${initialDummyX}`);
+  const initialMp = await readNumber('playerMp');
+  if (
+    initialHp !== 100 ||
+    initialMp !== 100 ||
+    !Number.isFinite(initialX) ||
+    !Number.isFinite(initialDummyX) ||
+    (await readText('skillLoaded')) !== 'true' ||
+    (await readText('skillId')) !== 'fireball_001'
+  ) {
+    throw new Error(
+      `Unexpected initial state: hp=${initialHp} mp=${initialMp} playerX=${initialX} dummyX=${initialDummyX} skillLoaded=${await readText('skillLoaded')} skillId=${await readText('skillId')}`,
+    );
+  }
+
+  // M2: the fireball must spend JSON-configured MP, respect startup, spawn a projectile,
+  // travel through the real arena, and apply JSON-configured damage/knockback on impact.
+  await page.keyboard.press('u');
+  await page.waitForFunction(
+    () =>
+      Number(document.documentElement.dataset.playerMp) === 75 &&
+      document.documentElement.dataset.skillPhase === 'STARTUP',
+    null,
+    { timeout: 2_000 },
+  );
+  await page.waitForFunction(
+    () => document.documentElement.dataset.projectileActive === 'true',
+    null,
+    { timeout: 2_000 },
+  );
+  const projectileSpawnX = await readNumber('projectileX');
+  await page.waitForFunction(
+    (spawnX) => Number(document.documentElement.dataset.projectileX) > spawnX + 80,
+    projectileSpawnX,
+    { timeout: 2_000 },
+  );
+  await page.waitForFunction(
+    () =>
+      Number(document.documentElement.dataset.skillHitCount) === 1 &&
+      Number(document.documentElement.dataset.dummyHp) === 82 &&
+      document.documentElement.dataset.lastSkillHit === 'true' &&
+      document.documentElement.dataset.projectileActive === 'false',
+    null,
+    { timeout: 3_000 },
+  );
+
+  const cooldownAfterHit = await readNumber('skillCooldown');
+  if (!(cooldownAfterHit > 0)) {
+    throw new Error(`Expected fireball cooldown after impact; got ${cooldownAfterHit}`);
+  }
+
+  // Re-casting during cooldown must not spend MP or create a second hit.
+  await page.keyboard.press('u');
+  await page.waitForTimeout(180);
+  if ((await readNumber('playerMp')) !== 75 || (await readNumber('skillHitCount')) !== 1) {
+    throw new Error(
+      `Cooldown did not reject recast: mp=${await readNumber('playerMp')} hitCount=${await readNumber('skillHitCount')}`,
+    );
   }
 
   await page.keyboard.down('l');
@@ -212,9 +269,9 @@ try {
   await approachDummy();
 
   const comboExpectations = [
-    { step: 1, hp: 88, waitAfterMs: 180 },
-    { step: 2, hp: 74, waitAfterMs: 200 },
-    { step: 3, hp: 54, waitAfterMs: 100 },
+    { step: 1, hp: 70, waitAfterMs: 180 },
+    { step: 2, hp: 56, waitAfterMs: 200 },
+    { step: 3, hp: 36, waitAfterMs: 100 },
   ];
 
   for (const expected of comboExpectations) {
@@ -268,8 +325,8 @@ try {
 
   const hpAfterCombo = await readNumber('dummyHp');
   const dummyXAfterCombo = await readNumber('dummyX');
-  if (hpAfterCombo !== 54) {
-    throw new Error(`Expected three-hit combo to leave 54 HP; dummy HP is ${hpAfterCombo}`);
+  if (hpAfterCombo !== 36) {
+    throw new Error(`Expected fireball + three-hit combo to leave 36 HP; dummy HP is ${hpAfterCombo}`);
   }
   if (!(dummyXAfterCombo > initialDummyX + 20)) {
     throw new Error(`Expected visible knockback: initialDummyX=${initialDummyX} afterCombo=${dummyXAfterCombo}`);
@@ -278,15 +335,15 @@ try {
   await approachDummy();
   await page.keyboard.press('j');
   await page.waitForFunction(
-    () => Number(document.documentElement.dataset.dummyHp) === 42,
+    () => Number(document.documentElement.dataset.dummyHp) === 24,
     null,
     { timeout: 3_000 },
   );
 
   const hpAfterRecoveryHit = await readNumber('dummyHp');
   const finalState = await readText('playerState');
-  if (hpAfterRecoveryHit !== 42) {
-    throw new Error(`Expected first post-recovery hit to leave 42 HP; got ${hpAfterRecoveryHit}`);
+  if (hpAfterRecoveryHit !== 24) {
+    throw new Error(`Expected first post-recovery hit to leave 24 HP; got ${hpAfterRecoveryHit}`);
   }
 
   if (pageErrors.length > 0 || consoleErrors.length > 0) {
@@ -296,7 +353,7 @@ try {
   }
 
   console.log(
-    `WEB_KNOCKDOWN_SMOKE_PASSED startupMs=${startupMs} initialX=${initialX} afterDash=${afterDashX} hpAfterCombo=${hpAfterCombo} hpAfterRecoveryHit=${hpAfterRecoveryHit} dummyX=${dummyXAfterCombo} finalState=${finalState}`,
+    `WEB_SKILL_AND_KNOCKDOWN_SMOKE_PASSED startupMs=${startupMs} fireballDamage=18 mpAfterCast=75 cooldownAfterHit=${cooldownAfterHit} projectileSpawnX=${projectileSpawnX} afterDash=${afterDashX} hpAfterCombo=${hpAfterCombo} hpAfterRecoveryHit=${hpAfterRecoveryHit} dummyX=${dummyXAfterCombo} finalState=${finalState}`,
   );
 } finally {
   await browser.close();
