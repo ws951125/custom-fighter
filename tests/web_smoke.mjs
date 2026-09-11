@@ -94,6 +94,16 @@ async function approachDummy(minGap = 50, maxGap = 105) {
   return { currentX, currentDummyX, gap };
 }
 
+async function waitForComboRecovery(expectedStep, timeout = 1_500) {
+  await page.waitForFunction(
+    (step) =>
+      document.documentElement.dataset.playerState === 'READY' &&
+      Number(document.documentElement.dataset.comboStep) === step,
+    expectedStep,
+    { timeout },
+  );
+}
+
 try {
   const startupStartedAt = Date.now();
   const response = await page.goto(baseUrl, {
@@ -326,9 +336,9 @@ try {
   await approachDummy();
 
   const comboExpectations = [
-    { step: 1, hp: 54, waitAfterMs: 180 },
-    { step: 2, hp: 40, waitAfterMs: 200 },
-    { step: 3, hp: 20, waitAfterMs: 100 },
+    { step: 1, hp: 54 },
+    { step: 2, hp: 40 },
+    { step: 3, hp: 20 },
   ];
   for (const expected of comboExpectations) {
     // Hold J across at least one Godot frame. A synthetic press can otherwise go down/up
@@ -342,7 +352,12 @@ try {
       expected,
       { timeout: 3_000 },
     );
-    await page.waitForTimeout(expected.waitAfterMs);
+
+    // Do not guess a runner-specific delay. The next combo input is legal as soon as the
+    // current attack recovery ends while the combo step is still armed.
+    if (expected.step < 3) {
+      await waitForComboRecovery(expected.step);
+    }
   }
 
   await page.waitForFunction(
