@@ -85,6 +85,8 @@ try {
       playerState: document.documentElement.dataset.playerState ?? null,
       skillLoaded: document.documentElement.dataset.skillLoaded ?? null,
       skillPhase: document.documentElement.dataset.skillPhase ?? null,
+      dashSkillLoaded: document.documentElement.dataset.dashSkillLoaded ?? null,
+      dashSkillPhase: document.documentElement.dataset.dashSkillPhase ?? null,
       statusText: document.querySelector('#status-notice')?.textContent?.trim() ?? null,
       statusHtml: document.querySelector('#status')?.innerHTML?.slice(0, 2000) ?? null,
       crossOriginIsolated: globalThis.crossOriginIsolated ?? null,
@@ -134,16 +136,16 @@ try {
     !Number.isFinite(initialX) ||
     !Number.isFinite(initialDummyX) ||
     (await readText('skillLoaded')) !== 'true' ||
-    (await readText('skillId')) !== 'fireball_001'
+    (await readText('skillId')) !== 'fireball_001' ||
+    (await readText('dashSkillLoaded')) !== 'true' ||
+    (await readText('dashSkillId')) !== 'dash_slash_001'
   ) {
     throw new Error(
-      `Unexpected initial state: hp=${initialHp} mp=${initialMp} playerX=${initialX} dummyX=${initialDummyX} skillLoaded=${await readText('skillLoaded')} skillId=${await readText('skillId')}`,
+      `Unexpected initial state: hp=${initialHp} mp=${initialMp} playerX=${initialX} dummyX=${initialDummyX} fireball=${await readText('skillId')} dash=${await readText('dashSkillId')}`,
     );
   }
 
-  // M2 browser evidence deliberately relies on persistent outcomes rather than trying to
-  // catch the 220 ms STARTUP phase. Exact startup/active/recovery timing is covered by
-  // domain tests; the browser test proves the real input, resource spend, travel, hit and cooldown.
+  // Skill 1: persistent browser evidence for the JSON-driven projectile.
   await page.keyboard.press('u');
   await page.waitForFunction(
     () => Number(document.documentElement.dataset.playerMp) === 75,
@@ -156,11 +158,10 @@ try {
     throw new Error(`Expected fireball cooldown immediately after cast; got ${cooldownAfterCast}`);
   }
 
-  // A second input while the first cast/cooldown is active must not spend another 25 MP.
   await page.keyboard.press('u');
   await page.waitForTimeout(150);
   if ((await readNumber('playerMp')) !== 75) {
-    throw new Error(`Cooldown/active cast did not reject recast: mp=${await readNumber('playerMp')}`);
+    throw new Error(`Fireball cooldown/active cast did not reject recast: mp=${await readNumber('playerMp')}`);
   }
 
   await page.waitForFunction(
@@ -185,7 +186,7 @@ try {
     { timeout: 4_000 },
   );
 
-  // Regression: M1 guard/jump/run/dash remain wired through the real browser input layer.
+  // Regression: M1 guard/jump/run/standard dash remain wired through browser input.
   await page.keyboard.down('l');
   await page.waitForFunction(
     () => document.documentElement.dataset.playerGuarding === 'true',
@@ -249,14 +250,63 @@ try {
   );
   const afterDashX = await readNumber('playerX');
   if (!(afterDashX > afterRunX + 120)) {
-    throw new Error(`Dash distance too small: before=${afterRunX} after=${afterDashX}`);
+    throw new Error(`Standard dash distance too small: before=${afterRunX} after=${afterDashX}`);
   }
+
+  // Skill 2: I must spend its JSON MP cost, move the player through the arena, hit once,
+  // apply JSON damage/knockback, and reject a duplicate cast during cooldown.
+  const dashSkillStartX = await readNumber('playerX');
+  await page.keyboard.press('i');
+  await page.waitForFunction(
+    () => Number(document.documentElement.dataset.playerMp) === 55,
+    null,
+    { timeout: 3_000 },
+  );
+
+  const dashCooldownAfterCast = await readNumber('dashSkillCooldown');
+  if (!(dashCooldownAfterCast > 0)) {
+    throw new Error(`Expected dash skill cooldown immediately after cast; got ${dashCooldownAfterCast}`);
+  }
+
+  await page.keyboard.press('i');
+  await page.waitForTimeout(120);
+  if ((await readNumber('playerMp')) !== 55) {
+    throw new Error(`Dash skill cooldown/active cast did not reject recast: mp=${await readNumber('playerMp')}`);
+  }
+
+  await page.waitForFunction(
+    () =>
+      Number(document.documentElement.dataset.dashSkillHitCount) === 1 &&
+      Number(document.documentElement.dataset.dummyHp) === 66 &&
+      document.documentElement.dataset.lastDashSkillHit === 'true',
+    null,
+    { timeout: 4_000 },
+  );
+  await page.waitForFunction(
+    () => document.documentElement.dataset.dashSkillActive === 'false',
+    null,
+    { timeout: 2_000 },
+  );
+
+  const afterDashSkillX = await readNumber('playerX');
+  const dashSkillTravelled = await readNumber('dashSkillTravelled');
+  if (!(afterDashSkillX > dashSkillStartX + 200 && dashSkillTravelled >= 250)) {
+    throw new Error(
+      `Dash skill did not demonstrate configured travel: start=${dashSkillStartX} end=${afterDashSkillX} travelled=${dashSkillTravelled}`,
+    );
+  }
+
+  await page.waitForFunction(
+    () => document.documentElement.dataset.dashSkillCanCast === 'true',
+    null,
+    { timeout: 5_000 },
+  );
 
   await approachDummy();
   const comboExpectations = [
-    { step: 1, hp: 70, waitAfterMs: 180 },
-    { step: 2, hp: 56, waitAfterMs: 200 },
-    { step: 3, hp: 36, waitAfterMs: 100 },
+    { step: 1, hp: 54, waitAfterMs: 180 },
+    { step: 2, hp: 40, waitAfterMs: 200 },
+    { step: 3, hp: 20, waitAfterMs: 100 },
   ];
 
   for (const expected of comboExpectations) {
@@ -306,8 +356,8 @@ try {
 
   const hpAfterCombo = await readNumber('dummyHp');
   const dummyXAfterCombo = await readNumber('dummyX');
-  if (hpAfterCombo !== 36) {
-    throw new Error(`Expected fireball + three-hit combo to leave 36 HP; dummy HP is ${hpAfterCombo}`);
+  if (hpAfterCombo !== 20) {
+    throw new Error(`Expected fireball + dash skill + three-hit combo to leave 20 HP; dummy HP is ${hpAfterCombo}`);
   }
   if (!(dummyXAfterCombo > initialDummyX + 20)) {
     throw new Error(`Expected visible knockback: initialDummyX=${initialDummyX} afterCombo=${dummyXAfterCombo}`);
@@ -316,15 +366,15 @@ try {
   await approachDummy();
   await page.keyboard.press('j');
   await page.waitForFunction(
-    () => Number(document.documentElement.dataset.dummyHp) === 24,
+    () => Number(document.documentElement.dataset.dummyHp) === 8,
     null,
     { timeout: 3_000 },
   );
 
   const hpAfterRecoveryHit = await readNumber('dummyHp');
   const finalState = await readText('playerState');
-  if (hpAfterRecoveryHit !== 24) {
-    throw new Error(`Expected first post-recovery hit to leave 24 HP; got ${hpAfterRecoveryHit}`);
+  if (hpAfterRecoveryHit !== 8) {
+    throw new Error(`Expected first post-recovery hit to leave 8 HP; got ${hpAfterRecoveryHit}`);
   }
 
   if (pageErrors.length > 0 || consoleErrors.length > 0) {
@@ -334,7 +384,7 @@ try {
   }
 
   console.log(
-    `WEB_SKILL_AND_KNOCKDOWN_SMOKE_PASSED startupMs=${startupMs} fireballDamage=18 mpAfterCast=75 cooldownAfterCast=${cooldownAfterCast} projectileImpactX=${projectileImpactX} afterDash=${afterDashX} hpAfterCombo=${hpAfterCombo} hpAfterRecoveryHit=${hpAfterRecoveryHit} dummyX=${dummyXAfterCombo} finalState=${finalState}`,
+    `WEB_MULTI_SKILL_SMOKE_PASSED startupMs=${startupMs} fireballDamage=18 dashDamage=16 mpAfterSkills=55 fireballCooldown=${cooldownAfterCast} dashCooldown=${dashCooldownAfterCast} projectileImpactX=${projectileImpactX} standardDashX=${afterDashX} dashSkillX=${afterDashSkillX} dashTravelled=${dashSkillTravelled} hpAfterCombo=${hpAfterCombo} hpAfterRecoveryHit=${hpAfterRecoveryHit} dummyX=${dummyXAfterCombo} finalState=${finalState}`,
   );
 } finally {
   await browser.close();
