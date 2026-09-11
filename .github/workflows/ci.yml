@@ -67,6 +67,9 @@ jobs:
           fi
           test -f build/web/index.html
 
+      - name: Enforce Web build size budget
+        run: python3 tools/check_web_size.py build/web
+
       - name: Setup Node
         uses: actions/setup-node@v5
         with:
