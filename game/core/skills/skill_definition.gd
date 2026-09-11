@@ -95,6 +95,8 @@ func load_from_dictionary(data: Dictionary) -> PackedStringArray:
 
 	if skill_type == "projectile" or skill_type == "dash":
 		_validate_motion_skill(errors)
+	elif skill_type == "area":
+		_validate_area_skill(errors)
 
 	loaded = errors.is_empty()
 	return errors
@@ -108,3 +110,9 @@ func _validate_motion_skill(errors: PackedStringArray) -> void:
 		errors.append("%s active duration must be positive" % skill_type)
 	if hitbox_half_width <= 0.0 or hitbox_half_depth <= 0.0:
 		errors.append("%s hitbox dimensions must be positive" % skill_type)
+
+func _validate_area_skill(errors: PackedStringArray) -> void:
+	if active <= 0.0:
+		errors.append("area active duration must be positive")
+	if hitbox_half_width <= 0.0 or hitbox_half_depth <= 0.0:
+		errors.append("area hitbox dimensions must be positive")
