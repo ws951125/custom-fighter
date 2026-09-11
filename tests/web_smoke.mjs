@@ -54,35 +54,44 @@ async function approachDummy(minGap = 50, maxGap = 105) {
   await waitForDummyToSettle();
   let currentX = await readNumber('playerX');
   let currentDummyX = await readNumber('dummyX');
+  let gap = currentDummyX - currentX;
+  const stagingGap = maxGap + 55;
 
-  for (let step = 0; step < 70; step += 1) {
-    const gap = currentDummyX - currentX;
-    if (gap >= minGap && gap <= maxGap) break;
-    await nudge(gap > maxGap ? 'd' : 'a');
+  // Always stage on the dummy's left side first. This matters after Dash Slash because
+  // it can carry the player through the target; melee attacks use the player's facing.
+  for (let step = 0; step < 90 && gap < stagingGap; step += 1) {
+    await nudge('a');
     currentX = await readNumber('playerX');
     currentDummyX = await readNumber('dummyX');
+    gap = currentDummyX - currentX;
+  }
+
+  if (gap < stagingGap) {
+    throw new Error(
+      `Failed to stage left of dummy: playerX=${currentX} dummyX=${currentDummyX} gap=${gap}`,
+    );
+  }
+
+  // Approach only with D so the final movement input guarantees the player faces right
+  // toward the dummy before the J combo begins.
+  for (let step = 0; step < 90 && gap > maxGap; step += 1) {
+    await nudge('d');
+    currentX = await readNumber('playerX');
+    currentDummyX = await readNumber('dummyX');
+    gap = currentDummyX - currentX;
   }
 
   await waitForDummyToSettle();
   currentX = await readNumber('playerX');
   currentDummyX = await readNumber('dummyX');
-  let finalGap = currentDummyX - currentX;
+  gap = currentDummyX - currentX;
 
-  // One final correction after the target has fully settled prevents runner frame-rate
-  // differences from turning a valid attack into a test-only miss.
-  for (let step = 0; step < 20 && (finalGap < minGap || finalGap > maxGap); step += 1) {
-    await nudge(finalGap > maxGap ? 'd' : 'a');
-    currentX = await readNumber('playerX');
-    currentDummyX = await readNumber('dummyX');
-    finalGap = currentDummyX - currentX;
-  }
-
-  if (finalGap < minGap || finalGap > maxGap) {
+  if (gap < minGap || gap > maxGap) {
     throw new Error(
-      `Failed to stabilize attack range: playerX=${currentX} dummyX=${currentDummyX} gap=${finalGap}`,
+      `Failed to stabilize attack range: playerX=${currentX} dummyX=${currentDummyX} gap=${gap}`,
     );
   }
-  return { currentX, currentDummyX, gap: finalGap };
+  return { currentX, currentDummyX, gap };
 }
 
 try {
