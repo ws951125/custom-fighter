@@ -546,7 +546,7 @@ func _draw_meter(at: Vector2, width: float, current: int, maximum: int, fill_col
 	draw_rect(Rect2(at, Vector2(width, 18.0)), Color("e6edf8"), false, 2.0)
 
 func _draw_skill_cooldown_meter(at: Vector2, width: float, cast_state, fill_color: Color) -> void:
-	var ready_ratio := 1.0 - cast_state.cooldown_ratio()
+	var ready_ratio: float = 1.0 - float(cast_state.cooldown_ratio())
 	draw_rect(Rect2(at, Vector2(width, 12.0)), Color("30394f"))
 	draw_rect(Rect2(at, Vector2(width * ready_ratio, 12.0)), fill_color)
 	draw_rect(Rect2(at, Vector2(width, 12.0)), Color("e6edf8"), false, 2.0)
