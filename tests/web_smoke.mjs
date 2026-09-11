@@ -39,21 +39,38 @@ async function readText(datasetKey) {
   return String(await page.evaluate((key) => document.documentElement.dataset[key] ?? '', datasetKey));
 }
 
-async function approachDummy(maxGap = 105) {
+async function nudge(key, holdMs = 45) {
+  await page.keyboard.down(key);
+  await page.waitForTimeout(holdMs);
+  await page.keyboard.up(key);
+  await page.waitForTimeout(25);
+}
+
+async function approachDummy(minGap = 50, maxGap = 105) {
   let currentX = await readNumber('playerX');
   let currentDummyX = await readNumber('dummyX');
-  for (let step = 0; step < 45 && currentDummyX - currentX > maxGap; step += 1) {
-    await page.keyboard.down('d');
-    await page.waitForTimeout(55);
-    await page.keyboard.up('d');
-    await page.waitForTimeout(25);
+
+  for (let step = 0; step < 60; step += 1) {
+    const gap = currentDummyX - currentX;
+    if (gap >= minGap && gap <= maxGap) break;
+
+    if (gap > maxGap) {
+      await nudge('d');
+    } else {
+      await nudge('a');
+    }
+
     currentX = await readNumber('playerX');
     currentDummyX = await readNumber('dummyX');
   }
-  if (currentDummyX - currentX > 125 || currentDummyX - currentX < 20) {
-    throw new Error(`Failed to approach attack range: playerX=${currentX} dummyX=${currentDummyX}`);
+
+  const finalGap = currentDummyX - currentX;
+  if (finalGap < minGap || finalGap > maxGap) {
+    throw new Error(
+      `Failed to stabilize attack range: playerX=${currentX} dummyX=${currentDummyX} gap=${finalGap}`,
+    );
   }
-  return { currentX, currentDummyX };
+  return { currentX, currentDummyX, gap: finalGap };
 }
 
 try {
