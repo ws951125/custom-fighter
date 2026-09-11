@@ -1,0 +1,107 @@
+class_name SkillDefinition
+extends RefCounted
+
+const SUPPORTED_TYPES = ["melee", "projectile", "area", "dash", "formation", "buff"]
+const CURRENT_SCHEMA_VERSION := 1
+
+var schema_version := CURRENT_SCHEMA_VERSION
+var skill_id := ""
+var skill_name := ""
+var skill_type := ""
+var damage := 0
+var mp_cost := 0
+var cooldown := 0.0
+var startup := 0.0
+var active := 0.0
+var recovery := 0.0
+var speed := 0.0
+var range := 0.0
+var hitstun := 0.0
+var knockback := 0.0
+var hitbox_half_width := 24.0
+var hitbox_half_depth := 0.08
+var visual := ""
+var impact_visual := ""
+var loaded := false
+
+func load_from_file(path: String) -> PackedStringArray:
+	loaded = false
+	var errors := PackedStringArray()
+	var raw := FileAccess.get_file_as_string(path)
+	if raw.is_empty():
+		errors.append("skill file is empty or missing: %s" % path)
+		return errors
+
+	var parsed = JSON.parse_string(raw)
+	if typeof(parsed) != TYPE_DICTIONARY:
+		errors.append("skill file must contain one JSON object: %s" % path)
+		return errors
+
+	return load_from_dictionary(parsed)
+
+func load_from_dictionary(data: Dictionary) -> PackedStringArray:
+	loaded = false
+	var errors := PackedStringArray()
+	var required_fields := [
+		"schema_version", "id", "name", "type", "damage", "mp_cost", "cooldown",
+		"startup", "active", "recovery", "visual", "impact_visual"
+	]
+	for field in required_fields:
+		if not data.has(field):
+			errors.append("missing required field: %s" % field)
+
+	if not errors.is_empty():
+		return errors
+
+	schema_version = int(data.get("schema_version", 0))
+	skill_id = str(data.get("id", "")).strip_edges()
+	skill_name = str(data.get("name", "")).strip_edges()
+	skill_type = str(data.get("type", "")).strip_edges().to_lower()
+	damage = int(data.get("damage", 0))
+	mp_cost = int(data.get("mp_cost", 0))
+	cooldown = float(data.get("cooldown", 0.0))
+	startup = float(data.get("startup", 0.0))
+	active = float(data.get("active", 0.0))
+	recovery = float(data.get("recovery", 0.0))
+	speed = float(data.get("speed", 0.0))
+	range = float(data.get("range", 0.0))
+	hitstun = float(data.get("hitstun", 0.0))
+	knockback = float(data.get("knockback", 0.0))
+	hitbox_half_width = float(data.get("hitbox_half_width", 24.0))
+	hitbox_half_depth = float(data.get("hitbox_half_depth", 0.08))
+	visual = str(data.get("visual", "")).strip_edges()
+	impact_visual = str(data.get("impact_visual", "")).strip_edges()
+
+	if schema_version != CURRENT_SCHEMA_VERSION:
+		errors.append("unsupported schema_version: %d" % schema_version)
+	if skill_id.is_empty():
+		errors.append("id must not be empty")
+	if skill_name.is_empty():
+		errors.append("name must not be empty")
+	if not SUPPORTED_TYPES.has(skill_type):
+		errors.append("unsupported skill type: %s" % skill_type)
+	if damage < 0:
+		errors.append("damage must be non-negative")
+	if mp_cost < 0:
+		errors.append("mp_cost must be non-negative")
+	if cooldown < 0.0:
+		errors.append("cooldown must be non-negative")
+	if startup < 0.0 or active < 0.0 or recovery < 0.0:
+		errors.append("startup/active/recovery must be non-negative")
+	if hitstun < 0.0 or knockback < 0.0:
+		errors.append("hitstun/knockback must be non-negative")
+	if visual.is_empty() or impact_visual.is_empty():
+		errors.append("visual and impact_visual must not be empty")
+
+	if skill_type == "projectile":
+		if speed <= 0.0:
+			errors.append("projectile speed must be positive")
+		if range <= 0.0:
+			errors.append("projectile range must be positive")
+		if active <= 0.0:
+			errors.append("projectile active duration must be positive")
+		if hitbox_half_width <= 0.0 or hitbox_half_depth <= 0.0:
+			errors.append("projectile hitbox dimensions must be positive")
+
+	loaded = errors.is_empty()
+	return errors
