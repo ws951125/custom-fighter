@@ -2,14 +2,16 @@ extends Control
 
 const CombatantState = preload("res://game/core/combat/combatant_state.gd")
 const MovementState = preload("res://game/core/movement/movement_state.gd")
+const CombatBox = preload("res://game/core/combat/combat_box.gd")
+const AttackChainState = preload("res://game/core/combat/attack_chain_state.gd")
+const KnockbackState = preload("res://game/core/combat/knockback_state.gd")
 
 const MOVE_SPEED := 360.0
 const DEPTH_SPEED := 0.72
 const RUN_MULTIPLIER := 1.60
 const GUARD_MOVE_MULTIPLIER := 0.35
-const ATTACK_DAMAGE := 20
-const ATTACK_REACH_X := 128.0
-const ATTACK_REACH_DEPTH := 0.20
+const DUMMY_HURTBOX_HALF_WIDTH := 30.0
+const DUMMY_HURTBOX_HALF_DEPTH := 0.11
 
 var player_x := 280.0
 var player_depth := 0.58
@@ -17,7 +19,7 @@ var player_facing := 1.0
 var dummy_x := 860.0
 var dummy_depth := 0.58
 
-var attack_timer := 0.0
+var attack_visual_timer := 0.0
 var attack_latched := false
 var jump_latched := false
 var dash_latched := false
@@ -25,17 +27,21 @@ var player_guarding := false
 var player_running := false
 var dummy_hit_timer := 0.0
 var web_sync_accumulator := 0.0
+var last_attack_step := 0
+var last_attack_hit := false
 
 var dummy_state := CombatantState.new(100, 0)
 var movement_state := MovementState.new()
+var attack_chain_state := AttackChainState.new()
+var dummy_knockback_state := KnockbackState.new()
 var status_label: Label
 
 func _ready() -> void:
 	_ensure_input_actions()
 	_create_label("CUSTOM FIGHTER", Vector2(48, 28), 34)
-	_create_label("Milestone 1 · Movement actions", Vector2(50, 72), 20)
+	_create_label("Milestone 1 · Combo / Hitbox / Knockback", Vector2(50, 72), 20)
 	_create_label("Move: WASD / Arrows   Run: Shift   Jump: Space   Attack: J   Dash: K   Guard: L", Vector2(50, 108), 16)
-	_create_label("Training goal: move freely, then approach the dummy and land a hit", Vector2(50, 138), 15)
+	_create_label("Training goal: approach the dummy and press J three times for the full combo", Vector2(50, 138), 15)
 	status_label = _create_label("", Vector2(50, 174), 17)
 
 	_set_web_state()
@@ -44,6 +50,10 @@ func _ready() -> void:
 func _process(delta: float) -> void:
 	_handle_action_edges()
 	movement_state.tick(delta)
+	attack_chain_state.tick(delta)
+
+	dummy_x += dummy_knockback_state.tick(delta)
+	dummy_x = clampf(dummy_x, 90.0, maxf(size.x, 1280.0) - 90.0)
 
 	var move_vector := Vector2(
 		Input.get_axis("move_left", "move_right"),
@@ -58,6 +68,7 @@ func _process(delta: float) -> void:
 		and move_vector.length_squared() > 0.01
 		and not player_guarding
 		and not movement_state.is_dashing()
+		and not attack_chain_state.is_attacking()
 	)
 
 	if movement_state.is_dashing():
@@ -66,6 +77,8 @@ func _process(delta: float) -> void:
 		var speed_multiplier := RUN_MULTIPLIER if player_running else 1.0
 		if player_guarding:
 			speed_multiplier *= GUARD_MOVE_MULTIPLIER
+		if attack_chain_state.is_attacking():
+			speed_multiplier *= 0.30
 		player_x += move_vector.x * MOVE_SPEED * speed_multiplier * delta
 		player_depth += move_vector.y * DEPTH_SPEED * speed_multiplier * delta
 
@@ -79,14 +92,15 @@ func _process(delta: float) -> void:
 		_begin_attack()
 	attack_latched = attacking
 
-	attack_timer = maxf(0.0, attack_timer - delta)
+	attack_visual_timer = maxf(0.0, attack_visual_timer - delta)
 	dummy_hit_timer = maxf(0.0, dummy_hit_timer - delta)
 	dummy_state.tick(delta)
 
-	status_label.text = "Dummy HP: %d / %d    Distance: %d    State: %s" % [
+	status_label.text = "Dummy HP: %d / %d    Distance: %d    Combo: %d    State: %s" % [
 		dummy_state.hp,
 		dummy_state.max_hp,
 		roundi(absf(dummy_x - player_x)),
+		attack_chain_state.combo_step,
 		_player_state_name()
 	]
 
@@ -109,22 +123,51 @@ func _handle_action_edges() -> void:
 		and not dash_latched
 		and not Input.is_action_pressed("guard")
 		and not movement_state.jumping
+		and not attack_chain_state.is_attacking()
 	):
 		movement_state.start_dash(player_facing)
 		_set_web_state()
 	dash_latched = dash_pressed
 
 func _begin_attack() -> void:
-	attack_timer = 0.22
-	var facing_dummy := signf(dummy_x - player_x) == player_facing or absf(dummy_x - player_x) < 1.0
-	var in_horizontal_range := absf(dummy_x - player_x) <= ATTACK_REACH_X
-	var in_depth_range := absf(dummy_depth - player_depth) <= ATTACK_REACH_DEPTH
+	var step := attack_chain_state.try_start_attack()
+	if step == 0:
+		return
 
-	if facing_dummy and in_horizontal_range and in_depth_range and not dummy_state.is_defeated():
-		dummy_state.apply_damage(ATTACK_DAMAGE)
-		dummy_state.apply_hitstun(0.20)
-		dummy_hit_timer = 0.20
-		_set_web_state()
+	last_attack_step = step
+	last_attack_hit = false
+	attack_visual_timer = attack_chain_state.visual_duration_for_step(step)
+
+	var hitbox := _attack_hitbox(step)
+	var hurtbox := _dummy_hurtbox()
+	if hitbox.overlaps(hurtbox) and not dummy_state.is_defeated():
+		dummy_state.apply_damage(attack_chain_state.damage_for_step(step))
+		dummy_state.apply_hitstun(attack_chain_state.hitstun_for_step(step))
+		dummy_knockback_state.apply_impulse(
+			player_facing * attack_chain_state.knockback_for_step(step)
+		)
+		dummy_hit_timer = attack_chain_state.hitstun_for_step(step)
+		last_attack_hit = true
+
+	_set_web_state()
+
+func _attack_hitbox(step: int) -> CombatBox:
+	return CombatBox.new(
+		Vector2(
+			player_x + player_facing * attack_chain_state.hitbox_offset_for_step(step),
+			player_depth
+		),
+		Vector2(
+			attack_chain_state.hitbox_half_width_for_step(step),
+			attack_chain_state.hitbox_half_depth_for_step(step)
+		)
+	)
+
+func _dummy_hurtbox() -> CombatBox:
+	return CombatBox.new(
+		Vector2(dummy_x, dummy_depth),
+		Vector2(DUMMY_HURTBOX_HALF_WIDTH, DUMMY_HURTBOX_HALF_DEPTH)
+	)
 
 func _draw() -> void:
 	var canvas_width := maxf(size.x, 1280.0)
@@ -151,6 +194,8 @@ func _draw() -> void:
 
 	if movement_state.is_dashing():
 		_draw_dash_lines(player_ground_feet)
+	if dummy_knockback_state.is_active():
+		_draw_dummy_knockback_lines(dummy_feet)
 
 	if player_depth <= dummy_depth:
 		_draw_fighter(player_ground_feet, Color("62d8ff"), player_facing, false, jump_offset, player_guarding)
@@ -160,18 +205,47 @@ func _draw() -> void:
 		_draw_fighter(player_ground_feet, Color("62d8ff"), player_facing, false, jump_offset, player_guarding)
 
 	_draw_health_bar(Vector2(50.0, 214.0), 320.0, dummy_state.hp, dummy_state.max_hp)
+	_draw_combat_box(_dummy_hurtbox(), arena_top, arena_bottom, Color(1.0, 0.45, 0.52, 0.72))
 
-	if attack_timer > 0.0:
-		var player_y := player_ground_feet.y - jump_offset
-		var effect_center := Vector2(player_x + player_facing * 86.0, player_y - 82.0)
-		draw_circle(effect_center, 34.0, Color(0.35, 0.88, 1.0, 0.20))
-		draw_arc(effect_center, 43.0, 0.0, TAU, 32, Color("b8f3ff"), 5.0)
-		draw_line(
-			Vector2(player_x + player_facing * 38.0, player_y - 68.0),
-			Vector2(player_x + player_facing * 112.0, player_y - 92.0),
-			Color("e8fbff"),
-			7.0
-		)
+	if attack_visual_timer > 0.0 and last_attack_step > 0:
+		var active_hitbox := _attack_hitbox(last_attack_step)
+		var box_color := Color(0.42, 1.0, 0.64, 0.82) if last_attack_hit else Color(0.35, 0.88, 1.0, 0.78)
+		_draw_combat_box(active_hitbox, arena_top, arena_bottom, box_color)
+		_draw_attack_effect(player_ground_feet, jump_offset)
+
+func _draw_attack_effect(player_ground_feet: Vector2, jump_offset: float) -> void:
+	var player_y := player_ground_feet.y - jump_offset
+	var step_scale := 1.0 + float(maxi(0, last_attack_step - 1)) * 0.24
+	var effect_center := Vector2(
+		player_x + player_facing * (78.0 + float(last_attack_step) * 8.0),
+		player_y - 82.0
+	)
+	var effect_color := Color("ffd166") if last_attack_step == 3 else Color("b8f3ff")
+	var glow_color := Color(1.0, 0.72, 0.24, 0.22) if last_attack_step == 3 else Color(0.35, 0.88, 1.0, 0.20)
+
+	draw_circle(effect_center, 30.0 * step_scale, glow_color)
+	draw_arc(effect_center, 40.0 * step_scale, 0.0, TAU, 32, effect_color, 5.0 + float(last_attack_step))
+	draw_line(
+		Vector2(player_x + player_facing * 38.0, player_y - 68.0),
+		Vector2(player_x + player_facing * (104.0 + float(last_attack_step) * 18.0), player_y - 92.0),
+		effect_color,
+		6.0 + float(last_attack_step)
+	)
+	if last_attack_step >= 2:
+		draw_arc(effect_center, 54.0 * step_scale, -1.1, 1.1, 20, effect_color, 3.0)
+	if last_attack_step == 3:
+		draw_circle(effect_center, 12.0, Color("fff2b8"))
+
+func _draw_combat_box(box: CombatBox, arena_top: float, arena_bottom: float, color: Color) -> void:
+	var top_y := lerpf(arena_top, arena_bottom, clampf(box.top(), 0.0, 1.0))
+	var bottom_y := lerpf(arena_top, arena_bottom, clampf(box.bottom(), 0.0, 1.0))
+	var rect := Rect2(
+		Vector2(box.left(), top_y),
+		Vector2(box.right() - box.left(), maxf(4.0, bottom_y - top_y))
+	)
+	var fill_color := Color(color.r, color.g, color.b, 0.08)
+	draw_rect(rect, fill_color, true)
+	draw_rect(rect, color, false, 2.0)
 
 func _draw_health_bar(at: Vector2, width: float, current: int, maximum: int) -> void:
 	var ratio := clampf(float(current) / float(maxi(1, maximum)), 0.0, 1.0)
@@ -232,6 +306,19 @@ func _draw_dash_lines(ground_feet: Vector2) -> void:
 			5.0
 		)
 
+func _draw_dummy_knockback_lines(dummy_feet: Vector2) -> void:
+	var direction := signf(dummy_knockback_state.velocity)
+	if is_zero_approx(direction):
+		return
+	for index in range(3):
+		var y := dummy_feet.y - 80.0 + float(index) * 26.0
+		draw_line(
+			Vector2(dummy_x - direction * 38.0, y),
+			Vector2(dummy_x - direction * (82.0 + float(index) * 16.0), y),
+			Color(1.0, 0.82, 0.42, 0.42 - float(index) * 0.08),
+			4.0
+		)
+
 func _draw_shadow_ellipse(center: Vector2, radii: Vector2, color: Color) -> void:
 	var points := PackedVector2Array()
 	for index in range(25):
@@ -267,6 +354,8 @@ func _player_state_name() -> String:
 		return "DASH"
 	if movement_state.jumping:
 		return "JUMP"
+	if attack_chain_state.is_attacking():
+		return "ATTACK_%d" % attack_chain_state.combo_step
 	if player_running:
 		return "RUN"
 	return "READY"
@@ -277,6 +366,8 @@ func _set_web_state() -> void:
 	JavaScriptBridge.eval(
 		"document.documentElement.dataset.godotReady='true';" +
 		"document.documentElement.dataset.dummyHp='%d';" % dummy_state.hp +
+		"document.documentElement.dataset.dummyX='%.2f';" % dummy_x +
+		"document.documentElement.dataset.dummyKnockbackVelocity='%.2f';" % dummy_knockback_state.velocity +
 		"document.documentElement.dataset.playerX='%.2f';" % player_x +
 		"document.documentElement.dataset.playerDepth='%.3f';" % player_depth +
 		"document.documentElement.dataset.playerJumping='%s';" % _bool_text(movement_state.jumping) +
@@ -285,7 +376,11 @@ func _set_web_state() -> void:
 		"document.documentElement.dataset.playerRunning='%s';" % _bool_text(player_running) +
 		"document.documentElement.dataset.playerGuarding='%s';" % _bool_text(player_guarding) +
 		"document.documentElement.dataset.playerState='%s';" % _player_state_name() +
-		"console.log('CUSTOM_FIGHTER_STATE dummyHp=%d state=%s');" % [dummy_state.hp, _player_state_name()]
+		"document.documentElement.dataset.comboStep='%d';" % attack_chain_state.combo_step +
+		"document.documentElement.dataset.lastHitStep='%d';" % (last_attack_step if last_attack_hit else 0) +
+		"document.documentElement.dataset.lastAttackHit='%s';" % _bool_text(last_attack_hit) +
+		"document.documentElement.dataset.hitboxActive='%s';" % _bool_text(attack_visual_timer > 0.0) +
+		"console.log('CUSTOM_FIGHTER_STATE dummyHp=%d combo=%d state=%s');" % [dummy_state.hp, attack_chain_state.combo_step, _player_state_name()]
 	)
 
 func _bool_text(value: bool) -> String:
