@@ -114,3 +114,32 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+
+  verify-production:
+    name: Verify Public Web Demo
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: deploy-pages
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Verify production URL is publicly reachable
+        env:
+          LIVE_URL: https://ws951125.github.io/custom-fighter/
+        run: |
+          echo "Checking $LIVE_URL"
+          curl \
+            --fail \
+            --silent \
+            --show-error \
+            --location \
+            --retry 12 \
+            --retry-delay 5 \
+            --retry-all-errors \
+            --connect-timeout 10 \
+            --max-time 30 \
+            --output /tmp/custom-fighter-live.html \
+            --write-out 'HTTP %{http_code}\n' \
+            "$LIVE_URL"
+          test -s /tmp/custom-fighter-live.html
+          echo "PUBLIC_WEB_DEMO_REACHABLE"
