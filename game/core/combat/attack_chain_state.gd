@@ -2,13 +2,16 @@ class_name AttackChainState
 extends RefCounted
 
 const COMBO_RESET_SECONDS := 0.62
+const MAX_TIMER_DELTA := 0.10
 
 var combo_step := 0
 var attack_lock_remaining := 0.0
 var combo_reset_remaining := 0.0
 
 func tick(delta: float) -> void:
-	var safe_delta := maxf(0.0, delta)
+	# Browser/Web builds can occasionally produce a very large frame delta after a hitch.
+	# Do not let one unplayable frame consume the entire attack recovery/combo window.
+	var safe_delta := minf(maxf(0.0, delta), MAX_TIMER_DELTA)
 	attack_lock_remaining = maxf(0.0, attack_lock_remaining - safe_delta)
 	combo_reset_remaining = maxf(0.0, combo_reset_remaining - safe_delta)
 	if combo_reset_remaining <= 0.0 and attack_lock_remaining <= 0.0:
