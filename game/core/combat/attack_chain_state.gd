@@ -8,6 +8,7 @@ const HITCH_COMBO_TIMER_DELTA := 0.10
 var combo_step := 0
 var attack_lock_remaining := 0.0
 var combo_reset_remaining := 0.0
+var damage_multiplier := 1.0
 
 func tick(delta: float) -> void:
 	var safe_delta := maxf(0.0, delta)
@@ -33,16 +34,21 @@ func try_start_attack() -> int:
 func is_attacking() -> bool:
 	return attack_lock_remaining > 0.0
 
+func set_damage_multiplier(value: float) -> void:
+	damage_multiplier = maxf(0.0, value)
+
 func damage_for_step(step: int) -> int:
+	var base_damage := 0
 	match step:
 		1:
-			return 12
+			base_damage = 12
 		2:
-			return 14
+			base_damage = 14
 		3:
-			return 20
+			base_damage = 20
 		_:
-			return 0
+			base_damage = 0
+	return roundi(float(base_damage) * damage_multiplier)
 
 func hitbox_half_width_for_step(step: int) -> float:
 	match step:
