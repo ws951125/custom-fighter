@@ -6,7 +6,7 @@ Milestone 3 — Data-driven Character System.
 
 Current active slice: PR #45 / M3 Slice 4 — bind `CharacterDefinition` loadout to the production skill runtime.
 
-Estimated whole-project completion: **38%** across the M0–M8 MVP roadmap. This is an engineering progress estimate based on completed milestone scope, not elapsed time.
+Estimated whole-project completion: **33.3%** across the M0–M8 MVP roadmap under the repository rule that only formally completed milestones count toward the fixed milestone denominator. M0, M1 and M2 are complete; M3 is still in progress.
 
 ## Completed
 
@@ -16,7 +16,7 @@ Estimated whole-project completion: **38%** across the M0–M8 MVP roadmap. This
 - GitHub Actions cloud validation.
 - Web release export and GitHub Pages deployment.
 - PWA/service-worker caching, startup diagnostics and Web size budgets.
-- Cloud-first development rules in `AGENTS.md` and the full repository operating rules in `Agent.md`.
+- GitHub-only development and validation rules in `AGENTS.md`, `Agent.md` and `docs/ONLINE_TESTING.md`.
 
 ### Milestone 1 — Combat Prototype — 100%
 
@@ -80,25 +80,31 @@ PR #45 / M3 Slice 4 binds `CharacterDefinition` loadout data to the actual skill
 - Exposes resolved runtime skill ids/types/sources and loadout-ready state to Web diagnostics.
 - Adds domain and browser regression proving all six runtime/controller skill ids match CharacterDefinition.
 - Adds root `Agent.md` with project-specific development, validation, reporting and PR rules adapted from `poker_master`.
-- Adds `docs/LESSONS_LEARNED.md` as permanent engineering memory and records the first verified Godot parser lesson from PR #45.
+- Adds `docs/LESSONS_LEARNED.md` as permanent engineering memory.
+- Enforces GitHub-only validation across `Agent.md`, `AGENTS.md` and `docs/ONLINE_TESTING.md`: no user-local project testing and no Remote Desktop Commander path are permitted.
+- Hardens `tests/web_smoke.mjs` frame-polled input delivery so U, Space and K are held across a Godot frame/runtime acknowledgement instead of relying on zero-duration synthetic key presses.
 
 Current validation status for PR #45:
 
-- CI Run #84 passed Godot import, main boot, Domain/Character tests, Web export, Web size budget and Chromium `smoke:all` before the documentation-only follow-up commits.
-- Documentation follow-up commits trigger a fresh CI run and must also complete successfully before merge.
-- PR remains open and must not merge until all required validation and final online/browser acceptance are complete.
+- CI Run #84 passed Godot import, main boot, Domain/Character tests, Web export, Web size budget, Chromium `smoke:all` and the GitHub-hosted Windows Microsoft Edge gate.
+- CI Run #87 later passed Godot import, main boot, domain tests, Web export and Web size budget, then failed in Chromium `smoke:web` while waiting for the Jump state after a synthetic `Space` press. Downstream Windows/production jobs were skipped by that upstream failure.
+- The frame-sampling regression is recorded as `L-002` in `docs/LESSONS_LEARNED.md`; the held-input fix has been committed to the PR branch and requires a fresh GitHub Actions pass before it can be marked Verified.
+- The latest PR branch validation is GitHub-only. No local computer or Remote Desktop Commander result may be used as a substitute gate.
+- PR remains open and must not merge until all required GitHub Actions validation and final online/browser acceptance are complete.
 
 ## Online validation
 
-The production pipeline verifies:
+The production pipeline verifies entirely on GitHub infrastructure:
 
-- Godot import and main-scene boot.
+- Godot import and main-scene boot on GitHub-hosted runners.
 - Domain/data tests.
 - Web release export and build-size budget.
-- Chromium `smoke:all`.
-- Windows Microsoft Edge `smoke:all` against the same artifact when available in the validation path.
+- Chromium `smoke:all` against the exported artifact.
+- Windows Microsoft Edge `smoke:all` on a GitHub-hosted Windows runner.
 - GitHub Pages deployment and public reachability.
 - Production browser smoke directly against the deployed game after merge.
+
+If any required GitHub gate is unavailable, failing or blocked, the project records that state as `Blocked` / `Residual Risk`; it does not fall back to the user's local machine.
 
 Live demo:
 
