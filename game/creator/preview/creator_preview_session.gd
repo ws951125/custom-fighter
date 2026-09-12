@@ -22,6 +22,15 @@ var _preview_vfx_png_bytes := PackedByteArray()
 var _preview_active := false
 var revision := 0
 
+func store_drafts(character_data: Dictionary, skill_data: Dictionary) -> PackedStringArray:
+	var errors: PackedStringArray = _validate_drafts(character_data, skill_data)
+	if not errors.is_empty():
+		return errors
+	_draft_character_data = character_data.duplicate(true)
+	_draft_skill_data = skill_data.duplicate(true)
+	revision += 1
+	return PackedStringArray()
+
 func stage_preview(character_data: Dictionary, skill_data: Dictionary) -> PackedStringArray:
 	var errors := _validate_drafts(character_data, skill_data)
 	if not errors.is_empty():
