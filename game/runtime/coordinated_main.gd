@@ -3,13 +3,21 @@ extends "res://game/runtime/main.gd"
 const SkillCoordinator = preload("res://game/core/skills/skill_coordinator.gd")
 const SKILL_1_OWNER := &"skill_1"
 const SKILL_2_OWNER := &"skill_2"
+const SKILL_3_OWNER := &"skill_3"
+const SKILL_4_OWNER := &"skill_4"
+const SKILL_5_OWNER := &"skill_5"
+const SKILL_6_OWNER := &"skill_6"
 
 var skill_coordinator := SkillCoordinator.new()
 
 func _process(delta: float) -> void:
-	_sync_builtin_skill_claims()
+	# Reconcile from the previous rendered frame before the base runtime samples
+	# movement/basic-attack input, then reconcile built-in skills again after they tick.
+	# Child controllers still release eagerly themselves; this central pass makes ownership
+	# deterministic even when browser frame ordering/hitches delay a child release callback.
+	_sync_skill_claims()
 	super(delta)
-	_sync_builtin_skill_claims()
+	_sync_skill_claims()
 
 func _try_cast_fireball() -> void:
 	if not skill_coordinator.try_claim(SKILL_1_OWNER):
@@ -25,7 +33,7 @@ func _try_cast_dash_slash() -> void:
 	if not dash_slash_cast_state.is_casting() and not dash_slash_state.active:
 		skill_coordinator.release(SKILL_2_OWNER)
 
-func _sync_builtin_skill_claims() -> void:
+func _sync_skill_claims() -> void:
 	if skill_coordinator.is_owned_by(SKILL_1_OWNER) and not fireball_cast_state.is_casting():
 		skill_coordinator.release(SKILL_1_OWNER)
 	if (
@@ -34,6 +42,52 @@ func _sync_builtin_skill_claims() -> void:
 		and not dash_slash_state.active
 	):
 		skill_coordinator.release(SKILL_2_OWNER)
+
+	var area_controller = get_node_or_null("AreaSkillController")
+	if (
+		skill_coordinator.is_owned_by(SKILL_3_OWNER)
+		and (
+			area_controller == null
+			or (
+				not area_controller.cast_state.is_casting()
+				and not area_controller.area_state.active
+			)
+		)
+	):
+		skill_coordinator.release(SKILL_3_OWNER)
+
+	var formation_controller = get_node_or_null("FormationSkillController")
+	if (
+		skill_coordinator.is_owned_by(SKILL_4_OWNER)
+		and (
+			formation_controller == null
+			or (
+				not formation_controller.cast_state.is_casting()
+				and not formation_controller.formation_state.active
+			)
+		)
+	):
+		skill_coordinator.release(SKILL_4_OWNER)
+
+	var buff_controller = get_node_or_null("BuffSkillController")
+	if (
+		skill_coordinator.is_owned_by(SKILL_5_OWNER)
+		and (buff_controller == null or not buff_controller.cast_state.is_casting())
+	):
+		skill_coordinator.release(SKILL_5_OWNER)
+
+	var melee_controller = get_node_or_null("MeleeSkillController")
+	if (
+		skill_coordinator.is_owned_by(SKILL_6_OWNER)
+		and (
+			melee_controller == null
+			or (
+				not melee_controller.cast_state.is_casting()
+				and not melee_controller.melee_state.active
+			)
+		)
+	):
+		skill_coordinator.release(SKILL_6_OWNER)
 
 func _any_skill_casting() -> bool:
 	return skill_coordinator.is_busy()
