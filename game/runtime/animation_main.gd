@@ -12,7 +12,7 @@ func _enter_tree() -> void:
 	if not player_character.loaded:
 		return
 
-	var animation_errors := player_animation_map.load_from_id(player_character.animation_map)
+	var animation_errors: PackedStringArray = player_animation_map.load_from_id(player_character.animation_map)
 	if not animation_errors.is_empty():
 		player_animation_load_error = " | ".join(animation_errors)
 		push_error("Failed to load player animation map: %s" % player_animation_load_error)
@@ -23,8 +23,8 @@ func _ready() -> void:
 	_set_web_state()
 
 func _install_preview_return_path() -> void:
-	var session = get_node_or_null("/root/CreatorPreviewSession")
-	if session == null or not session.has_active_preview():
+	var session: Variant = get_node_or_null("/root/CreatorPreviewSession")
+	if not _preview_session_active(session):
 		return
 	preview_return_button = Button.new()
 	preview_return_button.text = "Return to Creator"
@@ -42,10 +42,11 @@ func _install_preview_return_path() -> void:
 		window.customFighterPreviewReturnToCreator = _web_preview_return_callback
 
 func _return_to_creator() -> void:
-	var session = get_node_or_null("/root/CreatorPreviewSession")
-	if session == null or not session.has_stored_drafts():
+	var session: Variant = get_node_or_null("/root/CreatorPreviewSession")
+	if session == null or not session.has_method("has_stored_drafts") or not bool(session.call("has_stored_drafts")):
 		return
-	session.deactivate_preview()
+	if session.has_method("deactivate_preview"):
+		session.call("deactivate_preview")
 	var router = get_parent()
 	if router != null and router.has_method("switch_mode"):
 		router.call_deferred("switch_mode", "creator")
@@ -86,8 +87,8 @@ func _set_web_state() -> void:
 	super()
 	if not OS.has_feature("web"):
 		return
-	var session = get_node_or_null("/root/CreatorPreviewSession")
-	var preview_active := session != null and session.has_active_preview()
+	var session: Variant = get_node_or_null("/root/CreatorPreviewSession")
+	var preview_active: bool = _preview_session_active(session)
 	JavaScriptBridge.eval(
 		"document.documentElement.dataset.playerCharacterAnimationMap=%s;" % JSON.stringify(player_character.animation_map) +
 		"document.documentElement.dataset.playerAnimationMapLoaded='%s';" % _bool_text(player_animation_map.loaded) +
