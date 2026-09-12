@@ -9,7 +9,10 @@ var draft_revision := 0
 var imported_texture: ImageTexture
 var import_error := ""
 var imported := false
+var preview_frame_index := 0
+var preview_elapsed := 0.0
 
+var preview_transform_root: Control
 var preview_texture: TextureRect
 var metadata_label: Label
 var validation_label: Label
@@ -17,6 +20,7 @@ var crop_x_spin: SpinBox
 var crop_y_spin: SpinBox
 var crop_width_spin: SpinBox
 var crop_height_spin: SpinBox
+var frame_count_spin: SpinBox
 var scale_spin: SpinBox
 var offset_x_spin: SpinBox
 var offset_y_spin: SpinBox
@@ -27,6 +31,9 @@ var _web_import_error_callback
 var _web_reset_callback
 var _web_set_crop_callback
 var _web_set_scale_callback
+var _web_set_frame_count_callback
+var _web_set_fps_callback
+var _web_set_offset_callback
 
 func _ready() -> void:
 	_build_ui()
@@ -34,6 +41,28 @@ func _ready() -> void:
 	_refresh_validation(false)
 	_install_web_bridge()
 	_set_web_state()
+
+func _process(delta: float) -> void:
+	if not imported or imported_texture == null:
+		return
+	var errors: PackedStringArray = draft.validate()
+	if not import_error.is_empty() or not errors.is_empty() or draft.frame_count <= 1:
+		if preview_frame_index != 0:
+			preview_frame_index = 0
+			preview_elapsed = 0.0
+			_refresh_preview(import_error.is_empty() and errors.is_empty())
+			_set_web_state(errors)
+		return
+	var seconds_per_frame := 1.0 / draft.fps
+	preview_elapsed += delta
+	var changed := false
+	while preview_elapsed >= seconds_per_frame:
+		preview_elapsed -= seconds_per_frame
+		preview_frame_index = (preview_frame_index + 1) % draft.frame_count
+		changed = true
+	if changed:
+		_refresh_preview(true)
+		_set_web_state(errors)
 
 func _build_ui() -> void:
 	var background := ColorRect.new()
@@ -60,7 +89,7 @@ func _build_ui() -> void:
 	page.add_child(title)
 
 	var subtitle := Label.new()
-	subtitle.text = "M5 · Safe in-memory PNG import, validation and preview"
+	subtitle.text = "M5 · Safe PNG and horizontal sprite-strip animation authoring"
 	subtitle.add_theme_font_size_override("font_size", 16)
 	subtitle.modulate = Color("a9b8d8")
 	page.add_child(subtitle)
@@ -85,7 +114,7 @@ func _build_ui() -> void:
 	nav.add_child(creator_button)
 
 	var note := Label.new()
-	note.text = "PNG only · ≤ 5 MB · ≤ 4096 px · memory only"
+	note.text = "PNG only · ≤ 5 MB · ≤ 4096 px · ≤ 64 horizontal frames · memory only"
 	note.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	note.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	note.modulate = Color("8292b3")
@@ -109,7 +138,7 @@ func _build_ui() -> void:
 	settings.add_theme_constant_override("separation", 7)
 	settings_margin.add_child(settings)
 
-	_add_heading(settings, "Transform")
+	_add_heading(settings, "Crop")
 	var crop_row := HBoxContainer.new()
 	crop_row.add_theme_constant_override("separation", 8)
 	settings.add_child(crop_row)
@@ -118,18 +147,26 @@ func _build_ui() -> void:
 	crop_width_spin = _add_number_field(crop_row, "Crop W", 0.0, 4096.0, 1.0)
 	crop_height_spin = _add_number_field(crop_row, "Crop H", 0.0, 4096.0, 1.0)
 
+	_add_heading(settings, "Animation")
+	var animation_row := HBoxContainer.new()
+	animation_row.add_theme_constant_override("separation", 8)
+	settings.add_child(animation_row)
+	frame_count_spin = _add_number_field(animation_row, "Frames", 1.0, float(VfxDraft.MAX_FRAME_COUNT), 1.0)
+	fps_spin = _add_number_field(animation_row, "FPS", 0.0, 60.0, 1.0)
+
+	_add_heading(settings, "Preview Transform")
 	var transform_row := HBoxContainer.new()
 	transform_row.add_theme_constant_override("separation", 8)
 	settings.add_child(transform_row)
 	scale_spin = _add_number_field(transform_row, "Scale", 0.0, 8.0, 0.1)
 	offset_x_spin = _add_number_field(transform_row, "Offset X", -4096.0, 4096.0, 1.0)
 	offset_y_spin = _add_number_field(transform_row, "Offset Y", -4096.0, 4096.0, 1.0)
-	fps_spin = _add_number_field(transform_row, "FPS", 0.0, 60.0, 1.0)
 
 	crop_x_spin.value_changed.connect(_on_transform_changed)
 	crop_y_spin.value_changed.connect(_on_transform_changed)
 	crop_width_spin.value_changed.connect(_on_transform_changed)
 	crop_height_spin.value_changed.connect(_on_transform_changed)
+	frame_count_spin.value_changed.connect(_on_transform_changed)
 	scale_spin.value_changed.connect(_on_transform_changed)
 	offset_x_spin.value_changed.connect(_on_transform_changed)
 	offset_y_spin.value_changed.connect(_on_transform_changed)
@@ -147,7 +184,7 @@ func _build_ui() -> void:
 	settings.add_child(validation_label)
 
 	var security_note := Label.new()
-	security_note.text = "Security boundary: the browser passes PNG bytes only. The draft stores metadata only; no file path, script or executable content is persisted."
+	security_note.text = "Security boundary: the browser passes PNG bytes only. Frame metadata is data-only; no file path, script or executable content is persisted."
 	security_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	security_note.modulate = Color("8fa1c6")
 	settings.add_child(security_note)
@@ -174,15 +211,20 @@ func _build_ui() -> void:
 	canvas.clip_contents = true
 	preview_column.add_child(canvas)
 
+	preview_transform_root = Control.new()
+	preview_transform_root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	preview_transform_root.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	canvas.add_child(preview_transform_root)
+
 	preview_texture = TextureRect.new()
 	preview_texture.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	preview_texture.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	preview_texture.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	preview_texture.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	canvas.add_child(preview_texture)
+	preview_transform_root.add_child(preview_texture)
 
 	var preview_note := Label.new()
-	preview_note.text = "Crop is applied to the preview. Scale / offset / FPS are validated authoring metadata in this slice."
+	preview_note.text = "Horizontal strip frames animate left-to-right at authored FPS. Scale and offset are applied to this preview."
 	preview_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	preview_note.modulate = Color("8292b3")
 	preview_column.add_child(preview_note)
@@ -216,6 +258,7 @@ func _sync_controls_from_draft() -> void:
 	crop_y_spin.set_value_no_signal(draft.crop_y)
 	crop_width_spin.set_value_no_signal(draft.crop_width)
 	crop_height_spin.set_value_no_signal(draft.crop_height)
+	frame_count_spin.set_value_no_signal(draft.frame_count)
 	scale_spin.set_value_no_signal(draft.scale)
 	offset_x_spin.set_value_no_signal(draft.offset_x)
 	offset_y_spin.set_value_no_signal(draft.offset_y)
@@ -226,12 +269,18 @@ func _on_transform_changed(_value: float) -> void:
 	draft.crop_y = roundi(crop_y_spin.value)
 	draft.crop_width = roundi(crop_width_spin.value)
 	draft.crop_height = roundi(crop_height_spin.value)
+	draft.frame_count = roundi(frame_count_spin.value)
 	draft.scale = scale_spin.value
 	draft.offset_x = offset_x_spin.value
 	draft.offset_y = offset_y_spin.value
 	draft.fps = fps_spin.value
+	_reset_animation_preview()
 	draft_revision += 1
 	_refresh_validation(false)
+
+func _reset_animation_preview() -> void:
+	preview_frame_index = 0
+	preview_elapsed = 0.0
 
 func _on_choose_png_pressed() -> void:
 	if not OS.has_feature("web"):
@@ -274,6 +323,7 @@ func _on_reset_pressed() -> void:
 	imported_texture = null
 	imported = false
 	import_error = ""
+	_reset_animation_preview()
 	draft_revision += 1
 	_sync_controls_from_draft()
 	_refresh_validation(false)
@@ -290,6 +340,7 @@ func _import_png_data(file_name: String, mime_type: String, data_url: String) ->
 	import_error = ""
 	imported = false
 	imported_texture = null
+	_reset_animation_preview()
 	if data_url.length() > MAX_DATA_URL_CHARS:
 		_import_failed("PNG data URL exceeds safe transfer limit")
 		return
@@ -311,7 +362,7 @@ func _import_png_data(file_name: String, mime_type: String, data_url: String) ->
 	if load_error != OK:
 		_import_failed("PNG bytes failed Godot image decoding")
 		return
-	var errors := draft.configure_import(file_name, mime_type, image.get_width(), image.get_height())
+	var errors: PackedStringArray = draft.configure_import(file_name, mime_type, image.get_width(), image.get_height())
 	if not errors.is_empty():
 		_import_failed(" | ".join(errors))
 		return
@@ -325,20 +376,21 @@ func _import_failed(message: String) -> void:
 	import_error = message
 	imported = false
 	imported_texture = null
+	_reset_animation_preview()
 	draft_revision += 1
 	_refresh_validation(false)
 
 func _refresh_validation(increment_revision: bool = true) -> void:
 	if increment_revision:
 		draft_revision += 1
-	var errors := draft.validate()
+	var errors: PackedStringArray = draft.validate()
 	var valid := imported and import_error.is_empty() and errors.is_empty()
 	var error_text := import_error
 	if error_text.is_empty() and not errors.is_empty():
 		error_text = " | ".join(errors)
-	validation_label.text = "VALID · PNG VFX draft passes Slice 1 safety rules" if valid else "INVALID · %s" % error_text
+	validation_label.text = "VALID · PNG VFX draft passes animation safety rules" if valid else "INVALID · %s" % error_text
 	validation_label.modulate = Color("7ff0b1") if valid else Color("ff7b86")
-	metadata_label.text = "File: %s · %dx%d · Crop %d,%d %dx%d · Scale %.2f · Offset %.0f,%.0f · FPS %.0f" % [
+	metadata_label.text = "File: %s · %dx%d · Crop %d,%d %dx%d · Frames %d · Frame %dx%d · Scale %.2f · Offset %.0f,%.0f · FPS %.0f" % [
 		draft.file_name if not draft.file_name.is_empty() else "none",
 		draft.image_width,
 		draft.image_height,
@@ -346,6 +398,9 @@ func _refresh_validation(increment_revision: bool = true) -> void:
 		draft.crop_y,
 		draft.crop_width,
 		draft.crop_height,
+		draft.frame_count,
+		draft.frame_width(),
+		draft.frame_height(),
 		draft.scale,
 		draft.offset_x,
 		draft.offset_y,
@@ -354,23 +409,40 @@ func _refresh_validation(increment_revision: bool = true) -> void:
 	_refresh_preview(valid)
 	_set_web_state(errors)
 
-func _refresh_preview(_valid: bool) -> void:
+func _refresh_preview(valid: bool) -> void:
+	_apply_preview_transform(valid)
 	if not imported or imported_texture == null:
 		preview_texture.texture = null
 		return
-	if draft.crop_width < 1 or draft.crop_height < 1:
+	if not valid:
+		preview_frame_index = 0
 		preview_texture.texture = imported_texture
 		return
-	if draft.crop_x < 0 or draft.crop_y < 0:
+	var width_per_frame := draft.frame_width()
+	if width_per_frame < 1 or draft.frame_height() < 1:
 		preview_texture.texture = imported_texture
 		return
-	if draft.crop_x + draft.crop_width > draft.image_width or draft.crop_y + draft.crop_height > draft.image_height:
-		preview_texture.texture = imported_texture
-		return
+	preview_frame_index = clampi(preview_frame_index, 0, draft.frame_count - 1)
 	var atlas := AtlasTexture.new()
 	atlas.atlas = imported_texture
-	atlas.region = Rect2(draft.crop_x, draft.crop_y, draft.crop_width, draft.crop_height)
+	atlas.region = Rect2(
+		draft.crop_x + preview_frame_index * width_per_frame,
+		draft.crop_y,
+		width_per_frame,
+		draft.crop_height
+	)
 	preview_texture.texture = atlas
+
+func _apply_preview_transform(valid: bool) -> void:
+	if preview_transform_root == null:
+		return
+	preview_transform_root.pivot_offset = preview_transform_root.size * 0.5
+	if not valid:
+		preview_transform_root.scale = Vector2.ONE
+		preview_transform_root.position = Vector2.ZERO
+		return
+	preview_transform_root.scale = Vector2.ONE * draft.scale
+	preview_transform_root.position = Vector2(draft.offset_x, draft.offset_y)
 
 func _install_web_bridge() -> void:
 	if not OS.has_feature("web"):
@@ -380,12 +452,18 @@ func _install_web_bridge() -> void:
 	_web_reset_callback = JavaScriptBridge.create_callback(_web_reset)
 	_web_set_crop_callback = JavaScriptBridge.create_callback(_web_set_crop)
 	_web_set_scale_callback = JavaScriptBridge.create_callback(_web_set_scale)
+	_web_set_frame_count_callback = JavaScriptBridge.create_callback(_web_set_frame_count)
+	_web_set_fps_callback = JavaScriptBridge.create_callback(_web_set_fps)
+	_web_set_offset_callback = JavaScriptBridge.create_callback(_web_set_offset)
 	var window = JavaScriptBridge.get_interface("window")
 	window.customFighterCreatorVfxImportPng = _web_import_callback
 	window.customFighterCreatorVfxImportError = _web_import_error_callback
 	window.customFighterCreatorVfxReset = _web_reset_callback
 	window.customFighterCreatorVfxSetCrop = _web_set_crop_callback
 	window.customFighterCreatorVfxSetScale = _web_set_scale_callback
+	window.customFighterCreatorVfxSetFrameCount = _web_set_frame_count_callback
+	window.customFighterCreatorVfxSetFps = _web_set_fps_callback
+	window.customFighterCreatorVfxSetOffset = _web_set_offset_callback
 
 func _web_import_png(args: Array) -> void:
 	if args.size() < 3:
@@ -407,6 +485,7 @@ func _web_set_crop(args: Array) -> void:
 	draft.crop_width = int(args[2])
 	draft.crop_height = int(args[3])
 	_sync_controls_from_draft()
+	_reset_animation_preview()
 	draft_revision += 1
 	_refresh_validation(false)
 
@@ -418,16 +497,48 @@ func _web_set_scale(args: Array) -> void:
 	draft_revision += 1
 	_refresh_validation(false)
 
+func _web_set_frame_count(args: Array) -> void:
+	if args.is_empty():
+		return
+	draft.frame_count = int(args[0])
+	_sync_controls_from_draft()
+	_reset_animation_preview()
+	draft_revision += 1
+	_refresh_validation(false)
+
+func _web_set_fps(args: Array) -> void:
+	if args.is_empty():
+		return
+	draft.fps = float(args[0])
+	_sync_controls_from_draft()
+	_reset_animation_preview()
+	draft_revision += 1
+	_refresh_validation(false)
+
+func _web_set_offset(args: Array) -> void:
+	if args.size() < 2:
+		return
+	draft.offset_x = float(args[0])
+	draft.offset_y = float(args[1])
+	_sync_controls_from_draft()
+	draft_revision += 1
+	_refresh_validation(false)
+
 func _set_web_state(errors: PackedStringArray = PackedStringArray()) -> void:
 	if not OS.has_feature("web"):
 		return
-	var current_errors := errors
+	var current_errors: PackedStringArray = errors
 	if current_errors.is_empty() and not draft.is_valid():
 		current_errors = draft.validate()
 	var error_text := import_error
 	if error_text.is_empty() and not current_errors.is_empty():
 		error_text = " | ".join(current_errors)
 	var valid := imported and error_text.is_empty()
+	var applied_scale := 1.0
+	var applied_offset := Vector2.ZERO
+	if preview_transform_root != null:
+		applied_scale = preview_transform_root.scale.x
+		applied_offset = preview_transform_root.position
 	JavaScriptBridge.eval(
 		"document.documentElement.dataset.creatorVfxReady='true';" +
 		"document.documentElement.dataset.creatorVfxRevision='%d';" % draft_revision +
@@ -441,9 +552,15 @@ func _set_web_state(errors: PackedStringArray = PackedStringArray()) -> void:
 		"document.documentElement.dataset.creatorVfxCropY='%d';" % draft.crop_y +
 		"document.documentElement.dataset.creatorVfxCropWidth='%d';" % draft.crop_width +
 		"document.documentElement.dataset.creatorVfxCropHeight='%d';" % draft.crop_height +
+		"document.documentElement.dataset.creatorVfxFrameCount='%d';" % draft.frame_count +
+		"document.documentElement.dataset.creatorVfxFrameWidth='%d';" % draft.frame_width() +
+		"document.documentElement.dataset.creatorVfxCurrentFrame='%d';" % preview_frame_index +
 		"document.documentElement.dataset.creatorVfxScale='%.3f';" % draft.scale +
 		"document.documentElement.dataset.creatorVfxOffsetX='%.3f';" % draft.offset_x +
 		"document.documentElement.dataset.creatorVfxOffsetY='%.3f';" % draft.offset_y +
 		"document.documentElement.dataset.creatorVfxFps='%.3f';" % draft.fps +
+		"document.documentElement.dataset.creatorVfxPreviewScale='%.3f';" % applied_scale +
+		"document.documentElement.dataset.creatorVfxPreviewOffsetX='%.3f';" % applied_offset.x +
+		"document.documentElement.dataset.creatorVfxPreviewOffsetY='%.3f';" % applied_offset.y +
 		"document.documentElement.dataset.creatorVfxError=%s;" % JSON.stringify(error_text)
 	)
