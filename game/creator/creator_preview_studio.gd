@@ -123,6 +123,10 @@ func _set_preview_error(message: String) -> void:
 		preview_status_label.modulate = Color("ff7b86")
 	_set_preview_web_state(message)
 
+func _set_web_state(character_errors: PackedStringArray = PackedStringArray(), skill_errors: PackedStringArray = PackedStringArray()) -> void:
+	super(character_errors, skill_errors)
+	_set_preview_web_state()
+
 func _set_preview_web_state(error_message: String = "") -> void:
 	if not OS.has_feature("web"):
 		return
