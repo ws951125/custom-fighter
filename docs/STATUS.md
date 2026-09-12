@@ -4,7 +4,7 @@
 
 Milestone 4 — Creator Studio.
 
-Current active slice: Issue #54 / M4 Slice 2 — validated projectile SkillDraft editor.
+Current active slice: Issue #56 / M4 Slice 3 — validated Creator-to-Training preview session.
 
 Estimated whole-project completion: **44.4%** across the M0–M8 MVP roadmap under the repository rule that only formally completed milestones count toward the fixed milestone denominator. M0, M1, M2 and M3 are complete; M4 is in progress.
 
@@ -56,41 +56,54 @@ M3 acceptance is satisfied: a normal character can be added from approved conten
 
 ## Milestone 4 — completed slices
 
-Issue #52 / PR #53 / M4 Slice 1 is production-validated and merged to `main` at `5b55a8b14afb4d810770d3dffa0bdc33c2c8d9f6`:
+### Slice 1 — Character Editor
 
-- Adds application-level routing. The default URL remains Training; `?mode=creator` opens Creator Studio.
-- Adds a Godot-native Creator Studio Character Editor shell.
-- Adds data-only in-memory `CharacterDraft`, validated through the existing `CharacterDefinition` contract.
-- Editable fields include Character ID, Display Name, Archetype, Max HP, Max MP and Move Speed.
-- Shows live VALID / INVALID state and readable errors.
-- Adds Reset Character Draft and Back to Training.
-- Keeps this authoring path data-only and non-persistent; no package export or arbitrary user code execution.
-- PR CI Run #99 passed Godot import/boot/domain tests, Web export/size budget, Chromium `smoke:all` and GitHub-hosted Windows Edge.
-- Main CI Run #100 passed the same gates plus GitHub Pages deployment, public reachability and production Microsoft Edge real-game flow, including the Creator Studio browser regression.
-- Issue #52 is closed completed after production validation.
+Issue #52 / PR #53 is production-validated and merged to `main` at `5b55a8b14afb4d810770d3dffa0bdc33c2c8d9f6`.
 
-## Current work — Issue #54 / M4 Slice 2
+- Default URL remains Training; `?mode=creator` opens Creator Studio.
+- Godot-native Character Editor with data-only in-memory `CharacterDraft`.
+- Character ID, Display Name, Archetype, Max HP, Max MP and Move Speed editing.
+- Validation delegates to the existing `CharacterDefinition` contract.
+- Live VALID / INVALID state, Reset Character Draft and Back to Training.
+- Main CI Run #100 passed Chromium, hosted Windows Edge, Pages deployment, public reachability and production Edge.
+- Issue #52 is closed completed.
 
-Goal: establish the first non-programmer skill-authoring path using the same runtime `SkillDefinition` contract.
+### Slice 2 — Projectile Skill Editor
 
-Implemented on `feature/m4-projectile-skill-editor`:
+Issue #54 / PR #55 is production-validated and merged to `main` at `1f00ec58e69abae159c6963746683dbb1c0e0ffd`.
 
-- Adds data-only in-memory `SkillDraft` for the projectile template.
-- Starter projectile serializes to the existing SkillDefinition schema and validates through `SkillDefinition`.
-- Creator Studio now switches between Character Editor and Skill Editor while the default application route remains Training.
-- Projectile fields include Skill ID, Display Name, Damage, MP Cost, Cooldown, Startup, Active, Recovery, Projectile Speed, Range, Hitstun and Knockback.
-- Approved starter hitbox/visual identifiers remain explicit and are not treated as arbitrary paths or executable content.
-- Adds live VALID / INVALID state and readable SkillDefinition validation errors.
-- Adds Reset Skill Draft; Slice 2 remains in-memory/non-persistent.
-- Extends the narrow Web automation bridge and diagnostics for deterministic hosted-browser validation.
-- Adds `creator_skill_draft_test_runner.gd` domain regression and `creator_skill_editor_web_smoke.mjs` browser regression.
-- Adds the SkillDraft runner to GitHub Actions and the Skill Editor smoke to `smoke:all`.
+- Data-only in-memory `SkillDraft` for the projectile template.
+- Editable Skill ID, name, damage, MP cost, cooldown, startup, active, recovery, speed, range, hitstun and knockback.
+- Validation delegates to the existing runtime `SkillDefinition` contract.
+- Creator Studio navigation switches between Character Editor and Skill Editor.
+- Approved starter hitbox/visual identifiers remain explicit; no arbitrary code/path execution.
+- Reset Skill Draft and deterministic browser diagnostics are included.
+- PR CI Run #101 passed Godot import/boot/domain tests, Web export/size budget, Chromium `smoke:all` and GitHub-hosted Windows Edge.
+- Main CI Run #102 first Windows Edge attempt hit a transient `playerRunning` observation timeout while runtime logs already reported `state=RUN`; targeted retry passed. GitHub Pages deployment, public reachability and production Edge then all passed, including `WEB_CREATOR_SKILL_EDITOR_SMOKE_PASSED`.
+- Issue #54 is closed completed after production validation.
+
+## Current work — Issue #56 / M4 Slice 3
+
+Goal: connect validated Creator drafts to the real Training runtime without hand-editing content files.
+
+Implemented so far on `feature/m4-creator-training-preview`:
+
+- Adds an autoloaded, in-memory `CreatorPreviewSession` boundary.
+- Preview staging validates CharacterDraft data through `CharacterDefinition` and projectile SkillDraft data through `SkillDefinition` before runtime handoff.
+- Preview additionally rejects unsafe skill IDs, unsupported skill types and unapproved preview visual identifiers.
+- Character visual profile and animation map references are resolved through their approved runtime registries before a preview can launch.
+- Preview binds the validated authored projectile to character `skill_1` in a copied runtime CharacterDefinition without mutating the editable CharacterDraft or repository content files.
+- Adds in-app router mode switching so Creator → Training preview does not reload the Web page or lose in-memory state.
+- Training can source the preview CharacterDefinition and Skill 1 definition from `creator_preview_session`; all non-preview skill slots continue through the normal `SkillRegistry` path.
+- Adds `Preview in Training` and `Return to Creator` paths while retaining validated drafts for iteration.
+- Adds hosted-Web diagnostics and a browser automation bridge for preview launch/return.
+- Adds `creator_preview_session_test_runner.gd` and `creator_preview_web_smoke.mjs`.
+- Adds the preview domain test to GitHub Actions and preview browser smoke to `smoke:all`.
 
 Validation status:
 
-- Slice 2 implementation and CI wiring are committed on the feature branch.
-- PR creation and GitHub Actions validation are the next gate.
-- No user-local machine, local project execution or Remote Desktop Commander validation is permitted or used.
+- Implementation is committed on the feature branch.
+- GitHub PR validation is the next gate; no user-local machine, local project execution or Remote Desktop Commander validation is permitted or used.
 
 ## Online validation
 
@@ -114,11 +127,11 @@ Live Creator Studio:
 
 `https://ws951125.github.io/custom-fighter/?mode=creator`
 
-Production currently contains M4 Slice 1 / PR #53. Slice 2 is not in production until its PR is validated, merged and the main deployment completes.
+Production currently contains M4 Slice 1 and Slice 2. Slice 3 remains on its feature branch until PR validation, merge and main deployment are complete.
 
 ## Remaining roadmap
 
-- M4 — finish Creator Studio basics: broaden skill templates, parameter validation and preview/training workflow.
+- M4 — complete validated preview/training workflow, then broaden Creator skill-template authoring and persistence planning.
 - M5 — User VFX import/processing and VFX Creator.
 - M6 — AI-assisted VFX provider layer.
 - M7 — Character package import/export with safe data-only packages.
