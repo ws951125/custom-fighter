@@ -339,36 +339,23 @@ try {
   await waitForDummyToSettle();
   await approachDummy();
 
-  const comboExpectations = [
-    { step: 1, hp: 54 },
-    { step: 2, hp: 40 },
-    { step: 3, hp: 20 },
-  ];
-  for (const expected of comboExpectations) {
-    // Hold J across at least one Godot frame. A synthetic press can otherwise go down/up
-    // entirely between frames on a busy CI runner and never reach Input.is_action_pressed().
-    await nudge('j', 90);
-    await page.waitForFunction(
-      ({ step, hp }) =>
-        Number(document.documentElement.dataset.lastHitStep) === step &&
-        Number(document.documentElement.dataset.dummyHp) === hp &&
-        document.documentElement.dataset.lastAttackHit === 'true',
-      expected,
-      { timeout: 3_000 },
-    );
-
-    // Do not guess a runner-specific delay. The next combo input is legal as soon as the
-    // current attack recovery ends while the combo step is still armed.
-    if (expected.step < 3) {
-      await waitForComboRecovery(expected.step);
-    }
-  }
-
+  // Exercise the actual combo input buffer instead of waiting for a runner-observed READY
+  // frame between attacks. Each J press is distinct, held long enough to cross a Godot frame,
+  // and spaced so presses two and three land during recovery and must be buffered. The final
+  // HP and knockdown assertions prove that the browser executed steps 1 -> 2 -> 3 exactly.
+  await nudge('j', 90);
+  await nudge('j', 90);
+  await nudge('j', 90);
   await page.waitForFunction(
-    () => document.documentElement.dataset.dummyRecoveryState === 'DOWN',
+    () =>
+      Number(document.documentElement.dataset.lastHitStep) === 3 &&
+      Number(document.documentElement.dataset.dummyHp) === 20 &&
+      document.documentElement.dataset.lastAttackHit === 'true' &&
+      document.documentElement.dataset.dummyRecoveryState === 'DOWN',
     null,
-    { timeout: 2_000 },
+    { timeout: 4_000 },
   );
+
   if (await readText('dummyCanBeHit') !== 'false') throw new Error('Downed dummy must not be hittable');
 
   await page.waitForFunction(

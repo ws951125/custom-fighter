@@ -3,6 +3,7 @@ extends SceneTree
 const SkillDefinition = preload("res://game/core/skills/skill_definition.gd")
 const MeleeAttackState = preload("res://game/core/skills/melee_attack_state.gd")
 const CombatBox = preload("res://game/core/combat/combat_box.gd")
+const AttackChainState = preload("res://game/core/combat/attack_chain_state.gd")
 
 var failures := 0
 
@@ -12,9 +13,10 @@ func _init() -> void:
 func _run() -> void:
 	_test_melee_definition()
 	_test_melee_state()
+	_test_combo_playable_frame_time()
 
 	if failures == 0:
-		print("MELEE_TESTS_PASSED")
+		print("MELEE_AND_COMBO_REGRESSION_TESTS_PASSED")
 		quit(0)
 		return
 
@@ -75,6 +77,33 @@ func _test_melee_state() -> void:
 	_check(melee.start(Vector2(100.0, 0.5), -1.0, 72.0, 54.0, 0.10, 0.14), "melee can face left")
 	_check(is_equal_approx(melee.center.x, 28.0), "left-facing melee offsets left")
 	_check(not melee.start(Vector2.ZERO, 1.0, 0.0, 54.0, 0.10, 0.14), "melee rejects zero forward offset")
+
+func _test_combo_playable_frame_time() -> void:
+	var chain := AttackChainState.new()
+	_check(chain.try_start_attack() == 1, "combo regression starts step one")
+	var full_window := chain.combo_reset_remaining
+	chain.tick(chain.recovery_for_step(1))
+	_check(not chain.is_attacking(), "step one recovery completes")
+	_check(is_equal_approx(chain.combo_reset_remaining, full_window), "attack recovery does not consume combo input window")
+
+	chain.tick(0.40)
+	_check(chain.combo_step == 1, "single 400ms low-FPS frame does not erase combo")
+	_check(
+		chain.combo_reset_remaining >= full_window - AttackChainState.MAX_COMBO_TIMER_DELTA - 0.001,
+		"low-FPS frame consumes at most the per-frame combo budget"
+	)
+	_check(chain.try_start_attack() == 2, "combo can continue after low-FPS frame")
+	_check(chain.buffer_attack(), "next combo input can buffer during recovery")
+	chain.tick(0.40)
+	_check(chain.combo_step == 3, "buffered finisher resolves across recovery hitch")
+	_check(chain.consume_buffered_attack_step() == 3, "buffered finisher emits one execution step")
+
+	var expiry := AttackChainState.new()
+	_check(expiry.try_start_attack() == 1, "combo expiry test starts")
+	expiry.tick(expiry.recovery_for_step(1))
+	for index in range(7):
+		expiry.tick(0.10)
+	_check(expiry.combo_step == 0, "combo still resets after enough playable input time")
 
 func _check(condition: bool, label: String) -> void:
 	if condition:
