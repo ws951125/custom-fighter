@@ -116,7 +116,7 @@ Current implementation commits on the feature branch include:
 - animated VFX Studio preview with transform application;
 - browser smoke coverage for strip validation, frame progression and applied scale/offset.
 
-Validation status for Issue #64 is pending its first GitHub Actions PR run. No user-local testing is allowed.
+PR #65 implementation-head CI Run #130 passed Godot import/boot/domain tests, Web export/size budget, Chromium `smoke:all` and GitHub-hosted Windows Microsoft Edge `smoke:all`. A documentation-sync latest-head CI is pending before merge. No user-local testing is allowed.
 
 ## Online validation policy
 
