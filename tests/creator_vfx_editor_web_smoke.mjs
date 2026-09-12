@@ -8,9 +8,9 @@ if (browserChannel) launchOptions.channel = browserChannel;
 console.log(`CREATOR_VFX_BROWSER=${browserChannel || 'playwright-chromium'}`);
 console.log(`CREATOR_VFX_BASE_URL=${baseUrl}`);
 
-function vfxUrl() {
+function modeUrl(mode) {
   const url = new URL(baseUrl);
-  url.searchParams.set('mode', 'vfx');
+  url.searchParams.set('mode', mode);
   return url.toString();
 }
 
@@ -29,9 +29,20 @@ async function waitForRevision(page, before) {
 const browser = await chromium.launch(launchOptions);
 try {
   const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
-  const response = await page.goto(vfxUrl(), { waitUntil: 'domcontentloaded', timeout: 60_000 });
-  if (!response?.ok()) throw new Error(`VFX Creator URL returned HTTP ${response?.status() ?? 'unknown'}`);
+  const response = await page.goto(modeUrl('creator'), { waitUntil: 'domcontentloaded', timeout: 60_000 });
+  if (!response?.ok()) throw new Error(`Creator URL returned HTTP ${response?.status() ?? 'unknown'}`);
 
+  await page.waitForFunction(
+    () =>
+      document.documentElement.dataset.appMode === 'creator' &&
+      document.documentElement.dataset.creatorStudioReady === 'true' &&
+      document.documentElement.dataset.creatorVfxNavigationReady === 'true' &&
+      typeof window.customFighterCreatorOpenVfx === 'function',
+    null,
+    { timeout: 60_000 },
+  );
+
+  await page.evaluate(() => window.customFighterCreatorOpenVfx());
   await page.waitForFunction(
     () =>
       document.documentElement.dataset.appMode === 'vfx' &&
@@ -52,6 +63,22 @@ try {
   }
 
   let revision = Number(await dataset(page, 'creatorVfxRevision'));
+  await page.evaluate(() =>
+    window.customFighterCreatorVfxImportPng(
+      'payload.js',
+      'application/javascript',
+      'data:application/javascript;base64,YWxlcnQoMSk=',
+    ),
+  );
+  await waitForRevision(page, revision);
+  if ((await dataset(page, 'creatorVfxImported')) !== 'false' || (await dataset(page, 'creatorVfxValid')) !== 'false') {
+    throw new Error('Unsupported non-image input must fail closed');
+  }
+  if (!(await dataset(page, 'creatorVfxError')).includes('image/png data URL')) {
+    throw new Error(`Unsupported-input error missing: ${await dataset(page, 'creatorVfxError')}`);
+  }
+
+  revision = Number(await dataset(page, 'creatorVfxRevision'));
   await page.evaluate(() => {
     const canvas = document.createElement('canvas');
     canvas.width = 4;
@@ -138,7 +165,7 @@ try {
     throw new Error('Reset should clear the in-memory PNG and return the VFX draft to unimported state');
   }
 
-  console.log('WEB_CREATOR_VFX_EDITOR_SMOKE_PASSED pngDecode=true cropValidation=true scaleValidation=true reset=true');
+  console.log('WEB_CREATOR_VFX_EDITOR_SMOKE_PASSED navigation=true failClosed=true pngDecode=true cropValidation=true scaleValidation=true reset=true');
 } finally {
   await browser.close();
 }
