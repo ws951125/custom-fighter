@@ -40,6 +40,34 @@ func reset() -> void:
 	visual = "prototype_fireball"
 	impact_visual = "prototype_impact"
 
+func load_from_dictionary(data: Dictionary) -> PackedStringArray:
+	var definition := SkillDefinition.new()
+	var errors: PackedStringArray = definition.load_from_dictionary(data)
+	if not _is_safe_token(definition.skill_id):
+		errors.append("id must be a safe lowercase reference token")
+	if definition.skill_type != "projectile":
+		errors.append("creator projectile draft type must remain projectile")
+	if not errors.is_empty():
+		return errors
+	skill_id = definition.skill_id
+	skill_name = definition.skill_name
+	skill_type = definition.skill_type
+	damage = definition.damage
+	mp_cost = definition.mp_cost
+	cooldown = definition.cooldown
+	startup = definition.startup
+	active = definition.active
+	recovery = definition.recovery
+	speed = definition.speed
+	range = definition.range
+	hitstun = definition.hitstun
+	knockback = definition.knockback
+	hitbox_half_width = definition.hitbox_half_width
+	hitbox_half_depth = definition.hitbox_half_depth
+	visual = definition.visual
+	impact_visual = definition.impact_visual
+	return PackedStringArray()
+
 func to_dictionary() -> Dictionary:
 	return {
 		"schema_version": SkillDefinition.CURRENT_SCHEMA_VERSION,

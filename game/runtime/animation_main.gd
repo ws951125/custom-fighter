@@ -1,19 +1,58 @@
-extends "res://game/runtime/selectable_main.gd"
+extends "res://game/runtime/preview_selectable_main.gd"
 
 const CharacterAnimationMap = preload("res://game/core/character/character_animation_map.gd")
 
 var player_animation_map := CharacterAnimationMap.new()
 var player_animation_load_error := ""
+var preview_return_button: Button
+var _web_preview_return_callback
 
 func _enter_tree() -> void:
 	super()
 	if not player_character.loaded:
 		return
 
-	var animation_errors := player_animation_map.load_from_id(player_character.animation_map)
+	var animation_errors: PackedStringArray = player_animation_map.load_from_id(player_character.animation_map)
 	if not animation_errors.is_empty():
 		player_animation_load_error = " | ".join(animation_errors)
 		push_error("Failed to load player animation map: %s" % player_animation_load_error)
+
+func _ready() -> void:
+	super()
+	_install_preview_return_path()
+	_set_web_state()
+
+func _install_preview_return_path() -> void:
+	var session: Variant = get_node_or_null("/root/CreatorPreviewSession")
+	if not _preview_session_active(session):
+		return
+	preview_return_button = Button.new()
+	preview_return_button.text = "Return to Creator"
+	preview_return_button.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	preview_return_button.offset_left = -220.0
+	preview_return_button.offset_top = 28.0
+	preview_return_button.offset_right = -42.0
+	preview_return_button.offset_bottom = 70.0
+	preview_return_button.pressed.connect(_return_to_creator)
+	add_child(preview_return_button)
+
+	if OS.has_feature("web"):
+		_web_preview_return_callback = JavaScriptBridge.create_callback(_web_return_to_creator)
+		var window = JavaScriptBridge.get_interface("window")
+		window.customFighterPreviewReturnToCreator = _web_preview_return_callback
+
+func _return_to_creator() -> void:
+	var session: Variant = get_node_or_null("/root/CreatorPreviewSession")
+	if session == null or not session.has_method("has_stored_drafts") or not bool(session.call("has_stored_drafts")):
+		return
+	if session.has_method("deactivate_preview"):
+		session.call("deactivate_preview")
+	var router = get_parent()
+	if router != null and router.has_method("switch_mode"):
+		router.call_deferred("switch_mode", "creator")
+
+func _web_return_to_creator(_args: Array) -> void:
+	_return_to_creator()
 
 func _animation_semantic_name() -> String:
 	if skill_coordinator.is_busy():
@@ -48,11 +87,14 @@ func _set_web_state() -> void:
 	super()
 	if not OS.has_feature("web"):
 		return
+	var session: Variant = get_node_or_null("/root/CreatorPreviewSession")
+	var preview_active: bool = _preview_session_active(session)
 	JavaScriptBridge.eval(
 		"document.documentElement.dataset.playerCharacterAnimationMap=%s;" % JSON.stringify(player_character.animation_map) +
 		"document.documentElement.dataset.playerAnimationMapLoaded='%s';" % _bool_text(player_animation_map.loaded) +
 		"document.documentElement.dataset.playerAnimationMapId=%s;" % JSON.stringify(player_animation_map.map_id) +
 		"document.documentElement.dataset.playerAnimationSemantic=%s;" % JSON.stringify(_animation_semantic_name()) +
 		"document.documentElement.dataset.playerAnimationId=%s;" % JSON.stringify(_current_animation_id()) +
-		"document.documentElement.dataset.playerAnimationLoadError=%s;" % JSON.stringify(player_animation_load_error)
+		"document.documentElement.dataset.playerAnimationLoadError=%s;" % JSON.stringify(player_animation_load_error) +
+		"document.documentElement.dataset.creatorPreviewReturnReady='%s';" % ("true" if preview_active else "false")
 	)

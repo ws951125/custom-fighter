@@ -34,3 +34,25 @@
 - **Prevention Rule:** GitHub 寫入前先確認 mutation 類型與目標物件完全一致（issue / branch / file / PR）；若當前工具清單不明確，先做精確 resource discovery，再執行 mutation。不要用測試性寫入確認工具能力。
 - **Validation:** #47、#48 均已關閉；正式 M3 Slice 5 工作只追蹤於 Issue #46 與其 feature branch。
 - **Status:** Verified
+
+## L-004 — Transient browser diagnostics must be distinguished from runtime state evidence
+
+- **Date:** 2026-09-12
+- **Area:** GitHub Actions / Windows Edge / Playwright runtime observation
+- **Symptom:** PR #55 merge 後 main CI Run #102 的第一個 GitHub-hosted Windows Edge attempt，在 `tests/web_smoke.mjs` 等待 `playerRunning === 'true'` 時 timeout；同一份 log 卻持續印出 `CUSTOM_FIGHTER_STATE ... state=RUN`。PR 上相同程式與 artifact 的 Edge gate 先前已通過，Ubuntu/Chromium gate 亦成功。
+- **Root Cause:** 證據顯示 gameplay runtime 已進入 `RUN`，失敗發生在 Playwright 對短暫 dataset boolean 的觀察時窗／runner scheduling，而非 movement runtime regression。這是 observation-gate flake，不能與實際 gameplay failure 混為一談。
+- **Fix / Operational Mitigation:** 只重跑失敗的 Windows Edge job，而非重跑所有成功 gate；第二次 attempt 通過，後續 GitHub Pages deployment、public reachability 與 production Edge `smoke:all` 亦全部通過，包含 Creator Skill Editor regression。
+- **Prevention Rule:** 遇到 transient state timeout 時先比對 runtime 自身 diagnostics、相同 SHA 的跨瀏覽器結果與重現性。只有 runtime evidence 也失敗時才視為 gameplay regression。若 `playerRunning` 這個 observation timeout 再次出現，將 assertion 改成較穩定的 `playerState === 'RUN'` 或增加穩定 observation window；不可用廣泛 retry 掩蓋真正錯誤。
+- **Validation:** Run #102 targeted Edge retry PASS；Deploy Web Demo、Verify Public Web Demo、Windows Edge Production Game 全部 PASS。
+- **Status:** Verified; assertion hardening deferred unless recurrence
+
+## L-005 — Dynamic autoload boundaries must not rely on inferred GDScript types
+
+- **Date:** 2026-09-12
+- **Area:** Godot / GDScript parser / Creator preview runtime
+- **Symptom:** PR #57 CI Run #103 在 `Import project headlessly` 失敗。Godot 無法解析 `preview_selectable_main.gd` 作為 `animation_main.gd` 的 parent，並明確回報 `animation_main.gd` 的 `preview_active := session != null and session.has_active_preview()` 無法推斷型別。
+- **Root Cause:** `CreatorPreviewSession` 是由 SceneTree/autoload runtime lookup 取得的動態物件。對這類 Variant/dynamic receiver 直接呼叫自訂 method，再用 `:=` 推斷 boolean / collection，會讓 GDScript parser 在 inheritance chain 上失去可解析型別；parent script 一旦解析失敗，child script 只會進一步呈現 `Could not resolve class`。
+- **Fix:** Preview runtime 邊界改成明確 `Variant` / `bool` / `Dictionary` / `PackedStringArray` 型別，並以 `has_method()` + `call()` 封裝 autoload 的動態方法呼叫；Animation diagnostics 同樣不再以 `:=` 推斷 dynamic method expression。
+- **Prevention Rule:** 對 `get_node_or_null()`、autoload lookup、dynamic host/plugin/interface 等 runtime-resolved object，不用 `:=` 推斷含自訂 method call 的結果。跨 script inheritance boundary 時，應把 dynamic receiver 隔離在 typed helper 內，對外回傳確定的 GDScript 型別。
+- **Validation:** 修正後 PR #57 CI Run #105 通過 Godot import、main boot、全部 domain tests、Web export、size budget、Chromium `smoke:all` 與 GitHub-hosted Windows Microsoft Edge `smoke:all`。
+- **Status:** Verified
