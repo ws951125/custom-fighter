@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "skills": {
+    "fireball_001": {
+      "file": "fireball.sample.json",
+      "type": "projectile"
+    },
+    "dash_slash_001": {
+      "file": "dash_slash.sample.json",
+      "type": "dash"
+    },
+    "arc_burst_001": {
+      "file": "arc_burst.sample.json",
+      "type": "area"
+    },
+    "blade_rain_001": {
+      "file": "blade_rain.sample.json",
+      "type": "formation"
+    },
+    "battle_focus_001": {
+      "file": "battle_focus.sample.json",
+      "type": "buff"
+    },
+    "heavy_strike_001": {
+      "file": "heavy_strike.sample.json",
+      "type": "melee"
+    },
+    "training_bolt_001": {
+      "file": "training_bolt.sample.json",
+      "type": "projectile"
+    }
+  }
+}
