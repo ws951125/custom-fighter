@@ -4,7 +4,7 @@
 
 Milestone 5 — VFX Creator is the current roadmap milestone.
 
-At the user's request, active implementation is temporarily focused on **Issue #61 — Mobile Slice 1: touch controls for playable phone Web build**. The existing M5 Slice 1 work in Issue #60 / `feature/m5-png-vfx-import-preview` is preserved and paused, not discarded.
+At the user's request, active implementation is temporarily focused on **Issue #61 / PR #62 — Mobile Slice 1: touch controls for playable phone Web build**. The existing M5 Slice 1 work in Issue #60 / `feature/m5-png-vfx-import-preview` is preserved and paused, not discarded.
 
 Estimated whole-project completion: **55.6%** across the M0–M8 MVP roadmap. Under the repository rule, only formally completed milestones count toward the fixed milestone denominator. M0, M1, M2, M3 and M4 are complete; M5 is in progress.
 
@@ -47,7 +47,7 @@ Production-validated data-driven templates:
 
 ### M4 — Creator Studio — 100%
 
-M4 now satisfies its MVP acceptance: a non-programmer can create a basic character and projectile skill, validate both, preview them in Training, cast the authored projectile through the real runtime, and return to Creator without editing repository JSON.
+M4 satisfies its MVP acceptance: a non-programmer can create a basic character and projectile skill, validate both, preview them in Training, cast the authored projectile through the real runtime, and return to Creator without editing repository JSON.
 
 Completed slices:
 
@@ -72,13 +72,13 @@ Implemented there so far:
 - Oversized/unsupported input rejection.
 - Domain-test runner and CI wiring.
 
-This branch is currently paused while Issue #61 is implemented. It will resume after the phone-playability slice is production-safe.
+This branch is currently paused while Issue #61 is completed. It will resume after the phone-playability slice is production-safe.
 
-## Active work — Issue #61 / Mobile Slice 1
+## Active work — Issue #61 / PR #62 / Mobile Slice 1
 
 Goal: make the existing GitHub Pages Training build playable from a phone without a hardware keyboard while leaving desktop keyboard gameplay unchanged.
 
-Current implementation on `feature/mobile-touch-controls`:
+Implemented on `feature/mobile-touch-controls`:
 
 - Adds `MobileControls` as a Training HUD layer.
 - Automatically enables on touch-capable Web sessions.
@@ -87,15 +87,18 @@ Current implementation on `feature/mobile-touch-controls`:
 - Right action pad dispatches existing `jump`, `attack`, `dash`, `guard` and `skill_1` through `skill_6` Input actions.
 - Held actions use `Input.action_press()` / `Input.action_release()` so mobile does not fork combat logic.
 - Adds landscape-oriented layout plus a portrait rotate hint.
+- Browser capability results are normalized through a numeric JS→GDScript contract (`1/0`) before deciding touch capability / visibility.
 - Adds Web diagnostics and narrow `customFighterMobilePress` / `customFighterMobileRelease` automation bridges.
-- Adds `mobile_controls_web_smoke.mjs` covering touch auto-enable, movement, guard, jump, attack, Skill 1 and desktop-hidden behavior.
-- Adds `smoke:mobile` to `smoke:all`, so Chromium and GitHub-hosted Windows Edge will both exercise the mobile-control path.
+- Adds `mobile_controls_web_smoke.mjs` covering forced deterministic enablement, touch auto-detection, sustained movement, guard, jump, attack, Skill 1 and desktop-hidden behavior.
+- Adds `smoke:mobile` to `smoke:all`, so Chromium and GitHub-hosted Windows Edge both exercise the mobile-control path.
 
 Validation status:
 
-- Implementation is committed on the feature branch.
-- PR/GitHub Actions validation is the next gate.
-- The user's local machine and Remote Desktop Commander are not used.
+- PR #62 CI Run #113 failed only in the first version of `smoke:mobile`: the initial readiness wait combined Godot startup, Playwright mobile emulation, touch auto-detection, HUD enablement and bridge readiness into one opaque assertion and timed out after all earlier gates/regressions had passed.
+- Touch detection and the hosted-browser test were hardened. Functional gameplay now uses `?mobile_controls=1` as a deterministic gate, production auto-detection is validated separately with a touch-enabled browser context, `?mobile_controls=0` proves desktop-hidden behavior, and readiness snapshots/page errors are printed for diagnosis.
+- The solved testing issue is recorded as `L-006` in `docs/LESSONS_LEARNED.md`.
+- PR #62 CI Run #115 passed Godot import, main boot, domain tests, Web export, size budget, Chromium `smoke:all` including the mobile flow, and GitHub-hosted Windows Microsoft Edge `smoke:all`.
+- Documentation sync commits after Run #115 require one fresh latest-head PR CI before merge. No user-local machine, local project execution or Remote Desktop Commander validation is permitted or used.
 
 ## Online validation policy
 
@@ -121,11 +124,12 @@ Creator Studio:
 
 `https://ws951125.github.io/custom-fighter/?mode=creator`
 
-Production currently includes completed M4. Mobile touch controls remain feature-branch-only until Issue #61 validation, merge and production deployment complete.
+Production currently includes completed M4. Mobile touch controls remain feature-branch-only until PR #62 latest-head validation, merge and production deployment complete.
 
 ## Remaining roadmap
 
-- M5 — finish PNG/image-sequence VFX import, crop/scale/offset/FPS authoring, preview and skill VFX binding.
+- Finish Issue #61 / PR #62 and production-validate mobile touch gameplay.
+- Resume M5 Issue #60: PNG/image-sequence VFX import, crop/scale/offset/FPS authoring, preview and skill VFX binding.
 - M6 — AI-assisted VFX provider layer.
 - M7 — safe character package import/export.
 - M8 — Web/Windows MVP release hardening, including final mobile usability/polish.
