@@ -45,7 +45,7 @@ func load_from_dictionary(data: Dictionary) -> PackedStringArray:
 	var errors := PackedStringArray()
 	_validate_allowed_fields(data, ALLOWED_TOP_LEVEL_FIELDS, "character", errors)
 
-	var required_fields := ["schema_version", "id", "name", "archetype", "stats", "skill_slots", "visual_profile", "animation_map"]
+	var required_fields := ["schema_version", "id", "name", "archetype", "stats", "skill_slots", "visual_profile"]
 	for field in required_fields:
 		if not data.has(field):
 			errors.append("missing required field: %s" % field)
@@ -86,7 +86,7 @@ func load_from_dictionary(data: Dictionary) -> PackedStringArray:
 	run_multiplier = float(stats.get("run_multiplier", 0.0))
 	guard_move_multiplier = float(stats.get("guard_move_multiplier", -1.0))
 	visual_profile = str(data.get("visual_profile", "")).strip_edges()
-	animation_map = str(data.get("animation_map", "")).strip_edges()
+	animation_map = str(data.get("animation_map", character_id)).strip_edges()
 	skill_slots.clear()
 	for slot in REQUIRED_SKILL_SLOTS:
 		skill_slots[slot] = str(slots.get(slot, "")).strip_edges()
