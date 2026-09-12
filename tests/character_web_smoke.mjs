@@ -49,7 +49,9 @@ try {
   await page.waitForFunction(
     () =>
       document.documentElement.dataset.godotReady === 'true' &&
-      document.documentElement.dataset.playerCharacterLoaded === 'true',
+      document.documentElement.dataset.playerCharacterLoaded === 'true' &&
+      document.documentElement.dataset.playerVisualProfileLoaded === 'true' &&
+      Number(document.documentElement.dataset.playerVisualProfileRenderCalls ?? '0') > 0,
     null,
     { timeout: 60_000 },
   );
@@ -73,7 +75,33 @@ try {
     throw new Error(`Unexpected archetype: ${await readText('playerCharacterArchetype')}`);
   }
   if ((await readText('playerCharacterVisualProfile')) !== 'training_blue') {
-    throw new Error(`Unexpected visual profile: ${await readText('playerCharacterVisualProfile')}`);
+    throw new Error(`Unexpected visual profile reference: ${await readText('playerCharacterVisualProfile')}`);
+  }
+
+  const loadedProfileId = await readText('playerVisualProfileId');
+  const profileRenderCalls = await readNumber('playerVisualProfileRenderCalls');
+  const profileBodyColor = await readText('playerVisualProfileBodyColor');
+  const profileAccentColor = await readText('playerVisualProfileAccentColor');
+  const profileHeadRadius = await readNumber('playerVisualProfileHeadRadius');
+  const profileTorsoWidth = await readNumber('playerVisualProfileTorsoWidth');
+  const profileTorsoHeight = await readNumber('playerVisualProfileTorsoHeight');
+  const profileWeaponLength = await readNumber('playerVisualProfileWeaponLength');
+
+  if (loadedProfileId !== 'training_blue' || loadedProfileId !== (await readText('playerCharacterVisualProfile'))) {
+    throw new Error(
+      `Visual profile did not resolve from CharacterDefinition: ref=${await readText('playerCharacterVisualProfile')} loaded=${loadedProfileId}`,
+    );
+  }
+  if (profileBodyColor !== '#62d8ff' || profileAccentColor !== '#b8f3ff') {
+    throw new Error(`Unexpected profile palette: body=${profileBodyColor} accent=${profileAccentColor}`);
+  }
+  if (profileHeadRadius !== 22 || profileTorsoWidth !== 36 || profileTorsoHeight !== 70 || profileWeaponLength !== 49) {
+    throw new Error(
+      `Unexpected profile body measurements: head=${profileHeadRadius} torso=${profileTorsoWidth}x${profileTorsoHeight} weapon=${profileWeaponLength}`,
+    );
+  }
+  if (!(profileRenderCalls > 0)) {
+    throw new Error(`Profile-backed renderer was not invoked: calls=${profileRenderCalls}`);
   }
 
   if ((await readNumber('playerHp')) !== 100 || (await readNumber('playerMaxHp')) !== 100) {
@@ -154,6 +182,9 @@ try {
     );
   }
 
+  console.log(
+    `WEB_CHARACTER_PROFILE_SMOKE_PASSED id=${await readText('playerCharacterId')} profile=${loadedProfileId} renderCalls=${await readNumber('playerVisualProfileRenderCalls')} headRadius=${profileHeadRadius} torso=${profileTorsoWidth}x${profileTorsoHeight} weaponLength=${profileWeaponLength}`,
+  );
   console.log(
     `WEB_CHARACTER_MOVEMENT_SMOKE_PASSED id=${await readText('playerCharacterId')} moveSpeed=${moveSpeed} observedHorizontalSpeed=${observedHorizontalSpeed.toFixed(2)} depthSpeed=${depthSpeed} observedDepthSpeed=${observedDepthSpeed.toFixed(3)} adjustmentFrames=${await readNumber('playerMovementAdjustmentFrames')}`,
   );
