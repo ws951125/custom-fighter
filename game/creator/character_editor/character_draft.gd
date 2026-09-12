@@ -44,6 +44,25 @@ func reset() -> void:
 		"skill_6": "heavy_strike_001"
 	}
 
+func load_from_dictionary(data: Dictionary) -> PackedStringArray:
+	var definition := CharacterDefinition.new()
+	var errors: PackedStringArray = definition.load_from_dictionary(data)
+	if not errors.is_empty():
+		return errors
+	character_id = definition.character_id
+	character_name = definition.character_name
+	archetype = definition.archetype
+	max_hp = definition.max_hp
+	max_mp = definition.max_mp
+	move_speed = definition.move_speed
+	depth_speed = definition.depth_speed
+	run_multiplier = definition.run_multiplier
+	guard_move_multiplier = definition.guard_move_multiplier
+	visual_profile = definition.visual_profile
+	animation_map = definition.animation_map
+	skill_slots = definition.skill_slots.duplicate(true)
+	return PackedStringArray()
+
 func to_dictionary() -> Dictionary:
 	return {
 		"schema_version": CharacterDefinition.CURRENT_SCHEMA_VERSION,
