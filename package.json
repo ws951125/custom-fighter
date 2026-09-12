@@ -21,7 +21,8 @@
     "smoke:creator-preview": "node tests/creator_preview_web_smoke.mjs",
     "smoke:creator-vfx": "node tests/creator_vfx_editor_web_smoke.mjs",
     "smoke:creator-vfx-runtime": "node tests/creator_vfx_runtime_binding_web_smoke.mjs",
+    "smoke:creator-ai-vfx": "node tests/creator_ai_vfx_web_smoke.mjs",
     "smoke:mobile": "node tests/mobile_controls_web_smoke.mjs",
-    "smoke:all": "npm run smoke:web && npm run smoke:area && npm run smoke:formation && npm run smoke:buff && npm run smoke:melee && npm run smoke:coordination && npm run smoke:character && npm run smoke:character-selection && npm run smoke:character-animation && npm run smoke:creator && npm run smoke:creator-skill && npm run smoke:creator-preview && npm run smoke:creator-vfx && npm run smoke:creator-vfx-runtime && npm run smoke:mobile"
+    "smoke:all": "npm run smoke:web && npm run smoke:area && npm run smoke:formation && npm run smoke:buff && npm run smoke:melee && npm run smoke:coordination && npm run smoke:character && npm run smoke:character-selection && npm run smoke:character-animation && npm run smoke:creator && npm run smoke:creator-skill && npm run smoke:creator-preview && npm run smoke:creator-vfx && npm run smoke:creator-vfx-runtime && npm run smoke:creator-ai-vfx && npm run smoke:mobile"
   }
 }
