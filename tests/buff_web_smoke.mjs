@@ -41,6 +41,47 @@ async function holdKey(key, holdMs = 90, settleMs = 35) {
   await page.waitForTimeout(settleMs);
 }
 
+async function sampleHorizontalSpeed(label, expectedMultiplier, baseMoveSpeed) {
+  const startX = await readNumber('playerX');
+  const startFrames = await readNumber('playerMovementAdjustmentFrames');
+
+  await page.keyboard.down('d');
+  try {
+    await page.waitForFunction(
+      ({ before, requiredFrames }) =>
+        Number(document.documentElement.dataset.playerMovementAdjustmentFrames ?? '0') >=
+        before + requiredFrames,
+      { before: startFrames, requiredFrames: 3 },
+      { timeout: 2_500 },
+    );
+  } finally {
+    await page.keyboard.up('d');
+  }
+  await page.waitForTimeout(60);
+
+  const endX = await readNumber('playerX');
+  const observedSpeed = await readNumber('playerLastHorizontalSpeed');
+  const runtimeMultiplier = await readNumber('playerRuntimeBuffMovementMultiplier');
+  const expectedSpeed = baseMoveSpeed * expectedMultiplier;
+  const displacement = endX - startX;
+
+  if (!(displacement > 5)) {
+    throw new Error(`${label}: player did not move enough to sample speed: ${displacement}`);
+  }
+  if (Math.abs(runtimeMultiplier - expectedMultiplier) > 0.02) {
+    throw new Error(
+      `${label}: runtime movement multiplier mismatch: expected=${expectedMultiplier} actual=${runtimeMultiplier}`,
+    );
+  }
+  if (Math.abs(observedSpeed - expectedSpeed) > Math.max(5, expectedSpeed * 0.08)) {
+    throw new Error(
+      `${label}: runtime horizontal speed mismatch: expected=${expectedSpeed} actual=${observedSpeed}`,
+    );
+  }
+
+  return { displacement, observedSpeed, runtimeMultiplier };
+}
+
 async function waitForDummyToSettle(timeout = 4_000) {
   await page.waitForFunction(
     () => Math.abs(Number(document.documentElement.dataset.dummyKnockbackVelocity ?? '0')) < 5,
@@ -101,7 +142,8 @@ try {
   await page.waitForFunction(
     () =>
       document.documentElement.dataset.godotReady === 'true' &&
-      document.documentElement.dataset.buffSkillLoaded === 'true',
+      document.documentElement.dataset.buffSkillLoaded === 'true' &&
+      document.documentElement.dataset.playerCharacterLoaded === 'true',
     null,
     { timeout: 60_000 },
   );
@@ -116,14 +158,14 @@ try {
     throw new Error('Buff unexpectedly starts active');
   }
 
-  // Establish a real-browser baseline movement sample before the buff.
-  const baselineStartX = await readNumber('playerX');
-  await holdKey('d', 350, 60);
-  const baselineEndX = await readNumber('playerX');
-  const baselineDisplacement = baselineEndX - baselineStartX;
-  if (!(baselineDisplacement > 70)) {
-    throw new Error(`Baseline movement sample too small: ${baselineDisplacement}`);
+  const baseMoveSpeed = await readNumber('playerRuntimeMoveSpeed');
+  if (!(baseMoveSpeed > 0)) {
+    throw new Error(`Character runtime move speed is unavailable: ${baseMoveSpeed}`);
   }
+
+  // Sample movement in Godot frame-space rather than assuming Playwright's wall-clock hold
+  // duration equals gameplay time. This stays deterministic even when an Edge runner stalls.
+  const baselineSample = await sampleHorizontalSpeed('Baseline movement', 1.0, baseMoveSpeed);
 
   // Activation #1 is dedicated to movement verification. Keeping movement and damage
   // verification in separate activations avoids coupling a 3.2s gameplay duration to CI speed.
@@ -145,22 +187,23 @@ try {
     throw new Error(`Unexpected active multipliers: move=${moveMultiplier} attack=${attackMultiplier}`);
   }
 
+  // Wait until the cast animation releases the shared skill lock while the timed buff remains.
+  // The runtime should now compose CharacterDefinition movement × 1.45 exactly once.
+  await page.waitForFunction(
+    () =>
+      document.documentElement.dataset.skillCoordinatorBusy === 'false' &&
+      document.documentElement.dataset.buffActive === 'true',
+    null,
+    { timeout: 2_500 },
+  );
+  const buffSample = await sampleHorizontalSpeed('Battle Focus movement', moveMultiplier, baseMoveSpeed);
+
   // Recast during the active/cooldown window must be sampled and rejected without spending MP.
   await holdKey('b');
   await page.waitForTimeout(120);
   if ((await readNumber('playerMp')) !== 75 || (await readNumber('buffActivationCount')) !== 1) {
     throw new Error(
       `Buff duplicate cast was not rejected: mp=${await readNumber('playerMp')} activations=${await readNumber('buffActivationCount')}`,
-    );
-  }
-
-  const buffMoveStartX = await readNumber('playerX');
-  await holdKey('d', 350, 60);
-  const buffMoveEndX = await readNumber('playerX');
-  const buffDisplacement = buffMoveEndX - buffMoveStartX;
-  if (!(buffDisplacement > baselineDisplacement * 1.20)) {
-    throw new Error(
-      `Buff movement boost too small: baseline=${baselineDisplacement} buffed=${buffDisplacement}`,
     );
   }
 
@@ -238,7 +281,7 @@ try {
   }
 
   console.log(
-    `WEB_BUFF_SKILL_SMOKE_PASSED mpAfterTwoCasts=50 activations=2 baselineMove=${baselineDisplacement.toFixed(2)} buffMove=${buffDisplacement.toFixed(2)} moveMultiplier=${moveMultiplier} attackMultiplier=${attackMultiplier} hpAfterBuffedHit=${hpAfterBuffedHit} finalHp=${await readNumber('dummyHp')} cooldownAfterCast=${cooldownAfterCast}`,
+    `WEB_BUFF_SKILL_SMOKE_PASSED mpAfterTwoCasts=50 activations=2 baselineSpeed=${baselineSample.observedSpeed.toFixed(2)} buffSpeed=${buffSample.observedSpeed.toFixed(2)} baselineMove=${baselineSample.displacement.toFixed(2)} buffMove=${buffSample.displacement.toFixed(2)} moveMultiplier=${moveMultiplier} attackMultiplier=${attackMultiplier} hpAfterBuffedHit=${hpAfterBuffedHit} finalHp=${await readNumber('dummyHp')} cooldownAfterCast=${cooldownAfterCast}`,
   );
 } finally {
   await browser.close();

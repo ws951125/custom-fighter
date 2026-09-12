@@ -1,6 +1,7 @@
 extends SceneTree
 
 const CharacterDefinition = preload("res://game/core/character/character_definition.gd")
+const CharacterMovementTuning = preload("res://game/core/character/character_movement_tuning.gd")
 
 var failures := 0
 
@@ -22,6 +23,7 @@ func _run() -> void:
 	_check(is_equal_approx(character.guard_move_multiplier, 0.35), "guard movement multiplier loads")
 	_check(character.skill_id_for_slot("skill_1") == "fireball_001", "skill slot 1 loads")
 	_check(character.skill_id_for_slot("skill_6") == "heavy_strike_001", "skill slot 6 loads")
+	_test_movement_tuning(character)
 
 	var missing := CharacterDefinition.new()
 	var missing_errors := missing.load_from_dictionary({"schema_version": 1})
@@ -58,6 +60,76 @@ func _run() -> void:
 		return
 	printerr("CHARACTER_TEST_FAILURES=%d" % failures)
 	quit(1)
+
+func _test_movement_tuning(baseline_character) -> void:
+	_check(
+		is_equal_approx(CharacterMovementTuning.horizontal_ratio(baseline_character, false, false), 1.0),
+		"balanced character preserves baseline horizontal movement"
+	)
+	_check(
+		is_equal_approx(CharacterMovementTuning.depth_ratio(baseline_character, false, false), 1.0),
+		"balanced character preserves baseline depth movement"
+	)
+
+	var baseline_delta := Vector2(36.0, 0.072)
+	var baseline_adjusted := CharacterMovementTuning.adjust_frame_delta(
+		baseline_delta,
+		baseline_character,
+		false,
+		false
+	)
+	_check(baseline_adjusted.is_equal_approx(baseline_delta), "balanced movement delta remains unchanged")
+
+	var buffed_adjusted := CharacterMovementTuning.adjust_frame_delta(
+		baseline_delta,
+		baseline_character,
+		false,
+		false,
+		1.45
+	)
+	_check(
+		buffed_adjusted.is_equal_approx(Vector2(52.2, 0.1044)),
+		"runtime buff multiplier composes on top of CharacterDefinition movement"
+	)
+
+	var tuned_data := _valid_dictionary()
+	tuned_data["stats"]["move_speed"] = 270.0
+	tuned_data["stats"]["depth_speed"] = 0.54
+	tuned_data["stats"]["run_multiplier"] = 1.2
+	tuned_data["stats"]["guard_move_multiplier"] = 0.70
+	var tuned_character := CharacterDefinition.new()
+	var tuned_errors := tuned_character.load_from_dictionary(tuned_data)
+	_check(tuned_errors.is_empty() and tuned_character.loaded, "alternate movement tuning validates")
+	_check(
+		is_equal_approx(CharacterMovementTuning.horizontal_ratio(tuned_character, false, false), 0.75),
+		"move_speed changes horizontal runtime ratio"
+	)
+	_check(
+		is_equal_approx(CharacterMovementTuning.depth_ratio(tuned_character, false, false), 0.75),
+		"depth_speed changes depth runtime ratio"
+	)
+	_check(
+		is_equal_approx(CharacterMovementTuning.horizontal_ratio(tuned_character, true, false), 0.5625),
+		"run_multiplier changes running runtime ratio"
+	)
+	_check(
+		is_equal_approx(CharacterMovementTuning.horizontal_ratio(tuned_character, false, true), 1.5),
+		"guard_move_multiplier changes guarded runtime ratio"
+	)
+	var tuned_adjusted := CharacterMovementTuning.adjust_frame_delta(
+		baseline_delta,
+		tuned_character,
+		false,
+		false
+	)
+	_check(
+		tuned_adjusted.is_equal_approx(Vector2(27.0, 0.054)),
+		"alternate CharacterDefinition changes actual movement delta"
+	)
+	_check(
+		is_equal_approx(CharacterMovementTuning.horizontal_ratio(null, false, false), 1.0),
+		"missing character uses safe movement fallback"
+	)
 
 func _valid_dictionary() -> Dictionary:
 	return {

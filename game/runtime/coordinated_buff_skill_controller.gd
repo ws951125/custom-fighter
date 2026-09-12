@@ -2,6 +2,12 @@ extends "res://game/runtime/buff_skill_controller.gd"
 
 const SKILL_OWNER := &"skill_5"
 
+func _ready() -> void:
+	super()
+	# Tick the buff state before the root runtime composes this frame's movement.
+	# This makes CharacterDefinition × Buff deterministic across browser runners.
+	process_priority = -100
+
 func _process(delta: float) -> void:
 	super(delta)
 	if host != null and not cast_state.is_casting():
@@ -24,3 +30,12 @@ func _try_cast() -> void:
 	super()
 	if not cast_state.is_casting():
 		host.skill_coordinator.release(SKILL_OWNER)
+
+func _apply_movement_boost() -> void:
+	# The coordinated character runtime owns final movement composition.
+	# Keeping this as a no-op prevents a second coordinate mutation after the
+	# CharacterDefinition movement adapter has already produced the final delta.
+	pass
+
+func runtime_movement_multiplier() -> float:
+	return buff_state.movement_multiplier()
