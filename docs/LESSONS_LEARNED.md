@@ -65,5 +65,5 @@
 - **Root Cause:** `skillCooldown` 是會隨遊戲時間遞減的瞬時 telemetry。production Edge 的網路啟動、frame cadence 與 assertion scheduling 較慢時，測試讀取該欄位前 cooldown 可以合法地回到 0；這不會否定前面已留下的持久證據：MP 已扣除、coordinator last claim 正確、claim count 只增加一次、O 沒有施放。
 - **Fix:** `skill_coordination_web_smoke.mjs` 不再要求觀察當下的 cooldown 必須大於 0；只要求 cooldown diagnostic 是有限且非負數值，並以 MP delta + persistent lastClaimed + claimCount + rejected O state 作為 exclusivity/cast 的 durable evidence。首次失敗的 production job targeted retry 在未改程式前也已 PASS，進一步證明原問題是 observation flake 而非 gameplay regression。
 - **Prevention Rule:** 對 cooldown remaining、短暫 animation/state boolean、frame-local phase 等會自然消逝的 telemetry，不要在經過非同步等待後把「仍為 active / > 0」當成唯一成功證據。優先使用持久 counter、resource delta、last-event identity、hit count 或明確 runtime acknowledgement。
-- **Validation:** Run #109 targeted production Edge retry PASS，包含 `WEB_SKILL_COORDINATION_SMOKE_PASSED` 與 `WEB_CREATOR_PREVIEW_SMOKE_PASSED`。Assertion hardening 本身仍需 Issue #58 PR 的 Chromium + hosted Windows Edge 驗證。
-- **Status:** Fix implemented; PR validation pending
+- **Validation:** Run #109 targeted production Edge retry PASS，包含 `WEB_SKILL_COORDINATION_SMOKE_PASSED` 與 `WEB_CREATOR_PREVIEW_SMOKE_PASSED`；Issue #58 / PR #59 CI Run #110 隨後以 hardened assertion 通過 Chromium `smoke:all` 與 GitHub-hosted Windows Microsoft Edge `smoke:all`，連同 Godot import/boot/domain tests、Web export與 size budget 全部 PASS。
+- **Status:** Verified
