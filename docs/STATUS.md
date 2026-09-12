@@ -4,9 +4,9 @@
 
 Milestone 3 — Data-driven Character System.
 
-Current active slice: Issue #46 / M3 Slice 5 — character registry, safe Web selection and second reference fighter.
+Current active slice: Issue #50 / M3 Slice 6 — data-driven animation mapping and final M3 acceptance.
 
-Estimated whole-project completion: **33.3%** across the M0–M8 MVP roadmap under the repository rule that only formally completed milestones count toward the fixed milestone denominator. M0, M1 and M2 are complete; M3 is still in progress.
+Estimated whole-project completion: **33.3%** across the M0–M8 MVP roadmap under the repository rule that only formally completed milestones count toward the fixed milestone denominator. M0, M1 and M2 are complete; M3 is still in progress until Slice 6 is production-validated.
 
 ## Completed
 
@@ -73,26 +73,35 @@ Issue #44 / PR #45 / M3 Slice 4 is production-validated and merged to `main` at 
 - Main CI Run #94 passed the same gates, GitHub Pages deployment, public reachability and production Edge real-game flow.
 - The frame-polled input regression from Run #87 is fixed and recorded as Verified in `docs/LESSONS_LEARNED.md` L-002.
 
-## Current work — Issue #46 / M3 Slice 5
-
-Goal: remove the final fixed character-file selection boundary and establish at least two official reference characters without editing core combat code.
-
-Implemented on `feature/m3-character-registry-selection`:
+Issue #46 / PR #49 / M3 Slice 5 is production-validated and merged to `main` at `742767eff3e8bba245b3bfca3eb74b406471321b`:
 
 - Adds validated, data-only `CharacterRegistry` and `content/characters/registry.json`.
-- Registry default remains `ember_vanguard_001`; approved character ids resolve only to safe `.sample.json` files under `content/characters`.
-- Adds second official fighter `storm_duelist_001` / Storm Duelist with distinct stats, `storm_violet` visual profile and an alternate approved projectile (`training_bolt_001`) in skill slot 1.
-- Adds `selectable_main.gd`, which resolves the production character through CharacterRegistry instead of the fixed `PLAYER_CHARACTER_PATH` used by the parent runtime.
-- Web builds accept a safe `?character=<id>` selection. Unknown/unsafe ids never become resource paths; they fall back to the registered default while exposing a diagnostic error.
-- Adds Web diagnostics for registry readiness, requested/selected ids, source path, fallback status and selection error.
-- Adds `character_registry_test_runner.gd` domain regressions for safe resolution and rejection cases.
-- Adds `character_selection_web_smoke.mjs` to verify default selection, Storm Duelist selection and unsafe-selection fallback in Chromium/Edge.
-- Adds the new domain runner and browser selection smoke to the GitHub-only CI gates.
+- Removes the fixed production character-file selection boundary.
+- Adds `storm_duelist_001` / Storm Duelist as the second official reference fighter with distinct stats, `storm_violet` visual profile and `training_bolt_001` in skill slot 1.
+- Web builds safely select an approved character using `?character=<id>`; unsafe/unknown ids never become resource paths and fall back to the registered default with diagnostics.
+- PR CI Run #95 passed Godot import/boot/domain tests, Web export/size budget, Chromium `smoke:all` and GitHub-hosted Windows Edge.
+- Main CI Run #96 passed the same gates plus GitHub Pages deployment, public reachability and production Edge real-game flow.
+- Issue #46 is closed as completed after production validation.
+
+## Current work — Issue #50 / M3 Slice 6
+
+Goal: complete the remaining M3 animation-mapping contract and prove the character system is authoring-ready without character-specific core combat edits.
+
+Implemented on `feature/m3-animation-mapping`:
+
+- Adds validated, data-only `CharacterAnimationMap` with a fixed semantic allow-list for ready, walk, run, jump, dash, guard, the three basic-attack steps and all six skill slots.
+- Adds `ember_vanguard.animation.json` and `storm_duelist.animation.json` with distinct approved animation ids.
+- Adds `animation_map` to CharacterDefinition; official reference characters explicitly select their own animation maps. Legacy/test character data without the field derives a safe token from the character id, while runtime loading still fails closed if no approved map file exists.
+- Adds `animation_main.gd` as the production runtime layer above safe character selection. It resolves current movement/combat/skill semantics to the character-owned animation id through CharacterAnimationMap.
+- Adds Web diagnostics for CharacterDefinition animation-map reference, loaded map id, current semantic, current animation id and load error.
+- Unknown runtime semantics fall back only to the map's validated `ready` id; unsafe animation references/ids and executable-style fields are rejected.
+- Adds `character_animation_test_runner.gd` domain regressions and `character_animation_web_smoke.mjs` browser regressions for Ember/Storm mapping plus Storm ready/walk/attack/skill state resolution.
+- Adds the new domain runner and browser smoke to the GitHub-only CI gates.
 
 Validation status:
 
 - Implementation is committed on the feature branch.
-- GitHub Actions validation is pending creation/execution of the Slice 5 PR.
+- Slice 6 PR creation and GitHub Actions validation are the next gate.
 - No user-local machine and no Remote Desktop Commander validation is permitted or used.
 
 ## Online validation
@@ -113,11 +122,11 @@ Live demo:
 
 `https://ws951125.github.io/custom-fighter/`
 
-Production currently contains Slice 4 / PR #45. Slice 5 is not in production until its PR is validated, merged and the main deployment completes.
+Production currently contains Slice 5 / PR #49. Slice 6 is not in production until its PR is validated, merged and the main deployment completes.
 
 ## Remaining roadmap
 
-- M3 — finish Character System: complete Issue #46 registry/second-character slice, then animation mapping / final authoring-readiness and M3 acceptance.
+- M3 — finish Character System: validate/merge Issue #50 animation mapping, complete production acceptance, then mark M3 complete.
 - M4 — Creator Studio basics.
 - M5 — User VFX import/processing and VFX Creator.
 - M6 — AI-assisted VFX provider layer.

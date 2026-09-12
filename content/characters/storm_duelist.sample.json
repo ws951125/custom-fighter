@@ -19,5 +19,6 @@
     "skill_5": "battle_focus_001",
     "skill_6": "heavy_strike_001"
   },
-  "visual_profile": "storm_violet"
+  "visual_profile": "storm_violet",
+  "animation_map": "storm_duelist"
 }

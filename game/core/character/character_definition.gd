@@ -4,7 +4,7 @@ extends RefCounted
 const CURRENT_SCHEMA_VERSION := 1
 const REQUIRED_SKILL_SLOTS := ["skill_1", "skill_2", "skill_3", "skill_4", "skill_5", "skill_6"]
 const ALLOWED_TOP_LEVEL_FIELDS := [
-	"schema_version", "id", "name", "archetype", "stats", "skill_slots", "visual_profile"
+	"schema_version", "id", "name", "archetype", "stats", "skill_slots", "visual_profile", "animation_map"
 ]
 const ALLOWED_STAT_FIELDS := [
 	"max_hp", "max_mp", "move_speed", "depth_speed", "run_multiplier", "guard_move_multiplier"
@@ -21,6 +21,7 @@ var depth_speed := 0.72
 var run_multiplier := 1.60
 var guard_move_multiplier := 0.35
 var visual_profile := ""
+var animation_map := ""
 var skill_slots: Dictionary = {}
 var loaded := false
 
@@ -85,6 +86,7 @@ func load_from_dictionary(data: Dictionary) -> PackedStringArray:
 	run_multiplier = float(stats.get("run_multiplier", 0.0))
 	guard_move_multiplier = float(stats.get("guard_move_multiplier", -1.0))
 	visual_profile = str(data.get("visual_profile", "")).strip_edges()
+	animation_map = str(data.get("animation_map", character_id)).strip_edges()
 	skill_slots.clear()
 	for slot in REQUIRED_SKILL_SLOTS:
 		skill_slots[slot] = str(slots.get(slot, "")).strip_edges()
@@ -99,6 +101,8 @@ func load_from_dictionary(data: Dictionary) -> PackedStringArray:
 		errors.append("archetype must be a safe lowercase reference token")
 	if not _is_safe_token(visual_profile):
 		errors.append("visual_profile must be a safe lowercase reference token")
+	if not _is_safe_token(animation_map):
+		errors.append("animation_map must be a safe lowercase reference token")
 
 	if max_hp < 1 or max_hp > 10000:
 		errors.append("max_hp must be between 1 and 10000")

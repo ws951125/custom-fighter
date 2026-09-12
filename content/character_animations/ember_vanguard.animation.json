@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "id": "ember_vanguard",
+  "animations": {
+    "ready": "ember_ready",
+    "walk": "ember_walk",
+    "run": "ember_run",
+    "jump": "ember_jump",
+    "dash": "ember_dash",
+    "guard": "ember_guard",
+    "attack_1": "ember_attack_1",
+    "attack_2": "ember_attack_2",
+    "attack_3": "ember_attack_3",
+    "skill_1": "ember_skill_1",
+    "skill_2": "ember_skill_2",
+    "skill_3": "ember_skill_3",
+    "skill_4": "ember_skill_4",
+    "skill_5": "ember_skill_5",
+    "skill_6": "ember_skill_6"
+  }
+}
