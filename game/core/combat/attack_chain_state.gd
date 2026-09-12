@@ -2,8 +2,7 @@ class_name AttackChainState
 extends RefCounted
 
 const COMBO_RESET_SECONDS := 0.62
-const HITCH_THRESHOLD_SECONDS := 0.50
-const HITCH_COMBO_TIMER_DELTA := 0.10
+const MAX_COMBO_TIMER_DELTA := 0.10
 
 var combo_step := 0
 var attack_lock_remaining := 0.0
@@ -15,22 +14,30 @@ var buffered_step_ready := 0
 func tick(delta: float) -> void:
 	var safe_delta := maxf(0.0, delta)
 	var previous_attack_lock := attack_lock_remaining
-	# Preserve normal timing exactly. Only treat a single frame over 500ms as a browser
-	# hitch, because the player had no usable input frames during that pause.
-	var combo_delta := safe_delta
-	if safe_delta > HITCH_THRESHOLD_SECONDS:
-		combo_delta = HITCH_COMBO_TIMER_DELTA
 	attack_lock_remaining = maxf(0.0, attack_lock_remaining - safe_delta)
-	combo_reset_remaining = maxf(0.0, combo_reset_remaining - combo_delta)
 
-	# A combo input accepted during recovery is intentional player input. Resolve it as
-	# soon as recovery ends, even if a long browser frame also crossed the old timer edge.
-	# This makes the combat model resilient to Web/low-FPS hitches without lengthening the
-	# normal unbuffered combo window.
+	# Buffered input is deliberate player input. If recovery ends on this frame, resolve
+	# the buffered attack before charging any post-recovery combo-window time.
 	if previous_attack_lock > 0.0 and attack_lock_remaining <= 0.0 and attack_buffered:
 		attack_buffered = false
 		buffered_step_ready = _start_next_attack()
 		return
+
+	# The combo window is playable input time, not raw wall-clock time. Recovery consumes
+	# none of it, and a low-FPS/Web hitch can consume at most 100ms per rendered frame.
+	# Normal 60fps timing is therefore unchanged while players still get several actual
+	# input frames to continue the chain when a browser stalls.
+	var interactive_delta := 0.0
+	if previous_attack_lock <= 0.0:
+		interactive_delta = safe_delta
+	elif safe_delta > previous_attack_lock:
+		interactive_delta = safe_delta - previous_attack_lock
+
+	if interactive_delta > 0.0:
+		combo_reset_remaining = maxf(
+			0.0,
+			combo_reset_remaining - minf(interactive_delta, MAX_COMBO_TIMER_DELTA)
+		)
 
 	if combo_reset_remaining <= 0.0 and attack_lock_remaining <= 0.0:
 		combo_step = 0
