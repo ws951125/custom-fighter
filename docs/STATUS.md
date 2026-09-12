@@ -2,11 +2,11 @@
 
 ## Current phase
 
-Milestone 2 — Data-driven Skill Engine finalization.
+Milestone 3 — Data-driven Character System.
 
-Current active slice: Issue #34 — shared SkillCoordinator + authoring readiness.
+Current active slice: Issue #36 — CharacterDefinition + first data-driven fighter.
 
-Estimated whole-project completion: **35%** across the M0–M8 MVP roadmap. This is an engineering progress estimate based on completed milestone scope, not elapsed time.
+Estimated whole-project completion: **36%** across the M0–M8 MVP roadmap. This is an engineering progress estimate based on completed milestone scope, not elapsed time.
 
 ## Completed
 
@@ -28,9 +28,9 @@ Estimated whole-project completion: **35%** across the M0–M8 MVP roadmap. This
 - Training dummy and Chromium / Windows Edge regressions.
 - Production GitHub Pages validation in Windows Edge.
 
-### Milestone 2 — implemented skill templates
+### Milestone 2 — Data-driven Skill Engine — 100%
 
-All six planned data-driven templates are implemented and production-validated individually:
+All six planned data-driven templates are implemented and production-validated:
 
 - `U` — Projectile: `fireball_001`.
 - `I` — Dash Attack: `dash_slash_001`.
@@ -39,18 +39,21 @@ All six planned data-driven templates are implemented and production-validated i
 - `B` — Buff: `battle_focus_001`.
 - `H` — Melee: `heavy_strike_001`.
 
-Shared JSON data controls MP, cooldown, cast timing and template-specific combat parameters. Existing skill and M1 gameplay regressions run in both Chromium and Windows Edge.
+Shared JSON data controls MP, cooldown, cast timing and template-specific combat parameters. One shared `SkillCoordinator` owns cross-skill exclusivity for U/I/O/P/B/H and prevents same-frame double-casts. M1 movement, guard and basic attacks observe the same busy state. Chromium, Windows Edge, GitHub Pages deployment and production Edge gameplay are green on main commit `491536cac6b8a80b02e097874be77b91bbe2df92`.
 
 ## Current work
 
-Issue #34 finalizes M2 with a shared `SkillCoordinator`:
+Issue #36 starts M3 with a versioned, validated `CharacterDefinition`:
 
-- U/I/O/P/B/H use one cross-skill exclusivity coordinator.
-- M1 movement, guard and basic attacks observe the same skill-busy state.
-- Same-frame simultaneous skill requests cannot double-spend MP or start two casts.
-- Domain tests cover claim/reject/release ownership rules.
-- Browser regression holds U + O together and verifies only one skill acquires the coordinator.
-- PR validation has passed in Chromium and Windows Edge; production Pages validation is still required before M2 is declared complete.
+- Data-only character schema under `game/core/character/`.
+- First official balanced fighter definition: `ember_vanguard_001`.
+- Base resources and movement tuning fields stored in character JSON.
+- Six skill-slot references point at the completed M2 skill ids.
+- Player max HP/MP are initialized from CharacterDefinition.
+- Web diagnostics expose character identity, resources, movement tuning and skill slots.
+- Dedicated Godot domain tests and browser regression protect the data boundary.
+
+Issue #37 is the next M3 slice and will route the remaining hard-coded movement constants through CharacterDefinition after Slice 1 is green.
 
 ## Online validation
 
@@ -70,8 +73,7 @@ Live demo:
 
 ## Remaining roadmap
 
-- Finish Issue #34 production validation and close Milestone 2.
-- M3 — Data-driven Character System.
+- M3 — finish Character System: CharacterDefinition integration, movement tuning, visual/body profiles, character selection/loadout binding and authoring-readiness pass.
 - M4 — Creator Studio basics.
 - M5 — User VFX import/processing and VFX Creator.
 - M6 — AI-assisted VFX provider layer.
