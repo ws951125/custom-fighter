@@ -2,139 +2,134 @@
 
 ## Current phase
 
-Milestone 4 — Creator Studio.
+Milestone 5 — VFX Creator is the current roadmap milestone.
 
-Current active slice: Issue #56 / PR #57 / M4 Slice 3 — validated Creator-to-Training preview session.
+At the user's request, active implementation is temporarily focused on **Issue #61 / PR #62 — Mobile Slice 1: touch controls for playable phone Web build**. The existing M5 Slice 1 work in Issue #60 / `feature/m5-png-vfx-import-preview` is preserved and paused, not discarded.
 
-Estimated whole-project completion: **44.4%** across the M0–M8 MVP roadmap under the repository rule that only formally completed milestones count toward the fixed milestone denominator. M0, M1, M2 and M3 are complete; M4 is in progress.
+Estimated whole-project completion: **55.6%** across the M0–M8 MVP roadmap. Under the repository rule, only formally completed milestones count toward the fixed milestone denominator. M0, M1, M2, M3 and M4 are complete; M5 is in progress.
 
 ## Completed milestones
 
-### Milestone 0 — Foundation — 100%
+### M0 — Foundation — 100%
 
 - Godot 4.7.2 project foundation.
 - GitHub Actions cloud validation.
-- Web release export and GitHub Pages deployment.
-- PWA/service-worker caching, startup diagnostics and Web size budgets.
-- GitHub-only development and validation rules in `AGENTS.md`, `Agent.md`, `docs/ONLINE_TESTING.md` and `docs/MVP.md`.
+- Web export and GitHub Pages deployment.
+- Browser smoke tests and build-size budget.
+- GitHub-only engineering/validation policy.
 
-### Milestone 1 — Combat Prototype — 100%
+### M1 — Combat Prototype — 100%
 
 - 2.5D movement, run, jump, dash and guard.
 - HP / MP state.
-- Three-hit basic attack chain with input buffering.
+- Three-hit basic attack chain.
 - Hitbox / hurtbox, hitstun, knockback, knockdown and recovery.
-- Browser-hitch-resistant combo timing.
-- Training dummy and Chromium / Windows Edge regressions.
-- Production GitHub Pages validation in Windows Edge.
+- Training dummy and browser regressions.
 
-### Milestone 2 — Data-driven Skill Engine — 100%
+### M2 — Data-driven Skill Engine — 100%
 
-All six planned data-driven templates are implemented and production-validated:
+Production-validated data-driven templates:
 
-- `U` — Projectile: `fireball_001`.
-- `I` — Dash Attack: `dash_slash_001`.
-- `O` — Area Attack: `arc_burst_001`.
-- `P` — Formation / Rain: `blade_rain_001`.
-- `B` — Buff: `battle_focus_001`.
-- `H` — Melee: `heavy_strike_001`.
+- `U` — Projectile.
+- `I` — Dash Attack.
+- `O` — Area Attack.
+- `P` — Formation / Rain.
+- `B` — Buff.
+- `H` — Melee.
 
-Shared JSON data controls MP, cooldown, cast timing and template-specific combat parameters. One shared `SkillCoordinator` owns cross-skill exclusivity for U/I/O/P/B/H and prevents same-frame double-casts. M1 movement, guard and basic attacks observe the same busy state.
+### M3 — Character System — 100%
 
-### Milestone 3 — Character System — 100%
+- Versioned validated `CharacterDefinition`.
+- Movement, visual, skill-registry and animation-map boundaries.
+- Ember Vanguard and Storm Duelist reference characters.
+- Safe `?character=<id>` Web selection and fail-closed fallback.
+- M3 production validation completed through CI Run #98.
 
-M3 is production-validated and accepted.
+### M4 — Creator Studio — 100%
 
-- Versioned, validated, data-only `CharacterDefinition` owns character identity, stats, movement tuning, visual profile, animation map and six skill slots.
-- `CharacterMovementTuning`, `CharacterVisualProfile`, `SkillRegistry`, `CharacterRegistry` and `CharacterAnimationMap` provide safe data-driven runtime boundaries.
-- Two official reference characters are available entirely from content data: `ember_vanguard_001` / Ember Vanguard and `storm_duelist_001` / Storm Duelist.
-- Web runtime safely supports `?character=<id>` and fail-closed fallback for invalid selections.
-- PR #45 / Slice 4, PR #49 / Slice 5 and PR #51 / Slice 6 all passed GitHub-only validation before merge.
-- Main CI Run #98 for merged PR #51 passed Godot import/boot/domain tests, Web export/size budget, Chromium `smoke:all`, GitHub-hosted Windows Edge, GitHub Pages deployment, public reachability and production Edge real-game flow.
+M4 satisfies its MVP acceptance: a non-programmer can create a basic character and projectile skill, validate both, preview them in Training, cast the authored projectile through the real runtime, and return to Creator without editing repository JSON.
 
-M3 acceptance is satisfied: a normal character can be added from approved content data without editing core combat code.
+Completed slices:
 
-## Milestone 4 — completed slices
+- Issue #52 / PR #53 — Character Editor.
+- Issue #54 / PR #55 — Projectile Skill Editor.
+- Issue #56 / PR #57 — validated Creator-to-Training preview session.
 
-### Slice 1 — Character Editor
+PR #57 merged to `main` at `2029de45c3430e1b30b85b87727e58091c246ab4`. Main CI Run #109 passed Godot import/boot/domain tests, Web export/size budget, Chromium `smoke:all`, GitHub-hosted Windows Edge, GitHub Pages deployment, public reachability and production Edge real-game flow. Issue #56 is closed completed.
 
-Issue #52 / PR #53 is production-validated and merged to `main` at `5b55a8b14afb4d810770d3dffa0bdc33c2c8d9f6`.
+## M5 — VFX Creator
 
-- Default URL remains Training; `?mode=creator` opens Creator Studio.
-- Godot-native Character Editor with data-only in-memory `CharacterDraft`.
-- Character ID, Display Name, Archetype, Max HP, Max MP and Move Speed editing.
-- Validation delegates to the existing `CharacterDefinition` contract.
-- Live VALID / INVALID state, Reset Character Draft and Back to Training.
-- Main CI Run #100 passed Chromium, hosted Windows Edge, Pages deployment, public reachability and production Edge.
-- Issue #52 is closed completed.
+### Issue #60 — safe PNG VFX import and preview foundation
 
-### Slice 2 — Projectile Skill Editor
+Work started on `feature/m5-png-vfx-import-preview` before the mobile-control priority change.
 
-Issue #54 / PR #55 is production-validated and merged to `main` at `1f00ec58e69abae159c6963746683dbb1c0e0ffd`.
+Implemented there so far:
 
-- Data-only in-memory `SkillDraft` for the projectile template.
-- Editable Skill ID, name, damage, MP cost, cooldown, startup, active, recovery, speed, range, hitstun and knockback.
-- Validation delegates to the existing runtime `SkillDefinition` contract.
-- Creator Studio navigation switches between Character Editor and Skill Editor.
-- Approved starter hitbox/visual identifiers remain explicit; no arbitrary code/path execution.
-- Reset Skill Draft and deterministic browser diagnostics are included.
-- PR CI Run #101 passed Godot import/boot/domain tests, Web export/size budget, Chromium `smoke:all` and GitHub-hosted Windows Edge.
-- Main CI Run #102 first Windows Edge attempt hit a transient `playerRunning` observation timeout while runtime logs already reported `state=RUN`; targeted retry passed. GitHub Pages deployment, public reachability and production Edge then all passed, including `WEB_CREATOR_SKILL_EDITOR_SMOKE_PASSED`.
-- Issue #54 is closed completed after production validation.
+- Versioned data-only `VfxDraft`.
+- PNG MIME and dimension validation.
+- Crop, scale, offset and FPS validation.
+- Single-frame PNG Slice 1 constraint.
+- Oversized/unsupported input rejection.
+- Domain-test runner and CI wiring.
 
-## Current work — Issue #56 / PR #57 / M4 Slice 3
+This branch is currently paused while Issue #61 is completed. It will resume after the phone-playability slice is production-safe.
 
-Goal: connect validated Creator drafts to the real Training runtime without hand-editing content files.
+## Active work — Issue #61 / PR #62 / Mobile Slice 1
 
-Implemented on `feature/m4-creator-training-preview`:
+Goal: make the existing GitHub Pages Training build playable from a phone without a hardware keyboard while leaving desktop keyboard gameplay unchanged.
 
-- Adds an autoloaded, in-memory `CreatorPreviewSession` boundary.
-- Preview staging validates CharacterDraft data through `CharacterDefinition` and projectile SkillDraft data through `SkillDefinition` before runtime handoff.
-- Preview additionally rejects unsafe skill IDs, unsupported skill types and unapproved preview visual identifiers.
-- Character visual profile and animation map references are resolved through their approved runtime registries before a preview can launch.
-- Preview binds the validated authored projectile to character `skill_1` in a copied runtime CharacterDefinition without mutating the editable CharacterDraft or repository content files.
-- Adds in-app router mode switching so Creator → Training preview does not reload the Web page or lose in-memory state.
-- Training can source the preview CharacterDefinition and Skill 1 definition from `creator_preview_session`; all non-preview skill slots continue through the normal `SkillRegistry` path.
-- Adds `Preview in Training` and `Return to Creator` paths while retaining validated drafts for iteration.
-- Adds hosted-Web diagnostics and a browser automation bridge for preview launch/return.
-- Adds `creator_preview_session_test_runner.gd` and `creator_preview_web_smoke.mjs`.
-- Adds the preview domain test to GitHub Actions and preview browser smoke to `smoke:all`.
+Implemented on `feature/mobile-touch-controls`:
+
+- Adds `MobileControls` as a Training HUD layer.
+- Automatically enables on touch-capable Web sessions.
+- Supports deterministic `?mobile_controls=1` enable and `?mobile_controls=0` disable overrides for hosted-browser validation.
+- Left movement pad dispatches existing `move_left`, `move_right`, `move_up`, `move_down` and `run` Input actions.
+- Right action pad dispatches existing `jump`, `attack`, `dash`, `guard` and `skill_1` through `skill_6` Input actions.
+- Held actions use `Input.action_press()` / `Input.action_release()` so mobile does not fork combat logic.
+- Adds landscape-oriented layout plus a portrait rotate hint.
+- Browser capability results are normalized through a numeric JS→GDScript contract (`1/0`) before deciding touch capability / visibility.
+- Adds Web diagnostics and narrow `customFighterMobilePress` / `customFighterMobileRelease` automation bridges.
+- Adds `mobile_controls_web_smoke.mjs` covering forced deterministic enablement, touch auto-detection, sustained movement, guard, jump, attack, Skill 1 and desktop-hidden behavior.
+- Adds `smoke:mobile` to `smoke:all`, so Chromium and GitHub-hosted Windows Edge both exercise the mobile-control path.
 
 Validation status:
 
-- PR #57 CI Run #103 failed at Godot import because dynamic autoload method expressions used `:=` across the new preview inheritance boundary; Godot also reported `Could not resolve class res://game/runtime/preview_selectable_main.gd` from `animation_main.gd`.
-- The dynamic preview boundary was hardened with explicit `Variant`, `bool`, `Dictionary` and `PackedStringArray` types plus `has_method()` / `call()` helpers. The solved parser failure is recorded as `L-005` in `docs/LESSONS_LEARNED.md`.
-- PR #57 CI Run #105 on the corrected code head passed Godot import, main boot, all domain tests, Web export, size budget, Chromium `smoke:all` and GitHub-hosted Windows Microsoft Edge `smoke:all`.
-- A fresh latest-head PR validation after the documentation sync also passes all required pre-merge GitHub gates. PR #57 is ready for merge once the current documentation head itself is confirmed green. No user-local machine, local project execution or Remote Desktop Commander validation is permitted or used.
+- PR #62 CI Run #113 failed only in the first version of `smoke:mobile`: the initial readiness wait combined Godot startup, Playwright mobile emulation, touch auto-detection, HUD enablement and bridge readiness into one opaque assertion and timed out after all earlier gates/regressions had passed.
+- Touch detection and the hosted-browser test were hardened. Functional gameplay now uses `?mobile_controls=1` as a deterministic gate, production auto-detection is validated separately with a touch-enabled browser context, `?mobile_controls=0` proves desktop-hidden behavior, and readiness snapshots/page errors are printed for diagnosis.
+- The solved testing issue is recorded as `L-006` in `docs/LESSONS_LEARNED.md`.
+- PR #62 CI Run #115 passed Godot import, main boot, domain tests, Web export, size budget, Chromium `smoke:all` including the mobile flow, and GitHub-hosted Windows Microsoft Edge `smoke:all`.
+- Documentation sync commits after Run #115 require one fresh latest-head PR CI before merge. No user-local machine, local project execution or Remote Desktop Commander validation is permitted or used.
 
-## Online validation
+## Online validation policy
 
-The production pipeline verifies entirely on GitHub infrastructure:
+All project validation remains on GitHub-hosted infrastructure and the deployed GitHub Pages build:
 
-- Godot import and main-scene boot on GitHub-hosted runners.
+- Godot import and main-scene boot.
 - Domain/data tests.
 - Web release export and build-size budget.
-- Chromium `smoke:all` against the exported artifact.
-- Windows Microsoft Edge `smoke:all` on a GitHub-hosted Windows runner.
-- GitHub Pages deployment and public reachability.
-- Production browser smoke directly against the deployed game after merge.
+- Chromium `smoke:all`.
+- GitHub-hosted Windows Microsoft Edge `smoke:all`.
+- GitHub Pages deployment and public reachability after merge.
+- Production Edge real-game flow after deployment.
 
-If any required GitHub gate is unavailable, failing or blocked, the project records that state as `Blocked` / `Residual Risk`; it does not fall back to the user's local machine.
+If a required GitHub gate is unavailable or failing, record it as Blocked / Residual Risk rather than falling back to the user's computer.
 
-Live Training demo:
+## Production links
+
+Training:
 
 `https://ws951125.github.io/custom-fighter/`
 
-Live Creator Studio:
+Creator Studio:
 
 `https://ws951125.github.io/custom-fighter/?mode=creator`
 
-Production currently contains M4 Slice 1 and Slice 2. Slice 3 remains on PR #57 until the latest PR head is green, the PR is merged and the main deployment completes.
+Production currently includes completed M4. Mobile touch controls remain feature-branch-only until PR #62 latest-head validation, merge and production deployment complete.
 
 ## Remaining roadmap
 
-- M4 — finish the validated preview/training workflow, then broaden Creator skill-template authoring and persistence planning.
-- M5 — User VFX import/processing and VFX Creator.
+- Finish Issue #61 / PR #62 and production-validate mobile touch gameplay.
+- Resume M5 Issue #60: PNG/image-sequence VFX import, crop/scale/offset/FPS authoring, preview and skill VFX binding.
 - M6 — AI-assisted VFX provider layer.
-- M7 — Character package import/export with safe data-only packages.
-- M8 — Web MVP release and release hardening.
+- M7 — safe character package import/export.
+- M8 — Web/Windows MVP release hardening, including final mobile usability/polish.

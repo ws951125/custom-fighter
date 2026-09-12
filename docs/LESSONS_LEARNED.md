@@ -56,3 +56,14 @@
 - **Prevention Rule:** 對 `get_node_or_null()`、autoload lookup、dynamic host/plugin/interface 等 runtime-resolved object，不用 `:=` 推斷含自訂 method call 的結果。跨 script inheritance boundary 時，應把 dynamic receiver 隔離在 typed helper 內，對外回傳確定的 GDScript 型別。
 - **Validation:** 修正後 PR #57 CI Run #105 通過 Godot import、main boot、全部 domain tests、Web export、size budget、Chromium `smoke:all` 與 GitHub-hosted Windows Microsoft Edge `smoke:all`。
 - **Status:** Verified
+
+## L-006 — Mobile browser capability detection and gameplay validation need separate deterministic gates
+
+- **Date:** 2026-09-12
+- **Area:** Playwright / Godot Web / touch capability detection
+- **Symptom:** PR #62 CI Run #113 通過 Godot import、boot、domain tests、Web export、size budget 與所有既有 Chromium regressions，但新的 `smoke:mobile` 在第一個 readiness assertion timeout。第一版測試把 `isMobile` / `hasTouch` emulation、Godot readiness、touch auto-detection、HUD enablement與 automation bridge 全綁在同一個 60 秒 assertion，因此失敗時沒有足夠證據指出是哪個條件未成立。
+- **Root Cause:** Hosted-browser emulation 是測試環境能力，不應成為功能路徑唯一的 enable oracle；另外 JavaScript bridge 回傳值跨 GDScript `Variant` 邊界時，直接依賴 JS boolean 表示也比明確的 0/1 contract 更難診斷。測試本身又缺少 readiness snapshot / page console diagnostics，放大了定位成本。
+- **Fix:** production touch detector 改成 JS 回傳明確 `1/0` 再由 GDScript `int(result) == 1` 正規化；功能性 mobile gameplay gate 使用既有 `?mobile_controls=1` 明確啟用，另開獨立 `hasTouch` context 驗證真實 production auto-detection；測試加入 dataset snapshot、console/pageerror diagnostics，並保留 `?mobile_controls=0` 桌機隱藏驗證。
+- **Prevention Rule:** 對裝置能力／媒體查詢／權限等 browser capability，不要把 emulation availability、應用啟用邏輯與核心 gameplay assertion 綁成單一 opaque wait。功能測試使用明確 override 建立 deterministic path，再用獨立 assertion 驗證 capability auto-detection，並輸出診斷 snapshot。
+- **Validation:** 修正後 PR #62 CI Run #115 通過 Godot import、main boot、domain tests、Web export、size budget、Chromium `smoke:all`（含 mobile touch flow）與 GitHub-hosted Windows Microsoft Edge `smoke:all`。
+- **Status:** Verified
