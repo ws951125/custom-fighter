@@ -4,9 +4,9 @@
 
 Milestone 3 — Data-driven Character System.
 
-Current active slice: Issue #37 — route movement tuning through CharacterDefinition.
+Current active slice: Issue #41 — data-driven visual and body profiles.
 
-Estimated whole-project completion: **37%** across the M0–M8 MVP roadmap. This is an engineering progress estimate based on completed milestone scope, not elapsed time.
+Estimated whole-project completion: **38%** across the M0–M8 MVP roadmap. This is an engineering progress estimate based on completed milestone scope, not elapsed time.
 
 ## Completed
 
@@ -51,18 +51,26 @@ Issue #36 / M3 Slice 1 is production-validated on main commit `cef8db2d036e4137e
 - Character JSON contains validated movement tuning, visual profile and six skill-slot references.
 - Unsafe script/code-style fields and unsafe skill-reference tokens are rejected.
 - Character identity/stats/loadout are exposed through Web diagnostics.
+
+Issue #37 / M3 Slice 2 is production-validated on main commit `31452cbdff76a44ed94d6e5444816bc9b73f3eb8`:
+
+- `CharacterMovementTuning` converts the established M1 balanced movement baseline into CharacterDefinition-backed final displacement without duplicating the runtime.
+- Normal horizontal movement, depth movement, run multiplier and guard movement multiplier are sourced from the loaded character definition.
+- K standard dash and I Dash Slash keep fixed-distance semantics.
+- Battle Focus composes on top of character movement through one runtime movement path.
+- Windows Edge regression proves 360 px/s baseline movement and 522 px/s while the 1.45x Battle Focus multiplier is active.
 - Godot domain tests, Chromium, Windows Edge, GitHub Pages, public URL and production Edge all pass.
 
 ## Current work
 
-Issue #37 routes movement behavior through CharacterDefinition:
+Issue #41 adds data-driven visual/body profiles:
 
-- `CharacterMovementTuning` converts the established M1 balanced movement baseline into CharacterDefinition-backed final displacement without duplicating the runtime.
-- Normal horizontal movement, depth movement, run multiplier and guard movement multiplier are sourced from the loaded character definition.
-- K standard dash and I Dash Slash keep their fixed-distance semantics.
-- Battle Focus remains multiplicative on top of character movement.
-- Domain regression uses alternate valid character values to prove movement deltas change with character data.
-- Browser regression verifies real D/S keyboard movement passes through the character movement layer and runtime tuning diagnostics match CharacterDefinition.
+- `CharacterVisualProfile` is a versioned, validated, data-only profile format resolved by safe token id.
+- `training_blue.profile.json` preserves the current Ember Vanguard baseline look while moving palette and body measurements out of hard-coded runtime drawing values.
+- Player rendering uses the loaded profile for body/accent/weapon/guard colors, head and torso size, arms, legs, shadow and weapon dimensions.
+- Training dummy stays on the legacy renderer so this slice only changes the playable-character profile boundary.
+- Unsafe profile references, executable-style fields, malformed colors and out-of-range body values are covered by domain regression.
+- Browser diagnostics expose the resolved profile identity and measurements and record profile-backed renderer calls.
 
 ## Online validation
 
@@ -82,7 +90,7 @@ Live demo:
 
 ## Remaining roadmap
 
-- M3 — finish Character System after movement integration: visual/body profiles, character selection/loadout binding and authoring-readiness pass.
+- M3 — finish Character System after visual/body profiles: character selection/loadout binding and authoring-readiness pass.
 - M4 — Creator Studio basics.
 - M5 — User VFX import/processing and VFX Creator.
 - M6 — AI-assisted VFX provider layer.
