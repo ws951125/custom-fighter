@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "id": "storm_duelist",
+  "animations": {
+    "ready": "storm_ready",
+    "walk": "storm_walk",
+    "run": "storm_run",
+    "jump": "storm_jump",
+    "dash": "storm_dash",
+    "guard": "storm_guard",
+    "attack_1": "storm_attack_1",
+    "attack_2": "storm_attack_2",
+    "attack_3": "storm_attack_3",
+    "skill_1": "storm_skill_1",
+    "skill_2": "storm_skill_2",
+    "skill_3": "storm_skill_3",
+    "skill_4": "storm_skill_4",
+    "skill_5": "storm_skill_5",
+    "skill_6": "storm_skill_6"
+  }
+}
