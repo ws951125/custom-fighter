@@ -127,9 +127,9 @@ func _apply_movement_boost() -> void:
 		previous_player_depth = host.player_depth
 		return
 
-	var multiplier_extra := buff_state.movement_multiplier() - 1.0
-	var frame_delta_x := host.player_x - previous_player_x
-	var frame_delta_depth := host.player_depth - previous_player_depth
+	var multiplier_extra: float = buff_state.movement_multiplier() - 1.0
+	var frame_delta_x: float = float(host.player_x) - previous_player_x
+	var frame_delta_depth: float = float(host.player_depth) - previous_player_depth
 	host.player_x += frame_delta_x * multiplier_extra
 	host.player_depth += frame_delta_depth * multiplier_extra
 	host.player_x = clampf(host.player_x, 90.0, maxf(host.size.x, 1280.0) - 90.0)
@@ -147,7 +147,7 @@ func _draw() -> void:
 	var arena_top := canvas_height * 0.50
 	var arena_bottom := canvas_height * 0.86
 	var ground := Vector2(host.player_x, lerpf(arena_top, arena_bottom, host.player_depth))
-	var jump_offset := host.movement_state.jump_offset()
+	var jump_offset: float = float(host.movement_state.jump_offset())
 	var center := ground + Vector2(0.0, -72.0 - jump_offset)
 	var pulse := 0.5 + 0.5 * sin(float(Time.get_ticks_msec()) * 0.012)
 	var outer_radius := 52.0 + pulse * 9.0
