@@ -1,9 +1,11 @@
 extends "res://game/runtime/coordinated_main.gd"
 
 const CharacterDefinition = preload("res://game/core/character/character_definition.gd")
+const CharacterMovementTuning = preload("res://game/core/character/character_movement_tuning.gd")
 const PLAYER_CHARACTER_PATH := "res://content/characters/ember_vanguard.sample.json"
 
 var player_character := CharacterDefinition.new()
+var character_movement_adjustment_frames := 0
 
 func _enter_tree() -> void:
 	var errors := player_character.load_from_file(PLAYER_CHARACTER_PATH)
@@ -11,6 +13,37 @@ func _enter_tree() -> void:
 		push_error("Failed to load player character: %s" % " | ".join(errors))
 		return
 	player_state = CombatantState.new(player_character.max_hp, player_character.max_mp)
+
+func _process(delta: float) -> void:
+	var before_x := player_x
+	var before_depth := player_depth
+	var fixed_motion_before := movement_state.is_dashing() or dash_slash_state.active
+
+	super(delta)
+
+	if not player_character.loaded:
+		return
+	if fixed_motion_before or movement_state.is_dashing() or dash_slash_state.active:
+		return
+
+	var move_vector := Vector2(
+		Input.get_axis("move_left", "move_right"),
+		Input.get_axis("move_up", "move_down")
+	)
+	if move_vector.length_squared() <= 0.001:
+		return
+
+	var frame_delta := Vector2(player_x - before_x, player_depth - before_depth)
+	var adjusted_delta := CharacterMovementTuning.adjust_frame_delta(
+		frame_delta,
+		player_character,
+		player_running,
+		player_guarding
+	)
+	player_x = clampf(before_x + adjusted_delta.x, 90.0, maxf(size.x, 1280.0) - 90.0)
+	player_depth = clampf(before_depth + adjusted_delta.y, 0.0, 1.0)
+	character_movement_adjustment_frames += 1
+	_set_web_state()
 
 func _set_web_state() -> void:
 	super()
@@ -30,6 +63,12 @@ func _set_web_state() -> void:
 		"document.documentElement.dataset.playerCharacterDepthSpeed='%.3f';" % player_character.depth_speed +
 		"document.documentElement.dataset.playerCharacterRunMultiplier='%.3f';" % player_character.run_multiplier +
 		"document.documentElement.dataset.playerCharacterGuardMoveMultiplier='%.3f';" % player_character.guard_move_multiplier +
+		"document.documentElement.dataset.playerMovementSource='character';" +
+		"document.documentElement.dataset.playerRuntimeMoveSpeed='%.3f';" % player_character.move_speed +
+		"document.documentElement.dataset.playerRuntimeDepthSpeed='%.3f';" % player_character.depth_speed +
+		"document.documentElement.dataset.playerRuntimeRunMultiplier='%.3f';" % player_character.run_multiplier +
+		"document.documentElement.dataset.playerRuntimeGuardMoveMultiplier='%.3f';" % player_character.guard_move_multiplier +
+		"document.documentElement.dataset.playerMovementAdjustmentFrames='%d';" % character_movement_adjustment_frames +
 		"document.documentElement.dataset.playerCharacterSkill1=%s;" % JSON.stringify(player_character.skill_id_for_slot("skill_1")) +
 		"document.documentElement.dataset.playerCharacterSkill2=%s;" % JSON.stringify(player_character.skill_id_for_slot("skill_2")) +
 		"document.documentElement.dataset.playerCharacterSkill3=%s;" % JSON.stringify(player_character.skill_id_for_slot("skill_3")) +
