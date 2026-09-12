@@ -2,11 +2,11 @@
 
 ## Current phase
 
-Milestone 5 — VFX Creator is the current roadmap milestone.
+Milestone 6 — AI-assisted VFX is the current roadmap milestone.
 
-Current active slice: **Issue #66 — M5 Slice 3: bind authored VFX to projectile Training runtime** on `feature/m5-bind-vfx-to-projectile-preview`.
+Current active slice: **Issue #68 — M6 Slice 1: provider-neutral AI VFX request/result boundary** on `feature/m6-ai-vfx-provider-boundary`.
 
-Estimated whole-project completion: **55.6%** across the M0–M8 MVP roadmap. Under the repository rule, only formally completed milestones count toward the fixed milestone denominator. M0, M1, M2, M3 and M4 are complete; M5 is in progress.
+Estimated whole-project completion: **66.7%** across the M0–M8 MVP roadmap. Under the repository rule, only formally completed milestones count toward the fixed milestone denominator. M0, M1, M2, M3, M4 and M5 are complete; M6 is in progress.
 
 ## Completed milestones
 
@@ -55,83 +55,69 @@ Completed slices:
 - Issue #54 / PR #55 — Projectile Skill Editor.
 - Issue #56 / PR #57 — validated Creator-to-Training preview session.
 
-PR #57 merged to `main` at `2029de45c3430e1b30b85b87727e58091c246ab4`. Main CI Run #109 passed Godot import/boot/domain tests, Web export/size budget, Chromium `smoke:all`, GitHub-hosted Windows Edge, GitHub Pages deployment, public reachability and production Edge real-game flow. Issue #56 is closed completed.
+PR #57 merged to `main` at `2029de45c3430e1b30b85b87727e58091c246ab4`. Main CI Run #109 passed Godot import/boot/domain tests, Web export/size budget, Chromium `smoke:all`, GitHub-hosted Windows Edge, GitHub Pages deployment, public reachability and production Edge real-game flow.
+
+### M5 — VFX Creator — 100%
+
+M5 satisfies its MVP acceptance: a player's own validated PNG / horizontal sprite-strip can become the real Creator Skill 1 projectile effect in Training without changing combat semantics.
+
+Completed slices:
+
+- Issue #60 / PR #63 — safe PNG VFX import and preview foundation.
+- Issue #64 / PR #65 — bounded horizontal sprite-strip animation plus authored crop/scale/offset/FPS preview.
+- Issue #66 / PR #67 — bind authored VFX to the real Creator projectile Training runtime.
+
+Production functionality:
+
+- PNG-only Web import with browser and Godot-side validation.
+- 5 MB in-memory transfer ceiling and 4096 px bounded dimensions.
+- Horizontal sprite strips up to the validated VFX frame ceiling.
+- Crop, frame count, FPS, scale and offset authoring.
+- Creator -> VFX Creator -> Creator state preservation in memory.
+- Valid authored VFX binding to Creator Skill 1.
+- Real `U` projectile renders authored frames at runtime while damage, MP, cooldown, range, collision, hitstun and knockback remain governed by existing skill runtime data.
+- Reset/invalid VFX clears stale bindings fail-closed.
+- Normal Training keeps its prototype VFX.
+
+Validation:
+
+- PR #67 passed Godot import/boot/domain tests, Web export/size budget, Chromium `smoke:all` and GitHub-hosted Windows Microsoft Edge `smoke:all` before merge.
+- PR #67 merged to `main` at `7208e35f05556e5cb852fa321bb05a2c8fbdff41`.
+- Main CI Run #134 passed all five production gates: Godot + Web + Browser, hosted Windows Edge, GitHub Pages deploy, public reachability and production Windows Edge real-game flow.
+- Issue #66 is closed completed.
 
 ## Completed cross-platform slice — Mobile touch controls
 
 Issue #61 / PR #62 is production-validated and complete.
 
-- Adds `MobileControls` as a Training HUD layer for touch-capable Web sessions.
-- Normal phone sessions auto-enable the touch HUD; `?mobile_controls=1` forces it on and `?mobile_controls=0` forces it off.
-- Left-side controls dispatch existing `move_left`, `move_right`, `move_up`, `move_down` and `run` actions.
-- Right-side controls dispatch existing `jump`, `attack`, `dash`, `guard` and `skill_1` through `skill_6` actions.
-- Held controls reuse the existing gameplay input path.
+- Touch-capable Web sessions can use the Training HUD.
+- `?mobile_controls=1` forces the HUD on and `?mobile_controls=0` forces it off.
+- Left controls dispatch movement/run; right controls dispatch jump/attack/dash/guard and Skill 1–6.
 - Layout is landscape-oriented and portrait mode shows a rotate hint.
-- Browser diagnostics and deterministic automation cover touch auto-detection, sustained movement, guard, jump, attack, Skill 1 and desktop-hidden behavior.
-- PR #62 merged to `main` at `2c4ed4faf5689f20ba1871311451d417e5c60b64`.
-- Main CI Run #118 passed Godot/Web/Chromium, hosted Windows Edge, GitHub Pages deployment, public reachability and production Windows Edge real-game flow.
-- Issue #61 is closed completed.
+- Main CI Run #118 passed production validation.
 
-## M5 — VFX Creator
+## M6 — AI-assisted VFX
 
-### Completed Slice 1 — Issue #60 / PR #63 — safe PNG VFX import and preview foundation
+### Active Slice 1 — Issue #68 — provider-neutral AI VFX request/result boundary
 
-Production functionality:
+Implementation underway on `feature/m6-ai-vfx-provider-boundary`:
 
-- Versioned data-only `VfxDraft` with PNG MIME/dimension validation.
-- Crop, scale, offset and FPS authoring metadata with live validation.
-- Safe Web `Choose PNG` flow with image-only picker, 5 MB limit and in-memory `FileReader` transfer.
-- Godot re-validates a base64 `data:image/png` payload, decodes with `Image.load_png_from_buffer`, derives real dimensions from decoded content and rejects unsupported/invalid input fail-closed.
-- Imported bytes and textures remain memory-only; no repository write, arbitrary file path, script or executable player content is accepted.
-- Creator `VFX Creator` page and `?mode=vfx` route.
-- Cropped in-memory `ImageTexture` preview through `AtlasTexture`.
-- Reset VFX Draft and deterministic Web diagnostics.
-- Domain and Chromium/Windows Edge regression coverage.
+- Versioned `AiVfxRequest` data contract for prompt, generation kind, optional validated reference PNG, requested frame count/size and FPS.
+- Versioned `AiVfxResult` data contract for provider identity, request identity, status, generated PNG bytes/metadata and VFX-compatible output metadata.
+- Replaceable `AiVfxProvider` adapter boundary with capability discovery.
+- `AiVfxProviderRegistry` for provider registration and active-provider swapping without runtime/combat edits.
+- Deterministic `MockAiVfxProvider` that creates an in-memory horizontal PNG sprite strip using Godot Image APIs only; it requires no network, secret or local machine.
+- Provider output is revalidated against the originating request and through existing `VfxDraft` rules before it is considered usable.
+- Domain regression runner covers request validation, reference PNG validation, mock generation, provider swapping and tampered-result rejection.
+- CI is wired to run the AI VFX provider domain tests before Web export/browser validation.
 
-Validation:
+Out of scope for Slice 1:
 
-- PR #63 latest-head CI Run #128 passed Godot import/boot/domain tests, Web export/size budget, Chromium `smoke:all` and GitHub-hosted Windows Microsoft Edge `smoke:all`.
-- PR #63 merged to `main` at `f0c4574f556c1e9ca8b8ed710388da0b5f785900`.
-- Main CI Run #129 passed all five production gates: Godot + Web + Browser, hosted Windows Edge, GitHub Pages deploy, public reachability and production Edge real-game flow.
-- Issue #60 is closed completed.
-
-### Completed Slice 2 — Issue #64 / PR #65 — horizontal sprite-strip animation preview and authored transforms
-
-Production functionality:
-
-- `VfxDraft.frame_count` supports bounded horizontal strips while preserving single-frame compatibility.
-- Crop width must divide evenly across frame count; invalid strips fail closed.
-- Creator preview animates frames left-to-right at authored FPS.
-- Authored Scale and Offset X/Y affect the actual VFX preview node.
-- Deterministic Web diagnostics expose frame count, derived frame width, current frame and applied transforms.
-- PNG-only, memory-only and data-only security boundaries remain intact.
-
-Validation:
-
-- PR #65 passed Godot import/boot/domain tests, Web export/size budget, Chromium `smoke:all` and GitHub-hosted Windows Microsoft Edge `smoke:all` before merge.
-- PR #65 merged to `main` at `774495dd982ac83b30cddda8e38102e637afa9de`.
-- Main CI Run #132 completed successfully on the merged SHA and passed Godot + Web + Browser, hosted Windows Edge, GitHub Pages deploy, public reachability and production Windows Edge real-game flow.
-- Issue #64 is closed completed.
-
-### Active Slice 3 — Issue #66 — bind authored VFX to projectile Training runtime
-
-Implementation underway on `feature/m5-bind-vfx-to-projectile-preview`:
-
-- `VfxDraft` can be rehydrated from validated data-only dictionaries for runtime/session boundaries.
-- `CreatorPreviewSession` stores validated VFX metadata plus PNG bytes only in memory, revalidates decoded dimensions and clears stale bindings on invalid/reset VFX.
-- Creator Character/Skill drafts are preserved across Creator -> VFX Creator -> Creator navigation through the in-memory session; invalid Character/Skill drafts are blocked from entering the VFX authoring handoff rather than silently losing edits.
-- VFX Creator now keeps decoded PNG bytes in memory, syncs valid authored VFX into the preview session and returns to Creator through the app router without reloading the Web page.
-- Creator Studio exposes deterministic diagnostics showing whether Skill 1 has an authored VFX binding and its frame/transform metadata.
-- During an active Creator Training preview only, the real `U` projectile can render the authored crop/sprite-strip at authored FPS, scale and offset while combat semantics continue to come from the existing `SkillDefinition` / `ProjectileState` runtime.
-- Runtime diagnostics expose custom-VFX loaded state, frame count/current frame, transform values and whether the real projectile visual is active.
-- `creator_preview_session_test_runner.gd` now covers valid VFX storage/staging, PNG dimension revalidation, active binding and stale-binding clearing.
-- New `creator_vfx_runtime_binding_web_smoke.mjs` covers the full Creator -> VFX -> Creator -> Training -> `U` cast -> hit -> return -> reset flow and is included in `smoke:all` for Chromium and hosted Windows Edge.
-
-Current validation state:
-
-- Implementation and test wiring are complete enough for the first PR validation cycle.
-- PR/GitHub Actions validation has not yet completed for the latest Slice 3 head.
-- No user-local testing is allowed; any failing or unavailable GitHub gate is treated as Blocked / Residual Risk.
+- Real cloud AI API calls.
+- ComfyUI/local-generation connectivity.
+- API keys or secrets.
+- End-user prompt/reference-image UI.
+- Generated-file persistence.
 
 ## Online validation policy
 
@@ -161,12 +147,11 @@ VFX Creator:
 
 `https://ws951125.github.io/custom-fighter/?mode=vfx`
 
-Production currently includes completed M4, production-validated Mobile Slice 1 controls, M5 Slice 1 safe PNG VFX import/preview and M5 Slice 2 sprite-strip animation/transform preview. Issue #66 runtime projectile binding remains feature-branch-only until PR validation, merge and production deployment complete.
+Production currently contains the completed M0–M5 scope and mobile touch controls. Issue #68 M6 provider-boundary work is feature-branch-only until PR validation, merge and production deployment complete. Slice 1 does not add a new end-user UI route.
 
 ## Remaining roadmap
 
-- Complete Issue #66 authored VFX binding to Creator projectile Training runtime.
-- Continue M5 with remaining VFX Creator workflow hardening and production acceptance.
-- M6 — AI-assisted VFX provider layer.
+- Complete Issue #68 provider-neutral AI VFX request/result/provider boundary.
+- Continue M6 with an end-user prompt/reference-image workflow and a replaceable real provider integration path.
 - M7 — safe character package import/export.
 - M8 — Web/Windows MVP release hardening, including final mobile usability/polish.
