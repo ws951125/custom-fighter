@@ -2,6 +2,16 @@ extends "res://game/runtime/buff_skill_controller.gd"
 
 const SKILL_OWNER := &"skill_5"
 
+func _load_skill() -> void:
+	if host == null or not host.has_method("load_character_skill_for_slot"):
+		push_error("Failed to load buff skill: character loadout resolver unavailable")
+		return
+	var errors := host.load_character_skill_for_slot("skill_5", "buff", skill)
+	if not errors.is_empty():
+		push_error("Failed to load buff skill from character slot: %s" % " | ".join(errors))
+		return
+	cast_state.configure(skill)
+
 func _ready() -> void:
 	super()
 	# Tick the buff state before the root runtime composes this frame's movement.
