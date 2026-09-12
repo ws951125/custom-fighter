@@ -289,7 +289,8 @@ try {
   const dashSkillStartX = await readNumber('playerX');
 
   // Skill 2: I is a combat dash, independent from K, with JSON MP/cooldown/travel/damage.
-  await page.keyboard.press('i');
+  // Hold the key across a Godot frame so a busy runner cannot drop a synthetic down/up pair.
+  await nudge('i', 90);
   await page.waitForFunction(
     () => Number(document.documentElement.dataset.playerMp) === 55,
     null,
@@ -298,7 +299,9 @@ try {
   const dashCooldown = await readNumber('dashSkillCooldown');
   if (!(dashCooldown > 0)) throw new Error(`Expected dash skill cooldown; got ${dashCooldown}`);
 
-  await page.keyboard.press('i');
+  // Sample the cooldown rejection with a real held input too; otherwise a missed press could
+  // falsely look like a successful rejection simply because the game never sampled the key.
+  await nudge('i', 90);
   await page.waitForTimeout(120);
   if ((await readNumber('playerMp')) !== 55) {
     throw new Error(`Dash skill recast was not rejected: mp=${await readNumber('playerMp')}`);
