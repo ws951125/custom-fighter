@@ -2,6 +2,7 @@ extends SceneTree
 
 const CharacterDefinition = preload("res://game/core/character/character_definition.gd")
 const CharacterMovementTuning = preload("res://game/core/character/character_movement_tuning.gd")
+const CharacterVisualProfile = preload("res://game/core/character/character_visual_profile.gd")
 
 var failures := 0
 
@@ -24,6 +25,7 @@ func _run() -> void:
 	_check(character.skill_id_for_slot("skill_1") == "fireball_001", "skill slot 1 loads")
 	_check(character.skill_id_for_slot("skill_6") == "heavy_strike_001", "skill slot 6 loads")
 	_test_movement_tuning(character)
+	_test_visual_profile(character)
 
 	var missing := CharacterDefinition.new()
 	var missing_errors := missing.load_from_dictionary({"schema_version": 1})
@@ -131,6 +133,49 @@ func _test_movement_tuning(baseline_character) -> void:
 		"missing character uses safe movement fallback"
 	)
 
+func _test_visual_profile(character) -> void:
+	var profile := CharacterVisualProfile.new()
+	var errors := profile.load_from_id(character.visual_profile)
+	_check(errors.is_empty(), "official visual profile validates: %s" % " | ".join(errors))
+	_check(profile.loaded, "official visual profile marks loaded")
+	_check(profile.profile_id == "training_blue", "visual profile id resolves from CharacterDefinition")
+	_check(profile.body_color_hex == "#62d8ff", "body color loads")
+	_check(profile.accent_color_hex == "#b8f3ff", "accent color loads")
+	_check(is_equal_approx(profile.head_radius, 22.0), "head radius loads")
+	_check(is_equal_approx(profile.torso_width, 36.0), "torso width loads")
+	_check(is_equal_approx(profile.weapon_length, 49.0), "weapon length loads")
+
+	var unsafe_reference := CharacterVisualProfile.new()
+	var unsafe_reference_errors := unsafe_reference.load_from_id("../evil")
+	_check(
+		_contains_error(unsafe_reference_errors, "visual profile reference must be a safe lowercase token"),
+		"unsafe visual profile reference rejected"
+	)
+
+	var executable := _valid_visual_profile_dictionary()
+	executable["script"] = "res://evil.gd"
+	var executable_profile := CharacterVisualProfile.new()
+	var executable_errors := executable_profile.load_from_dictionary(executable)
+	_check(
+		_contains_error(executable_errors, "unsupported visual_profile field: script"),
+		"visual profile executable field rejected"
+	)
+
+	var bad_color := _valid_visual_profile_dictionary()
+	bad_color["palette"]["body"] = "blue"
+	var bad_color_profile := CharacterVisualProfile.new()
+	var bad_color_errors := bad_color_profile.load_from_dictionary(bad_color)
+	_check(
+		_contains_error(bad_color_errors, "visual profile palette.body must be #rrggbb or #rrggbbaa"),
+		"malformed visual profile color rejected"
+	)
+
+	var bad_body := _valid_visual_profile_dictionary()
+	bad_body["body"]["head_radius"] = 200.0
+	var bad_body_profile := CharacterVisualProfile.new()
+	var bad_body_errors := bad_body_profile.load_from_dictionary(bad_body)
+	_check(not bad_body_errors.is_empty() and not bad_body_profile.loaded, "out-of-range visual body value rejected")
+
 func _valid_dictionary() -> Dictionary:
 	return {
 		"schema_version": 1,
@@ -154,6 +199,33 @@ func _valid_dictionary() -> Dictionary:
 			"skill_6": "heavy_strike_001"
 		},
 		"visual_profile": "training_blue"
+	}
+
+func _valid_visual_profile_dictionary() -> Dictionary:
+	return {
+		"schema_version": 1,
+		"id": "test_visual",
+		"palette": {
+			"body": "#62d8ff",
+			"accent": "#b8f3ff",
+			"weapon": "#e9edf7",
+			"guard": "#9cf5d4"
+		},
+		"body": {
+			"body_height": 118.0,
+			"head_radius": 22.0,
+			"torso_width": 36.0,
+			"torso_height": 70.0,
+			"arm_reach": 48.0,
+			"arm_width": 9.0,
+			"leg_length": 30.0,
+			"leg_spread": 20.0,
+			"leg_width": 10.0,
+			"shadow_half_width": 34.0,
+			"shadow_half_height": 10.0,
+			"weapon_length": 49.0,
+			"weapon_width": 5.0
+		}
 	}
 
 func _contains_error(errors: PackedStringArray, expected: String) -> bool:
