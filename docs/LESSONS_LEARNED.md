@@ -56,3 +56,14 @@
 - **Prevention Rule:** 對 `get_node_or_null()`、autoload lookup、dynamic host/plugin/interface 等 runtime-resolved object，不用 `:=` 推斷含自訂 method call 的結果。跨 script inheritance boundary 時，應把 dynamic receiver 隔離在 typed helper 內，對外回傳確定的 GDScript 型別。
 - **Validation:** 修正後 PR #57 CI Run #105 通過 Godot import、main boot、全部 domain tests、Web export、size budget、Chromium `smoke:all` 與 GitHub-hosted Windows Microsoft Edge `smoke:all`。
 - **Status:** Verified
+
+## L-006 — Cooldown remaining is transient telemetry, not durable cast evidence
+
+- **Date:** 2026-09-12
+- **Area:** Playwright / production Edge / SkillCoordinator regression
+- **Symptom:** PR #57 merge 後 main CI Run #109 的第一個 `Windows Edge Production Game` attempt，在 `skill_coordination_web_smoke.mjs` 已經確認 MP `100 -> 75`、`lastClaimed=skill_1`、claim count 只增加 1、Area Skill 仍為 READY 之後，仍因 `skillCooldown === 0` 而失敗。
+- **Root Cause:** `skillCooldown` 是會隨遊戲時間遞減的瞬時 telemetry。production Edge 的網路啟動、frame cadence 與 assertion scheduling 較慢時，測試讀取該欄位前 cooldown 可以合法地回到 0；這不會否定前面已留下的持久證據：MP 已扣除、coordinator last claim 正確、claim count 只增加一次、O 沒有施放。
+- **Fix:** `skill_coordination_web_smoke.mjs` 不再要求觀察當下的 cooldown 必須大於 0；只要求 cooldown diagnostic 是有限且非負數值，並以 MP delta + persistent lastClaimed + claimCount + rejected O state 作為 exclusivity/cast 的 durable evidence。首次失敗的 production job targeted retry 在未改程式前也已 PASS，進一步證明原問題是 observation flake 而非 gameplay regression。
+- **Prevention Rule:** 對 cooldown remaining、短暫 animation/state boolean、frame-local phase 等會自然消逝的 telemetry，不要在經過非同步等待後把「仍為 active / > 0」當成唯一成功證據。優先使用持久 counter、resource delta、last-event identity、hit count 或明確 runtime acknowledgement。
+- **Validation:** Run #109 targeted production Edge retry PASS，包含 `WEB_SKILL_COORDINATION_SMOKE_PASSED` 與 `WEB_CREATOR_PREVIEW_SMOKE_PASSED`。Assertion hardening 本身仍需 Issue #58 PR 的 Chromium + hosted Windows Edge 驗證。
+- **Status:** Fix implemented; PR validation pending
