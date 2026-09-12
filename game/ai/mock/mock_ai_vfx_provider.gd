@@ -1,7 +1,5 @@
 extends "res://game/ai/provider/ai_vfx_provider.gd"
 
-const AiVfxResult = preload("res://game/ai/provider/ai_vfx_result.gd")
-
 const MAX_MOCK_FRAMES := 8
 const MAX_MOCK_FRAME_DIMENSION := 128
 
@@ -58,7 +56,7 @@ func generate(request: Variant) -> Variant:
 	return result
 
 func _draw_deterministic_strip(image: Image, frames: int, width: int, height: int, seed: int) -> void:
-	var radius := max(2, mini(width, height) / 4)
+	var radius: int = maxi(2, int(mini(width, height) / 4))
 	for frame in range(frames):
 		var hue := fmod(float((seed + frame * 73) % 360) / 360.0, 1.0)
 		var body := Color.from_hsv(hue, 0.72, 0.95, 0.95)
