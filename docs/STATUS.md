@@ -2,11 +2,11 @@
 
 ## Current phase
 
-Milestone 4 — Creator Studio.
+Milestone 5 — VFX Creator.
 
-Current active slice: Issue #56 / PR #57 / M4 Slice 3 — validated Creator-to-Training preview session.
+Current active slice: Issue #60 / M5 Slice 1 — safe PNG VFX import and preview foundation.
 
-Estimated whole-project completion: **44.4%** across the M0–M8 MVP roadmap under the repository rule that only formally completed milestones count toward the fixed milestone denominator. M0, M1, M2 and M3 are complete; M4 is in progress.
+Estimated whole-project completion: **55.6%** across the M0–M8 MVP roadmap under the repository rule that only formally completed milestones count toward the fixed milestone denominator. M0, M1, M2, M3 and M4 are complete; M5 is in progress.
 
 ## Completed milestones
 
@@ -49,63 +49,33 @@ M3 is production-validated and accepted.
 - `CharacterMovementTuning`, `CharacterVisualProfile`, `SkillRegistry`, `CharacterRegistry` and `CharacterAnimationMap` provide safe data-driven runtime boundaries.
 - Two official reference characters are available entirely from content data: `ember_vanguard_001` / Ember Vanguard and `storm_duelist_001` / Storm Duelist.
 - Web runtime safely supports `?character=<id>` and fail-closed fallback for invalid selections.
-- PR #45 / Slice 4, PR #49 / Slice 5 and PR #51 / Slice 6 all passed GitHub-only validation before merge.
-- Main CI Run #98 for merged PR #51 passed Godot import/boot/domain tests, Web export/size budget, Chromium `smoke:all`, GitHub-hosted Windows Edge, GitHub Pages deployment, public reachability and production Edge real-game flow.
+- Main CI Run #98 passed Godot import/boot/domain tests, Web export/size budget, Chromium `smoke:all`, GitHub-hosted Windows Edge, GitHub Pages deployment, public reachability and production Edge.
 
-M3 acceptance is satisfied: a normal character can be added from approved content data without editing core combat code.
+### Milestone 4 — Creator Studio — 100%
 
-## Milestone 4 — completed slices
+M4 acceptance is production-validated: a non-programmer can create a basic character and projectile skill, validate both, preview the authored data in Training, cast it through the real runtime, then return to Creator without editing repository JSON.
 
-### Slice 1 — Character Editor
+- Slice 1 / Issue #52 / PR #53: Character Editor with validated `CharacterDraft`.
+- Slice 2 / Issue #54 / PR #55: Projectile Skill Editor with validated `SkillDraft`.
+- Slice 3 / Issue #56 / PR #57: validated in-memory Creator → Training preview session and return-to-Creator loop.
+- Preview uses the existing `CharacterDefinition` and `SkillDefinition` contracts and remains data-only; it does not execute player code or write repository content.
+- PR #57 latest-head pre-merge CI passed Godot import/boot/domain tests, Web export/size budget, Chromium and GitHub-hosted Windows Edge.
+- PR #57 merged to `main` at `2029de45c3430e1b30b85b87727e58091c246ab4`.
+- Main CI Run #109 passed Godot + Web + Chromium, hosted Windows Edge, GitHub Pages deployment, public reachability and production Windows Edge real-game flow.
+- Issue #56 is closed completed after production validation.
 
-Issue #52 / PR #53 is production-validated and merged to `main` at `5b55a8b14afb4d810770d3dffa0bdc33c2c8d9f6`.
+## Current work — Issue #60 / M5 Slice 1
 
-- Default URL remains Training; `?mode=creator` opens Creator Studio.
-- Godot-native Character Editor with data-only in-memory `CharacterDraft`.
-- Character ID, Display Name, Archetype, Max HP, Max MP and Move Speed editing.
-- Validation delegates to the existing `CharacterDefinition` contract.
-- Live VALID / INVALID state, Reset Character Draft and Back to Training.
-- Main CI Run #100 passed Chromium, hosted Windows Edge, Pages deployment, public reachability and production Edge.
-- Issue #52 is closed completed.
+Goal: establish the first safe PNG-based VFX authoring path while preserving the data-only security boundary.
 
-### Slice 2 — Projectile Skill Editor
+Started on `feature/m5-png-vfx-import-preview`:
 
-Issue #54 / PR #55 is production-validated and merged to `main` at `1f00ec58e69abae159c6963746683dbb1c0e0ffd`.
-
-- Data-only in-memory `SkillDraft` for the projectile template.
-- Editable Skill ID, name, damage, MP cost, cooldown, startup, active, recovery, speed, range, hitstun and knockback.
-- Validation delegates to the existing runtime `SkillDefinition` contract.
-- Creator Studio navigation switches between Character Editor and Skill Editor.
-- Approved starter hitbox/visual identifiers remain explicit; no arbitrary code/path execution.
-- Reset Skill Draft and deterministic browser diagnostics are included.
-- PR CI Run #101 passed Godot import/boot/domain tests, Web export/size budget, Chromium `smoke:all` and GitHub-hosted Windows Edge.
-- Main CI Run #102 first Windows Edge attempt hit a transient `playerRunning` observation timeout while runtime logs already reported `state=RUN`; targeted retry passed. GitHub Pages deployment, public reachability and production Edge then all passed, including `WEB_CREATOR_SKILL_EDITOR_SMOKE_PASSED`.
-- Issue #54 is closed completed after production validation.
-
-## Current work — Issue #56 / PR #57 / M4 Slice 3
-
-Goal: connect validated Creator drafts to the real Training runtime without hand-editing content files.
-
-Implemented on `feature/m4-creator-training-preview`:
-
-- Adds an autoloaded, in-memory `CreatorPreviewSession` boundary.
-- Preview staging validates CharacterDraft data through `CharacterDefinition` and projectile SkillDraft data through `SkillDefinition` before runtime handoff.
-- Preview additionally rejects unsafe skill IDs, unsupported skill types and unapproved preview visual identifiers.
-- Character visual profile and animation map references are resolved through their approved runtime registries before a preview can launch.
-- Preview binds the validated authored projectile to character `skill_1` in a copied runtime CharacterDefinition without mutating the editable CharacterDraft or repository content files.
-- Adds in-app router mode switching so Creator → Training preview does not reload the Web page or lose in-memory state.
-- Training can source the preview CharacterDefinition and Skill 1 definition from `creator_preview_session`; all non-preview skill slots continue through the normal `SkillRegistry` path.
-- Adds `Preview in Training` and `Return to Creator` paths while retaining validated drafts for iteration.
-- Adds hosted-Web diagnostics and a browser automation bridge for preview launch/return.
-- Adds `creator_preview_session_test_runner.gd` and `creator_preview_web_smoke.mjs`.
-- Adds the preview domain test to GitHub Actions and preview browser smoke to `smoke:all`.
-
-Validation status:
-
-- PR #57 CI Run #103 failed at Godot import because dynamic autoload method expressions used `:=` across the new preview inheritance boundary; Godot also reported `Could not resolve class res://game/runtime/preview_selectable_main.gd` from `animation_main.gd`.
-- The dynamic preview boundary was hardened with explicit `Variant`, `bool`, `Dictionary` and `PackedStringArray` types plus `has_method()` / `call()` helpers. The solved parser failure is recorded as `L-005` in `docs/LESSONS_LEARNED.md`.
-- PR #57 CI Run #105 on the corrected code head passed Godot import, main boot, all domain tests, Web export, size budget, Chromium `smoke:all` and GitHub-hosted Windows Microsoft Edge `smoke:all`.
-- A fresh latest-head PR validation after the documentation sync also passes all required pre-merge GitHub gates. PR #57 is ready for merge once the current documentation head itself is confirmed green. No user-local machine, local project execution or Remote Desktop Commander validation is permitted or used.
+- Adds a versioned `VfxDraft` data model for imported PNG metadata and preview parameters.
+- Validates PNG MIME type, image dimensions, single-frame Slice 1 scope, crop bounds, scale, offset and FPS.
+- Rejects unsupported file types and unsafe/out-of-bounds metadata fail-closed.
+- Adds `creator_vfx_draft_test_runner.gd` covering valid PNG metadata, unsupported MIME, unsafe crop, bad scale/FPS and oversized images.
+- Adds the VFX draft domain test to the GitHub Actions domain gate.
+- Image bytes/import UI and Creator preview rendering are the next implementation step; this slice remains in-memory and non-persistent.
 
 ## Online validation
 
@@ -129,12 +99,11 @@ Live Creator Studio:
 
 `https://ws951125.github.io/custom-fighter/?mode=creator`
 
-Production currently contains M4 Slice 1 and Slice 2. Slice 3 remains on PR #57 until the latest PR head is green, the PR is merged and the main deployment completes.
+Production currently contains completed M4 Creator Studio, including the validated Creator → Training preview loop. M5 Slice 1 remains on its feature branch until its own PR validation, merge and production deployment complete.
 
 ## Remaining roadmap
 
-- M4 — finish the validated preview/training workflow, then broaden Creator skill-template authoring and persistence planning.
-- M5 — User VFX import/processing and VFX Creator.
+- M5 — PNG/sprite-sheet import, crop/scale/offset/FPS, preview and VFX binding to skills.
 - M6 — AI-assisted VFX provider layer.
 - M7 — Character package import/export with safe data-only packages.
 - M8 — Web MVP release and release hardening.
