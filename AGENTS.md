@@ -37,6 +37,21 @@ This repository is developed as a cloud-first, CI-first Godot project. The defau
    - No API keys, credentials, signing keys, private tokens, or confidential model credentials in source or history.
    - Use GitHub secrets/environments for future services.
 
+8. **Always provide the online test link when the user can test a deployed build.**
+   - When a playable/testable Web build is available, every result/progress reply must include a directly usable test URL.
+   - Prefer the production GitHub Pages URL after `main` deployment has passed validation.
+   - If a branch/preview URL is used, label it clearly as a preview and distinguish it from production.
+   - If no testable online build exists yet, explicitly state that the test link is not available yet rather than silently omitting it.
+
+9. **Every development result reply must report whole-project progress, not only the current slice.**
+   - Include the current overall project phase/milestone.
+   - Include an estimated total project completion percentage.
+   - Include completed work at the project level.
+   - Include in-progress work when applicable.
+   - Include remaining / not-yet-completed work at the project level.
+   - The percentage must be grounded in the M0-M8 roadmap and the actual completion of milestone scope; it is an engineering progress estimate, not a claim of exact elapsed effort.
+   - Update the estimate when milestone scope or completion materially changes.
+
 ## Required workflow for each development step
 
 1. Inspect current state and relevant existing code.
@@ -114,11 +129,15 @@ Keep core rules independent from UI and rendering wherever practical.
 
 ## Reporting format
 
-For meaningful development steps, report succinctly:
+For every meaningful development result/progress reply, report succinctly and include the whole-project view:
 
-- **Progress:** completed work.
+- **Project total progress:** current roadmap milestone/phase and an estimated overall completion percentage.
+- **Completed:** project-level milestones/slices already completed, including the work completed in the current step.
+- **In progress:** the active milestone/slice, if any.
+- **Remaining:** project-level milestones/slices that are not yet complete.
 - **Validation:** exact automated checks and result.
 - **Errors/Fixes:** any failure and how it was corrected.
+- **Test link:** the directly usable deployed Web URL whenever a testable build exists; otherwise explicitly state that no online test link is available yet.
 - **Next:** next highest-priority task.
 
-Do not claim a test passed without evidence from an executed check or workflow.
+Do not report only the current small task while omitting overall project status. Do not claim a test passed without evidence from an executed check or workflow.
