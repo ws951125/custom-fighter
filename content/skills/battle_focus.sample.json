@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "id": "battle_focus_001",
+  "name": "Training Battle Focus",
+  "type": "buff",
+  "damage": 0,
+  "mp_cost": 25,
+  "cooldown": 5.0,
+  "startup": 0.18,
+  "active": 0.10,
+  "recovery": 0.20,
+  "buff_duration": 3.2,
+  "move_speed_multiplier": 1.45,
+  "basic_attack_damage_multiplier": 1.50,
+  "visual": "battle_focus_training",
+  "impact_visual": "battle_focus_aura_training"
+}
