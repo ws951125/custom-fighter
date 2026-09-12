@@ -46,34 +46,41 @@
 - 除非使用者明確要求，不直接提交到 `main`。
 - 同一個 work unit 的修正優先留在同一 feature branch / PR，避免無必要分裂。
 
-## 4. Cloud-first / Online-first 驗證硬規則
+## 4. GitHub-only / Online-only 驗證硬規則
 
-`custom-fighter` 預設不採「使用者本機先測」流程。
+`custom-fighter` 的工程驗證必須完全在 GitHub 線上環境完成。不得連線、啟動、操作或依賴使用者本機電腦進行任何專案測試、建置、Git 同步、除錯或驗證；不得使用 Remote Desktop Commander 或其他遠端桌面／遠端終端工具作為本專案驗證路徑。
 
-驗證層級依序使用最高可行層級：
-1. Pure logic / domain / unit tests。
-2. Godot headless parse / import / boot。
-3. Godot headless integration / domain tests。
-4. Web export。
-5. Web size / artifact budget checks。
-6. Chromium browser smoke / E2E。
-7. Windows Microsoft Edge browser smoke（能自動化時）。
-8. GitHub Pages production deployment smoke。
-9. 使用者線上網址做遊戲手感／視覺／UX 驗收。
-10. 只有硬體、OS 或平台特有問題無法在線重現時，才要求本機手動驗收。
+允許且優先的驗證層級：
+1. GitHub Actions 上的 pure logic / domain / unit tests。
+2. GitHub Actions 上的 Godot headless parse / import / boot。
+3. GitHub Actions 上的 Godot headless integration / domain tests。
+4. GitHub Actions 上的 Web export。
+5. GitHub Actions 上的 Web size / artifact budget checks。
+6. GitHub-hosted runner 上的 Chromium browser smoke / E2E。
+7. GitHub-hosted Windows runner 上的 Microsoft Edge browser smoke。
+8. GitHub Pages deployment 與 public reachability smoke。
+9. GitHub Pages 線上網址的人工作品手感／視覺／UX 驗收。
 
-不得因「比較方便」而跳過可自動化驗證，直接要求使用者試錯。
+硬性禁止：
+- 不 clone / pull / checkout 到使用者電腦做驗證。
+- 不在使用者電腦執行 Godot、Node、npm、Playwright、PowerShell、Python 或其他專案命令。
+- 不使用 Remote Desktop Commander、遠端桌面、SSH 到使用者機器或其他本機代理。
+- 不以「CI 暫時不可用」為理由改成本機測試。
+- 不要求使用者執行本機指令並貼結果作為正常工程 gate。
+
+若某項驗證無法在 GitHub Actions / GitHub Pages 完成，必須明確標示為 `Blocked` / `Residual Risk`，而不是改走本機。主觀遊戲手感或視覺驗收可請使用者直接開 GitHub Pages 線上網址操作，但不得要求下載或啟動本機專案。
 
 ## 5. GitHub Actions 異常處理
 
 若 GitHub Actions 因 quota、runner、平台暫時錯誤、workflow stuck / cancelled、log 無法取得等外部因素不能正常完成：
-- 先區分「程式失敗」與「CI 平台失敗」。
+- 先區分「程式失敗」與「GitHub 平台失敗」。
 - 不把平台異常誤判為產品 bug。
 - 不反覆浪費 Actions 額度重跑無意義流程。
-- 若可由已連線的授權電腦或其他現有驗證路徑重現相同 gate，可改走該路徑完成工程驗證。
-- 仍優先維持線上可測版本；只有無法替代時才標記 Blocked / Residual Risk。
+- 可在 GitHub 內採取合理的線上處理，例如重跑 failed job、重跑 failed workflow、調整 workflow、改用 GitHub-hosted runner 或等待平台恢復。
+- 不得改用使用者本機、Remote Desktop Commander 或其他非 GitHub 本機替代 gate。
+- 若 GitHub 線上驗證暫時無法完成，標記 `Blocked` / `Residual Risk`，不得宣告 PASS 或提前 merge。
 
-若 CI 顯示真正 code/test failure，必須先修正再宣告 PASS。
+若 CI 顯示真正 code/test failure，必須先在 feature branch 修正，再由新的 GitHub Actions 證據確認通過。
 
 ## 6. Data-driven 與架構邊界
 
@@ -103,8 +110,9 @@
 - Domain / loader / registry 變更必須有 deterministic fixture 或明確 assertions。
 - Gameplay input / skill binding 變更至少要有對應 browser smoke 或等價 runtime test。
 - Web export 變更需確認 production export 可產生、可 boot，且不突破既有合理 size budget。
+- 所有上述測試證據必須來自 GitHub Actions / GitHub Pages 線上流程。
 - 不得 merge 已知 failing checks。
-- 不得宣稱測試 PASS，除非有實際執行證據。
+- 不得宣稱測試 PASS，除非有實際 GitHub 線上執行證據。
 
 ## 9. 錯誤經驗必須永久記錄
 
@@ -141,25 +149,25 @@
 功能只有在下列適用項目完成後才能標示 Done：
 1. 功能已實作。
 2. 基本錯誤處理與 fail-closed 行為已完成。
-3. 有可重複驗證方式。
-4. Relevant unit / domain / integration / regression tests 通過。
-5. Godot import / boot / parse gate 通過。
-6. 若影響 Web runtime，Web export 與 browser smoke 通過。
+3. 有可重複的 GitHub 線上驗證方式。
+4. Relevant unit / domain / integration / regression tests 在 GitHub Actions 通過。
+5. Godot import / boot / parse gate 在 GitHub Actions 通過。
+6. 若影響 Web runtime，Web export 與 browser smoke 在 GitHub-hosted runner 通過。
 7. 文件已同步。
 8. `docs/STATUS.md` 已更新。
 9. 若曾發生錯誤並完成修正，`docs/LESSONS_LEARNED.md` 已同步。
 10. PR / branch / merge 狀態已重新查證。
-11. 尚未驗證的環境特定項目已明確標為 Residual Risk / Manual Acceptance。
-12. 需要使用者主觀驗收的遊戲手感／視覺變更，已提供可直接使用的線上測試網址。
+11. 尚未能由 GitHub 線上流程驗證的項目已明確標為 Residual Risk / Manual Acceptance。
+12. 需要使用者主觀驗收的遊戲手感／視覺變更，已提供 GitHub Pages 線上測試網址。
 
 ## 12. PR / Merge 規則
 
 - Commit 聚焦單一邏輯工作單位。
 - Commit message 清楚描述內容。
 - 不提交 secrets、credentials、private tokens、production dumps。
-- PR merge 前必須確認 required validation 已完成。
-- 若當輪仍需要使用者線上 browser / gameplay acceptance，在使用者明確回報 PASS 前不得提前 merge。
-- 使用者回報失敗時，保持同一 feature branch / PR 修正，再重新驗證。
+- PR merge 前必須確認 required GitHub online validation 已完成。
+- 若當輪仍需要使用者 GitHub Pages gameplay / UX acceptance，在使用者明確回報 PASS 前不得提前 merge。
+- 使用者回報失敗時，保持同一 feature branch / PR 修正，再由 GitHub Actions / Pages 重新驗證。
 
 每次回報必須列出：
 - 上一個相關 PR 是否已 merge。
@@ -180,6 +188,7 @@ Production 預設：
 - 必須明確寫「production 尚未包含本 PR」。
 - 若有 branch / preview URL，需標示為 Preview。
 - 若沒有 preview，不得暗示 production 已經可以驗收新功能。
+- 不得以本機網址、localhost 或使用者電腦上的 build 取代 GitHub 線上測試網址。
 
 ## 14. 每次開發回報的強制格式
 
@@ -226,10 +235,11 @@ Production 預設：
 ## 17. 工作原則摘要
 
 對 `custom-fighter`：
-- 先讀 Repository 真實狀態，再動手。
+- 先讀 Repository / GitHub 真實狀態，再動手。
 - 直接修改 feature branch，不把 patch 丟給使用者。
-- 先自動化、再線上測試，最後才是必要的本機手動測試。
+- 所有工程驗證只使用 GitHub Actions / GitHub Pages；完全不使用使用者本機或 Remote Desktop Commander。
+- GitHub 線上驗證不可用時就標記 Blocked，不以本機繞過。
 - 每次錯誤修正留下 lesson。
 - 每次進度同步 STATUS。
-- 每次回報列整體進度、完整 controls、驗證證據、Test URL、PR/Merge 真實狀態。
-- 沒有證據就不宣稱 PASS，沒有驗收就不提前 merge。
+- 每次回報列整體進度、完整 controls、GitHub 驗證證據、Test URL、PR/Merge 真實狀態。
+- 沒有 GitHub 線上證據就不宣稱 PASS，沒有驗收就不提前 merge。
