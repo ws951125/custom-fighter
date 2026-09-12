@@ -51,6 +51,8 @@ try {
       document.documentElement.dataset.godotReady === 'true' &&
       document.documentElement.dataset.playerCharacterLoaded === 'true' &&
       document.documentElement.dataset.playerVisualProfileLoaded === 'true' &&
+      document.documentElement.dataset.playerSkillRegistryLoaded === 'true' &&
+      document.documentElement.dataset.playerSkillLoadoutReady === 'true' &&
       Number(document.documentElement.dataset.playerVisualProfileRenderCalls ?? '0') > 0,
     null,
     { timeout: 60_000 },
@@ -63,6 +65,15 @@ try {
     'blade_rain_001',
     'battle_focus_001',
     'heavy_strike_001',
+  ];
+  const expectedTypes = ['projectile', 'dash', 'area', 'formation', 'buff', 'melee'];
+  const controllerSkillKeys = [
+    'skillId',
+    'dashSkillId',
+    'areaSkillId',
+    'formationSkillId',
+    'buffSkillId',
+    'meleeSkillId',
   ];
 
   if ((await readText('playerCharacterId')) !== 'ember_vanguard_001') {
@@ -142,11 +153,35 @@ try {
     );
   }
 
+  const resolvedRuntimeSlots = [];
   for (let index = 0; index < expectedSlots.length; index += 1) {
-    const actual = await readText(`playerCharacterSkill${index + 1}`);
-    if (actual !== expectedSlots[index]) {
-      throw new Error(`Unexpected skill slot ${index + 1}: ${actual}`);
+    const slotNumber = index + 1;
+    const characterSlot = await readText(`playerCharacterSkill${slotNumber}`);
+    const runtimeSlot = await readText(`playerRuntimeSkill${slotNumber}`);
+    const runtimeType = await readText(`playerRuntimeSkill${slotNumber}Type`);
+    const runtimeSource = await readText(`playerRuntimeSkill${slotNumber}Source`);
+    const controllerSkill = await readText(controllerSkillKeys[index]);
+
+    if (characterSlot !== expectedSlots[index]) {
+      throw new Error(`Unexpected CharacterDefinition skill slot ${slotNumber}: ${characterSlot}`);
     }
+    if (runtimeSlot !== characterSlot) {
+      throw new Error(
+        `Runtime skill slot ${slotNumber} did not resolve from CharacterDefinition: character=${characterSlot} runtime=${runtimeSlot}`,
+      );
+    }
+    if (runtimeType !== expectedTypes[index]) {
+      throw new Error(`Runtime skill slot ${slotNumber} type mismatch: ${runtimeType}`);
+    }
+    if (!runtimeSource.startsWith('res://content/skills/') || !runtimeSource.endsWith('.sample.json')) {
+      throw new Error(`Runtime skill slot ${slotNumber} escaped approved source root: ${runtimeSource}`);
+    }
+    if (controllerSkill !== runtimeSlot) {
+      throw new Error(
+        `Controller skill ${slotNumber} diverged from resolved runtime loadout: controller=${controllerSkill} runtime=${runtimeSlot}`,
+      );
+    }
+    resolvedRuntimeSlots.push(runtimeSlot);
   }
 
   const initialX = await readNumber('playerX');
@@ -184,6 +219,9 @@ try {
 
   console.log(
     `WEB_CHARACTER_PROFILE_SMOKE_PASSED id=${await readText('playerCharacterId')} profile=${loadedProfileId} renderCalls=${await readNumber('playerVisualProfileRenderCalls')} headRadius=${profileHeadRadius} torso=${profileTorsoWidth}x${profileTorsoHeight} weaponLength=${profileWeaponLength}`,
+  );
+  console.log(
+    `WEB_CHARACTER_LOADOUT_SMOKE_PASSED id=${await readText('playerCharacterId')} slots=${resolvedRuntimeSlots.join(',')}`,
   );
   console.log(
     `WEB_CHARACTER_MOVEMENT_SMOKE_PASSED id=${await readText('playerCharacterId')} moveSpeed=${moveSpeed} observedHorizontalSpeed=${observedHorizontalSpeed.toFixed(2)} depthSpeed=${depthSpeed} observedDepthSpeed=${observedDepthSpeed.toFixed(3)} adjustmentFrames=${await readNumber('playerMovementAdjustmentFrames')}`,
