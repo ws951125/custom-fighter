@@ -112,12 +112,19 @@ func _on_preview_pressed() -> void:
 	_set_preview_error("Application router is unavailable")
 
 func _on_vfx_pressed() -> void:
+	var session: Variant = get_node_or_null("/root/CreatorPreviewSession")
+	if session == null or not session.has_method("store_drafts"):
+		_set_preview_error("Creator preview session cannot preserve drafts for VFX editing")
+		return
+	var store_errors: PackedStringArray = session.call("store_drafts", character_draft.to_dictionary(), skill_draft.to_dictionary())
+	if not store_errors.is_empty():
+		_set_preview_error("Fix invalid Character/Skill drafts before opening VFX Creator")
+		return
 	var router: Variant = get_parent()
 	if router != null and router.has_method("switch_mode"):
 		router.call_deferred("switch_mode", "vfx")
 		return
-	if OS.has_feature("web"):
-		JavaScriptBridge.eval("window.location.href = window.location.pathname + '?mode=vfx';")
+	_set_preview_error("Application router is unavailable")
 
 func _on_training_pressed() -> void:
 	var session: Variant = get_node_or_null("/root/CreatorPreviewSession")
