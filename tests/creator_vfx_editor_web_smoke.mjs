@@ -50,6 +50,9 @@ try {
       typeof window.customFighterCreatorVfxImportPng === 'function' &&
       typeof window.customFighterCreatorVfxSetCrop === 'function' &&
       typeof window.customFighterCreatorVfxSetScale === 'function' &&
+      typeof window.customFighterCreatorVfxSetFrameCount === 'function' &&
+      typeof window.customFighterCreatorVfxSetFps === 'function' &&
+      typeof window.customFighterCreatorVfxSetOffset === 'function' &&
       typeof window.customFighterCreatorVfxReset === 'function',
     null,
     { timeout: 60_000 },
@@ -81,13 +84,16 @@ try {
   revision = Number(await dataset(page, 'creatorVfxRevision'));
   await page.evaluate(() => {
     const canvas = document.createElement('canvas');
-    canvas.width = 4;
-    canvas.height = 3;
+    canvas.width = 16;
+    canvas.height = 4;
     const context = canvas.getContext('2d');
-    context.fillStyle = '#ff6600';
-    context.fillRect(0, 0, 4, 3);
+    const colors = ['#ff3300', '#ffcc00', '#33ccff', '#9933ff'];
+    colors.forEach((color, index) => {
+      context.fillStyle = color;
+      context.fillRect(index * 4, 0, 4, 4);
+    });
     const dataUrl = canvas.toDataURL('image/png');
-    window.customFighterCreatorVfxImportPng('ci-spark.png', 'image/png', dataUrl);
+    window.customFighterCreatorVfxImportPng('ci-strip.png', 'image/png', dataUrl);
   });
   await waitForRevision(page, revision);
 
@@ -100,32 +106,36 @@ try {
     height: Number(await dataset(page, 'creatorVfxHeight')),
     cropWidth: Number(await dataset(page, 'creatorVfxCropWidth')),
     cropHeight: Number(await dataset(page, 'creatorVfxCropHeight')),
+    frameCount: Number(await dataset(page, 'creatorVfxFrameCount')),
+    frameWidth: Number(await dataset(page, 'creatorVfxFrameWidth')),
   };
   if (
     imported.imported !== 'true' ||
     imported.valid !== 'true' ||
-    imported.fileName !== 'ci-spark.png' ||
+    imported.fileName !== 'ci-strip.png' ||
     imported.mime !== 'image/png' ||
-    imported.width !== 4 ||
-    imported.height !== 3 ||
-    imported.cropWidth !== 4 ||
-    imported.cropHeight !== 3
+    imported.width !== 16 ||
+    imported.height !== 4 ||
+    imported.cropWidth !== 16 ||
+    imported.cropHeight !== 4 ||
+    imported.frameCount !== 1 ||
+    imported.frameWidth !== 16
   ) {
     throw new Error(`Imported PNG metadata mismatch: ${JSON.stringify(imported)}`);
   }
 
   revision = Number(await dataset(page, 'creatorVfxRevision'));
-  await page.evaluate(() => window.customFighterCreatorVfxSetCrop(1, 0, 2, 3));
+  await page.evaluate(() => window.customFighterCreatorVfxSetCrop(1, 0, 8, 4));
   await waitForRevision(page, revision);
   if ((await dataset(page, 'creatorVfxValid')) !== 'true') {
-    throw new Error(`Valid crop should remain valid: ${await dataset(page, 'creatorVfxError')}`);
+    throw new Error(`Valid single-frame crop should remain valid: ${await dataset(page, 'creatorVfxError')}`);
   }
-  if (Number(await dataset(page, 'creatorVfxCropX')) !== 1 || Number(await dataset(page, 'creatorVfxCropWidth')) !== 2) {
+  if (Number(await dataset(page, 'creatorVfxCropX')) !== 1 || Number(await dataset(page, 'creatorVfxCropWidth')) !== 8) {
     throw new Error('Valid crop metadata did not persist');
   }
 
   revision = Number(await dataset(page, 'creatorVfxRevision'));
-  await page.evaluate(() => window.customFighterCreatorVfxSetCrop(3, 0, 2, 3));
+  await page.evaluate(() => window.customFighterCreatorVfxSetCrop(12, 0, 8, 4));
   await waitForRevision(page, revision);
   if ((await dataset(page, 'creatorVfxValid')) !== 'false') {
     throw new Error('Out-of-bounds crop should invalidate the VFX draft');
@@ -135,7 +145,7 @@ try {
   }
 
   revision = Number(await dataset(page, 'creatorVfxRevision'));
-  await page.evaluate(() => window.customFighterCreatorVfxSetCrop(0, 0, 4, 3));
+  await page.evaluate(() => window.customFighterCreatorVfxSetCrop(0, 0, 16, 4));
   await waitForRevision(page, revision);
   if ((await dataset(page, 'creatorVfxValid')) !== 'true') {
     throw new Error(`Full-image crop should restore validity: ${await dataset(page, 'creatorVfxError')}`);
@@ -150,12 +160,71 @@ try {
   if (!(await dataset(page, 'creatorVfxError')).includes('scale must be between 0.1 and 8.0')) {
     throw new Error(`Expected scale error missing: ${await dataset(page, 'creatorVfxError')}`);
   }
+  if (Number(await dataset(page, 'creatorVfxPreviewScale')) !== 1) {
+    throw new Error('Invalid authored scale must fail closed to identity preview scale');
+  }
 
   revision = Number(await dataset(page, 'creatorVfxRevision'));
   await page.evaluate(() => window.customFighterCreatorVfxSetScale(2));
   await waitForRevision(page, revision);
   if ((await dataset(page, 'creatorVfxValid')) !== 'true') {
     throw new Error(`Safe scale should restore validity: ${await dataset(page, 'creatorVfxError')}`);
+  }
+  if (Number(await dataset(page, 'creatorVfxPreviewScale')) !== 2) {
+    throw new Error(`Authored scale was not applied to preview: ${await dataset(page, 'creatorVfxPreviewScale')}`);
+  }
+
+  revision = Number(await dataset(page, 'creatorVfxRevision'));
+  await page.evaluate(() => window.customFighterCreatorVfxSetOffset(12, -8));
+  await waitForRevision(page, revision);
+  if (
+    Number(await dataset(page, 'creatorVfxPreviewOffsetX')) !== 12 ||
+    Number(await dataset(page, 'creatorVfxPreviewOffsetY')) !== -8
+  ) {
+    throw new Error(
+      `Authored offset was not applied to preview: ${await dataset(page, 'creatorVfxPreviewOffsetX')},${await dataset(page, 'creatorVfxPreviewOffsetY')}`,
+    );
+  }
+
+  revision = Number(await dataset(page, 'creatorVfxRevision'));
+  await page.evaluate(() => window.customFighterCreatorVfxSetFrameCount(3));
+  await waitForRevision(page, revision);
+  if ((await dataset(page, 'creatorVfxValid')) !== 'false') {
+    throw new Error('Non-divisible horizontal strip should invalidate the VFX draft');
+  }
+  if (!(await dataset(page, 'creatorVfxError')).includes('crop width must divide evenly across frame_count')) {
+    throw new Error(`Expected strip divisibility error missing: ${await dataset(page, 'creatorVfxError')}`);
+  }
+
+  revision = Number(await dataset(page, 'creatorVfxRevision'));
+  await page.evaluate(() => window.customFighterCreatorVfxSetFrameCount(4));
+  await waitForRevision(page, revision);
+  if ((await dataset(page, 'creatorVfxValid')) !== 'true') {
+    throw new Error(`Four-frame strip should validate: ${await dataset(page, 'creatorVfxError')}`);
+  }
+  if (
+    Number(await dataset(page, 'creatorVfxFrameCount')) !== 4 ||
+    Number(await dataset(page, 'creatorVfxFrameWidth')) !== 4
+  ) {
+    throw new Error('Four-frame strip did not derive deterministic 4 px frame width');
+  }
+
+  revision = Number(await dataset(page, 'creatorVfxRevision'));
+  await page.evaluate(() => window.customFighterCreatorVfxSetFps(20));
+  await waitForRevision(page, revision);
+  if (Number(await dataset(page, 'creatorVfxFps')) !== 20) {
+    throw new Error('Authored FPS did not persist');
+  }
+
+  const frameBefore = Number(await dataset(page, 'creatorVfxCurrentFrame'));
+  await page.waitForFunction(
+    (previous) => Number(document.documentElement.dataset.creatorVfxCurrentFrame ?? '-1') !== previous,
+    frameBefore,
+    { timeout: 5_000 },
+  );
+  const frameAfter = Number(await dataset(page, 'creatorVfxCurrentFrame'));
+  if (frameAfter < 0 || frameAfter > 3) {
+    throw new Error(`Animated frame index escaped four-frame strip: ${frameAfter}`);
   }
 
   revision = Number(await dataset(page, 'creatorVfxRevision'));
@@ -164,8 +233,19 @@ try {
   if ((await dataset(page, 'creatorVfxImported')) !== 'false' || (await dataset(page, 'creatorVfxValid')) !== 'false') {
     throw new Error('Reset should clear the in-memory PNG and return the VFX draft to unimported state');
   }
+  if (
+    Number(await dataset(page, 'creatorVfxFrameCount')) !== 1 ||
+    Number(await dataset(page, 'creatorVfxCurrentFrame')) !== 0 ||
+    Number(await dataset(page, 'creatorVfxPreviewScale')) !== 1 ||
+    Number(await dataset(page, 'creatorVfxPreviewOffsetX')) !== 0 ||
+    Number(await dataset(page, 'creatorVfxPreviewOffsetY')) !== 0
+  ) {
+    throw new Error('Reset should restore one-frame identity preview transform state');
+  }
 
-  console.log('WEB_CREATOR_VFX_EDITOR_SMOKE_PASSED navigation=true failClosed=true pngDecode=true cropValidation=true scaleValidation=true reset=true');
+  console.log(
+    'WEB_CREATOR_VFX_EDITOR_SMOKE_PASSED navigation=true failClosed=true pngDecode=true cropValidation=true scaleApplied=true offsetApplied=true stripValidation=true animation=true reset=true',
+  );
 } finally {
   await browser.close();
 }
