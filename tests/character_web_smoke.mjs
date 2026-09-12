@@ -26,6 +26,22 @@ async function readNumber(key) {
   return Number(await page.evaluate((name) => document.documentElement.dataset[name] ?? 'NaN', key));
 }
 
+async function moveForCharacterFrames(key, minimumFrames = 3) {
+  const before = await readNumber('playerMovementAdjustmentFrames');
+  await page.keyboard.down(key);
+  try {
+    await page.waitForFunction(
+      ({ start, count }) =>
+        Number(document.documentElement.dataset.playerMovementAdjustmentFrames ?? '0') >= start + count,
+      { start: before, count: minimumFrames },
+      { timeout: 2_500 },
+    );
+  } finally {
+    await page.keyboard.up(key);
+  }
+  await page.waitForTimeout(60);
+}
+
 try {
   const response = await page.goto(baseUrl, { waitUntil: 'domcontentloaded', timeout: 60_000 });
   if (!response?.ok()) throw new Error(`Web build returned HTTP ${response?.status() ?? 'unknown'}`);
@@ -107,33 +123,29 @@ try {
 
   const initialX = await readNumber('playerX');
   const initialDepth = await readNumber('playerDepth');
-  const initialAdjustmentFrames = await readNumber('playerMovementAdjustmentFrames');
 
-  await page.keyboard.down('d');
-  await page.waitForTimeout(180);
-  await page.keyboard.up('d');
-  await page.waitForFunction(
-    (before) => Number(document.documentElement.dataset.playerMovementAdjustmentFrames ?? '0') > before,
-    initialAdjustmentFrames,
-    { timeout: 2_000 },
-  );
+  await moveForCharacterFrames('d');
   const afterMoveX = await readNumber('playerX');
-  if (!(afterMoveX > initialX + 30)) {
-    throw new Error(`Character-driven horizontal movement too small: ${afterMoveX - initialX}`);
+  const observedHorizontalSpeed = await readNumber('playerLastHorizontalSpeed');
+  if (!(afterMoveX > initialX + 5)) {
+    throw new Error(`Character-driven horizontal movement did not advance: ${afterMoveX - initialX}`);
+  }
+  if (Math.abs(observedHorizontalSpeed - moveSpeed) > moveSpeed * 0.08) {
+    throw new Error(
+      `Character-driven horizontal speed mismatch: expected=${moveSpeed} observed=${observedHorizontalSpeed}`,
+    );
   }
 
-  const framesAfterHorizontal = await readNumber('playerMovementAdjustmentFrames');
-  await page.keyboard.down('s');
-  await page.waitForTimeout(140);
-  await page.keyboard.up('s');
-  await page.waitForFunction(
-    (before) => Number(document.documentElement.dataset.playerMovementAdjustmentFrames ?? '0') > before,
-    framesAfterHorizontal,
-    { timeout: 2_000 },
-  );
+  await moveForCharacterFrames('s');
   const afterMoveDepth = await readNumber('playerDepth');
-  if (!(afterMoveDepth > initialDepth + 0.04)) {
-    throw new Error(`Character-driven depth movement too small: ${afterMoveDepth - initialDepth}`);
+  const observedDepthSpeed = await readNumber('playerLastDepthSpeed');
+  if (!(afterMoveDepth > initialDepth + 0.005)) {
+    throw new Error(`Character-driven depth movement did not advance: ${afterMoveDepth - initialDepth}`);
+  }
+  if (Math.abs(observedDepthSpeed - depthSpeed) > depthSpeed * 0.08) {
+    throw new Error(
+      `Character-driven depth speed mismatch: expected=${depthSpeed} observed=${observedDepthSpeed}`,
+    );
   }
 
   if (pageErrors.length > 0 || consoleErrors.length > 0) {
@@ -143,7 +155,7 @@ try {
   }
 
   console.log(
-    `WEB_CHARACTER_MOVEMENT_SMOKE_PASSED id=${await readText('playerCharacterId')} moveSpeed=${moveSpeed} depthSpeed=${depthSpeed} horizontalDelta=${(afterMoveX - initialX).toFixed(2)} depthDelta=${(afterMoveDepth - initialDepth).toFixed(3)} adjustmentFrames=${await readNumber('playerMovementAdjustmentFrames')}`,
+    `WEB_CHARACTER_MOVEMENT_SMOKE_PASSED id=${await readText('playerCharacterId')} moveSpeed=${moveSpeed} observedHorizontalSpeed=${observedHorizontalSpeed.toFixed(2)} depthSpeed=${depthSpeed} observedDepthSpeed=${observedDepthSpeed.toFixed(3)} adjustmentFrames=${await readNumber('playerMovementAdjustmentFrames')}`,
   );
 } finally {
   await browser.close();
