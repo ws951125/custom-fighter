@@ -6,6 +6,12 @@ const PLAYER_CHARACTER_PATH := "res://content/characters/ember_vanguard.sample.j
 
 var player_character := CharacterDefinition.new()
 var character_movement_adjustment_frames := 0
+var character_movement_integrated_seconds := 0.0
+var character_movement_integrated_horizontal_distance := 0.0
+var character_movement_integrated_depth_distance := 0.0
+var character_last_horizontal_speed := 0.0
+var character_last_depth_speed := 0.0
+var character_runtime_buff_multiplier := 1.0
 
 func _enter_tree() -> void:
 	var errors := player_character.load_from_file(PLAYER_CHARACTER_PATH)
@@ -15,6 +21,10 @@ func _enter_tree() -> void:
 	player_state = CombatantState.new(player_character.max_hp, player_character.max_mp)
 
 func _process(delta: float) -> void:
+	# BuffSkillController runs at a lower process priority, so its state for this frame
+	# is ready before the root runtime composes movement.
+	character_runtime_buff_multiplier = _runtime_movement_multiplier()
+
 	var before_x := player_x
 	var before_depth := player_depth
 	var fixed_motion_before := movement_state.is_dashing() or dash_slash_state.active
@@ -38,12 +48,26 @@ func _process(delta: float) -> void:
 		frame_delta,
 		player_character,
 		player_running,
-		player_guarding
+		player_guarding,
+		character_runtime_buff_multiplier
 	)
 	player_x = clampf(before_x + adjusted_delta.x, 90.0, maxf(size.x, 1280.0) - 90.0)
 	player_depth = clampf(before_depth + adjusted_delta.y, 0.0, 1.0)
+
 	character_movement_adjustment_frames += 1
+	character_movement_integrated_seconds += maxf(0.0, delta)
+	character_movement_integrated_horizontal_distance += absf(adjusted_delta.x)
+	character_movement_integrated_depth_distance += absf(adjusted_delta.y)
+	if delta > 0.000001:
+		character_last_horizontal_speed = absf(adjusted_delta.x) / delta
+		character_last_depth_speed = absf(adjusted_delta.y) / delta
 	_set_web_state()
+
+func _runtime_movement_multiplier() -> float:
+	var buff_controller = get_node_or_null("BuffSkillController")
+	if buff_controller == null or not buff_controller.has_method("runtime_movement_multiplier"):
+		return 1.0
+	return maxf(0.0, float(buff_controller.runtime_movement_multiplier()))
 
 func _set_web_state() -> void:
 	super()
@@ -68,7 +92,13 @@ func _set_web_state() -> void:
 		"document.documentElement.dataset.playerRuntimeDepthSpeed='%.3f';" % player_character.depth_speed +
 		"document.documentElement.dataset.playerRuntimeRunMultiplier='%.3f';" % player_character.run_multiplier +
 		"document.documentElement.dataset.playerRuntimeGuardMoveMultiplier='%.3f';" % player_character.guard_move_multiplier +
+		"document.documentElement.dataset.playerRuntimeBuffMovementMultiplier='%.3f';" % character_runtime_buff_multiplier +
 		"document.documentElement.dataset.playerMovementAdjustmentFrames='%d';" % character_movement_adjustment_frames +
+		"document.documentElement.dataset.playerMovementIntegratedSeconds='%.6f';" % character_movement_integrated_seconds +
+		"document.documentElement.dataset.playerMovementIntegratedHorizontalDistance='%.6f';" % character_movement_integrated_horizontal_distance +
+		"document.documentElement.dataset.playerMovementIntegratedDepthDistance='%.6f';" % character_movement_integrated_depth_distance +
+		"document.documentElement.dataset.playerLastHorizontalSpeed='%.3f';" % character_last_horizontal_speed +
+		"document.documentElement.dataset.playerLastDepthSpeed='%.6f';" % character_last_depth_speed +
 		"document.documentElement.dataset.playerCharacterSkill1=%s;" % JSON.stringify(player_character.skill_id_for_slot("skill_1")) +
 		"document.documentElement.dataset.playerCharacterSkill2=%s;" % JSON.stringify(player_character.skill_id_for_slot("skill_2")) +
 		"document.documentElement.dataset.playerCharacterSkill3=%s;" % JSON.stringify(player_character.skill_id_for_slot("skill_3")) +
