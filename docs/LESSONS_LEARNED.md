@@ -67,3 +67,14 @@
 - **Prevention Rule:** 對裝置能力／媒體查詢／權限等 browser capability，不要把 emulation availability、應用啟用邏輯與核心 gameplay assertion 綁成單一 opaque wait。功能測試使用明確 override 建立 deterministic path，再用獨立 assertion 驗證 capability auto-detection，並輸出診斷 snapshot。
 - **Validation:** 修正後 PR #62 CI Run #115 通過 Godot import、main boot、domain tests、Web export、size budget、Chromium `smoke:all`（含 mobile touch flow）與 GitHub-hosted Windows Microsoft Edge `smoke:all`。
 - **Status:** Verified
+
+## L-007 — An isolated hosted Edge readiness timeout must not trigger unrelated runtime changes without reproducible evidence
+
+- **Date:** 2026-09-12
+- **Area:** GitHub Actions / Windows Edge / Playwright startup readiness
+- **Symptom:** PR #63 CI Run #119 passed Godot import/boot/domain tests, Web export/size budget and Chromium, but the hosted Windows Edge job timed out in unchanged `character_selection_web_smoke.mjs` while waiting for Web/Godot readiness.
+- **Evidence / Diagnosis:** The failing path was outside the M5 VFX changes; the same Character Selection flow was green on production main Run #118 and all prior smoke tests in the failing Edge job had already progressed normally. The failure therefore did not provide reproducible evidence of a Character runtime regression.
+- **Operational Fix:** Treat the single failure as an isolated hosted-browser startup/readiness flake, retry only the failed gate when appropriate, and require a fresh latest-head PR CI after subsequent commits rather than modifying unrelated Character runtime code.
+- **Prevention Rule:** Before changing runtime code for a hosted-browser timeout, compare changed paths, earlier steps in the same job, same-SHA cross-browser evidence and a fresh run. A targeted retry is acceptable for an isolated readiness/observation timeout, but no PR may merge until the final latest head is green on all required gates.
+- **Validation:** PR #63 latest-head CI Run #126 passed Godot import/boot/domain tests, Web export/size budget, Chromium `smoke:all` and GitHub-hosted Windows Microsoft Edge `smoke:all`, including the unchanged Character Selection regression and the new VFX Creator smoke.
+- **Status:** Verified
