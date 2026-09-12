@@ -4,6 +4,7 @@ extends RefCounted
 const CURRENT_SCHEMA_VERSION := 1
 const SUPPORTED_MIME_TYPE := "image/png"
 const MAX_DIMENSION := 4096
+const MAX_FRAME_COUNT := 64
 
 var schema_version := CURRENT_SCHEMA_VERSION
 var file_name := ""
@@ -48,6 +49,16 @@ func configure_import(name: String, mime: String, width: int, height: int) -> Pa
 	crop_height = max(height, 0)
 	return validate()
 
+func frame_width() -> int:
+	if frame_count < 1 or crop_width < 1:
+		return 0
+	if crop_width % frame_count != 0:
+		return 0
+	return int(crop_width / frame_count)
+
+func frame_height() -> int:
+	return crop_height if crop_height > 0 else 0
+
 func to_dictionary() -> Dictionary:
 	return {
 		"schema_version": schema_version,
@@ -82,14 +93,16 @@ func validate() -> PackedStringArray:
 		errors.append("image_width must be between 1 and %d" % MAX_DIMENSION)
 	if image_height < 1 or image_height > MAX_DIMENSION:
 		errors.append("image_height must be between 1 and %d" % MAX_DIMENSION)
-	if frame_count != 1:
-		errors.append("Slice 1 supports exactly one PNG frame")
+	if frame_count < 1 or frame_count > MAX_FRAME_COUNT:
+		errors.append("frame_count must be between 1 and %d" % MAX_FRAME_COUNT)
 	if crop_x < 0 or crop_y < 0:
 		errors.append("crop origin must be non-negative")
 	if crop_width < 1 or crop_height < 1:
 		errors.append("crop size must be positive")
 	if crop_x + crop_width > image_width or crop_y + crop_height > image_height:
 		errors.append("crop must stay inside image bounds")
+	if frame_count >= 1 and frame_count <= MAX_FRAME_COUNT and crop_width > 0 and crop_width % frame_count != 0:
+		errors.append("crop width must divide evenly across frame_count")
 	if scale < 0.1 or scale > 8.0:
 		errors.append("scale must be between 0.1 and 8.0")
 	if absf(offset_x) > 4096.0 or absf(offset_y) > 4096.0:
