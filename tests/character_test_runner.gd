@@ -80,6 +80,18 @@ func _test_movement_tuning(baseline_character) -> void:
 	)
 	_check(baseline_adjusted.is_equal_approx(baseline_delta), "balanced movement delta remains unchanged")
 
+	var buffed_adjusted := CharacterMovementTuning.adjust_frame_delta(
+		baseline_delta,
+		baseline_character,
+		false,
+		false,
+		1.45
+	)
+	_check(
+		buffed_adjusted.is_equal_approx(Vector2(52.2, 0.1044)),
+		"runtime buff multiplier composes on top of CharacterDefinition movement"
+	)
+
 	var tuned_data := _valid_dictionary()
 	tuned_data["stats"]["move_speed"] = 270.0
 	tuned_data["stats"]["depth_speed"] = 0.54
