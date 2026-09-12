@@ -2,6 +2,7 @@ extends SceneTree
 
 const SkillDefinition = preload("res://game/core/skills/skill_definition.gd")
 const MeleeAttackState = preload("res://game/core/skills/melee_attack_state.gd")
+const SkillCoordinator = preload("res://game/core/skills/skill_coordinator.gd")
 const CombatBox = preload("res://game/core/combat/combat_box.gd")
 const AttackChainState = preload("res://game/core/combat/attack_chain_state.gd")
 
@@ -14,9 +15,10 @@ func _run() -> void:
 	_test_melee_definition()
 	_test_melee_state()
 	_test_combo_playable_frame_time()
+	_test_skill_coordinator()
 
 	if failures == 0:
-		print("MELEE_AND_COMBO_REGRESSION_TESTS_PASSED")
+		print("MELEE_COMBO_AND_COORDINATOR_TESTS_PASSED")
 		quit(0)
 		return
 
@@ -104,6 +106,25 @@ func _test_combo_playable_frame_time() -> void:
 	for index in range(7):
 		expiry.tick(0.10)
 	_check(expiry.combo_step == 0, "combo still resets after enough playable input time")
+
+func _test_skill_coordinator() -> void:
+	var coordinator := SkillCoordinator.new()
+	var projectile := StringName("skill_1")
+	var area := StringName("skill_3")
+
+	_check(not coordinator.is_busy(), "skill coordinator starts unlocked")
+	_check(not coordinator.can_claim(StringName()), "skill coordinator rejects empty owner")
+	_check(coordinator.try_claim(projectile), "first skill atomically claims coordinator")
+	_check(coordinator.is_busy() and coordinator.is_owned_by(projectile), "coordinator reports active owner")
+	_check(not coordinator.try_claim(area), "second simultaneous skill is rejected")
+	coordinator.release(area)
+	_check(coordinator.is_owned_by(projectile), "non-owner cannot release coordinator")
+	_check(coordinator.try_claim(projectile), "current owner may reassert its claim")
+	coordinator.release(projectile)
+	_check(not coordinator.is_busy() and coordinator.owner_name().is_empty(), "owner release unlocks coordinator")
+	_check(coordinator.try_claim(area), "next skill can claim after release")
+	coordinator.reset()
+	_check(not coordinator.is_busy(), "coordinator reset clears stale owner")
 
 func _check(condition: bool, label: String) -> void:
 	if condition:
