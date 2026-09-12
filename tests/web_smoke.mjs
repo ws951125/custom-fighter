@@ -184,8 +184,8 @@ try {
     );
   }
 
-  // Skill 1: real browser input must spend JSON MP and hit once for JSON damage.
-  await page.keyboard.press('u');
+  // Skill 1: hold real browser input across a Godot frame so the runner cannot miss it.
+  await nudge('u', 90);
   await page.waitForFunction(
     () => Number(document.documentElement.dataset.playerMp) === 75,
     null,
@@ -194,7 +194,8 @@ try {
   const fireballCooldown = await readNumber('skillCooldown');
   if (!(fireballCooldown > 0)) throw new Error(`Expected fireball cooldown; got ${fireballCooldown}`);
 
-  await page.keyboard.press('u');
+  // A held recast attempt also prevents a dropped key from looking like a valid cooldown rejection.
+  await nudge('u', 90);
   await page.waitForTimeout(150);
   if ((await readNumber('playerMp')) !== 75) {
     throw new Error(`Fireball recast was not rejected: mp=${await readNumber('playerMp')}`);
@@ -232,12 +233,17 @@ try {
     { timeout: 2_000 },
   );
 
-  await page.keyboard.press('Space');
-  await page.waitForFunction(
-    () => document.documentElement.dataset.playerJumping === 'true',
-    null,
-    { timeout: 2_000 },
-  );
+  // Keep Space down until the Godot diagnostics acknowledge the jump, then release it.
+  await page.keyboard.down('Space');
+  try {
+    await page.waitForFunction(
+      () => document.documentElement.dataset.playerJumping === 'true',
+      null,
+      { timeout: 2_000 },
+    );
+  } finally {
+    await page.keyboard.up('Space');
+  }
   await page.waitForFunction(
     () => Number(document.documentElement.dataset.playerJumpOffset) > 5,
     null,
@@ -267,12 +273,17 @@ try {
   const afterRunX = await readNumber('playerX');
   if (!(afterRunX > initialX + 40)) throw new Error(`Run distance too small: ${afterRunX - initialX}`);
 
-  await page.keyboard.press('k');
-  await page.waitForFunction(
-    () => document.documentElement.dataset.playerDashing === 'true',
-    null,
-    { timeout: 2_000 },
-  );
+  // Keep K down until the runtime acknowledges the dash so frame cadence cannot drop the input.
+  await page.keyboard.down('k');
+  try {
+    await page.waitForFunction(
+      () => document.documentElement.dataset.playerDashing === 'true',
+      null,
+      { timeout: 2_000 },
+    );
+  } finally {
+    await page.keyboard.up('k');
+  }
   await page.waitForFunction(
     () => document.documentElement.dataset.playerDashing === 'false',
     null,
