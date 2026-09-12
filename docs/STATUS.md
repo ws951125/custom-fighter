@@ -2,11 +2,11 @@
 
 ## Current phase
 
-Milestone 4 — Creator Studio.
+Milestone 4 — Creator Studio final acceptance/hardening.
 
-Current active slice: Issue #56 / PR #57 / M4 Slice 3 — validated Creator-to-Training preview session.
+Current active slice: Issue #58 — M4 final acceptance: harden production smoke and formally complete Creator Studio.
 
-Estimated whole-project completion: **44.4%** across the M0–M8 MVP roadmap under the repository rule that only formally completed milestones count toward the fixed milestone denominator. M0, M1, M2 and M3 are complete; M4 is in progress.
+Estimated whole-project completion: **44.4%** across the M0–M8 MVP roadmap under the repository rule that only formally completed milestones count toward the fixed milestone denominator. M0, M1, M2 and M3 are complete; M4 functionality now satisfies its product acceptance criteria, but formal milestone completion waits for Issue #58 GitHub-only validation and merge.
 
 ## Completed milestones
 
@@ -82,30 +82,39 @@ Issue #54 / PR #55 is production-validated and merged to `main` at `1f00ec58e69a
 - Main CI Run #102 first Windows Edge attempt hit a transient `playerRunning` observation timeout while runtime logs already reported `state=RUN`; targeted retry passed. GitHub Pages deployment, public reachability and production Edge then all passed, including `WEB_CREATOR_SKILL_EDITOR_SMOKE_PASSED`.
 - Issue #54 is closed completed after production validation.
 
-## Current work — Issue #56 / PR #57 / M4 Slice 3
+### Slice 3 — Creator-to-Training Preview
 
-Goal: connect validated Creator drafts to the real Training runtime without hand-editing content files.
-
-Implemented on `feature/m4-creator-training-preview`:
+Issue #56 / PR #57 is production-validated and merged to `main` at `2029de45c3430e1b30b85b87727e58091c246ab4`.
 
 - Adds an autoloaded, in-memory `CreatorPreviewSession` boundary.
-- Preview staging validates CharacterDraft data through `CharacterDefinition` and projectile SkillDraft data through `SkillDefinition` before runtime handoff.
-- Preview additionally rejects unsafe skill IDs, unsupported skill types and unapproved preview visual identifiers.
-- Character visual profile and animation map references are resolved through their approved runtime registries before a preview can launch.
-- Preview binds the validated authored projectile to character `skill_1` in a copied runtime CharacterDefinition without mutating the editable CharacterDraft or repository content files.
-- Adds in-app router mode switching so Creator → Training preview does not reload the Web page or lose in-memory state.
-- Training can source the preview CharacterDefinition and Skill 1 definition from `creator_preview_session`; all non-preview skill slots continue through the normal `SkillRegistry` path.
-- Adds `Preview in Training` and `Return to Creator` paths while retaining validated drafts for iteration.
-- Adds hosted-Web diagnostics and a browser automation bridge for preview launch/return.
-- Adds `creator_preview_session_test_runner.gd` and `creator_preview_web_smoke.mjs`.
-- Adds the preview domain test to GitHub Actions and preview browser smoke to `smoke:all`.
+- Preview staging validates CharacterDraft through `CharacterDefinition` and Projectile SkillDraft through `SkillDefinition` before runtime handoff.
+- Invalid/unsafe skill IDs, unsupported skill types and unapproved preview visual identifiers fail closed.
+- Character visual profile and animation map references are resolved through approved runtime registries.
+- Preview binds the authored Projectile to character `skill_1` without mutating editable drafts or repository content.
+- Creator → Training switches inside the running app, retaining in-memory state; Training exposes Return to Creator.
+- Preview runtime reflects authored character HP/MP/movement and Projectile damage/MP/cooldown, while I/O/P/B/H remain normal registered skills.
+- `creator_preview_session_test_runner.gd` and `creator_preview_web_smoke.mjs` validate the handoff and cast/return loop.
+- PR #57 latest-head Run #108 passed Godot import/boot/domain tests, Web export/size budget, Chromium `smoke:all` and GitHub-hosted Windows Edge.
+- Main Run #109 passed Godot/Chromium, hosted Windows Edge, GitHub Pages deployment and public reachability. Its first production Edge attempt hit a transient `skillCooldown === 0` observation after durable evidence had already proven U cast/exclusivity; targeted production Edge retry passed the complete `smoke:all`, including `WEB_SKILL_COORDINATION_SMOKE_PASSED` and `WEB_CREATOR_PREVIEW_SMOKE_PASSED invalidBlocked=true authoredHp=180 authoredDamage=33 authoredMpCost=17 authoredCooldown=2.4 cast=true draftsRestored=true`.
+- Issue #56 is closed completed after production validation.
 
-Validation status:
+## Current work — Issue #58 / M4 final acceptance
 
-- PR #57 CI Run #103 failed at Godot import because dynamic autoload method expressions used `:=` across the new preview inheritance boundary; Godot also reported `Could not resolve class res://game/runtime/preview_selectable_main.gd` from `animation_main.gd`.
-- The dynamic preview boundary was hardened with explicit `Variant`, `bool`, `Dictionary` and `PackedStringArray` types plus `has_method()` / `call()` helpers. The solved parser failure is recorded as `L-005` in `docs/LESSONS_LEARNED.md`.
-- PR #57 CI Run #105 on the corrected code head passed Godot import, main boot, all domain tests, Web export, size budget, Chromium `smoke:all` and GitHub-hosted Windows Microsoft Edge `smoke:all`.
-- A fresh latest-head PR validation after the documentation sync also passes all required pre-merge GitHub gates. PR #57 is ready for merge once the current documentation head itself is confirmed green. No user-local machine, local project execution or Remote Desktop Commander validation is permitted or used.
+The functional M4 acceptance criteria from `docs/MVP.md` are now present in production:
+
+- Character editor: non-programmer editable identity/stats through `CharacterDraft`.
+- Skill editor: non-programmer editable Projectile parameters through `SkillDraft`.
+- Parameter validation: both drafts delegate to the same safe runtime schemas used by the game.
+- Preview/training room: validated drafts enter real Training, authored U can hit the dummy, and Return to Creator restores drafts.
+
+A user can therefore create a basic character and skill without writing code. Issue #58 is the final engineering gate before formally marking M4 complete:
+
+- Harden the SkillCoordinator browser regression so it uses persistent MP/coordinator evidence rather than requiring a transient cooldown value to remain positive.
+- Record the reusable telemetry lesson as L-006.
+- Re-run the entire PR GitHub-only validation matrix.
+- After green PR validation, update this document to formally mark M4 complete / 55.6%, validate that final head once more, then merge and run the normal production pipeline.
+
+No user-local machine, local project execution or Remote Desktop Commander validation is permitted or used.
 
 ## Online validation
 
@@ -129,11 +138,11 @@ Live Creator Studio:
 
 `https://ws951125.github.io/custom-fighter/?mode=creator`
 
-Production currently contains M4 Slice 1 and Slice 2. Slice 3 remains on PR #57 until the latest PR head is green, the PR is merged and the main deployment completes.
+Production currently contains M4 Slice 1, Slice 2 and Slice 3 / PR #57. The user-visible Creator-to-Training preview loop is production-live; Issue #58 changes only regression evidence/documentation before formal M4 milestone closure.
 
 ## Remaining roadmap
 
-- M4 — finish the validated preview/training workflow, then broaden Creator skill-template authoring and persistence planning.
+- M4 — final acceptance/test hardening only (Issue #58).
 - M5 — User VFX import/processing and VFX Creator.
 - M6 — AI-assisted VFX provider layer.
 - M7 — Character package import/export with safe data-only packages.
