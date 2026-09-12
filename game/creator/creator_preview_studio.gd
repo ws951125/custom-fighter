@@ -12,15 +12,18 @@ func _ready() -> void:
 	super()
 	_restore_session_drafts()
 	_install_preview_ui()
+	_refresh_preview_binding_status()
 	_install_preview_web_bridge()
 	_set_preview_web_state()
 
 func _restore_session_drafts() -> void:
-	var session = get_node_or_null("/root/CreatorPreviewSession")
-	if session == null or not session.has_stored_drafts():
+	var session: Variant = get_node_or_null("/root/CreatorPreviewSession")
+	if session == null or not session.has_method("has_stored_drafts") or not bool(session.call("has_stored_drafts")):
 		return
-	var character_errors: PackedStringArray = character_draft.load_from_dictionary(session.stored_character_draft_data())
-	var skill_errors: PackedStringArray = skill_draft.load_from_dictionary(session.stored_skill_draft_data())
+	var character_data: Dictionary = session.call("stored_character_draft_data")
+	var skill_data: Dictionary = session.call("stored_skill_draft_data")
+	var character_errors: PackedStringArray = character_draft.load_from_dictionary(character_data)
+	var skill_errors: PackedStringArray = skill_draft.load_from_dictionary(skill_data)
 	if not character_errors.is_empty() or not skill_errors.is_empty():
 		push_error("Failed to restore Creator preview drafts: %s | %s" % [" | ".join(character_errors), " | ".join(skill_errors)])
 		return
@@ -62,6 +65,16 @@ func _install_preview_ui() -> void:
 	preview_button.pressed.connect(_on_preview_pressed)
 	add_child(preview_button)
 
+func _refresh_preview_binding_status() -> void:
+	if preview_status_label == null:
+		return
+	var session: Variant = get_node_or_null("/root/CreatorPreviewSession")
+	var vfx_bound := false
+	if session != null and session.has_method("has_stored_vfx"):
+		vfx_bound = bool(session.call("has_stored_vfx"))
+	preview_status_label.text = "VALID VFX bound to Skill 1 · Preview uses in-memory drafts" if vfx_bound else "Preview uses validated in-memory drafts · prototype VFX fallback"
+	preview_status_label.modulate = Color("7ff0b1") if vfx_bound else Color("8fa1c6")
+
 func _install_preview_web_bridge() -> void:
 	if not OS.has_feature("web"):
 		return
@@ -81,25 +94,25 @@ func _on_preview_pressed() -> void:
 	if not character_errors.is_empty() or not skill_errors.is_empty():
 		_set_preview_error("Fix invalid Character/Skill drafts before preview")
 		return
-	var session = get_node_or_null("/root/CreatorPreviewSession")
+	var session: Variant = get_node_or_null("/root/CreatorPreviewSession")
 	if session == null:
 		_set_preview_error("Creator preview session is unavailable")
 		return
-	var stage_errors: PackedStringArray = session.stage_preview(character_draft.to_dictionary(), skill_draft.to_dictionary())
+	var stage_errors: PackedStringArray = session.call("stage_preview", character_draft.to_dictionary(), skill_draft.to_dictionary())
 	if not stage_errors.is_empty():
 		_set_preview_error(" | ".join(stage_errors))
 		return
 	preview_status_label.text = "VALID · Opening Training preview"
 	preview_status_label.modulate = Color("7ff0b1")
 	_set_preview_web_state()
-	var router = get_parent()
+	var router: Variant = get_parent()
 	if router != null and router.has_method("switch_mode"):
 		router.call_deferred("switch_mode", "training")
 		return
 	_set_preview_error("Application router is unavailable")
 
 func _on_vfx_pressed() -> void:
-	var router = get_parent()
+	var router: Variant = get_parent()
 	if router != null and router.has_method("switch_mode"):
 		router.call_deferred("switch_mode", "vfx")
 		return
@@ -107,10 +120,10 @@ func _on_vfx_pressed() -> void:
 		JavaScriptBridge.eval("window.location.href = window.location.pathname + '?mode=vfx';")
 
 func _on_training_pressed() -> void:
-	var session = get_node_or_null("/root/CreatorPreviewSession")
-	if session != null:
-		session.deactivate_preview()
-	var router = get_parent()
+	var session: Variant = get_node_or_null("/root/CreatorPreviewSession")
+	if session != null and session.has_method("deactivate_preview"):
+		session.call("deactivate_preview")
+	var router: Variant = get_parent()
 	if router != null and router.has_method("switch_mode"):
 		router.call_deferred("switch_mode", "training")
 		return
@@ -155,13 +168,34 @@ func _set_web_state(character_errors: PackedStringArray = PackedStringArray(), s
 func _set_preview_web_state(error_message: String = "") -> void:
 	if not OS.has_feature("web"):
 		return
-	var session = get_node_or_null("/root/CreatorPreviewSession")
+	var session: Variant = get_node_or_null("/root/CreatorPreviewSession")
 	var session_ready := session != null
 	var can_preview := character_draft.is_valid() and skill_draft.is_valid() and session_ready
+	var vfx_bound := false
+	var vfx_frame_count := 0
+	var vfx_scale := 1.0
+	var vfx_offset_x := 0.0
+	var vfx_offset_y := 0.0
+	if session_ready and session.has_method("has_stored_vfx"):
+		vfx_bound = bool(session.call("has_stored_vfx"))
+	if vfx_bound and session.has_method("stored_vfx_data"):
+		var vfx_data: Dictionary = session.call("stored_vfx_data")
+		vfx_frame_count = int(vfx_data.get("frame_count", 0))
+		vfx_scale = float(vfx_data.get("scale", 1.0))
+		var offset_value: Variant = vfx_data.get("offset", {})
+		if offset_value is Dictionary:
+			var offset: Dictionary = offset_value
+			vfx_offset_x = float(offset.get("x", 0.0))
+			vfx_offset_y = float(offset.get("y", 0.0))
 	JavaScriptBridge.eval(
 		"document.documentElement.dataset.creatorPreviewReady='true';" +
 		"document.documentElement.dataset.creatorPreviewCanLaunch='%s';" % ("true" if can_preview else "false") +
 		"document.documentElement.dataset.creatorVfxNavigationReady='true';" +
+		"document.documentElement.dataset.creatorPreviewVfxBound='%s';" % ("true" if vfx_bound else "false") +
+		"document.documentElement.dataset.creatorPreviewVfxFrameCount='%d';" % vfx_frame_count +
+		"document.documentElement.dataset.creatorPreviewVfxScale='%.3f';" % vfx_scale +
+		"document.documentElement.dataset.creatorPreviewVfxOffsetX='%.3f';" % vfx_offset_x +
+		"document.documentElement.dataset.creatorPreviewVfxOffsetY='%.3f';" % vfx_offset_y +
 		"document.documentElement.dataset.creatorPreviewError=%s;" % JSON.stringify(error_message) +
-		"document.documentElement.dataset.creatorPreviewSessionRevision='%d';" % (session.revision if session_ready else 0)
+		"document.documentElement.dataset.creatorPreviewSessionRevision='%d';" % (int(session.get("revision")) if session_ready else 0)
 	)
