@@ -191,6 +191,17 @@ try {
     { timeout: 3_000 },
   );
 
+  // The shared coordinator intentionally blocks basic attacks while the buff cast animation
+  // still owns the skill lock. Once the cast releases, the timed buff remains active and J
+  // must be allowed, proving that the effect itself does not monopolize the coordinator.
+  await page.waitForFunction(
+    () =>
+      document.documentElement.dataset.skillCoordinatorBusy === 'false' &&
+      document.documentElement.dataset.buffActive === 'true',
+    null,
+    { timeout: 2_500 },
+  );
+
   await holdKey('j');
   await page.waitForFunction(
     () =>
