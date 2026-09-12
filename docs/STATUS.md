@@ -4,7 +4,7 @@
 
 Milestone 5 — VFX Creator is the current roadmap milestone.
 
-Current active slice: **Issue #60 / PR #63 — M5 Slice 1: safe PNG VFX import and preview foundation** on `feature/m5-png-vfx-import-preview-resume`.
+Current active slice: **Issue #64 — M5 Slice 2: horizontal sprite-strip animation preview and authored transforms** on `feature/m5-sprite-strip-animation-preview`.
 
 Estimated whole-project completion: **55.6%** across the M0–M8 MVP roadmap. Under the repository rule, only formally completed milestones count toward the fixed milestone denominator. M0, M1, M2, M3 and M4 are complete; M5 is in progress.
 
@@ -65,48 +65,58 @@ Issue #61 / PR #62 is production-validated and complete.
 - Normal phone sessions auto-enable the touch HUD; `?mobile_controls=1` forces it on and `?mobile_controls=0` forces it off.
 - Left-side controls dispatch existing `move_left`, `move_right`, `move_up`, `move_down` and `run` actions.
 - Right-side controls dispatch existing `jump`, `attack`, `dash`, `guard` and `skill_1` through `skill_6` actions.
-- Held controls use `Input.action_press()` / `Input.action_release()` and therefore reuse the existing gameplay path rather than creating mobile-only combat logic.
+- Held controls reuse the existing gameplay input path.
 - Layout is landscape-oriented and portrait mode shows a rotate hint.
 - Browser diagnostics and deterministic automation cover touch auto-detection, sustained movement, guard, jump, attack, Skill 1 and desktop-hidden behavior.
-- PR #62 latest-head CI Run #117 passed Godot import/boot/domain tests, Web export/size budget, Chromium `smoke:all` including mobile touch flow, and GitHub-hosted Microsoft Edge `smoke:all`.
 - PR #62 merged to `main` at `2c4ed4faf5689f20ba1871311451d417e5c60b64`.
 - Main CI Run #118 passed Godot/Web/Chromium, hosted Windows Edge, GitHub Pages deployment, public reachability and production Windows Edge real-game flow.
 - Issue #61 is closed completed.
-- The mobile capability-testing lesson is recorded as `L-006` in `docs/LESSONS_LEARNED.md`.
 
 ## M5 — VFX Creator
 
-### Issue #60 / PR #63 — safe PNG VFX import and preview foundation
+### Completed Slice 1 — Issue #60 / PR #63 — safe PNG VFX import and preview foundation
 
-The original work started on `feature/m5-png-vfx-import-preview` before mobile playability was prioritized. After Mobile Slice 1 reached production, M5 resumed from current `main` on `feature/m5-png-vfx-import-preview-resume` so the implementation includes the production mobile controls and does not fork from stale pre-mobile state.
-
-Implemented on the resumed branch:
+Production functionality:
 
 - Versioned data-only `VfxDraft` with PNG MIME/dimension validation.
 - Crop, scale, offset and FPS authoring metadata with live validation.
-- Single-frame PNG Slice 1 constraint and 4096 px dimension ceiling.
-- `VfxStudio` Creator page and `?mode=vfx` app-router mode.
-- Creator Studio now has a `VFX Creator` navigation path into the VFX editor.
-- Web `Choose PNG` flow uses a browser image-only file picker, 5 MB limit and in-memory `FileReader` transfer.
-- Godot re-validates the transfer as a base64 `data:image/png` payload, decodes bytes with `Image.load_png_from_buffer`, derives real dimensions from decoded image content and rejects unsupported/invalid payloads fail-closed.
-- Imported image bytes and preview texture remain memory-only; the slice does not write imported files to the repository or execute imported content.
-- VFX preview uses the decoded `ImageTexture`; validated crop is applied through `AtlasTexture`.
-- Scale, offset and FPS are currently validated authoring metadata and diagnostics; visual application of those properties can be extended in a later M5 slice.
-- Editable controls: Crop X/Y/W/H, Scale, Offset X/Y and FPS.
-- Reset VFX Draft clears the imported in-memory texture and metadata.
-- Web diagnostics expose import state, validation state, filename/MIME/dimensions, crop, scale, offsets, FPS and error state.
-- Narrow automation bridges cover Creator→VFX navigation, deterministic PNG import, crop/scale changes and reset.
-- `creator_vfx_draft_test_runner.gd` covers the data/safety contract.
-- `creator_vfx_editor_web_smoke.mjs` starts from Creator, enters VFX Studio through the real navigation bridge, proves unsupported executable-like input fails closed, imports a deterministic PNG through the real decode boundary, validates crop invalid/valid transitions, validates scale invalid/valid transitions and reset.
-- VFX domain/browser tests are wired into the existing GitHub-only CI gates.
+- Safe Web `Choose PNG` flow with image-only picker, 5 MB limit and in-memory `FileReader` transfer.
+- Godot re-validates a base64 `data:image/png` payload, decodes with `Image.load_png_from_buffer`, derives real dimensions from decoded content and rejects unsupported/invalid input fail-closed.
+- Imported bytes and textures remain memory-only; no repository write, arbitrary file path, script or executable player content is accepted.
+- Creator `VFX Creator` page and `?mode=vfx` route.
+- Cropped in-memory `ImageTexture` preview through `AtlasTexture`.
+- Reset VFX Draft and deterministic Web diagnostics.
+- Domain and Chromium/Windows Edge regression coverage.
 
-Validation status:
+Validation:
 
-- Initial PR #63 CI Run #119 had one isolated hosted Windows Edge readiness timeout in unchanged Character Selection smoke. No M5 VFX failure was present; this is recorded as `L-007` in `docs/LESSONS_LEARNED.md`.
-- Latest implementation head CI Run #126 passed Godot import, main boot, all domain tests, Web export, size budget, Chromium `smoke:all` and GitHub-hosted Windows Microsoft Edge `smoke:all`.
-- Chromium VFX smoke reported `WEB_CREATOR_VFX_EDITOR_SMOKE_PASSED navigation=true failClosed=true pngDecode=true cropValidation=true scaleValidation=true reset=true`.
-- Documentation sync commits after Run #126 require one final latest-head PR CI before PR #63 can be marked ready and merged.
-- PR #63 remains feature-branch-only; no M5 VFX functionality is production-deployed yet.
+- PR #63 latest-head CI Run #128 passed Godot import/boot/domain tests, Web export/size budget, Chromium `smoke:all` and GitHub-hosted Windows Microsoft Edge `smoke:all`.
+- PR #63 merged to `main` at `f0c4574f556c1e9ca8b8ed710388da0b5f785900`.
+- Main CI Run #129 passed all five production gates: Godot + Web + Browser, hosted Windows Edge, GitHub Pages deploy, public reachability and production Windows Edge real-game flow.
+- Issue #60 is closed completed.
+- Earlier isolated hosted-browser readiness behavior is recorded in `docs/LESSONS_LEARNED.md`; no production M5 regression remains open from Slice 1.
+
+### Active Slice 2 — Issue #64 — horizontal sprite-strip animation preview and authored transforms
+
+Implementation underway on `feature/m5-sprite-strip-animation-preview`:
+
+- Extend `VfxDraft` from fixed single-frame metadata to a bounded horizontal-strip `frame_count` contract while retaining frame_count=1 compatibility.
+- Derive equal frame width from the validated crop rectangle and reject non-divisible strips fail-closed.
+- Animate preview frames left-to-right at authored FPS.
+- Apply authored Scale and Offset X/Y to the actual Creator preview node instead of keeping them metadata-only.
+- Add deterministic diagnostics for frame count, derived frame width, current frame and applied preview transform.
+- Add Web automation bridges for frame count, FPS and offset.
+- Extend existing VFX domain/browser regressions instead of creating a parallel test path.
+- Preserve PNG-only, memory-only, data-only security boundaries.
+
+Current implementation commits on the feature branch include:
+
+- validated frame-count and strip-divisibility model changes;
+- domain coverage for valid/invalid horizontal strips;
+- animated VFX Studio preview with transform application;
+- browser smoke coverage for strip validation, frame progression and applied scale/offset.
+
+PR #65 implementation-head CI Run #130 passed Godot import/boot/domain tests, Web export/size budget, Chromium `smoke:all` and GitHub-hosted Windows Microsoft Edge `smoke:all`. A documentation-sync latest-head CI is pending before merge. No user-local testing is allowed.
 
 ## Online validation policy
 
@@ -132,12 +142,16 @@ Creator Studio:
 
 `https://ws951125.github.io/custom-fighter/?mode=creator`
 
-Production includes completed M4 and the production-validated Mobile Slice 1 touch HUD. M5 VFX Creator remains feature-branch-only until Issue #60 validation, merge and production deployment complete.
+VFX Creator:
+
+`https://ws951125.github.io/custom-fighter/?mode=vfx`
+
+Production currently includes completed M4, production-validated Mobile Slice 1 controls and production-validated M5 Slice 1 safe PNG VFX import/preview. Issue #64 sprite-strip animation work remains feature-branch-only until PR validation, merge and production deployment complete.
 
 ## Remaining roadmap
 
-- Finish Issue #60 / PR #63 production validation and merge the safe PNG VFX Creator foundation.
-- Continue M5 with image-sequence/animation authoring and skill VFX binding, including visual application of authored transform/timing metadata where appropriate.
+- Complete Issue #64 horizontal sprite-strip animation preview and authored preview transforms.
+- Continue M5 with binding validated authored VFX to Creator skills and the real Training runtime so a player's own visual becomes an in-game skill effect.
 - M6 — AI-assisted VFX provider layer.
 - M7 — safe character package import/export.
 - M8 — Web/Windows MVP release hardening, including final mobile usability/polish.
