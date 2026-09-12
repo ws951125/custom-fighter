@@ -82,6 +82,9 @@ func _process(delta: float) -> void:
 	_handle_action_edges()
 	movement_state.tick(delta)
 	attack_chain_state.tick(delta)
+	var buffered_attack_step := attack_chain_state.consume_buffered_attack_step()
+	if buffered_attack_step > 0:
+		_execute_attack_step(buffered_attack_step)
 	dummy_recovery_state.tick(delta)
 	fireball_cast_state.tick(delta)
 	dash_slash_cast_state.tick(delta)
@@ -155,7 +158,10 @@ func _process(delta: float) -> void:
 		and not movement_state.is_dashing()
 		and not _any_skill_casting()
 	):
-		_begin_attack()
+		if attack_chain_state.is_attacking():
+			attack_chain_state.buffer_attack()
+		else:
+			_begin_attack()
 	attack_latched = attacking
 
 	attack_visual_timer = maxf(0.0, attack_visual_timer - delta)
@@ -339,7 +345,9 @@ func _begin_attack() -> void:
 	var step := attack_chain_state.try_start_attack()
 	if step == 0:
 		return
+	_execute_attack_step(step)
 
+func _execute_attack_step(step: int) -> void:
 	last_attack_step = step
 	last_attack_hit = false
 	attack_visual_timer = attack_chain_state.visual_duration_for_step(step)
