@@ -20,6 +20,10 @@ var hitstun := 0.0
 var knockback := 0.0
 var hitbox_half_width := 24.0
 var hitbox_half_depth := 0.08
+var formation_count := 0
+var formation_spacing := 0.0
+var formation_interval := 0.0
+var formation_offset := 0.0
 var visual := ""
 var impact_visual := ""
 var loaded := false
@@ -69,6 +73,10 @@ func load_from_dictionary(data: Dictionary) -> PackedStringArray:
 	knockback = float(data.get("knockback", 0.0))
 	hitbox_half_width = float(data.get("hitbox_half_width", 24.0))
 	hitbox_half_depth = float(data.get("hitbox_half_depth", 0.08))
+	formation_count = int(data.get("formation_count", 0))
+	formation_spacing = float(data.get("formation_spacing", 0.0))
+	formation_interval = float(data.get("formation_interval", 0.0))
+	formation_offset = float(data.get("formation_offset", 0.0))
 	visual = str(data.get("visual", "")).strip_edges()
 	impact_visual = str(data.get("impact_visual", "")).strip_edges()
 
@@ -97,6 +105,8 @@ func load_from_dictionary(data: Dictionary) -> PackedStringArray:
 		_validate_motion_skill(errors)
 	elif skill_type == "area":
 		_validate_area_skill(errors)
+	elif skill_type == "formation":
+		_validate_formation_skill(errors)
 
 	loaded = errors.is_empty()
 	return errors
@@ -116,3 +126,21 @@ func _validate_area_skill(errors: PackedStringArray) -> void:
 		errors.append("area active duration must be positive")
 	if hitbox_half_width <= 0.0 or hitbox_half_depth <= 0.0:
 		errors.append("area hitbox dimensions must be positive")
+
+func _validate_formation_skill(errors: PackedStringArray) -> void:
+	if active <= 0.0:
+		errors.append("formation active duration must be positive")
+	if hitbox_half_width <= 0.0 or hitbox_half_depth <= 0.0:
+		errors.append("formation hitbox dimensions must be positive")
+	if formation_count <= 0:
+		errors.append("formation_count must be positive")
+	if formation_spacing <= 0.0:
+		errors.append("formation_spacing must be positive")
+	if formation_interval <= 0.0:
+		errors.append("formation_interval must be positive")
+	if formation_offset < 0.0:
+		errors.append("formation_offset must be non-negative")
+	if formation_count > 0 and formation_interval > 0.0:
+		var final_strike_time := float(formation_count - 1) * formation_interval
+		if active + 0.0001 < final_strike_time:
+			errors.append("formation active duration must include the final strike")

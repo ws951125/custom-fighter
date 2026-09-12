@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "id": "blade_rain_001",
+  "name": "Training Blade Rain",
+  "type": "formation",
+  "damage": 14,
+  "mp_cost": 35,
+  "cooldown": 3.6,
+  "startup": 0.28,
+  "active": 0.90,
+  "recovery": 0.30,
+  "hitstun": 0.14,
+  "knockback": 80.0,
+  "hitbox_half_width": 42.0,
+  "hitbox_half_depth": 0.12,
+  "formation_count": 5,
+  "formation_spacing": 110.0,
+  "formation_interval": 0.17,
+  "formation_offset": 90.0,
+  "visual": "blade_rain_training",
+  "impact_visual": "blade_rain_impact_training"
+}

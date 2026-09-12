@@ -9,6 +9,7 @@
   "scripts": {
     "smoke:web": "node tests/web_smoke.mjs",
     "smoke:area": "node tests/area_web_smoke.mjs",
-    "smoke:all": "npm run smoke:web && npm run smoke:area"
+    "smoke:formation": "node tests/formation_web_smoke.mjs",
+    "smoke:all": "npm run smoke:web && npm run smoke:area && npm run smoke:formation"
   }
 }

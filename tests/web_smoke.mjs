@@ -50,7 +50,7 @@ async function waitForDummyToSettle(timeout = 4_000) {
   await page.waitForTimeout(90);
 }
 
-async function approachDummy(minGap = 50, maxGap = 105) {
+async function approachDummy(minGap = 40, maxGap = 105) {
   await waitForDummyToSettle();
   let currentX = await readNumber('playerX');
   let currentDummyX = await readNumber('dummyX');
@@ -73,7 +73,8 @@ async function approachDummy(minGap = 50, maxGap = 105) {
   }
 
   // Approach only with D so the final movement input guarantees the player faces right
-  // toward the dummy before the J combo begins.
+  // toward the dummy before the J combo begins. Edge runner frame cadence can overshoot
+  // the nominal threshold by a few pixels, so the lower bound stays inside proven melee range.
   for (let step = 0; step < 90 && gap > maxGap; step += 1) {
     await nudge('d');
     currentX = await readNumber('playerX');
