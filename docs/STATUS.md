@@ -4,7 +4,7 @@
 
 Milestone 3 — Data-driven Character System.
 
-Current active slice: PR #45 / M3 Slice 4 — bind `CharacterDefinition` loadout to the production skill runtime.
+Current active slice: Issue #46 / M3 Slice 5 — character registry, safe Web selection and second reference fighter.
 
 Estimated whole-project completion: **33.3%** across the M0–M8 MVP roadmap under the repository rule that only formally completed milestones count toward the fixed milestone denominator. M0, M1 and M2 are complete; M3 is still in progress.
 
@@ -43,54 +43,57 @@ Shared JSON data controls MP, cooldown, cast timing and template-specific combat
 
 ### Milestone 3 — completed slices
 
-Issue #36 / M3 Slice 1 is production-validated on main commit `cef8db2d036e4137e626108e3c59c4a0ed73dc71`:
+Issue #36 / M3 Slice 1:
 
 - Versioned, validated, data-only `CharacterDefinition`.
-- First official balanced fighter: `ember_vanguard_001` / Ember Vanguard.
-- Player max HP/MP initialize from character data.
-- Character JSON contains validated movement tuning, visual profile and six skill-slot references.
-- Unsafe script/code-style fields and unsafe skill-reference tokens are rejected.
-- Character identity/stats/loadout are exposed through Web diagnostics.
+- First official fighter: `ember_vanguard_001` / Ember Vanguard.
+- Character-backed HP/MP, movement data, visual profile reference and six skill-slot references.
+- Unsafe script/code-style fields and unsafe references are rejected.
 
-Issue #37 / M3 Slice 2 is production-validated on main commit `31452cbdff76a44ed94d6e5444816bc9b73f3eb8`:
+Issue #37 / M3 Slice 2:
 
-- `CharacterMovementTuning` converts the established M1 balanced movement baseline into CharacterDefinition-backed final displacement without duplicating the runtime.
-- Normal horizontal movement, depth movement, run multiplier and guard movement multiplier are sourced from the loaded character definition.
-- K standard dash and I Dash Slash keep fixed-distance semantics.
-- Battle Focus composes on top of character movement through one runtime movement path.
-- Windows Edge regression proves 360 px/s baseline movement and 522 px/s while the 1.45x Battle Focus multiplier is active.
-- Godot domain tests, Chromium, Windows Edge, GitHub Pages, public URL and production Edge all pass.
+- `CharacterMovementTuning` makes CharacterDefinition the movement source of truth.
+- Normal movement, depth movement, run and guard movement use character data.
+- K standard dash and I Dash Slash retain fixed-distance semantics.
+- Battle Focus composes through the same runtime movement path.
 
-The visual/body-profile slice is implemented on the M3 line:
+M3 visual/body-profile slice:
 
-- `CharacterVisualProfile` is a versioned, validated, data-only profile format resolved by safe token id.
-- `training_blue.profile.json` preserves the current Ember Vanguard baseline look while moving palette and body measurements out of hard-coded runtime drawing values.
-- Player rendering uses the loaded profile for body/accent/weapon/guard colors, head and torso size, arms, legs, shadow and weapon dimensions.
-- Training dummy stays on the legacy renderer so the slice only changes the playable-character profile boundary.
-- Unsafe profile references, executable-style fields, malformed colors and out-of-range body values are covered by domain regression.
+- Versioned, validated, data-only `CharacterVisualProfile`.
+- `training_blue.profile.json` drives playable-character palette/body/weapon dimensions.
+- Unsafe references, executable-style fields, malformed colors and out-of-range values are rejected.
 
-## Current work
+Issue #44 / PR #45 / M3 Slice 4 is production-validated and merged to `main` at `6a83454a66cf23cc1bb3c2e0ef6c630fbf1a50d4`:
 
-PR #45 / M3 Slice 4 binds `CharacterDefinition` loadout data to the actual skill runtime:
+- Adds validated `SkillRegistry` plus `content/skills/registry.json` allow-list mapping.
+- CharacterDefinition skill slots are the runtime source of truth for all six skills.
+- Unsafe ids, unknown ids, arbitrary registry paths/fields and controller/type mismatches fail closed.
+- Runtime skill ids/types/sources and loadout-ready state are exposed to Web diagnostics.
+- CI Run #93 passed Godot import/boot/domain tests, Web export/size budget, Chromium `smoke:all` and GitHub-hosted Windows Edge.
+- Main CI Run #94 passed the same gates, GitHub Pages deployment, public reachability and production Edge real-game flow.
+- The frame-polled input regression from Run #87 is fixed and recorded as Verified in `docs/LESSONS_LEARNED.md` L-002.
 
-- Adds a validated, data-only `SkillRegistry` and `content/skills/registry.json` allow-list mapping.
-- Resolves skill ids from the character loadout instead of treating inherited sample paths as runtime source of truth.
-- Binds all six runtime/controllers (`skill_1` … `skill_6`) to the CharacterDefinition loadout.
-- Fails closed on unsafe ids, unknown ids, arbitrary registry paths/fields and controller/type mismatch.
-- Exposes resolved runtime skill ids/types/sources and loadout-ready state to Web diagnostics.
-- Adds domain and browser regression proving all six runtime/controller skill ids match CharacterDefinition.
-- Adds root `Agent.md` with project-specific development, validation, reporting and PR rules adapted from `poker_master`.
-- Adds `docs/LESSONS_LEARNED.md` as permanent engineering memory.
-- Enforces GitHub-only validation across `Agent.md`, `AGENTS.md` and `docs/ONLINE_TESTING.md`: no user-local project testing and no Remote Desktop Commander path are permitted.
-- Hardens `tests/web_smoke.mjs` frame-polled input delivery so U, Space and K are held across a Godot frame/runtime acknowledgement instead of relying on zero-duration synthetic key presses.
+## Current work — Issue #46 / M3 Slice 5
 
-Current validation status for PR #45:
+Goal: remove the final fixed character-file selection boundary and establish at least two official reference characters without editing core combat code.
 
-- CI Run #84 passed Godot import, main boot, Domain/Character tests, Web export, Web size budget, Chromium `smoke:all` and the GitHub-hosted Windows Microsoft Edge gate.
-- CI Run #87 later passed Godot import, main boot, domain tests, Web export and Web size budget, then failed in Chromium `smoke:web` while waiting for the Jump state after a synthetic `Space` press. Downstream Windows/production jobs were skipped by that upstream failure.
-- The frame-sampling regression is recorded as `L-002` in `docs/LESSONS_LEARNED.md`; the held-input fix has been committed to the PR branch and requires a fresh GitHub Actions pass before it can be marked Verified.
-- The latest PR branch validation is GitHub-only. No local computer or Remote Desktop Commander result may be used as a substitute gate.
-- PR remains open and must not merge until all required GitHub Actions validation and final online/browser acceptance are complete.
+Implemented on `feature/m3-character-registry-selection`:
+
+- Adds validated, data-only `CharacterRegistry` and `content/characters/registry.json`.
+- Registry default remains `ember_vanguard_001`; approved character ids resolve only to safe `.sample.json` files under `content/characters`.
+- Adds second official fighter `storm_duelist_001` / Storm Duelist with distinct stats, `storm_violet` visual profile and an alternate approved projectile (`training_bolt_001`) in skill slot 1.
+- Adds `selectable_main.gd`, which resolves the production character through CharacterRegistry instead of the fixed `PLAYER_CHARACTER_PATH` used by the parent runtime.
+- Web builds accept a safe `?character=<id>` selection. Unknown/unsafe ids never become resource paths; they fall back to the registered default while exposing a diagnostic error.
+- Adds Web diagnostics for registry readiness, requested/selected ids, source path, fallback status and selection error.
+- Adds `character_registry_test_runner.gd` domain regressions for safe resolution and rejection cases.
+- Adds `character_selection_web_smoke.mjs` to verify default selection, Storm Duelist selection and unsafe-selection fallback in Chromium/Edge.
+- Adds the new domain runner and browser selection smoke to the GitHub-only CI gates.
+
+Validation status:
+
+- Implementation is committed on the feature branch.
+- GitHub Actions validation is pending creation/execution of the Slice 5 PR.
+- No user-local machine and no Remote Desktop Commander validation is permitted or used.
 
 ## Online validation
 
@@ -110,11 +113,11 @@ Live demo:
 
 `https://ws951125.github.io/custom-fighter/`
 
-The production URL does not include an open PR until that PR is merged and Pages deployment completes.
+Production currently contains Slice 4 / PR #45. Slice 5 is not in production until its PR is validated, merged and the main deployment completes.
 
 ## Remaining roadmap
 
-- M3 — finish Character System: complete PR #45 loadout binding final gate, then character selection / authoring-readiness and reference-character completion.
+- M3 — finish Character System: complete Issue #46 registry/second-character slice, then animation mapping / final authoring-readiness and M3 acceptance.
 - M4 — Creator Studio basics.
 - M5 — User VFX import/processing and VFX Creator.
 - M6 — AI-assisted VFX provider layer.

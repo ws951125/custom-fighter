@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "id": "storm_violet",
+  "palette": {
+    "body": "#8d7cff",
+    "accent": "#d9d1ff",
+    "weapon": "#f5f1ff",
+    "guard": "#c6b8ff"
+  },
+  "body": {
+    "body_height": 112.0,
+    "head_radius": 20.0,
+    "torso_width": 33.0,
+    "torso_height": 66.0,
+    "arm_reach": 52.0,
+    "arm_width": 8.0,
+    "leg_length": 31.0,
+    "leg_spread": 19.0,
+    "leg_width": 9.0,
+    "shadow_half_width": 32.0,
+    "shadow_half_height": 9.0,
+    "weapon_length": 58.0,
+    "weapon_width": 4.0
+  }
+}

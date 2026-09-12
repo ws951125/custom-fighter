@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "default_character": "ember_vanguard_001",
+  "characters": {
+    "ember_vanguard_001": {
+      "file": "ember_vanguard.sample.json"
+    },
+    "storm_duelist_001": {
+      "file": "storm_duelist.sample.json"
+    }
+  }
+}
