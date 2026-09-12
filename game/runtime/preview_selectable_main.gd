@@ -5,16 +5,17 @@ const PreviewCombatantState = preload("res://game/core/combat/combatant_state.gd
 
 func _enter_tree() -> void:
 	super()
-	var session = _creator_preview_session()
-	if session == null or not session.has_active_preview():
+	var session: Variant = _creator_preview_session()
+	if not _preview_session_active(session):
 		return
 
 	var preview_character := PreviewCharacterDefinition.new()
-	var preview_errors: PackedStringArray = preview_character.load_from_dictionary(session.preview_character_data())
+	var character_data: Dictionary = _preview_character_data(session)
+	var preview_errors: PackedStringArray = preview_character.load_from_dictionary(character_data)
 	if not preview_errors.is_empty():
 		player_character_selection_error = "creator preview rejected: %s" % " | ".join(preview_errors)
 		player_character_selection_fallback = true
-		session.deactivate_preview()
+		_deactivate_preview_session(session)
 		push_error(player_character_selection_error)
 		return
 
@@ -28,22 +29,23 @@ func _enter_tree() -> void:
 	if not visual_errors.is_empty():
 		player_character_selection_error = "creator preview visual rejected: %s" % " | ".join(visual_errors)
 		player_character_selection_fallback = true
-		session.deactivate_preview()
+		_deactivate_preview_session(session)
 		push_error(player_character_selection_error)
 		return
 
 	player_state = PreviewCombatantState.new(player_character.max_hp, player_character.max_mp)
 
 func load_character_skill_for_slot(slot_name: String, expected_type: String, target_skill) -> PackedStringArray:
-	var session = _creator_preview_session()
-	if session == null or not session.has_active_preview() or slot_name != "skill_1":
+	var session: Variant = _creator_preview_session()
+	if not _preview_session_active(session) or slot_name != "skill_1":
 		return super(slot_name, expected_type, target_skill)
 
-	var errors := PackedStringArray()
+	var errors: PackedStringArray = PackedStringArray()
 	if not player_character.loaded:
 		errors.append("player character is not loaded")
 	else:
-		errors = target_skill.load_from_dictionary(session.preview_skill_data())
+		var skill_data: Dictionary = _preview_skill_data(session)
+		errors = target_skill.load_from_dictionary(skill_data)
 		if errors.is_empty() and target_skill.skill_type != expected_type:
 			errors.append("creator preview skill type mismatch: expected %s, got %s" % [expected_type, target_skill.skill_type])
 		if errors.is_empty() and target_skill.skill_id != player_character.skill_id_for_slot(slot_name):
@@ -65,9 +67,9 @@ func _set_web_state() -> void:
 	super()
 	if not OS.has_feature("web"):
 		return
-	var session = _creator_preview_session()
-	var active := session != null and session.has_active_preview()
-	var skill_data: Dictionary = session.preview_skill_data() if active else {}
+	var session: Variant = _creator_preview_session()
+	var active: bool = _preview_session_active(session)
+	var skill_data: Dictionary = _preview_skill_data(session) if active else {}
 	JavaScriptBridge.eval(
 		"document.documentElement.dataset.creatorPreviewActive='%s';" % ("true" if active else "false") +
 		"document.documentElement.dataset.creatorPreviewRuntimeSkillId=%s;" % JSON.stringify(str(skill_data.get("id", ""))) +
@@ -76,5 +78,24 @@ func _set_web_state() -> void:
 		"document.documentElement.dataset.creatorPreviewRuntimeSkillCooldown='%.3f';" % float(skill_data.get("cooldown", 0.0))
 	)
 
-func _creator_preview_session():
+func _creator_preview_session() -> Variant:
 	return get_node_or_null("/root/CreatorPreviewSession")
+
+func _preview_session_active(session: Variant) -> bool:
+	return session != null and session.has_method("has_active_preview") and bool(session.call("has_active_preview"))
+
+func _preview_character_data(session: Variant) -> Dictionary:
+	if session == null or not session.has_method("preview_character_data"):
+		return {}
+	var value: Variant = session.call("preview_character_data")
+	return value if typeof(value) == TYPE_DICTIONARY else {}
+
+func _preview_skill_data(session: Variant) -> Dictionary:
+	if session == null or not session.has_method("preview_skill_data"):
+		return {}
+	var value: Variant = session.call("preview_skill_data")
+	return value if typeof(value) == TYPE_DICTIONARY else {}
+
+func _deactivate_preview_session(session: Variant) -> void:
+	if session != null and session.has_method("deactivate_preview"):
+		session.call("deactivate_preview")
