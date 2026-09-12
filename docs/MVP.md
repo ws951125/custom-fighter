@@ -250,13 +250,14 @@ Acceptance: one user can create a character package and another can load it safe
 
 ## Testing strategy
 
-Routine validation happens online:
+All project validation happens through GitHub-hosted infrastructure and the deployed GitHub Pages build:
 
-1. GDScript/project import check.
-2. Pure logic tests.
-3. Godot headless integration tests.
-4. Web export.
-5. Playwright browser startup check.
-6. GitHub Pages deployment for human feel/UX checks.
+1. GDScript/project import check on GitHub Actions.
+2. Pure logic/domain tests on GitHub Actions.
+3. Godot headless integration tests on GitHub Actions.
+4. Web export and size-budget validation on GitHub Actions.
+5. Playwright Chromium smoke tests on GitHub Actions.
+6. Microsoft Edge smoke tests on GitHub-hosted Windows runners.
+7. GitHub Pages deployment, public reachability and production-browser validation after merge.
 
-Local user testing is a last resort, not the default workflow.
+Do not use the user's local machine, local repository execution, Remote Desktop Commander, remote desktop, SSH or any other connection to the user's computer for testing this project. If a required GitHub validation path is unavailable, record the item as blocked/residual risk rather than falling back to local testing.
