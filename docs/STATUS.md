@@ -4,7 +4,7 @@
 
 Milestone 4 — Creator Studio.
 
-Current active slice: Issue #52 / M4 Slice 1 — Creator Studio shell and validated character draft editor.
+Current active slice: Issue #54 / M4 Slice 2 — validated projectile SkillDraft editor.
 
 Estimated whole-project completion: **44.4%** across the M0–M8 MVP roadmap under the repository rule that only formally completed milestones count toward the fixed milestone denominator. M0, M1, M2 and M3 are complete; M4 is in progress.
 
@@ -16,7 +16,7 @@ Estimated whole-project completion: **44.4%** across the M0–M8 MVP roadmap und
 - GitHub Actions cloud validation.
 - Web release export and GitHub Pages deployment.
 - PWA/service-worker caching, startup diagnostics and Web size budgets.
-- GitHub-only development and validation rules in `AGENTS.md`, `Agent.md` and `docs/ONLINE_TESTING.md`.
+- GitHub-only development and validation rules in `AGENTS.md`, `Agent.md`, `docs/ONLINE_TESTING.md` and `docs/MVP.md`.
 
 ### Milestone 1 — Combat Prototype — 100%
 
@@ -46,42 +46,50 @@ Shared JSON data controls MP, cooldown, cast timing and template-specific combat
 M3 is production-validated and accepted.
 
 - Versioned, validated, data-only `CharacterDefinition` owns character identity, stats, movement tuning, visual profile, animation map and six skill slots.
-- `CharacterMovementTuning` makes CharacterDefinition the movement source of truth while fixed-distance dash semantics remain stable.
-- `CharacterVisualProfile` safely owns palette/body/weapon dimensions.
-- `SkillRegistry` safely resolves approved data-driven skill ids and rejects unsafe/unknown/type-mismatched references.
-- `CharacterRegistry` removes the fixed production character-file selection boundary.
+- `CharacterMovementTuning`, `CharacterVisualProfile`, `SkillRegistry`, `CharacterRegistry` and `CharacterAnimationMap` provide safe data-driven runtime boundaries.
 - Two official reference characters are available entirely from content data: `ember_vanguard_001` / Ember Vanguard and `storm_duelist_001` / Storm Duelist.
 - Web runtime safely supports `?character=<id>` and fail-closed fallback for invalid selections.
-- `CharacterAnimationMap` safely maps runtime semantic states to character-owned animation ids.
-- Ember Vanguard and Storm Duelist use distinct approved animation maps without character-specific core-combat edits.
 - PR #45 / Slice 4, PR #49 / Slice 5 and PR #51 / Slice 6 all passed GitHub-only validation before merge.
 - Main CI Run #98 for merged PR #51 passed Godot import/boot/domain tests, Web export/size budget, Chromium `smoke:all`, GitHub-hosted Windows Edge, GitHub Pages deployment, public reachability and production Edge real-game flow.
-- Issue #50 is closed completed after production validation.
 
 M3 acceptance is satisfied: a normal character can be added from approved content data without editing core combat code.
 
-## Current work — Issue #52 / M4 Slice 1
+## Milestone 4 — completed slices
 
-Goal: establish the first non-programmer Creator Studio editing path while preserving the existing runtime schemas and security boundaries.
-
-Implemented on `feature/m4-creator-character-editor-shell`:
+Issue #52 / PR #53 / M4 Slice 1 is production-validated and merged to `main` at `5b55a8b14afb4d810770d3dffa0bdc33c2c8d9f6`:
 
 - Adds application-level routing. The default URL remains Training; `?mode=creator` opens Creator Studio.
 - Adds a Godot-native Creator Studio Character Editor shell.
-- Adds data-only in-memory `CharacterDraft`, which serializes to the existing `CharacterDefinition` schema and delegates validation to `CharacterDefinition` itself.
-- First editable fields: Character ID, Display Name, Archetype, Max HP, Max MP and Move Speed.
-- Keeps approved starter defaults explicit for depth/run/guard movement tuning, visual profile, animation map and all six skill slots.
-- Shows live VALID / INVALID state and readable validation errors.
-- Adds `Reset Draft` and `Back to Training` buttons.
-- This slice is deliberately non-persistent: no filesystem save, package export or user-supplied code execution.
-- Adds Web diagnostics plus a narrow data-only automation bridge for CI validation of valid → invalid → valid → reset state transitions.
-- Adds `creator_character_draft_test_runner.gd` and `creator_studio_web_smoke.mjs`.
-- Adds Creator Studio browser smoke to `smoke:all` and the draft domain runner to GitHub Actions.
+- Adds data-only in-memory `CharacterDraft`, validated through the existing `CharacterDefinition` contract.
+- Editable fields include Character ID, Display Name, Archetype, Max HP, Max MP and Move Speed.
+- Shows live VALID / INVALID state and readable errors.
+- Adds Reset Character Draft and Back to Training.
+- Keeps this authoring path data-only and non-persistent; no package export or arbitrary user code execution.
+- PR CI Run #99 passed Godot import/boot/domain tests, Web export/size budget, Chromium `smoke:all` and GitHub-hosted Windows Edge.
+- Main CI Run #100 passed the same gates plus GitHub Pages deployment, public reachability and production Microsoft Edge real-game flow, including the Creator Studio browser regression.
+- Issue #52 is closed completed after production validation.
+
+## Current work — Issue #54 / M4 Slice 2
+
+Goal: establish the first non-programmer skill-authoring path using the same runtime `SkillDefinition` contract.
+
+Implemented on `feature/m4-projectile-skill-editor`:
+
+- Adds data-only in-memory `SkillDraft` for the projectile template.
+- Starter projectile serializes to the existing SkillDefinition schema and validates through `SkillDefinition`.
+- Creator Studio now switches between Character Editor and Skill Editor while the default application route remains Training.
+- Projectile fields include Skill ID, Display Name, Damage, MP Cost, Cooldown, Startup, Active, Recovery, Projectile Speed, Range, Hitstun and Knockback.
+- Approved starter hitbox/visual identifiers remain explicit and are not treated as arbitrary paths or executable content.
+- Adds live VALID / INVALID state and readable SkillDefinition validation errors.
+- Adds Reset Skill Draft; Slice 2 remains in-memory/non-persistent.
+- Extends the narrow Web automation bridge and diagnostics for deterministic hosted-browser validation.
+- Adds `creator_skill_draft_test_runner.gd` domain regression and `creator_skill_editor_web_smoke.mjs` browser regression.
+- Adds the SkillDraft runner to GitHub Actions and the Skill Editor smoke to `smoke:all`.
 
 Validation status:
 
-- Initial implementation and CI wiring are committed on the feature branch.
-- M4 Slice 1 PR creation and GitHub Actions validation are the next gate.
+- Slice 2 implementation and CI wiring are committed on the feature branch.
+- PR creation and GitHub Actions validation are the next gate.
 - No user-local machine, local project execution or Remote Desktop Commander validation is permitted or used.
 
 ## Online validation
@@ -102,15 +110,15 @@ Live Training demo:
 
 `https://ws951125.github.io/custom-fighter/`
 
-Creator Studio target URL after M4 Slice 1 reaches production:
+Live Creator Studio:
 
 `https://ws951125.github.io/custom-fighter/?mode=creator`
 
-Production currently contains completed M3. M4 Slice 1 is not in production until its PR is validated, merged and the main deployment completes.
+Production currently contains M4 Slice 1 / PR #53. Slice 2 is not in production until its PR is validated, merged and the main deployment completes.
 
 ## Remaining roadmap
 
-- M4 — finish Creator Studio basics: character editor, skill editor, validation and preview/training workflow.
+- M4 — finish Creator Studio basics: broaden skill templates, parameter validation and preview/training workflow.
 - M5 — User VFX import/processing and VFX Creator.
 - M6 — AI-assisted VFX provider layer.
 - M7 — Character package import/export with safe data-only packages.
