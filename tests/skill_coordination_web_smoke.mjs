@@ -50,6 +50,8 @@ try {
     throw new Error(`Unexpected initial MP: ${await readNumber('playerMp')}`);
   }
 
+  const initialClaimCount = await readNumber('skillCoordinatorClaimCount');
+
   // U is handled by the parent runtime before O's child controller. Holding both across
   // multiple Godot frames proves the coordinator, not synthetic key timing, decides exclusivity.
   await page.keyboard.down('u');
@@ -65,20 +67,31 @@ try {
   );
 
   const mpAfterSimultaneousInput = await readNumber('playerMp');
-  const ownerDuringCast = await readText('skillCoordinatorOwner');
+  const lastClaimed = await readText('skillCoordinatorLastClaimed');
+  const claimCount = await readNumber('skillCoordinatorClaimCount');
   const areaPhase = await readText('areaSkillPhase');
   const areaCooldown = await readNumber('areaSkillCooldown');
+  const fireballCooldown = await readNumber('skillCooldown');
 
   if (mpAfterSimultaneousInput !== 75) {
     throw new Error(`Expected exactly one U cast (100 -> 75 MP); got ${mpAfterSimultaneousInput}`);
   }
-  if (ownerDuringCast !== 'skill_1') {
-    throw new Error(`Expected skill_1 to own coordinator; got '${ownerDuringCast}'`);
+  if (lastClaimed !== 'skill_1') {
+    throw new Error(`Expected persistent last claim to be skill_1; got '${lastClaimed}'`);
+  }
+  if (claimCount !== initialClaimCount + 1) {
+    throw new Error(`Expected exactly one coordinator claim; before=${initialClaimCount} after=${claimCount}`);
+  }
+  if (!(fireballCooldown > 0)) {
+    throw new Error(`Expected U cooldown to start; got ${fireballCooldown}`);
   }
   if (areaPhase !== 'READY' || areaCooldown !== 0) {
     throw new Error(`O cast escaped coordinator: phase=${areaPhase} cooldown=${areaCooldown}`);
   }
 
+  // Current ownership is intentionally transient: a fast runner may observe skill_1 while its
+  // cast is active, while a slower Edge runner can reach this assertion after the normal release.
+  // The durable evidence above proves that only U acquired the coordinator and spent MP.
   await page.waitForFunction(
     () =>
       document.documentElement.dataset.skillCoordinatorBusy === 'false' &&
@@ -94,7 +107,7 @@ try {
   }
 
   console.log(
-    `SKILL_COORDINATION_SMOKE_PASSED mp=${mpAfterSimultaneousInput} owner=${ownerDuringCast} areaPhase=${areaPhase}`,
+    `WEB_SKILL_COORDINATION_SMOKE_PASSED mp=${mpAfterSimultaneousInput} lastClaimed=${lastClaimed} claims=${claimCount - initialClaimCount} fireballCooldown=${fireballCooldown} areaPhase=${areaPhase} areaCooldown=${areaCooldown}`,
   );
 } finally {
   await browser.close();
