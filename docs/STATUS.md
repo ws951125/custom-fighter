@@ -2,13 +2,13 @@
 
 ## Current phase
 
-Milestone 3 — Data-driven Character System.
+Milestone 4 — Creator Studio.
 
-Current active slice: Issue #50 / M3 Slice 6 — data-driven animation mapping and final M3 acceptance.
+Current active slice: Issue #52 / M4 Slice 1 — Creator Studio shell and validated character draft editor.
 
-Estimated whole-project completion: **33.3%** across the M0–M8 MVP roadmap under the repository rule that only formally completed milestones count toward the fixed milestone denominator. M0, M1 and M2 are complete; M3 is still in progress until Slice 6 is production-validated.
+Estimated whole-project completion: **44.4%** across the M0–M8 MVP roadmap under the repository rule that only formally completed milestones count toward the fixed milestone denominator. M0, M1, M2 and M3 are complete; M4 is in progress.
 
-## Completed
+## Completed milestones
 
 ### Milestone 0 — Foundation — 100%
 
@@ -41,68 +41,48 @@ All six planned data-driven templates are implemented and production-validated:
 
 Shared JSON data controls MP, cooldown, cast timing and template-specific combat parameters. One shared `SkillCoordinator` owns cross-skill exclusivity for U/I/O/P/B/H and prevents same-frame double-casts. M1 movement, guard and basic attacks observe the same busy state.
 
-### Milestone 3 — completed slices
+### Milestone 3 — Character System — 100%
 
-Issue #36 / M3 Slice 1:
+M3 is production-validated and accepted.
 
-- Versioned, validated, data-only `CharacterDefinition`.
-- First official fighter: `ember_vanguard_001` / Ember Vanguard.
-- Character-backed HP/MP, movement data, visual profile reference and six skill-slot references.
-- Unsafe script/code-style fields and unsafe references are rejected.
+- Versioned, validated, data-only `CharacterDefinition` owns character identity, stats, movement tuning, visual profile, animation map and six skill slots.
+- `CharacterMovementTuning` makes CharacterDefinition the movement source of truth while fixed-distance dash semantics remain stable.
+- `CharacterVisualProfile` safely owns palette/body/weapon dimensions.
+- `SkillRegistry` safely resolves approved data-driven skill ids and rejects unsafe/unknown/type-mismatched references.
+- `CharacterRegistry` removes the fixed production character-file selection boundary.
+- Two official reference characters are available entirely from content data: `ember_vanguard_001` / Ember Vanguard and `storm_duelist_001` / Storm Duelist.
+- Web runtime safely supports `?character=<id>` and fail-closed fallback for invalid selections.
+- `CharacterAnimationMap` safely maps runtime semantic states to character-owned animation ids.
+- Ember Vanguard and Storm Duelist use distinct approved animation maps without character-specific core-combat edits.
+- PR #45 / Slice 4, PR #49 / Slice 5 and PR #51 / Slice 6 all passed GitHub-only validation before merge.
+- Main CI Run #98 for merged PR #51 passed Godot import/boot/domain tests, Web export/size budget, Chromium `smoke:all`, GitHub-hosted Windows Edge, GitHub Pages deployment, public reachability and production Edge real-game flow.
+- Issue #50 is closed completed after production validation.
 
-Issue #37 / M3 Slice 2:
+M3 acceptance is satisfied: a normal character can be added from approved content data without editing core combat code.
 
-- `CharacterMovementTuning` makes CharacterDefinition the movement source of truth.
-- Normal movement, depth movement, run and guard movement use character data.
-- K standard dash and I Dash Slash retain fixed-distance semantics.
-- Battle Focus composes through the same runtime movement path.
+## Current work — Issue #52 / M4 Slice 1
 
-M3 visual/body-profile slice:
+Goal: establish the first non-programmer Creator Studio editing path while preserving the existing runtime schemas and security boundaries.
 
-- Versioned, validated, data-only `CharacterVisualProfile`.
-- `training_blue.profile.json` drives playable-character palette/body/weapon dimensions.
-- Unsafe references, executable-style fields, malformed colors and out-of-range values are rejected.
+Implemented on `feature/m4-creator-character-editor-shell`:
 
-Issue #44 / PR #45 / M3 Slice 4 is production-validated and merged to `main` at `6a83454a66cf23cc1bb3c2e0ef6c630fbf1a50d4`:
-
-- Adds validated `SkillRegistry` plus `content/skills/registry.json` allow-list mapping.
-- CharacterDefinition skill slots are the runtime source of truth for all six skills.
-- Unsafe ids, unknown ids, arbitrary registry paths/fields and controller/type mismatches fail closed.
-- Runtime skill ids/types/sources and loadout-ready state are exposed to Web diagnostics.
-- CI Run #93 passed Godot import/boot/domain tests, Web export/size budget, Chromium `smoke:all` and GitHub-hosted Windows Edge.
-- Main CI Run #94 passed the same gates, GitHub Pages deployment, public reachability and production Edge real-game flow.
-- The frame-polled input regression from Run #87 is fixed and recorded as Verified in `docs/LESSONS_LEARNED.md` L-002.
-
-Issue #46 / PR #49 / M3 Slice 5 is production-validated and merged to `main` at `742767eff3e8bba245b3bfca3eb74b406471321b`:
-
-- Adds validated, data-only `CharacterRegistry` and `content/characters/registry.json`.
-- Removes the fixed production character-file selection boundary.
-- Adds `storm_duelist_001` / Storm Duelist as the second official reference fighter with distinct stats, `storm_violet` visual profile and `training_bolt_001` in skill slot 1.
-- Web builds safely select an approved character using `?character=<id>`; unsafe/unknown ids never become resource paths and fall back to the registered default with diagnostics.
-- PR CI Run #95 passed Godot import/boot/domain tests, Web export/size budget, Chromium `smoke:all` and GitHub-hosted Windows Edge.
-- Main CI Run #96 passed the same gates plus GitHub Pages deployment, public reachability and production Edge real-game flow.
-- Issue #46 is closed as completed after production validation.
-
-## Current work — Issue #50 / M3 Slice 6
-
-Goal: complete the remaining M3 animation-mapping contract and prove the character system is authoring-ready without character-specific core combat edits.
-
-Implemented on `feature/m3-animation-mapping`:
-
-- Adds validated, data-only `CharacterAnimationMap` with a fixed semantic allow-list for ready, walk, run, jump, dash, guard, the three basic-attack steps and all six skill slots.
-- Adds `ember_vanguard.animation.json` and `storm_duelist.animation.json` with distinct approved animation ids.
-- Adds `animation_map` to CharacterDefinition; official reference characters explicitly select their own animation maps. Legacy/test character data without the field derives a safe token from the character id, while runtime loading still fails closed if no approved map file exists.
-- Adds `animation_main.gd` as the production runtime layer above safe character selection. It resolves current movement/combat/skill semantics to the character-owned animation id through CharacterAnimationMap.
-- Adds Web diagnostics for CharacterDefinition animation-map reference, loaded map id, current semantic, current animation id and load error.
-- Unknown runtime semantics fall back only to the map's validated `ready` id; unsafe animation references/ids and executable-style fields are rejected.
-- Adds `character_animation_test_runner.gd` domain regressions and `character_animation_web_smoke.mjs` browser regressions for Ember/Storm mapping plus Storm ready/walk/attack/skill state resolution.
-- Adds the new domain runner and browser smoke to the GitHub-only CI gates.
+- Adds application-level routing. The default URL remains Training; `?mode=creator` opens Creator Studio.
+- Adds a Godot-native Creator Studio Character Editor shell.
+- Adds data-only in-memory `CharacterDraft`, which serializes to the existing `CharacterDefinition` schema and delegates validation to `CharacterDefinition` itself.
+- First editable fields: Character ID, Display Name, Archetype, Max HP, Max MP and Move Speed.
+- Keeps approved starter defaults explicit for depth/run/guard movement tuning, visual profile, animation map and all six skill slots.
+- Shows live VALID / INVALID state and readable validation errors.
+- Adds `Reset Draft` and `Back to Training` buttons.
+- This slice is deliberately non-persistent: no filesystem save, package export or user-supplied code execution.
+- Adds Web diagnostics plus a narrow data-only automation bridge for CI validation of valid → invalid → valid → reset state transitions.
+- Adds `creator_character_draft_test_runner.gd` and `creator_studio_web_smoke.mjs`.
+- Adds Creator Studio browser smoke to `smoke:all` and the draft domain runner to GitHub Actions.
 
 Validation status:
 
-- Implementation is committed on the feature branch.
-- Slice 6 PR creation and GitHub Actions validation are the next gate.
-- No user-local machine and no Remote Desktop Commander validation is permitted or used.
+- Initial implementation and CI wiring are committed on the feature branch.
+- M4 Slice 1 PR creation and GitHub Actions validation are the next gate.
+- No user-local machine, local project execution or Remote Desktop Commander validation is permitted or used.
 
 ## Online validation
 
@@ -118,16 +98,19 @@ The production pipeline verifies entirely on GitHub infrastructure:
 
 If any required GitHub gate is unavailable, failing or blocked, the project records that state as `Blocked` / `Residual Risk`; it does not fall back to the user's local machine.
 
-Live demo:
+Live Training demo:
 
 `https://ws951125.github.io/custom-fighter/`
 
-Production currently contains Slice 5 / PR #49. Slice 6 is not in production until its PR is validated, merged and the main deployment completes.
+Creator Studio target URL after M4 Slice 1 reaches production:
+
+`https://ws951125.github.io/custom-fighter/?mode=creator`
+
+Production currently contains completed M3. M4 Slice 1 is not in production until its PR is validated, merged and the main deployment completes.
 
 ## Remaining roadmap
 
-- M3 — finish Character System: validate/merge Issue #50 animation mapping, complete production acceptance, then mark M3 complete.
-- M4 — Creator Studio basics.
+- M4 — finish Creator Studio basics: character editor, skill editor, validation and preview/training workflow.
 - M5 — User VFX import/processing and VFX Creator.
 - M6 — AI-assisted VFX provider layer.
 - M7 — Character package import/export with safe data-only packages.
