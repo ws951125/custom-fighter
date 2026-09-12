@@ -2,100 +2,75 @@
 
 ## Current phase
 
-Milestone 2 — Data-driven Skill Engine
+Milestone 2 — Data-driven Skill Engine finalization.
 
-Current active slice: Issue #27 — data-driven Buff skill template.
+Current active slice: Issue #34 — shared SkillCoordinator + authoring readiness.
 
-Estimated whole-project completion: **33%** across the M0–M8 MVP roadmap. This is an engineering progress estimate based on completed milestone scope, not elapsed time.
+Estimated whole-project completion: **35%** across the M0–M8 MVP roadmap. This is an engineering progress estimate based on completed milestone scope, not elapsed time.
 
 ## Completed
 
-### Milestone 0 — Foundation
+### Milestone 0 — Foundation — 100%
 
-- Public GitHub repository initialized.
 - Godot 4.7.2 project foundation.
-- Web-ready runtime and export pipeline.
-- Cloud-first development/validation rules in `AGENTS.md`.
-- GitHub Actions validation and GitHub Pages deployment.
+- GitHub Actions cloud validation.
+- Web release export and GitHub Pages deployment.
+- PWA/service-worker caching, startup diagnostics and Web size budgets.
+- Cloud-first development rules in `AGENTS.md`.
 
-### Milestone 1 — Combat Prototype
+### Milestone 1 — Combat Prototype — 100%
 
-- 2.5D horizontal + depth movement.
-- Run, jump and dash.
-- Guard.
+- 2.5D movement, run, jump, dash and guard.
 - HP / MP state.
-- Three-hit basic attack chain.
-- Explicit hitbox / hurtbox overlap.
-- Hitstun and knockback.
-- Knockdown, recovery and standing invulnerability.
-- Training dummy.
-- Keyboard input actions structured for future gamepad/touch mapping.
-- Chromium and Windows Edge gameplay regressions.
-- Production GitHub Pages gameplay validation in Windows Edge.
+- Three-hit basic attack chain with input buffering.
+- Hitbox / hurtbox, hitstun, knockback, knockdown and recovery.
+- Browser-hitch-resistant combo timing.
+- Training dummy and Chromium / Windows Edge regressions.
+- Production GitHub Pages validation in Windows Edge.
 
-Milestone 1 tracker #3 is complete.
+### Milestone 2 — implemented skill templates
 
-### Milestone 2 — completed skill templates
+All six planned data-driven templates are implemented and production-validated individually:
 
-- Projectile: `fireball_001`, bound to `U`.
-- Dash Attack: `dash_slash_001`, bound to `I`.
-- Area Attack: `arc_burst_001`, bound to `O`.
-- Formation / Rain: `blade_rain_001`, bound to `P`.
-- Shared JSON-driven MP, cooldown and cast timing.
-- Reusable projectile, dash, area and formation combat states.
-- Formation strike scheduling and per-cell single-hit semantics.
-- Skill-specific browser evidence while preserving Milestone 1 regressions.
+- `U` — Projectile: `fireball_001`.
+- `I` — Dash Attack: `dash_slash_001`.
+- `O` — Area Attack: `arc_burst_001`.
+- `P` — Formation / Rain: `blade_rain_001`.
+- `B` — Buff: `battle_focus_001`.
+- `H` — Melee: `heavy_strike_001`.
 
-Completed trackers:
-- Area Attack #21.
-- Formation / Rain #24.
+Shared JSON data controls MP, cooldown, cast timing and template-specific combat parameters. Existing skill and M1 gameplay regressions run in both Chromium and Windows Edge.
 
-Formation production evidence is validated on GitHub Pages in real Windows Edge.
+## Current work
 
-## Verified online
+Issue #34 finalizes M2 with a shared `SkillCoordinator`:
 
-The current production pipeline verifies:
+- U/I/O/P/B/H use one cross-skill exclusivity coordinator.
+- M1 movement, guard and basic attacks observe the same skill-busy state.
+- Same-frame simultaneous skill requests cannot double-spend MP or start two casts.
+- Domain tests cover claim/reject/release ownership rules.
+- Browser regression holds U + O together and verifies only one skill acquires the coordinator.
+- PR validation has passed in Chromium and Windows Edge; production Pages validation is still required before M2 is declared complete.
 
-- Godot 4.7.2 setup.
-- Headless project import and main-scene boot.
+## Online validation
+
+The production pipeline verifies:
+
+- Godot import and main-scene boot.
 - Domain/data tests.
-- Web export and build-size budget.
-- Chromium `smoke:all` against the exported build.
-- Windows + Microsoft Edge `smoke:all` against the same validated artifact.
-- GitHub Pages deployment from `main`.
-- Public production URL reachability.
-- Windows + Microsoft Edge `smoke:all` directly against the deployed GitHub Pages game.
+- Web release export and build-size budget.
+- Chromium `smoke:all`.
+- Windows Microsoft Edge `smoke:all` against the same artifact.
+- GitHub Pages deployment and public reachability.
+- Windows Edge `smoke:all` directly against the deployed production game.
 
 Live demo:
 
 `https://ws951125.github.io/custom-fighter/`
 
-Latest gameplay baseline with Formation validated in production: `ef00ce3a2dd85694cdb4a6fe13d037d3ee36fb1a`.
-
-## Current work
-
-Issue #27 — Buff:
-
-- JSON-driven `battle_focus_001` sample.
-- Skill 5 bound to `B`.
-- Timed self-buff with JSON-driven duration.
-- JSON-driven movement-speed multiplier.
-- JSON-driven basic-attack damage multiplier.
-- Automatic restoration to baseline after expiration.
-- Runtime aura/HUD feedback and Web diagnostics.
-- Domain + Chromium + Windows Edge + production Pages evidence.
-
 ## Remaining roadmap
 
-### Milestone 2 — remaining
-
-- Complete and production-validate Buff template (#27).
-- Add the data-driven Melee skill template so normal authored melee skills do not rely on the hard-coded basic attack chain.
-- Consolidate shared skill cast/exclusivity rules so all templates use one consistent coordination layer.
-- Final M2 regression/authoring-readiness pass.
-
-### Milestones 3–8
-
+- Finish Issue #34 production validation and close Milestone 2.
 - M3 — Data-driven Character System.
 - M4 — Creator Studio basics.
 - M5 — User VFX import/processing and VFX Creator.
