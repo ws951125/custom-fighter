@@ -54,8 +54,8 @@
 - **Root Cause:** `CreatorPreviewSession`、provider adapter、helper function `-> Variant` 等 runtime/dynamic 邊界都無法提供足夠的靜態型別資訊。對這類值直接使用 `:=`，會讓 GDScript 以 Variant 推斷告警；CI 將該告警視為錯誤。
 - **Fix:** Preview runtime 邊界改成明確 `Variant` / `bool` / `Dictionary` / `PackedStringArray` 型別，並以 `has_method()` + `call()` 封裝 autoload 的動態方法呼叫。M6 recurrence 則將六個 `_valid_request()` fixture caller 全部改成 `var request: Variant = ...` / `var invalid_reference: Variant = ...`，不再依賴 `:=`。
 - **Prevention Rule:** 對 `get_node_or_null()`、autoload lookup、dynamic host/plugin/provider/interface，以及任何宣告 `-> Variant` 的 helper，不用 `:=` 推斷結果。跨 script / provider / fixture boundary 時，明確宣告 `Variant` 或實際 collection/scalar 型別。
-- **Validation:** PR #57 修正後 CI Run #105 通過完整 GitHub gate。M6 PR #69 Run #135 已確認 import/boot 成功、失敗僅在新 test runner 的六個 Variant inference warnings；修正已提交，等待最新 head GitHub CI 重新驗證。
-- **Status:** Verified historically; M6 recurrence fix pending fresh PR CI
+- **Validation:** PR #57 修正後 CI Run #105 通過完整 GitHub gate；M6 PR #69 latest-head CI Run #138 亦通過 Godot import/boot/domain、Web export/size budget、Chromium 與 hosted Windows Edge。
+- **Status:** Verified
 
 ## L-006 — Mobile browser capability detection and gameplay validation need separate deterministic gates
 
@@ -85,7 +85,7 @@
 - **Area:** GitHub Actions / Windows Edge / Playwright deterministic positioning
 - **Symptom:** M5 Slice 2 merge 後 main CI Run #132 的第一個 hosted Windows Edge attempt，在既有 `tests/melee_web_smoke.mjs` 的 `approachDummy()` 失敗。測試目標是把 player/dummy gap 停在 45–115 px，但最後一次 `D` nudge 從可接受區間外直接跨到約 23.53 px，因而由測試自身的 lower-bound assertion 判定失敗；同 SHA 的 Godot/Web/Chromium gate 已成功。
 - **Root Cause:** `nudge()` 是固定時間 held input，實際位移取決於 hosted runner 當下 frame cadence。helper 的 loop 只以 `gap > 105` 決定是否再走一步，沒有在下一個 frame step 可能跨越下限時保留 overshoot tolerance，因此位置採樣與 frame scheduling 可以讓最後一次移動越過 45 px 測試窗。這不是 Heavy Strike runtime semantics 的失敗證據。
-- **Operational Fix:** 沒有修改無關 gameplay runtime；只針對失敗的 hosted Windows Edge gate 重跑。第二次 attempt 的完整 `smoke:all` 通過，隨後 GitHub Pages deploy、public reachability、production Edge real-game flow 全部成功。
+- **Operational Fix:** 沒有修改無關 gameplay runtime；只針對失敗的 hosted Windows Edge gate重跑。第二次 attempt 的完整 `smoke:all` 通過，隨後 GitHub Pages deploy、public reachability、production Edge real-game flow 全部成功。
 - **Prevention Rule:** 對以固定 held-input 時間逼近座標的 browser helper，測試成功條件要容忍單一 frame/nudge 的合理 overshoot，或改成根據剩餘距離縮短最後一步；不要把 hosted frame cadence 差異誤判成 combat regression。若相同 melee positioning failure 再次出現，應 harden helper，而不是只持續 retry。
 - **Validation:** main CI Run #132 attempt 2 最終 `conclusion=success`，五個 production gates 全部通過。
 - **Status:** Verified; helper hardening deferred unless recurrence
@@ -100,3 +100,14 @@
 - **Prevention Rule:** 任何 create branch / issue / PR / file 等非冪等 GitHub mutation 成功後，先把回傳物件視為 source of truth；若下一步工具選擇或狀態有疑義，先 read/search/verify，再執行下一次 mutation。不得用重送相同 create 動作確認狀態。
 - **Validation:** `feature/m6-ai-vfx-provider-boundary` 保持單一有效 branch；Issue #68 已正確建立並指向該 work unit，後續程式與文件 commit 都持續寫入該 branch。
 - **Status:** Verified
+
+## L-010 — Inherited GDScript constants must not be redeclared when a child becomes a direct dependency
+
+- **Date:** 2026-09-13
+- **Area:** Godot / GDScript inheritance / AI provider preload boundary
+- **Symptom:** M6 Slice 2 PR #71 CI Run #141 在 `Import project headlessly` 失敗。新增的 Creator AI studio 首次直接 preload `MockAiVfxProvider`，Godot 回報 child script 重新宣告 parent `AiVfxProvider` 已有的 `AiVfxResult` member；同一個 mock script 另有 `radius := max(...)` 的 Variant inference warning-as-error。
+- **Root Cause:** Slice 1 的 mock provider 雖存在且由 domain flow 使用，但沒有被 Creator scene 直接 preload，因此這個 child/parent member collision 沒有在先前一般 scene import 路徑曝光。GDScript 繼承 member 會包含 parent constant，child 不可再以相同名稱宣告；同時 generic `max()` 搭配除法讓 `:=` 推斷落入 Variant warning。
+- **Fix:** 移除 child 的重複 `AiVfxResult` preload，直接使用 parent inherited constant；將 radius 改為明確 `int` 並使用 `maxi()`，避免 Variant inference。
+- **Prevention Rule:** 新增 inheritance-based adapter/provider 時，parent 已提供的 preload/constants 不在 child 重宣告。任何首次被 scene 直接 preload 的 provider 都必須經完整 Godot import gate；數值 helper 在 warning-as-error 專案中優先使用 typed `maxi`/`maxf` 並明確宣告結果型別。
+- **Validation:** 修正已提交至 PR #71 最新 head；等待新的 GitHub-hosted CI 驗證 Godot import、browser workflow 與 Edge gate。
+- **Status:** Fix committed; fresh CI pending
