@@ -49,6 +49,41 @@ func configure_import(name: String, mime: String, width: int, height: int) -> Pa
 	crop_height = max(height, 0)
 	return validate()
 
+func load_from_dictionary(data: Dictionary) -> PackedStringArray:
+	reset()
+	var shape_errors := PackedStringArray()
+
+	schema_version = int(data.get("schema_version", 0))
+	file_name = str(data.get("file_name", "")).strip_edges()
+	mime_type = str(data.get("mime_type", "")).strip_edges().to_lower()
+	image_width = int(data.get("image_width", 0))
+	image_height = int(data.get("image_height", 0))
+	frame_count = int(data.get("frame_count", 1))
+	scale = float(data.get("scale", 1.0))
+	fps = float(data.get("fps", 12.0))
+
+	var crop_value: Variant = data.get("crop", {})
+	if crop_value is Dictionary:
+		var crop: Dictionary = crop_value
+		crop_x = int(crop.get("x", 0))
+		crop_y = int(crop.get("y", 0))
+		crop_width = int(crop.get("width", 0))
+		crop_height = int(crop.get("height", 0))
+	else:
+		shape_errors.append("crop must be an object")
+
+	var offset_value: Variant = data.get("offset", {})
+	if offset_value is Dictionary:
+		var offset: Dictionary = offset_value
+		offset_x = float(offset.get("x", 0.0))
+		offset_y = float(offset.get("y", 0.0))
+	else:
+		shape_errors.append("offset must be an object")
+
+	var validation_errors := validate()
+	shape_errors.append_array(validation_errors)
+	return shape_errors
+
 func frame_width() -> int:
 	if frame_count < 1 or crop_width < 1:
 		return 0
