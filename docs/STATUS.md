@@ -4,7 +4,9 @@
 
 Milestone 2 — Data-driven Skill Engine
 
-Current active slice: Issue #24 — Formation / Rain skill template.
+Current active slice: Issue #27 — data-driven Buff skill template.
+
+Estimated whole-project completion: **33%** across the M0–M8 MVP roadmap. This is an engineering progress estimate based on completed milestone scope, not elapsed time.
 
 ## Completed
 
@@ -38,15 +40,21 @@ Milestone 1 tracker #3 is complete.
 - Projectile: `fireball_001`, bound to `U`.
 - Dash Attack: `dash_slash_001`, bound to `I`.
 - Area Attack: `arc_burst_001`, bound to `O`.
+- Formation / Rain: `blade_rain_001`, bound to `P`.
 - Shared JSON-driven MP, cooldown and cast timing.
-- Reusable projectile, dash and area combat states.
+- Reusable projectile, dash, area and formation combat states.
+- Formation strike scheduling and per-cell single-hit semantics.
 - Skill-specific browser evidence while preserving Milestone 1 regressions.
 
-Area Attack tracker #21 is complete.
+Completed trackers:
+- Area Attack #21.
+- Formation / Rain #24.
+
+Formation production evidence is validated on GitHub Pages in real Windows Edge.
 
 ## Verified online
 
-The current `main` pipeline verifies:
+The current production pipeline verifies:
 
 - Godot 4.7.2 setup.
 - Headless project import and main-scene boot.
@@ -62,20 +70,35 @@ Live demo:
 
 `https://ws951125.github.io/custom-fighter/`
 
-Latest fully validated production baseline before Issue #24: `bb8b6eeda8794d3cfdd3d2e63ccab432667ecbc1`.
+Latest gameplay baseline with Formation validated in production: `ef00ce3a2dd85694cdb4a6fe13d037d3ee36fb1a`.
 
 ## Current work
 
-Issue #24 — Formation / Rain:
+Issue #27 — Buff:
 
-- JSON-driven `blade_rain_001` sample.
-- Skill 4 bound to `P`.
-- Multiple timed formation cells / strikes from one cast.
-- JSON-driven strike count, spacing, interval and cell dimensions.
-- One-hit-per-cell collision semantics.
-- Replaceable runtime visuals suitable for later AI-generated sword-rain / magic-circle VFX.
+- JSON-driven `battle_focus_001` sample.
+- Skill 5 bound to `B`.
+- Timed self-buff with JSON-driven duration.
+- JSON-driven movement-speed multiplier.
+- JSON-driven basic-attack damage multiplier.
+- Automatic restoration to baseline after expiration.
+- Runtime aura/HUD feedback and Web diagnostics.
 - Domain + Chromium + Windows Edge + production Pages evidence.
 
-## Follow-up
+## Remaining roadmap
 
-After Formation / Rain, Milestone 2 continues with the Buff template, followed by broader character/package authoring work for Milestones 3–5.
+### Milestone 2 — remaining
+
+- Complete and production-validate Buff template (#27).
+- Add the data-driven Melee skill template so normal authored melee skills do not rely on the hard-coded basic attack chain.
+- Consolidate shared skill cast/exclusivity rules so all templates use one consistent coordination layer.
+- Final M2 regression/authoring-readiness pass.
+
+### Milestones 3–8
+
+- M3 — Data-driven Character System.
+- M4 — Creator Studio basics.
+- M5 — User VFX import/processing and VFX Creator.
+- M6 — AI-assisted VFX provider layer.
+- M7 — Character package import/export with safe data-only packages.
+- M8 — Web MVP release and release hardening.
