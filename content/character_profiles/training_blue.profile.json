@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "id": "training_blue",
+  "palette": {
+    "body": "#62d8ff",
+    "accent": "#b8f3ff",
+    "weapon": "#e9edf7",
+    "guard": "#9cf5d4"
+  },
+  "body": {
+    "body_height": 118.0,
+    "head_radius": 22.0,
+    "torso_width": 36.0,
+    "torso_height": 70.0,
+    "arm_reach": 48.0,
+    "arm_width": 9.0,
+    "leg_length": 30.0,
+    "leg_spread": 20.0,
+    "leg_width": 10.0,
+    "shadow_half_width": 34.0,
+    "shadow_half_height": 10.0,
+    "weapon_length": 49.0,
+    "weapon_width": 5.0
+  }
+}
