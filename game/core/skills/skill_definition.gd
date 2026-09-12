@@ -24,6 +24,9 @@ var formation_count := 0
 var formation_spacing := 0.0
 var formation_interval := 0.0
 var formation_offset := 0.0
+var buff_duration := 0.0
+var move_speed_multiplier := 1.0
+var basic_attack_damage_multiplier := 1.0
 var visual := ""
 var impact_visual := ""
 var loaded := false
@@ -77,6 +80,9 @@ func load_from_dictionary(data: Dictionary) -> PackedStringArray:
 	formation_spacing = float(data.get("formation_spacing", 0.0))
 	formation_interval = float(data.get("formation_interval", 0.0))
 	formation_offset = float(data.get("formation_offset", 0.0))
+	buff_duration = float(data.get("buff_duration", 0.0))
+	move_speed_multiplier = float(data.get("move_speed_multiplier", 1.0))
+	basic_attack_damage_multiplier = float(data.get("basic_attack_damage_multiplier", 1.0))
 	visual = str(data.get("visual", "")).strip_edges()
 	impact_visual = str(data.get("impact_visual", "")).strip_edges()
 
@@ -107,6 +113,8 @@ func load_from_dictionary(data: Dictionary) -> PackedStringArray:
 		_validate_area_skill(errors)
 	elif skill_type == "formation":
 		_validate_formation_skill(errors)
+	elif skill_type == "buff":
+		_validate_buff_skill(errors)
 
 	loaded = errors.is_empty()
 	return errors
@@ -144,3 +152,11 @@ func _validate_formation_skill(errors: PackedStringArray) -> void:
 		var final_strike_time := float(formation_count - 1) * formation_interval
 		if active + 0.0001 < final_strike_time:
 			errors.append("formation active duration must include the final strike")
+
+func _validate_buff_skill(errors: PackedStringArray) -> void:
+	if buff_duration <= 0.0:
+		errors.append("buff_duration must be positive")
+	if move_speed_multiplier < 1.0:
+		errors.append("move_speed_multiplier must be at least 1.0")
+	if basic_attack_damage_multiplier < 1.0:
+		errors.append("basic_attack_damage_multiplier must be at least 1.0")
