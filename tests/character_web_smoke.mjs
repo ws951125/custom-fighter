@@ -80,11 +80,60 @@ try {
     );
   }
 
+  if ((await readText('playerMovementSource')) !== 'character') {
+    throw new Error(`Runtime movement is not character-driven: source=${await readText('playerMovementSource')}`);
+  }
+  const runtimeMoveSpeed = await readNumber('playerRuntimeMoveSpeed');
+  const runtimeDepthSpeed = await readNumber('playerRuntimeDepthSpeed');
+  const runtimeRunMultiplier = await readNumber('playerRuntimeRunMultiplier');
+  const runtimeGuardMultiplier = await readNumber('playerRuntimeGuardMoveMultiplier');
+  if (
+    runtimeMoveSpeed !== moveSpeed ||
+    runtimeDepthSpeed !== depthSpeed ||
+    runtimeRunMultiplier !== runMultiplier ||
+    runtimeGuardMultiplier !== guardMultiplier
+  ) {
+    throw new Error(
+      `Runtime movement tuning diverged from CharacterDefinition: runtime=${runtimeMoveSpeed}/${runtimeDepthSpeed}/${runtimeRunMultiplier}/${runtimeGuardMultiplier}`,
+    );
+  }
+
   for (let index = 0; index < expectedSlots.length; index += 1) {
     const actual = await readText(`playerCharacterSkill${index + 1}`);
     if (actual !== expectedSlots[index]) {
       throw new Error(`Unexpected skill slot ${index + 1}: ${actual}`);
     }
+  }
+
+  const initialX = await readNumber('playerX');
+  const initialDepth = await readNumber('playerDepth');
+  const initialAdjustmentFrames = await readNumber('playerMovementAdjustmentFrames');
+
+  await page.keyboard.down('d');
+  await page.waitForTimeout(180);
+  await page.keyboard.up('d');
+  await page.waitForFunction(
+    (before) => Number(document.documentElement.dataset.playerMovementAdjustmentFrames ?? '0') > before,
+    initialAdjustmentFrames,
+    { timeout: 2_000 },
+  );
+  const afterMoveX = await readNumber('playerX');
+  if (!(afterMoveX > initialX + 30)) {
+    throw new Error(`Character-driven horizontal movement too small: ${afterMoveX - initialX}`);
+  }
+
+  const framesAfterHorizontal = await readNumber('playerMovementAdjustmentFrames');
+  await page.keyboard.down('s');
+  await page.waitForTimeout(140);
+  await page.keyboard.up('s');
+  await page.waitForFunction(
+    (before) => Number(document.documentElement.dataset.playerMovementAdjustmentFrames ?? '0') > before,
+    framesAfterHorizontal,
+    { timeout: 2_000 },
+  );
+  const afterMoveDepth = await readNumber('playerDepth');
+  if (!(afterMoveDepth > initialDepth + 0.04)) {
+    throw new Error(`Character-driven depth movement too small: ${afterMoveDepth - initialDepth}`);
   }
 
   if (pageErrors.length > 0 || consoleErrors.length > 0) {
@@ -94,7 +143,7 @@ try {
   }
 
   console.log(
-    `WEB_CHARACTER_SMOKE_PASSED id=${await readText('playerCharacterId')} hp=${await readNumber('playerHp')} mp=${await readNumber('playerMp')} moveSpeed=${moveSpeed}`,
+    `WEB_CHARACTER_MOVEMENT_SMOKE_PASSED id=${await readText('playerCharacterId')} moveSpeed=${moveSpeed} depthSpeed=${depthSpeed} horizontalDelta=${(afterMoveX - initialX).toFixed(2)} depthDelta=${(afterMoveDepth - initialDepth).toFixed(3)} adjustmentFrames=${await readNumber('playerMovementAdjustmentFrames')}`,
   );
 } finally {
   await browser.close();
