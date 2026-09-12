@@ -2,6 +2,16 @@ extends "res://game/runtime/melee_skill_controller.gd"
 
 const SKILL_OWNER := &"skill_6"
 
+func _load_skill() -> void:
+	if host == null or not host.has_method("load_character_skill_for_slot"):
+		push_error("Failed to load melee skill: character loadout resolver unavailable")
+		return
+	var errors: PackedStringArray = host.load_character_skill_for_slot("skill_6", "melee", skill)
+	if not errors.is_empty():
+		push_error("Failed to load melee skill from character slot: %s" % " | ".join(errors))
+		return
+	cast_state.configure(skill)
+
 func _process(delta: float) -> void:
 	super(delta)
 	if host != null and not cast_state.is_casting() and not melee_state.active:

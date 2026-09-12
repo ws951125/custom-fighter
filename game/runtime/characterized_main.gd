@@ -3,10 +3,16 @@ extends "res://game/runtime/coordinated_main.gd"
 const CharacterDefinition = preload("res://game/core/character/character_definition.gd")
 const CharacterMovementTuning = preload("res://game/core/character/character_movement_tuning.gd")
 const CharacterVisualProfile = preload("res://game/core/character/character_visual_profile.gd")
+const SkillRegistry = preload("res://game/core/skills/skill_registry.gd")
 const PLAYER_CHARACTER_PATH := "res://content/characters/ember_vanguard.sample.json"
 
 var player_character := CharacterDefinition.new()
 var player_visual_profile := CharacterVisualProfile.new()
+var player_skill_registry := SkillRegistry.new()
+var player_runtime_skill_ids: Dictionary = {}
+var player_runtime_skill_sources: Dictionary = {}
+var player_runtime_skill_types: Dictionary = {}
+var player_runtime_skill_errors: Dictionary = {}
 var character_movement_adjustment_frames := 0
 var character_movement_integrated_seconds := 0.0
 var character_movement_integrated_horizontal_distance := 0.0
@@ -26,7 +32,67 @@ func _enter_tree() -> void:
 	if not visual_errors.is_empty():
 		push_error("Failed to load player visual profile: %s" % " | ".join(visual_errors))
 
+	var registry_errors := player_skill_registry.load_default()
+	if not registry_errors.is_empty():
+		push_error("Failed to load skill registry: %s" % " | ".join(registry_errors))
+
 	player_state = CombatantState.new(player_character.max_hp, player_character.max_mp)
+
+func _load_fireball_skill() -> void:
+	var errors := load_character_skill_for_slot("skill_1", "projectile", fireball_skill)
+	if not errors.is_empty():
+		push_error("Failed to load character skill_1: %s" % " | ".join(errors))
+		return
+	fireball_cast_state.configure(fireball_skill)
+
+func _load_dash_slash_skill() -> void:
+	var errors := load_character_skill_for_slot("skill_2", "dash", dash_slash_skill)
+	if not errors.is_empty():
+		push_error("Failed to load character skill_2: %s" % " | ".join(errors))
+		return
+	dash_slash_cast_state.configure(dash_slash_skill)
+
+func load_character_skill_for_slot(slot_name: String, expected_type: String, target_skill) -> PackedStringArray:
+	var errors := PackedStringArray()
+	if not CharacterDefinition.REQUIRED_SKILL_SLOTS.has(slot_name):
+		errors.append("unknown character skill slot: %s" % slot_name)
+	elif not player_character.loaded:
+		errors.append("player character is not loaded")
+	elif not player_skill_registry.loaded:
+		errors.append("player skill registry is not loaded")
+	else:
+		var requested_id := player_character.skill_id_for_slot(slot_name)
+		errors = player_skill_registry.load_skill(requested_id, expected_type, target_skill)
+
+	if errors.is_empty():
+		player_runtime_skill_ids[slot_name] = target_skill.skill_id
+		player_runtime_skill_sources[slot_name] = player_skill_registry.source_path_for_id(target_skill.skill_id)
+		player_runtime_skill_types[slot_name] = target_skill.skill_type
+		player_runtime_skill_errors.erase(slot_name)
+	else:
+		player_runtime_skill_ids.erase(slot_name)
+		player_runtime_skill_sources.erase(slot_name)
+		player_runtime_skill_types.erase(slot_name)
+		player_runtime_skill_errors[slot_name] = " | ".join(errors)
+	return errors
+
+func _runtime_loadout_ready() -> bool:
+	if not player_character.loaded or not player_skill_registry.loaded:
+		return false
+	for slot in CharacterDefinition.REQUIRED_SKILL_SLOTS:
+		var expected_id := player_character.skill_id_for_slot(slot)
+		if str(player_runtime_skill_ids.get(slot, "")) != expected_id:
+			return false
+	return true
+
+func _runtime_skill_id(slot_name: String) -> String:
+	return str(player_runtime_skill_ids.get(slot_name, ""))
+
+func _runtime_skill_source(slot_name: String) -> String:
+	return str(player_runtime_skill_sources.get(slot_name, ""))
+
+func _runtime_skill_type(slot_name: String) -> String:
+	return str(player_runtime_skill_types.get(slot_name, ""))
 
 func _process(delta: float) -> void:
 	# BuffSkillController runs at a lower process priority, so its state for this frame
@@ -194,5 +260,25 @@ func _set_web_state() -> void:
 		"document.documentElement.dataset.playerCharacterSkill3=%s;" % JSON.stringify(player_character.skill_id_for_slot("skill_3")) +
 		"document.documentElement.dataset.playerCharacterSkill4=%s;" % JSON.stringify(player_character.skill_id_for_slot("skill_4")) +
 		"document.documentElement.dataset.playerCharacterSkill5=%s;" % JSON.stringify(player_character.skill_id_for_slot("skill_5")) +
-		"document.documentElement.dataset.playerCharacterSkill6=%s;" % JSON.stringify(player_character.skill_id_for_slot("skill_6"))
+		"document.documentElement.dataset.playerCharacterSkill6=%s;" % JSON.stringify(player_character.skill_id_for_slot("skill_6")) +
+		"document.documentElement.dataset.playerSkillRegistryLoaded='%s';" % _bool_text(player_skill_registry.loaded) +
+		"document.documentElement.dataset.playerSkillLoadoutReady='%s';" % _bool_text(_runtime_loadout_ready()) +
+		"document.documentElement.dataset.playerRuntimeSkill1=%s;" % JSON.stringify(_runtime_skill_id("skill_1")) +
+		"document.documentElement.dataset.playerRuntimeSkill2=%s;" % JSON.stringify(_runtime_skill_id("skill_2")) +
+		"document.documentElement.dataset.playerRuntimeSkill3=%s;" % JSON.stringify(_runtime_skill_id("skill_3")) +
+		"document.documentElement.dataset.playerRuntimeSkill4=%s;" % JSON.stringify(_runtime_skill_id("skill_4")) +
+		"document.documentElement.dataset.playerRuntimeSkill5=%s;" % JSON.stringify(_runtime_skill_id("skill_5")) +
+		"document.documentElement.dataset.playerRuntimeSkill6=%s;" % JSON.stringify(_runtime_skill_id("skill_6")) +
+		"document.documentElement.dataset.playerRuntimeSkill1Type=%s;" % JSON.stringify(_runtime_skill_type("skill_1")) +
+		"document.documentElement.dataset.playerRuntimeSkill2Type=%s;" % JSON.stringify(_runtime_skill_type("skill_2")) +
+		"document.documentElement.dataset.playerRuntimeSkill3Type=%s;" % JSON.stringify(_runtime_skill_type("skill_3")) +
+		"document.documentElement.dataset.playerRuntimeSkill4Type=%s;" % JSON.stringify(_runtime_skill_type("skill_4")) +
+		"document.documentElement.dataset.playerRuntimeSkill5Type=%s;" % JSON.stringify(_runtime_skill_type("skill_5")) +
+		"document.documentElement.dataset.playerRuntimeSkill6Type=%s;" % JSON.stringify(_runtime_skill_type("skill_6")) +
+		"document.documentElement.dataset.playerRuntimeSkill1Source=%s;" % JSON.stringify(_runtime_skill_source("skill_1")) +
+		"document.documentElement.dataset.playerRuntimeSkill2Source=%s;" % JSON.stringify(_runtime_skill_source("skill_2")) +
+		"document.documentElement.dataset.playerRuntimeSkill3Source=%s;" % JSON.stringify(_runtime_skill_source("skill_3")) +
+		"document.documentElement.dataset.playerRuntimeSkill4Source=%s;" % JSON.stringify(_runtime_skill_source("skill_4")) +
+		"document.documentElement.dataset.playerRuntimeSkill5Source=%s;" % JSON.stringify(_runtime_skill_source("skill_5")) +
+		"document.documentElement.dataset.playerRuntimeSkill6Source=%s;" % JSON.stringify(_runtime_skill_source("skill_6"))
 	)

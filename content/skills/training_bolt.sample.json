@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "id": "training_bolt_001",
+  "name": "Training Bolt",
+  "type": "projectile",
+  "damage": 10,
+  "mp_cost": 12,
+  "cooldown": 1.1,
+  "startup": 0.14,
+  "active": 0.07,
+  "recovery": 0.22,
+  "speed": 720,
+  "range": 760,
+  "hitstun": 0.16,
+  "knockback": 170,
+  "hitbox_half_width": 20,
+  "hitbox_half_depth": 0.07,
+  "visual": "prototype_training_bolt",
+  "impact_visual": "prototype_training_bolt_impact"
+}

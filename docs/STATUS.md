@@ -4,9 +4,9 @@
 
 Milestone 3 — Data-driven Character System.
 
-Current active slice: Issue #41 — data-driven visual and body profiles.
+Current active slice: PR #45 / M3 Slice 4 — bind `CharacterDefinition` loadout to the production skill runtime.
 
-Estimated whole-project completion: **38%** across the M0–M8 MVP roadmap. This is an engineering progress estimate based on completed milestone scope, not elapsed time.
+Estimated whole-project completion: **33.3%** across the M0–M8 MVP roadmap under the repository rule that only formally completed milestones count toward the fixed milestone denominator. M0, M1 and M2 are complete; M3 is still in progress.
 
 ## Completed
 
@@ -16,7 +16,7 @@ Estimated whole-project completion: **38%** across the M0–M8 MVP roadmap. This
 - GitHub Actions cloud validation.
 - Web release export and GitHub Pages deployment.
 - PWA/service-worker caching, startup diagnostics and Web size budgets.
-- Cloud-first development rules in `AGENTS.md`.
+- GitHub-only development and validation rules in `AGENTS.md`, `Agent.md` and `docs/ONLINE_TESTING.md`.
 
 ### Milestone 1 — Combat Prototype — 100%
 
@@ -61,36 +61,60 @@ Issue #37 / M3 Slice 2 is production-validated on main commit `31452cbdff76a44ed
 - Windows Edge regression proves 360 px/s baseline movement and 522 px/s while the 1.45x Battle Focus multiplier is active.
 - Godot domain tests, Chromium, Windows Edge, GitHub Pages, public URL and production Edge all pass.
 
-## Current work
-
-Issue #41 adds data-driven visual/body profiles:
+The visual/body-profile slice is implemented on the M3 line:
 
 - `CharacterVisualProfile` is a versioned, validated, data-only profile format resolved by safe token id.
 - `training_blue.profile.json` preserves the current Ember Vanguard baseline look while moving palette and body measurements out of hard-coded runtime drawing values.
 - Player rendering uses the loaded profile for body/accent/weapon/guard colors, head and torso size, arms, legs, shadow and weapon dimensions.
-- Training dummy stays on the legacy renderer so this slice only changes the playable-character profile boundary.
+- Training dummy stays on the legacy renderer so the slice only changes the playable-character profile boundary.
 - Unsafe profile references, executable-style fields, malformed colors and out-of-range body values are covered by domain regression.
-- Browser diagnostics expose the resolved profile identity and measurements and record profile-backed renderer calls.
+
+## Current work
+
+PR #45 / M3 Slice 4 binds `CharacterDefinition` loadout data to the actual skill runtime:
+
+- Adds a validated, data-only `SkillRegistry` and `content/skills/registry.json` allow-list mapping.
+- Resolves skill ids from the character loadout instead of treating inherited sample paths as runtime source of truth.
+- Binds all six runtime/controllers (`skill_1` … `skill_6`) to the CharacterDefinition loadout.
+- Fails closed on unsafe ids, unknown ids, arbitrary registry paths/fields and controller/type mismatch.
+- Exposes resolved runtime skill ids/types/sources and loadout-ready state to Web diagnostics.
+- Adds domain and browser regression proving all six runtime/controller skill ids match CharacterDefinition.
+- Adds root `Agent.md` with project-specific development, validation, reporting and PR rules adapted from `poker_master`.
+- Adds `docs/LESSONS_LEARNED.md` as permanent engineering memory.
+- Enforces GitHub-only validation across `Agent.md`, `AGENTS.md` and `docs/ONLINE_TESTING.md`: no user-local project testing and no Remote Desktop Commander path are permitted.
+- Hardens `tests/web_smoke.mjs` frame-polled input delivery so U, Space and K are held across a Godot frame/runtime acknowledgement instead of relying on zero-duration synthetic key presses.
+
+Current validation status for PR #45:
+
+- CI Run #84 passed Godot import, main boot, Domain/Character tests, Web export, Web size budget, Chromium `smoke:all` and the GitHub-hosted Windows Microsoft Edge gate.
+- CI Run #87 later passed Godot import, main boot, domain tests, Web export and Web size budget, then failed in Chromium `smoke:web` while waiting for the Jump state after a synthetic `Space` press. Downstream Windows/production jobs were skipped by that upstream failure.
+- The frame-sampling regression is recorded as `L-002` in `docs/LESSONS_LEARNED.md`; the held-input fix has been committed to the PR branch and requires a fresh GitHub Actions pass before it can be marked Verified.
+- The latest PR branch validation is GitHub-only. No local computer or Remote Desktop Commander result may be used as a substitute gate.
+- PR remains open and must not merge until all required GitHub Actions validation and final online/browser acceptance are complete.
 
 ## Online validation
 
-The production pipeline verifies:
+The production pipeline verifies entirely on GitHub infrastructure:
 
-- Godot import and main-scene boot.
+- Godot import and main-scene boot on GitHub-hosted runners.
 - Domain/data tests.
 - Web release export and build-size budget.
-- Chromium `smoke:all`.
-- Windows Microsoft Edge `smoke:all` against the same artifact.
+- Chromium `smoke:all` against the exported artifact.
+- Windows Microsoft Edge `smoke:all` on a GitHub-hosted Windows runner.
 - GitHub Pages deployment and public reachability.
-- Windows Edge `smoke:all` directly against the deployed production game.
+- Production browser smoke directly against the deployed game after merge.
+
+If any required GitHub gate is unavailable, failing or blocked, the project records that state as `Blocked` / `Residual Risk`; it does not fall back to the user's local machine.
 
 Live demo:
 
 `https://ws951125.github.io/custom-fighter/`
 
+The production URL does not include an open PR until that PR is merged and Pages deployment completes.
+
 ## Remaining roadmap
 
-- M3 — finish Character System after visual/body profiles: character selection/loadout binding and authoring-readiness pass.
+- M3 — finish Character System: complete PR #45 loadout binding final gate, then character selection / authoring-readiness and reference-character completion.
 - M4 — Creator Studio basics.
 - M5 — User VFX import/processing and VFX Creator.
 - M6 — AI-assisted VFX provider layer.

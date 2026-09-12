@@ -1,18 +1,19 @@
 # Online Testing
 
-Routine project validation is intentionally cloud-first.
+Project validation is GitHub-only. Engineering checks must run through GitHub Actions and GitHub Pages; the user's local computer is not a validation environment for this repository.
 
 ## Pull requests
 
 Every pull request should run the `CI` workflow and validate:
 
-1. Godot 4.7.2 setup.
+1. Godot 4.7.2 setup on a GitHub-hosted runner.
 2. Headless project import.
 3. Headless boot of the main scene.
 4. Domain/data tests.
 5. Web export.
 6. Real Chromium startup using Playwright.
-7. Upload of the resulting Web artifact.
+7. Windows Microsoft Edge smoke on a GitHub-hosted Windows runner when applicable.
+8. Upload of the resulting Web artifact.
 
 A PR is not considered validated merely because files were created successfully.
 
@@ -26,8 +27,10 @@ Expected public URL after Pages is enabled:
 
 ## Human testing
 
-When subjective feedback is required (combat feel, animation timing, UI size, mobile touch comfort), use the deployed Web build first. Local Godot/Windows testing is only requested when the problem is specifically platform/hardware dependent and cannot be reproduced in the cloud/browser workflow.
+When subjective feedback is required (combat feel, animation timing, UI size, mobile touch comfort), use the deployed GitHub Pages Web build. Do not request local Godot/Windows project testing, local command execution, or local repository setup. Do not use Remote Desktop Commander or any other remote connection to the user's computer.
+
+If a behavior cannot currently be validated through GitHub Actions or the deployed GitHub Pages build, record it as blocked or residual risk until a GitHub-hosted validation path exists.
 
 ## Evidence
 
-When reporting a development step, record the relevant workflow status and any error/fix history. Never report a check as passed unless GitHub Actions or another actually executed validation produced that evidence.
+When reporting a development step, record the relevant GitHub workflow status and any error/fix history. Never report a check as passed unless GitHub Actions or GitHub Pages actually executed the validation and produced that evidence.
