@@ -41,22 +41,48 @@ async function nudge(key, holdMs = 55) {
   await page.waitForTimeout(30);
 }
 
+async function movementNudge(key, beforeX, holdMs) {
+  await page.keyboard.down(key);
+  await page.waitForTimeout(holdMs);
+  await page.keyboard.up(key);
+
+  // Hosted Edge can publish playerX more slowly than keyboard events are sent. Wait for
+  // the runtime observation to advance before issuing another movement command so stale
+  // dataset samples cannot queue several nudges and overshoot the target by a large amount.
+  try {
+    await page.waitForFunction(
+      (previousX) => Math.abs(Number(document.documentElement.dataset.playerX) - previousX) > 0.5,
+      beforeX,
+      { timeout: 900 },
+    );
+  } catch {
+    // A frame-polled input can legitimately be missed. The caller will re-read state and retry.
+  }
+  await page.waitForTimeout(55);
+}
+
 async function approachDummy() {
+  const minGap = 50;
+  const maxGap = 110;
+  const targetGap = 80;
   let playerX = await readNumber('playerX');
   let dummyX = await readNumber('dummyX');
   let gap = dummyX - playerX;
 
-  for (let step = 0; step < 90 && gap > 105; step += 1) {
-    await nudge('d');
+  for (let step = 0; step < 100; step += 1) {
+    if (gap >= minGap && gap <= maxGap) return { playerX, dummyX, gap };
+
+    const distanceFromTarget = Math.abs(gap - targetGap);
+    const key = gap > targetGap ? 'd' : 'a';
+    const holdMs = distanceFromTarget > 220 ? 38 : distanceFromTarget > 120 ? 28 : 20;
+    await movementNudge(key, playerX, holdMs);
+
     playerX = await readNumber('playerX');
     dummyX = await readNumber('dummyX');
     gap = dummyX - playerX;
   }
 
-  if (gap < 45 || gap > 115) {
-    throw new Error(`Failed to enter Heavy Strike range: playerX=${playerX} dummyX=${dummyX} gap=${gap}`);
-  }
-  return { playerX, dummyX, gap };
+  throw new Error(`Failed to enter Heavy Strike range after adaptive positioning: playerX=${playerX} dummyX=${dummyX} gap=${gap}`);
 }
 
 try {
