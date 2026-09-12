@@ -3,6 +3,8 @@ extends SceneTree
 const CharacterDefinition = preload("res://game/core/character/character_definition.gd")
 const CharacterMovementTuning = preload("res://game/core/character/character_movement_tuning.gd")
 const CharacterVisualProfile = preload("res://game/core/character/character_visual_profile.gd")
+const SkillDefinition = preload("res://game/core/skills/skill_definition.gd")
+const SkillRegistry = preload("res://game/core/skills/skill_registry.gd")
 
 var failures := 0
 
@@ -26,6 +28,7 @@ func _run() -> void:
 	_check(character.skill_id_for_slot("skill_6") == "heavy_strike_001", "skill slot 6 loads")
 	_test_movement_tuning(character)
 	_test_visual_profile(character)
+	_test_skill_loadout_registry(character)
 
 	var missing := CharacterDefinition.new()
 	var missing_errors := missing.load_from_dictionary({"schema_version": 1})
@@ -176,6 +179,81 @@ func _test_visual_profile(character) -> void:
 	var bad_body_errors := bad_body_profile.load_from_dictionary(bad_body)
 	_check(not bad_body_errors.is_empty() and not bad_body_profile.loaded, "out-of-range visual body value rejected")
 
+func _test_skill_loadout_registry(character) -> void:
+	var registry := SkillRegistry.new()
+	var registry_errors := registry.load_default()
+	_check(registry_errors.is_empty(), "official skill registry validates: %s" % " | ".join(registry_errors))
+	_check(registry.loaded, "skill registry marks valid data as loaded")
+
+	var expected_types := {
+		"skill_1": "projectile",
+		"skill_2": "dash",
+		"skill_3": "area",
+		"skill_4": "formation",
+		"skill_5": "buff",
+		"skill_6": "melee"
+	}
+	for slot in CharacterDefinition.REQUIRED_SKILL_SLOTS:
+		var resolved := SkillDefinition.new()
+		var resolve_errors := registry.load_skill(
+			character.skill_id_for_slot(slot),
+			str(expected_types[slot]),
+			resolved
+		)
+		_check(resolve_errors.is_empty(), "%s resolves safely: %s" % [slot, " | ".join(resolve_errors)])
+		_check(resolved.loaded, "%s resolved definition is loaded" % slot)
+		_check(resolved.skill_id == character.skill_id_for_slot(slot), "%s runtime id matches CharacterDefinition" % slot)
+		_check(resolved.skill_type == str(expected_types[slot]), "%s runtime type matches controller" % slot)
+		_check(registry.source_path_for_id(resolved.skill_id).begins_with(SkillRegistry.SKILL_ROOT), "%s source stays inside approved skill root" % slot)
+
+	var alternate_data := _valid_dictionary()
+	alternate_data["skill_slots"]["skill_1"] = "training_bolt_001"
+	var alternate_character := CharacterDefinition.new()
+	var alternate_character_errors := alternate_character.load_from_dictionary(alternate_data)
+	_check(alternate_character_errors.is_empty() and alternate_character.loaded, "alternate valid loadout validates")
+	var alternate_skill := SkillDefinition.new()
+	var alternate_resolve_errors := registry.load_skill(
+		alternate_character.skill_id_for_slot("skill_1"),
+		"projectile",
+		alternate_skill
+	)
+	_check(alternate_resolve_errors.is_empty(), "alternate projectile resolves")
+	_check(alternate_skill.skill_id == "training_bolt_001", "alternate CharacterDefinition changes resolved runtime skill")
+	_check(alternate_skill.damage == 10 and alternate_skill.mp_cost == 12, "alternate resolved skill data comes from its registry file")
+
+	var unsafe_skill := SkillDefinition.new()
+	var unsafe_errors := registry.load_skill("../evil.gd", "projectile", unsafe_skill)
+	_check(_contains_error(unsafe_errors, "skill id must be a safe lowercase token"), "resolver rejects unsafe skill id")
+
+	var missing_skill := SkillDefinition.new()
+	var missing_errors := registry.load_skill("missing_skill_001", "projectile", missing_skill)
+	_check(_contains_error(missing_errors, "unknown skill id: missing_skill_001"), "resolver rejects unknown skill id")
+
+	var wrong_type_skill := SkillDefinition.new()
+	var wrong_type_errors := registry.load_skill("battle_focus_001", "projectile", wrong_type_skill)
+	_check(
+		_contains_error(wrong_type_errors, "skill type mismatch for battle_focus_001: expected projectile but registry declares buff"),
+		"resolver rejects controller/type mismatch"
+	)
+
+	var unsafe_registry_data := _valid_skill_registry_dictionary()
+	unsafe_registry_data["skills"]["fireball_001"]["file"] = "../evil.gd"
+	var unsafe_registry := SkillRegistry.new()
+	var unsafe_registry_errors := unsafe_registry.load_from_dictionary(unsafe_registry_data)
+	_check(
+		_contains_error(unsafe_registry_errors, "skill registry file must be a safe .sample.json filename: fireball_001"),
+		"registry rejects arbitrary file paths"
+	)
+
+	var executable_registry_data := _valid_skill_registry_dictionary()
+	executable_registry_data["skills"]["fireball_001"]["script"] = "res://evil.gd"
+	var executable_registry := SkillRegistry.new()
+	var executable_registry_errors := executable_registry.load_from_dictionary(executable_registry_data)
+	_check(
+		_contains_error(executable_registry_errors, "unsupported skill registry entry fireball_001 field: script"),
+		"registry rejects executable-style fields"
+	)
+
 func _valid_dictionary() -> Dictionary:
 	return {
 		"schema_version": 1,
@@ -225,6 +303,17 @@ func _valid_visual_profile_dictionary() -> Dictionary:
 			"shadow_half_height": 10.0,
 			"weapon_length": 49.0,
 			"weapon_width": 5.0
+		}
+	}
+
+func _valid_skill_registry_dictionary() -> Dictionary:
+	return {
+		"schema_version": 1,
+		"skills": {
+			"fireball_001": {
+				"file": "fireball.sample.json",
+				"type": "projectile"
+			}
 		}
 	}
 
