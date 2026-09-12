@@ -15,6 +15,7 @@
     "smoke:coordination": "node tests/skill_coordination_web_smoke.mjs",
     "smoke:character": "node tests/character_web_smoke.mjs",
     "smoke:character-selection": "node tests/character_selection_web_smoke.mjs",
-    "smoke:all": "npm run smoke:web && npm run smoke:area && npm run smoke:formation && npm run smoke:buff && npm run smoke:melee && npm run smoke:coordination && npm run smoke:character && npm run smoke:character-selection"
+    "smoke:character-animation": "node tests/character_animation_web_smoke.mjs",
+    "smoke:all": "npm run smoke:web && npm run smoke:area && npm run smoke:formation && npm run smoke:buff && npm run smoke:melee && npm run smoke:coordination && npm run smoke:character && npm run smoke:character-selection && npm run smoke:character-animation"
   }
 }
