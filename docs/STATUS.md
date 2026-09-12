@@ -4,7 +4,7 @@
 
 Milestone 6 — AI-assisted VFX is the current roadmap milestone.
 
-Current active slice: **Issue #68 — M6 Slice 1: provider-neutral AI VFX request/result boundary** on `feature/m6-ai-vfx-provider-boundary`.
+Current active slice: **M6 Slice 2 — Creator prompt/reference generation workflow**, to follow production-complete Issue #68 / PR #69.
 
 Estimated whole-project completion: **66.7%** across the M0–M8 MVP roadmap. Under the repository rule, only formally completed milestones count toward the fixed milestone denominator. M0, M1, M2, M3, M4 and M5 are complete; M6 is in progress.
 
@@ -98,26 +98,37 @@ Issue #61 / PR #62 is production-validated and complete.
 
 ## M6 — AI-assisted VFX
 
-### Active Slice 1 — Issue #68 — provider-neutral AI VFX request/result boundary
+### Completed Slice 1 — Issue #68 / PR #69 — provider-neutral AI VFX boundary
 
-Implementation underway on `feature/m6-ai-vfx-provider-boundary`:
+Production now includes:
 
 - Versioned `AiVfxRequest` data contract for prompt, generation kind, optional validated reference PNG, requested frame count/size and FPS.
 - Versioned `AiVfxResult` data contract for provider identity, request identity, status, generated PNG bytes/metadata and VFX-compatible output metadata.
 - Replaceable `AiVfxProvider` adapter boundary with capability discovery.
 - `AiVfxProviderRegistry` for provider registration and active-provider swapping without runtime/combat edits.
-- Deterministic `MockAiVfxProvider` that creates an in-memory horizontal PNG sprite strip using Godot Image APIs only; it requires no network, secret or local machine.
-- Provider output is revalidated against the originating request and through existing `VfxDraft` rules before it is considered usable.
-- Domain regression runner covers request validation, reference PNG validation, mock generation, provider swapping and tampered-result rejection.
-- CI is wired to run the AI VFX provider domain tests before Web export/browser validation.
+- Deterministic `MockAiVfxProvider` that creates an in-memory horizontal PNG sprite strip using Godot Image APIs only; it requires no network, secret or user-local machine.
+- Provider output revalidation against the originating request and through existing `VfxDraft` rules before it is considered usable.
+- Domain regression coverage for request validation, reference PNG validation, deterministic mock generation, provider swapping and tampered-result rejection.
 
-Out of scope for Slice 1:
+Validation:
 
-- Real cloud AI API calls.
-- ComfyUI/local-generation connectivity.
-- API keys or secrets.
-- End-user prompt/reference-image UI.
-- Generated-file persistence.
+- PR #69 head `3f483b63083f7c79643c732e4811cb068e78b91c` passed PR CI Run #138, including Godot import/boot/domain tests, Web export/size budget, Chromium `smoke:all` and hosted Windows Edge `smoke:all`.
+- PR #69 merged to `main` at `d1e15e473ce1f847e61f206b9af2e8b60424e4fd` and closed Issue #68 completed.
+- Main CI Run #139 passed all five production gates: Godot + Web + Browser, hosted Windows Edge, GitHub Pages deploy, public reachability and production Windows Edge real-game flow.
+
+### Active Slice 2 — Creator prompt/reference generation workflow
+
+Next implementation target:
+
+- Add prompt / skill-description authoring to VFX Creator.
+- Allow an optional validated reference PNG to seed the existing AI request contract.
+- Generate through the provider registry using the deterministic mock provider first.
+- Revalidate generated result bytes/metadata, convert them to the existing `VfxDraft`, and display the generated sprite strip in the normal preview pipeline.
+- Support Generate / Regenerate without changing combat/runtime code.
+- Preserve the generated VFX in the existing in-memory Creator preview session so it can be tested on the real Skill 1 projectile.
+- Add deterministic browser diagnostics and Chromium / hosted Edge E2E coverage.
+
+A real cloud provider remains out of scope for this slice; the UI must depend only on the provider-neutral adapter.
 
 ## Online validation policy
 
@@ -147,11 +158,11 @@ VFX Creator:
 
 `https://ws951125.github.io/custom-fighter/?mode=vfx`
 
-Production currently contains the completed M0–M5 scope and mobile touch controls. Issue #68 M6 provider-boundary work is feature-branch-only until PR validation, merge and production deployment complete. Slice 1 does not add a new end-user UI route.
+Production currently contains the completed M0–M5 scope, mobile touch controls, and M6 Slice 1 provider boundary. Slice 2 UI generation work is not production until its own PR and main validation complete.
 
 ## Remaining roadmap
 
-- Complete Issue #68 provider-neutral AI VFX request/result/provider boundary.
-- Continue M6 with an end-user prompt/reference-image workflow and a replaceable real provider integration path.
+- Complete M6 Slice 2 prompt/reference generation workflow.
+- Continue M6 with a replaceable real provider integration path while retaining offline/mock operation.
 - M7 — safe character package import/export.
 - M8 — Web/Windows MVP release hardening, including final mobile usability/polish.
