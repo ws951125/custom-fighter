@@ -3,6 +3,7 @@ extends SceneTree
 const CreatorPreviewSession = preload("res://game/creator/preview/creator_preview_session.gd")
 const CharacterDraft = preload("res://game/creator/character_editor/character_draft.gd")
 const SkillDraft = preload("res://game/creator/skill_editor/skill_draft.gd")
+const VfxDraft = preload("res://game/creator/vfx_editor/vfx_draft.gd")
 
 var failures := 0
 
@@ -37,6 +38,42 @@ func _run() -> void:
 	var restored_skill := SkillDraft.new()
 	var restore_skill_errors: PackedStringArray = restored_skill.load_from_dictionary(session.stored_skill_draft_data())
 	_check(restore_skill_errors.is_empty() and restored_skill.damage == 33 and restored_skill.mp_cost == 17, "stored skill draft restores through SkillDefinition")
+
+	var strip_image := Image.create(16, 4, false, Image.FORMAT_RGBA8)
+	strip_image.fill(Color("ff7733"))
+	var strip_bytes: PackedByteArray = strip_image.save_png_to_buffer()
+	var vfx := VfxDraft.new()
+	var vfx_config_errors: PackedStringArray = vfx.configure_import("ci-strip.png", "image/png", 16, 4)
+	vfx.frame_count = 4
+	vfx.scale = 2.0
+	vfx.offset_x = 12.0
+	vfx.offset_y = -8.0
+	vfx.fps = 20.0
+	_check(vfx_config_errors.is_empty() and vfx.validate().is_empty(), "test VFX draft is valid")
+
+	var store_vfx_errors: PackedStringArray = session.store_vfx_draft(vfx.to_dictionary(), strip_bytes)
+	_check(store_vfx_errors.is_empty(), "valid PNG VFX stores in preview session")
+	_check(session.has_stored_vfx(), "stored VFX binding is available before preview")
+	_check(int(session.stored_vfx_data().get("frame_count", 0)) == 4, "stored VFX keeps authored frame count")
+	_check(session.stored_vfx_png_bytes().size() == strip_bytes.size(), "stored VFX keeps PNG bytes in memory")
+
+	var vfx_stage_errors: PackedStringArray = session.stage_preview(character.to_dictionary(), skill.to_dictionary())
+	_check(vfx_stage_errors.is_empty(), "valid stored VFX stages with Creator preview")
+	_check(session.has_active_vfx_preview(), "Creator preview activates stored VFX binding")
+	_check(int(session.preview_vfx_data().get("frame_count", 0)) == 4, "active VFX preview keeps frame metadata")
+	_check(absf(float(session.preview_vfx_data().get("scale", 0.0)) - 2.0) < 0.001, "active VFX preview keeps authored scale")
+	_check(session.preview_vfx_png_bytes().size() == strip_bytes.size(), "active VFX preview keeps PNG bytes")
+
+	var invalid_vfx: Dictionary = vfx.to_dictionary()
+	invalid_vfx["image_width"] = 32
+	var invalid_vfx_errors: PackedStringArray = session.store_vfx_draft(invalid_vfx, strip_bytes)
+	_check(_contains_fragment(invalid_vfx_errors, "decoded PNG dimensions do not match VFX metadata"), "dimension-mismatched VFX fails closed")
+	_check(not session.has_stored_vfx(), "invalid VFX clears stale stored binding")
+	_check(not session.has_active_vfx_preview(), "invalid VFX clears stale active binding")
+
+	var no_vfx_stage_errors: PackedStringArray = session.stage_preview(character.to_dictionary(), skill.to_dictionary())
+	_check(no_vfx_stage_errors.is_empty() and session.has_active_preview(), "Creator preview remains usable without VFX")
+	_check(not session.has_active_vfx_preview(), "preview without stored VFX uses default projectile visual")
 
 	var unsafe_skill: Dictionary = skill.to_dictionary()
 	unsafe_skill["id"] = "../evil.gd"

@@ -78,3 +78,14 @@
 - **Prevention Rule:** Before changing runtime code for a hosted-browser timeout, compare changed paths, earlier steps in the same job, same-SHA cross-browser evidence and a fresh run. A targeted retry is acceptable for an isolated readiness/observation timeout, but no PR may merge until the final latest head is green on all required gates.
 - **Validation:** PR #63 latest-head CI Run #126 passed Godot import/boot/domain tests, Web export/size budget, Chromium `smoke:all` and GitHub-hosted Windows Microsoft Edge `smoke:all`, including the unchanged Character Selection regression and the new VFX Creator smoke.
 - **Status:** Verified
+
+## L-008 — Hosted-browser movement helpers need tolerance for one-frame position overshoot
+
+- **Date:** 2026-09-12
+- **Area:** GitHub Actions / Windows Edge / Playwright deterministic positioning
+- **Symptom:** M5 Slice 2 merge 後 main CI Run #132 的第一個 hosted Windows Edge attempt，在既有 `tests/melee_web_smoke.mjs` 的 `approachDummy()` 失敗。測試目標是把 player/dummy gap 停在 45–115 px，但最後一次 `D` nudge 從可接受區間外直接跨到約 23.53 px，因而由測試自身的 lower-bound assertion 判定失敗；同 SHA 的 Godot/Web/Chromium gate 已成功。
+- **Root Cause:** `nudge()` 是固定時間 held input，實際位移取決於 hosted runner 當下 frame cadence。helper 的 loop 只以 `gap > 105` 決定是否再走一步，沒有在下一個 frame step 可能跨越下限時保留 overshoot tolerance，因此位置採樣與 frame scheduling 可以讓最後一次移動越過 45 px 測試窗。這不是 Heavy Strike runtime semantics 的失敗證據。
+- **Operational Fix:** 沒有修改無關 gameplay runtime；只針對失敗的 hosted Windows Edge gate 重跑。第二次 attempt 的完整 `smoke:all` 通過，隨後 GitHub Pages deploy、public reachability、production Edge real-game flow 全部成功。
+- **Prevention Rule:** 對以固定 held-input 時間逼近座標的 browser helper，測試成功條件要容忍單一 frame/nudge 的合理 overshoot，或改成根據剩餘距離縮短最後一步；不要把 hosted frame cadence 差異誤判成 combat regression。若相同 melee positioning failure 再次出現，應 harden helper，而不是只持續 retry。
+- **Validation:** main CI Run #132 attempt 2 最終 `conclusion=success`，五個 production gates 全部通過。
+- **Status:** Verified; helper hardening deferred unless recurrence

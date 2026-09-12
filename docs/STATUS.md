@@ -4,7 +4,7 @@
 
 Milestone 5 — VFX Creator is the current roadmap milestone.
 
-Current active slice: **Issue #64 — M5 Slice 2: horizontal sprite-strip animation preview and authored transforms** on `feature/m5-sprite-strip-animation-preview`.
+Current active slice: **Issue #66 — M5 Slice 3: bind authored VFX to projectile Training runtime** on `feature/m5-bind-vfx-to-projectile-preview`.
 
 Estimated whole-project completion: **55.6%** across the M0–M8 MVP roadmap. Under the repository rule, only formally completed milestones count toward the fixed milestone denominator. M0, M1, M2, M3 and M4 are complete; M5 is in progress.
 
@@ -92,31 +92,46 @@ Validation:
 
 - PR #63 latest-head CI Run #128 passed Godot import/boot/domain tests, Web export/size budget, Chromium `smoke:all` and GitHub-hosted Windows Microsoft Edge `smoke:all`.
 - PR #63 merged to `main` at `f0c4574f556c1e9ca8b8ed710388da0b5f785900`.
-- Main CI Run #129 passed all five production gates: Godot + Web + Browser, hosted Windows Edge, GitHub Pages deploy, public reachability and production Windows Edge real-game flow.
+- Main CI Run #129 passed all five production gates: Godot + Web + Browser, hosted Windows Edge, GitHub Pages deploy, public reachability and production Edge real-game flow.
 - Issue #60 is closed completed.
-- Earlier isolated hosted-browser readiness behavior is recorded in `docs/LESSONS_LEARNED.md`; no production M5 regression remains open from Slice 1.
 
-### Active Slice 2 — Issue #64 — horizontal sprite-strip animation preview and authored transforms
+### Completed Slice 2 — Issue #64 / PR #65 — horizontal sprite-strip animation preview and authored transforms
 
-Implementation underway on `feature/m5-sprite-strip-animation-preview`:
+Production functionality:
 
-- Extend `VfxDraft` from fixed single-frame metadata to a bounded horizontal-strip `frame_count` contract while retaining frame_count=1 compatibility.
-- Derive equal frame width from the validated crop rectangle and reject non-divisible strips fail-closed.
-- Animate preview frames left-to-right at authored FPS.
-- Apply authored Scale and Offset X/Y to the actual Creator preview node instead of keeping them metadata-only.
-- Add deterministic diagnostics for frame count, derived frame width, current frame and applied preview transform.
-- Add Web automation bridges for frame count, FPS and offset.
-- Extend existing VFX domain/browser regressions instead of creating a parallel test path.
-- Preserve PNG-only, memory-only, data-only security boundaries.
+- `VfxDraft.frame_count` supports bounded horizontal strips while preserving single-frame compatibility.
+- Crop width must divide evenly across frame count; invalid strips fail closed.
+- Creator preview animates frames left-to-right at authored FPS.
+- Authored Scale and Offset X/Y affect the actual VFX preview node.
+- Deterministic Web diagnostics expose frame count, derived frame width, current frame and applied transforms.
+- PNG-only, memory-only and data-only security boundaries remain intact.
 
-Current implementation commits on the feature branch include:
+Validation:
 
-- validated frame-count and strip-divisibility model changes;
-- domain coverage for valid/invalid horizontal strips;
-- animated VFX Studio preview with transform application;
-- browser smoke coverage for strip validation, frame progression and applied scale/offset.
+- PR #65 passed Godot import/boot/domain tests, Web export/size budget, Chromium `smoke:all` and GitHub-hosted Windows Microsoft Edge `smoke:all` before merge.
+- PR #65 merged to `main` at `774495dd982ac83b30cddda8e38102e637afa9de`.
+- Main CI Run #132 completed successfully on the merged SHA and passed Godot + Web + Browser, hosted Windows Edge, GitHub Pages deploy, public reachability and production Windows Edge real-game flow.
+- Issue #64 is closed completed.
 
-PR #65 implementation-head CI Run #130 passed Godot import/boot/domain tests, Web export/size budget, Chromium `smoke:all` and GitHub-hosted Windows Microsoft Edge `smoke:all`. A documentation-sync latest-head CI is pending before merge. No user-local testing is allowed.
+### Active Slice 3 — Issue #66 — bind authored VFX to projectile Training runtime
+
+Implementation underway on `feature/m5-bind-vfx-to-projectile-preview`:
+
+- `VfxDraft` can be rehydrated from validated data-only dictionaries for runtime/session boundaries.
+- `CreatorPreviewSession` stores validated VFX metadata plus PNG bytes only in memory, revalidates decoded dimensions and clears stale bindings on invalid/reset VFX.
+- Creator Character/Skill drafts are preserved across Creator -> VFX Creator -> Creator navigation through the in-memory session; invalid Character/Skill drafts are blocked from entering the VFX authoring handoff rather than silently losing edits.
+- VFX Creator now keeps decoded PNG bytes in memory, syncs valid authored VFX into the preview session and returns to Creator through the app router without reloading the Web page.
+- Creator Studio exposes deterministic diagnostics showing whether Skill 1 has an authored VFX binding and its frame/transform metadata.
+- During an active Creator Training preview only, the real `U` projectile can render the authored crop/sprite-strip at authored FPS, scale and offset while combat semantics continue to come from the existing `SkillDefinition` / `ProjectileState` runtime.
+- Runtime diagnostics expose custom-VFX loaded state, frame count/current frame, transform values and whether the real projectile visual is active.
+- `creator_preview_session_test_runner.gd` now covers valid VFX storage/staging, PNG dimension revalidation, active binding and stale-binding clearing.
+- New `creator_vfx_runtime_binding_web_smoke.mjs` covers the full Creator -> VFX -> Creator -> Training -> `U` cast -> hit -> return -> reset flow and is included in `smoke:all` for Chromium and hosted Windows Edge.
+
+Current validation state:
+
+- Implementation and test wiring are complete enough for the first PR validation cycle.
+- PR/GitHub Actions validation has not yet completed for the latest Slice 3 head.
+- No user-local testing is allowed; any failing or unavailable GitHub gate is treated as Blocked / Residual Risk.
 
 ## Online validation policy
 
@@ -146,12 +161,12 @@ VFX Creator:
 
 `https://ws951125.github.io/custom-fighter/?mode=vfx`
 
-Production currently includes completed M4, production-validated Mobile Slice 1 controls and production-validated M5 Slice 1 safe PNG VFX import/preview. Issue #64 sprite-strip animation work remains feature-branch-only until PR validation, merge and production deployment complete.
+Production currently includes completed M4, production-validated Mobile Slice 1 controls, M5 Slice 1 safe PNG VFX import/preview and M5 Slice 2 sprite-strip animation/transform preview. Issue #66 runtime projectile binding remains feature-branch-only until PR validation, merge and production deployment complete.
 
 ## Remaining roadmap
 
-- Complete Issue #64 horizontal sprite-strip animation preview and authored preview transforms.
-- Continue M5 with binding validated authored VFX to Creator skills and the real Training runtime so a player's own visual becomes an in-game skill effect.
+- Complete Issue #66 authored VFX binding to Creator projectile Training runtime.
+- Continue M5 with remaining VFX Creator workflow hardening and production acceptance.
 - M6 — AI-assisted VFX provider layer.
 - M7 — safe character package import/export.
 - M8 — Web/Windows MVP release hardening, including final mobile usability/polish.
