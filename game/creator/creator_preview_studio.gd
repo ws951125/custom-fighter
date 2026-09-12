@@ -2,9 +2,11 @@ extends "res://game/creator/creator_studio.gd"
 
 var preview_status_label: Label
 var preview_button: Button
+var vfx_button: Button
 var _web_preview_callback
 var _web_set_skill_mp_callback
 var _web_set_skill_cooldown_callback
+var _web_open_vfx_callback
 
 func _ready() -> void:
 	super()
@@ -28,6 +30,16 @@ func _restore_session_drafts() -> void:
 	_refresh_skill_validation(false)
 
 func _install_preview_ui() -> void:
+	vfx_button = Button.new()
+	vfx_button.text = "VFX Creator"
+	vfx_button.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
+	vfx_button.offset_left = 42.0
+	vfx_button.offset_top = -72.0
+	vfx_button.offset_right = 190.0
+	vfx_button.offset_bottom = -28.0
+	vfx_button.pressed.connect(_on_vfx_pressed)
+	add_child(vfx_button)
+
 	preview_status_label = Label.new()
 	preview_status_label.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
 	preview_status_label.offset_left = -650.0
@@ -56,10 +68,12 @@ func _install_preview_web_bridge() -> void:
 	_web_preview_callback = JavaScriptBridge.create_callback(_web_preview)
 	_web_set_skill_mp_callback = JavaScriptBridge.create_callback(_web_set_skill_mp)
 	_web_set_skill_cooldown_callback = JavaScriptBridge.create_callback(_web_set_skill_cooldown)
+	_web_open_vfx_callback = JavaScriptBridge.create_callback(_web_open_vfx)
 	var window = JavaScriptBridge.get_interface("window")
 	window.customFighterCreatorPreview = _web_preview_callback
 	window.customFighterCreatorSetSkillMpCost = _web_set_skill_mp_callback
 	window.customFighterCreatorSetSkillCooldown = _web_set_skill_cooldown_callback
+	window.customFighterCreatorOpenVfx = _web_open_vfx_callback
 
 func _on_preview_pressed() -> void:
 	var character_errors := character_draft.validate()
@@ -84,6 +98,14 @@ func _on_preview_pressed() -> void:
 		return
 	_set_preview_error("Application router is unavailable")
 
+func _on_vfx_pressed() -> void:
+	var router = get_parent()
+	if router != null and router.has_method("switch_mode"):
+		router.call_deferred("switch_mode", "vfx")
+		return
+	if OS.has_feature("web"):
+		JavaScriptBridge.eval("window.location.href = window.location.pathname + '?mode=vfx';")
+
 func _on_training_pressed() -> void:
 	var session = get_node_or_null("/root/CreatorPreviewSession")
 	if session != null:
@@ -96,6 +118,9 @@ func _on_training_pressed() -> void:
 
 func _web_preview(_args: Array) -> void:
 	_on_preview_pressed()
+
+func _web_open_vfx(_args: Array) -> void:
+	_on_vfx_pressed()
 
 func _web_set_skill_mp(args: Array) -> void:
 	if args.is_empty():
@@ -136,6 +161,7 @@ func _set_preview_web_state(error_message: String = "") -> void:
 	JavaScriptBridge.eval(
 		"document.documentElement.dataset.creatorPreviewReady='true';" +
 		"document.documentElement.dataset.creatorPreviewCanLaunch='%s';" % ("true" if can_preview else "false") +
+		"document.documentElement.dataset.creatorVfxNavigationReady='true';" +
 		"document.documentElement.dataset.creatorPreviewError=%s;" % JSON.stringify(error_message) +
 		"document.documentElement.dataset.creatorPreviewSessionRevision='%d';" % (session.revision if session_ready else 0)
 	)
