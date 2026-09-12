@@ -44,5 +44,9 @@ func _set_web_state() -> void:
 		return
 	JavaScriptBridge.eval(
 		"document.documentElement.dataset.skillCoordinatorBusy='%s';" % _bool_text(skill_coordinator.is_busy()) +
-		"document.documentElement.dataset.skillCoordinatorOwner='%s';" % skill_coordinator.owner_name()
+		"document.documentElement.dataset.skillCoordinatorOwner='%s';" % skill_coordinator.owner_name() +
+		"document.documentElement.dataset.skillCoordinatorLastClaimed='%s';" % skill_coordinator.last_claimed_owner_name() +
+		"document.documentElement.dataset.skillCoordinatorLastRejected='%s';" % skill_coordinator.last_rejected_owner_name() +
+		"document.documentElement.dataset.skillCoordinatorClaimCount='%d';" % skill_coordinator.claim_count() +
+		"document.documentElement.dataset.skillCoordinatorRejectionCount='%d';" % skill_coordinator.rejection_count()
 	)
