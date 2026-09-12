@@ -52,6 +52,14 @@ This repository is developed as a cloud-first, CI-first Godot project. The defau
    - The percentage must be grounded in the M0-M8 roadmap and the actual completion of milestone scope; it is an engineering progress estimate, not a claim of exact elapsed effort.
    - Update the estimate when milestone scope or completion materially changes.
 
+10. **After every modification, explicitly report both feature changes and the complete current control map.**
+   - Every development result/progress reply after a code/content/configuration change must include a **New / changed functionality** section that lists the capabilities added, changed, removed, or intentionally preserved in that step.
+   - Every such reply must also include a **Current controls / buttons** section covering every currently available user-facing button, keyboard key, mouse/touch control, or other actionable input in the playable/testable build, not only inputs changed in that step.
+   - For each control, state what action it triggers and what the action does in gameplay or tooling.
+   - If a control is contextual, disabled, reserved, or currently diagnostic-only, say so explicitly.
+   - Keep this control map synchronized as controls are added, removed, remapped, or change semantics.
+   - If the current build has no actionable UI buttons beyond keyboard/game inputs, say that explicitly rather than omitting the section.
+
 ## Required workflow for each development step
 
 1. Inspect current state and relevant existing code.
@@ -66,6 +74,7 @@ This repository is developed as a cloud-first, CI-first Godot project. The defau
    - fixes applied,
    - remaining risks or unverified behavior.
 7. Keep docs/roadmap synchronized when architecture or milestone scope changes materially.
+8. After every modification, enumerate the newly added/changed functionality and the complete current user-facing control/button map.
 
 ## Online validation hierarchy
 
@@ -135,6 +144,8 @@ For every meaningful development result/progress reply, report succinctly and in
 - **Completed:** project-level milestones/slices already completed, including the work completed in the current step.
 - **In progress:** the active milestone/slice, if any.
 - **Remaining:** project-level milestones/slices that are not yet complete.
+- **New / changed functionality:** capabilities added, modified, removed, or intentionally preserved by the latest modification.
+- **Current controls / buttons:** every current user-facing actionable input and the action/purpose it triggers, including contextual or diagnostic-only controls.
 - **Validation:** exact automated checks and result.
 - **Errors/Fixes:** any failure and how it was corrected.
 - **Test link:** the directly usable deployed Web URL whenever a testable build exists; otherwise explicitly state that no online test link is available yet.
