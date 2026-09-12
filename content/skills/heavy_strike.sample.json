@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "id": "heavy_strike_001",
+  "name": "Heavy Strike",
+  "type": "melee",
+  "damage": 24,
+  "mp_cost": 18,
+  "cooldown": 2.2,
+  "startup": 0.18,
+  "active": 0.14,
+  "recovery": 0.28,
+  "speed": 0.0,
+  "range": 72.0,
+  "hitstun": 0.28,
+  "knockback": 360.0,
+  "hitbox_half_width": 54.0,
+  "hitbox_half_depth": 0.10,
+  "visual": "heavy_slash",
+  "impact_visual": "heavy_impact"
+}

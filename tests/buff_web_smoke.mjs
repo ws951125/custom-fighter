@@ -84,6 +84,14 @@ async function approachDummy(minGap = 35, maxGap = 100) {
   return { playerX, dummyX, gap };
 }
 
+async function assertBaselineMultipliers(label) {
+  const move = await readNumber('buffMoveMultiplier');
+  const attack = await readNumber('buffAttackMultiplier');
+  if (Math.abs(move - 1.0) > 0.001 || Math.abs(attack - 1.0) > 0.001) {
+    throw new Error(`${label}: Buff multipliers did not restore: move=${move} attack=${attack}`);
+  }
+}
+
 try {
   const response = await page.goto(baseUrl, { waitUntil: 'domcontentloaded', timeout: 60_000 });
   if (!response?.ok()) {
@@ -117,6 +125,8 @@ try {
     throw new Error(`Baseline movement sample too small: ${baselineDisplacement}`);
   }
 
+  // Activation #1 is dedicated to movement verification. Keeping movement and damage
+  // verification in separate activations avoids coupling a 3.2s gameplay duration to CI speed.
   await holdKey('b');
   await page.waitForFunction(
     () =>
@@ -135,7 +145,7 @@ try {
     throw new Error(`Unexpected active multipliers: move=${moveMultiplier} attack=${attackMultiplier}`);
   }
 
-  // Recast during the active/cooldown window must not spend MP again.
+  // Recast during the active/cooldown window must be sampled and rejected without spending MP.
   await holdKey('b');
   await page.waitForTimeout(120);
   if ((await readNumber('playerMp')) !== 75 || (await readNumber('buffActivationCount')) !== 1) {
@@ -144,8 +154,6 @@ try {
     );
   }
 
-  // Compare the same physical D hold while buffed. Use a generous threshold so the
-  // assertion proves a real speed increase without depending on runner frame cadence.
   const buffMoveStartX = await readNumber('playerX');
   await holdKey('d', 350, 60);
   const buffMoveEndX = await readNumber('playerX');
@@ -156,10 +164,32 @@ try {
     );
   }
 
+  await page.waitForFunction(
+    () => document.documentElement.dataset.buffActive === 'false',
+    null,
+    { timeout: 5_000 },
+  );
+  await page.waitForTimeout(120);
+  await assertBaselineMultipliers('After movement activation');
+
+  // Position while the first cast is cooling down, then wait for state-driven castability.
+  // Activation #2 is dedicated to proving the exact 1.5x basic-attack damage.
   await approachDummy();
-  if ((await readText('buffActive')) !== 'true') {
-    throw new Error('Buff expired before the buffed attack could be verified');
-  }
+  await page.waitForFunction(
+    () => document.documentElement.dataset.buffSkillCanCast === 'true',
+    null,
+    { timeout: 6_000 },
+  );
+
+  await holdKey('b');
+  await page.waitForFunction(
+    () =>
+      Number(document.documentElement.dataset.playerMp) === 50 &&
+      document.documentElement.dataset.buffActive === 'true' &&
+      Number(document.documentElement.dataset.buffActivationCount) === 2,
+    null,
+    { timeout: 3_000 },
+  );
 
   await holdKey('j');
   await page.waitForFunction(
@@ -171,23 +201,16 @@ try {
   );
   const hpAfterBuffedHit = await readNumber('dummyHp');
 
-  // Expiration must restore exact baseline multipliers.
+  // The second expiration must also restore exact baseline multipliers.
   await page.waitForFunction(
     () => document.documentElement.dataset.buffActive === 'false',
     null,
     { timeout: 5_000 },
   );
   await page.waitForTimeout(140);
-  if (
-    Math.abs((await readNumber('buffMoveMultiplier')) - 1.0) > 0.001 ||
-    Math.abs((await readNumber('buffAttackMultiplier')) - 1.0) > 0.001
-  ) {
-    throw new Error(
-      `Buff multipliers did not restore: move=${await readNumber('buffMoveMultiplier')} attack=${await readNumber('buffAttackMultiplier')}`,
-    );
-  }
+  await assertBaselineMultipliers('After damage activation');
 
-  // Let combo timing reset, then prove normal 12-damage step one has returned.
+  // Let combo timing reset, re-enter range after knockback, then prove normal 12 damage returns.
   await page.waitForTimeout(750);
   await approachDummy();
   await holdKey('j');
@@ -197,12 +220,6 @@ try {
     { timeout: 2_500 },
   );
 
-  await page.waitForFunction(
-    () => document.documentElement.dataset.buffSkillCanCast === 'true',
-    null,
-    { timeout: 6_000 },
-  );
-
   if (pageErrors.length > 0 || consoleErrors.length > 0) {
     throw new Error(
       `Buff browser errors detected. pageErrors=${pageErrors.join(' | ')} consoleErrors=${consoleErrors.join(' | ')}`,
@@ -210,7 +227,7 @@ try {
   }
 
   console.log(
-    `WEB_BUFF_SKILL_SMOKE_PASSED mpAfterCast=75 baselineMove=${baselineDisplacement.toFixed(2)} buffMove=${buffDisplacement.toFixed(2)} moveMultiplier=${moveMultiplier} attackMultiplier=${attackMultiplier} hpAfterBuffedHit=${hpAfterBuffedHit} finalHp=${await readNumber('dummyHp')} cooldownAfterCast=${cooldownAfterCast}`,
+    `WEB_BUFF_SKILL_SMOKE_PASSED mpAfterTwoCasts=50 activations=2 baselineMove=${baselineDisplacement.toFixed(2)} buffMove=${buffDisplacement.toFixed(2)} moveMultiplier=${moveMultiplier} attackMultiplier=${attackMultiplier} hpAfterBuffedHit=${hpAfterBuffedHit} finalHp=${await readNumber('dummyHp')} cooldownAfterCast=${cooldownAfterCast}`,
   );
 } finally {
   await browser.close();

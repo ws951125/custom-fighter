@@ -107,7 +107,9 @@ func load_from_dictionary(data: Dictionary) -> PackedStringArray:
 	if visual.is_empty() or impact_visual.is_empty():
 		errors.append("visual and impact_visual must not be empty")
 
-	if skill_type == "projectile" or skill_type == "dash":
+	if skill_type == "melee":
+		_validate_melee_skill(errors)
+	elif skill_type == "projectile" or skill_type == "dash":
 		_validate_motion_skill(errors)
 	elif skill_type == "area":
 		_validate_area_skill(errors)
@@ -118,6 +120,14 @@ func load_from_dictionary(data: Dictionary) -> PackedStringArray:
 
 	loaded = errors.is_empty()
 	return errors
+
+func _validate_melee_skill(errors: PackedStringArray) -> void:
+	if range <= 0.0:
+		errors.append("melee range must be positive")
+	if active <= 0.0:
+		errors.append("melee active duration must be positive")
+	if hitbox_half_width <= 0.0 or hitbox_half_depth <= 0.0:
+		errors.append("melee hitbox dimensions must be positive")
 
 func _validate_motion_skill(errors: PackedStringArray) -> void:
 	if speed <= 0.0:
