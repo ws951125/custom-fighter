@@ -116,15 +116,23 @@ func _test_skill_coordinator() -> void:
 	_check(not coordinator.can_claim(StringName()), "skill coordinator rejects empty owner")
 	_check(coordinator.try_claim(projectile), "first skill atomically claims coordinator")
 	_check(coordinator.is_busy() and coordinator.is_owned_by(projectile), "coordinator reports active owner")
+	_check(coordinator.claim_count() == 1, "first acquisition increments claim telemetry")
+	_check(coordinator.last_claimed_owner_name() == "skill_1", "claim telemetry persists owner identity")
 	_check(not coordinator.try_claim(area), "second simultaneous skill is rejected")
+	_check(coordinator.rejection_count() == 1, "rejected simultaneous claim is counted")
+	_check(coordinator.last_rejected_owner_name() == "skill_3", "rejected owner telemetry persists")
 	coordinator.release(area)
 	_check(coordinator.is_owned_by(projectile), "non-owner cannot release coordinator")
 	_check(coordinator.try_claim(projectile), "current owner may reassert its claim")
+	_check(coordinator.claim_count() == 1, "owner reassertion is not a second acquisition")
 	coordinator.release(projectile)
 	_check(not coordinator.is_busy() and coordinator.owner_name().is_empty(), "owner release unlocks coordinator")
+	_check(coordinator.last_claimed_owner_name() == "skill_1", "release preserves audit telemetry")
 	_check(coordinator.try_claim(area), "next skill can claim after release")
+	_check(coordinator.claim_count() == 2, "next acquisition increments claim telemetry")
 	coordinator.reset()
 	_check(not coordinator.is_busy(), "coordinator reset clears stale owner")
+	_check(coordinator.claim_count() == 0 and coordinator.rejection_count() == 0, "coordinator reset clears telemetry")
 
 func _check(condition: bool, label: String) -> void:
 	if condition:
