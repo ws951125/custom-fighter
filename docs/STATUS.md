@@ -4,7 +4,7 @@
 
 Milestone 6 — AI-assisted VFX is the current roadmap milestone.
 
-Current active slice: **M6 Slice 2 — Creator prompt/reference generation workflow**, to follow production-complete Issue #68 / PR #69.
+Current active slice: **Issue #70 — M6 Slice 2: Creator prompt/reference AI VFX workflow** on `feature/m6-ai-vfx-creator-workflow`.
 
 Estimated whole-project completion: **66.7%** across the M0–M8 MVP roadmap. Under the repository rule, only formally completed milestones count toward the fixed milestone denominator. M0, M1, M2, M3, M4 and M5 are complete; M6 is in progress.
 
@@ -114,21 +114,24 @@ Validation:
 
 - PR #69 head `3f483b63083f7c79643c732e4811cb068e78b91c` passed PR CI Run #138, including Godot import/boot/domain tests, Web export/size budget, Chromium `smoke:all` and hosted Windows Edge `smoke:all`.
 - PR #69 merged to `main` at `d1e15e473ce1f847e61f206b9af2e8b60424e4fd` and closed Issue #68 completed.
-- Main CI Run #139 passed all five production gates: Godot + Web + Browser, hosted Windows Edge, GitHub Pages deploy, public reachability and production Windows Edge real-game flow.
+- Main CI Run #139 passed all five production gates.
+- Follow-up documentation commit `7779f19a38910bcc8218e1af9debd7002af88428` also passed full main CI Run #140, including Pages/public/production Edge validation.
 
-### Active Slice 2 — Creator prompt/reference generation workflow
+### Active Slice 2 — Issue #70 — Creator prompt/reference AI VFX workflow
 
-Next implementation target:
+Implementation underway on `feature/m6-ai-vfx-creator-workflow`:
 
-- Add prompt / skill-description authoring to VFX Creator.
-- Allow an optional validated reference PNG to seed the existing AI request contract.
-- Generate through the provider registry using the deterministic mock provider first.
-- Revalidate generated result bytes/metadata, convert them to the existing `VfxDraft`, and display the generated sprite strip in the normal preview pipeline.
-- Support Generate / Regenerate without changing combat/runtime code.
-- Preserve the generated VFX in the existing in-memory Creator preview session so it can be tested on the real Skill 1 projectile.
-- Add deterministic browser diagnostics and Chromium / hosted Edge E2E coverage.
+- `ai_vfx_studio.gd` extends the existing VFX Creator without changing combat/runtime code.
+- VFX Creator gains prompt / skill-description authoring.
+- Optional reference PNG is limited to 5 MB, decoded by Godot, bounded to 4096 px and kept in memory only.
+- Output controls are bounded to the active deterministic mock provider: Frames 1–8, frame width/height 8–128 and FPS 1–60.
+- Generate / Regenerate constructs the production `AiVfxRequest`, uses `AiVfxProviderRegistry`, and rejects invalid provider results fail-closed.
+- Generated PNG bytes are decoded again, converted through the existing `VfxDraft`, then enter the same preview/session binding pipeline used by player-imported M5 VFX.
+- Web diagnostics expose provider, prompt/reference state, requested output geometry, generation count/request id/status and generated-valid state.
+- New browser regression covers empty-prompt rejection, real reference-PNG decoding, generation, regeneration, VFX preview animation, Creator binding and real Skill 1 projectile rendering/hit behavior.
+- The VFX scene is now wired through the derived AI studio script on this feature branch.
 
-A real cloud provider remains out of scope for this slice; the UI must depend only on the provider-neutral adapter.
+A real cloud provider remains out of scope for this slice; the UI depends only on the provider-neutral adapter and must continue to work without network or secrets.
 
 ## Online validation policy
 
@@ -158,11 +161,11 @@ VFX Creator:
 
 `https://ws951125.github.io/custom-fighter/?mode=vfx`
 
-Production currently contains the completed M0–M5 scope, mobile touch controls, and M6 Slice 1 provider boundary. Slice 2 UI generation work is not production until its own PR and main validation complete.
+Production currently contains the completed M0–M5 scope, mobile touch controls, and M6 Slice 1 provider boundary. Issue #70 Slice 2 AI authoring UI is feature-branch-only until PR validation, merge and production deployment complete.
 
 ## Remaining roadmap
 
-- Complete M6 Slice 2 prompt/reference generation workflow.
-- Continue M6 with a replaceable real provider integration path while retaining offline/mock operation.
+- Complete Issue #70 prompt/reference generation workflow and production validation.
+- Formally evaluate M6 acceptance after Slice 2: reference image + prompt -> usable skill VFX through a replaceable provider boundary.
 - M7 — safe character package import/export.
 - M8 — Web/Windows MVP release hardening, including final mobile usability/polish.
