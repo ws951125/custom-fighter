@@ -105,7 +105,7 @@ Validation status:
 - PR #57 CI Run #103 failed at Godot import because dynamic autoload method expressions used `:=` across the new preview inheritance boundary; Godot also reported `Could not resolve class res://game/runtime/preview_selectable_main.gd` from `animation_main.gd`.
 - The dynamic preview boundary was hardened with explicit `Variant`, `bool`, `Dictionary` and `PackedStringArray` types plus `has_method()` / `call()` helpers. The solved parser failure is recorded as `L-005` in `docs/LESSONS_LEARNED.md`.
 - PR #57 CI Run #105 on the corrected code head passed Godot import, main boot, all domain tests, Web export, size budget, Chromium `smoke:all` and GitHub-hosted Windows Microsoft Edge `smoke:all`.
-- The documentation sync commits after Run #105 require one fresh latest-head PR CI before merge. No user-local machine, local project execution or Remote Desktop Commander validation is permitted or used.
+- A fresh latest-head PR validation after the documentation sync also passes all required pre-merge GitHub gates. PR #57 is ready for merge once the current documentation head itself is confirmed green. No user-local machine, local project execution or Remote Desktop Commander validation is permitted or used.
 
 ## Online validation
 
