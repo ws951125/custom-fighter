@@ -52,17 +52,17 @@ func _detect_touch_capable() -> bool:
 	if not OS.has_feature("web"):
 		return false
 	var result: Variant = JavaScriptBridge.eval(
-		"(navigator.maxTouchPoints || 0) > 0 || (window.matchMedia && window.matchMedia('(pointer: coarse)').matches)"
+		"((navigator.maxTouchPoints || 0) > 0 || (window.matchMedia && window.matchMedia('(pointer: coarse)').matches)) ? 1 : 0"
 	)
-	return result == true
+	return int(result) == 1
 
 func _should_enable_controls() -> bool:
 	if not OS.has_feature("web"):
 		return false
 	var result: Variant = JavaScriptBridge.eval(
-		"(() => { const p = new URLSearchParams(window.location.search).get('mobile_controls'); if (p === '1') return true; if (p === '0') return false; return (navigator.maxTouchPoints || 0) > 0 || (window.matchMedia && window.matchMedia('(pointer: coarse)').matches); })()"
+		"(() => { const p = new URLSearchParams(window.location.search).get('mobile_controls'); if (p === '1') return 1; if (p === '0') return 0; return ((navigator.maxTouchPoints || 0) > 0 || (window.matchMedia && window.matchMedia('(pointer: coarse)').matches)) ? 1 : 0; })()"
 	)
-	return result == true
+	return int(result) == 1
 
 func _build_controls() -> void:
 	var left_group := Control.new()
