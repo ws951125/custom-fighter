@@ -23,21 +23,26 @@ func tick(delta: float) -> void:
 		buffered_step_ready = _start_next_attack()
 		return
 
-	# The combo window is playable input time, not raw wall-clock time. Recovery consumes
-	# none of it, and a low-FPS/Web hitch can consume at most 100ms per rendered frame.
-	# Normal 60fps timing is therefore unchanged while players still get several actual
-	# input frames to continue the chain when a browser stalls.
-	var interactive_delta := 0.0
-	if previous_attack_lock <= 0.0:
-		interactive_delta = safe_delta
-	elif safe_delta > previous_attack_lock:
-		interactive_delta = safe_delta - previous_attack_lock
+	if combo_step >= 3:
+		# The finisher has no continuation step to protect. Preserve the original reset
+		# cadence so step three clears on the same wall-clock timing as before.
+		combo_reset_remaining = maxf(0.0, combo_reset_remaining - safe_delta)
+	else:
+		# Step 1 -> 2 and Step 2 -> 3 are player continuation windows. Measure those in
+		# playable input time: recovery consumes none of the window, and a low-FPS/Web
+		# hitch can consume at most 100ms per rendered frame. Normal 60fps timing stays
+		# unchanged while browser stalls cannot erase most of a combo between input frames.
+		var interactive_delta := 0.0
+		if previous_attack_lock <= 0.0:
+			interactive_delta = safe_delta
+		elif safe_delta > previous_attack_lock:
+			interactive_delta = safe_delta - previous_attack_lock
 
-	if interactive_delta > 0.0:
-		combo_reset_remaining = maxf(
-			0.0,
-			combo_reset_remaining - minf(interactive_delta, MAX_COMBO_TIMER_DELTA)
-		)
+		if interactive_delta > 0.0:
+			combo_reset_remaining = maxf(
+				0.0,
+				combo_reset_remaining - minf(interactive_delta, MAX_COMBO_TIMER_DELTA)
+			)
 
 	if combo_reset_remaining <= 0.0 and attack_lock_remaining <= 0.0:
 		combo_step = 0
