@@ -11,6 +11,7 @@
     "smoke:area": "node tests/area_web_smoke.mjs",
     "smoke:formation": "node tests/formation_web_smoke.mjs",
     "smoke:buff": "node tests/buff_web_smoke.mjs",
-    "smoke:all": "npm run smoke:web && npm run smoke:area && npm run smoke:formation && npm run smoke:buff"
+    "smoke:melee": "node tests/melee_web_smoke.mjs",
+    "smoke:all": "npm run smoke:web && npm run smoke:area && npm run smoke:formation && npm run smoke:buff && npm run smoke:melee"
   }
 }
