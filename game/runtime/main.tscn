@@ -1,10 +1,10 @@
 [gd_scene load_steps=6 format=3]
 
-[ext_resource type="Script" path="res://game/runtime/main.gd" id="1_main"]
-[ext_resource type="Script" path="res://game/runtime/area_skill_controller.gd" id="2_area"]
-[ext_resource type="Script" path="res://game/runtime/formation_skill_controller.gd" id="3_formation"]
-[ext_resource type="Script" path="res://game/runtime/buff_skill_controller.gd" id="4_buff"]
-[ext_resource type="Script" path="res://game/runtime/melee_skill_controller.gd" id="5_melee"]
+[ext_resource type="Script" path="res://game/runtime/coordinated_main.gd" id="1_main"]
+[ext_resource type="Script" path="res://game/runtime/coordinated_area_skill_controller.gd" id="2_area"]
+[ext_resource type="Script" path="res://game/runtime/coordinated_formation_skill_controller.gd" id="3_formation"]
+[ext_resource type="Script" path="res://game/runtime/coordinated_buff_skill_controller.gd" id="4_buff"]
+[ext_resource type="Script" path="res://game/runtime/coordinated_melee_skill_controller.gd" id="5_melee"]
 
 [node name="Main" type="Control"]
 layout_mode = 3
