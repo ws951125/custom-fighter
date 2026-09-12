@@ -1,6 +1,6 @@
 [gd_scene load_steps=2 format=3]
 
-[ext_resource type="Script" path="res://game/creator/vfx_editor/vfx_studio.gd" id="1_vfx"]
+[ext_resource type="Script" path="res://game/creator/vfx_editor/ai_vfx_studio.gd" id="1_vfx"]
 
 [node name="VfxStudio" type="Control"]
 layout_mode = 3
