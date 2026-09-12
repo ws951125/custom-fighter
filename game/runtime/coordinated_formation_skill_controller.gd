@@ -6,7 +6,7 @@ func _load_skill() -> void:
 	if host == null or not host.has_method("load_character_skill_for_slot"):
 		push_error("Failed to load formation skill: character loadout resolver unavailable")
 		return
-	var errors := host.load_character_skill_for_slot("skill_4", "formation", skill)
+	var errors: PackedStringArray = host.load_character_skill_for_slot("skill_4", "formation", skill)
 	if not errors.is_empty():
 		push_error("Failed to load formation skill from character slot: %s" % " | ".join(errors))
 		return
