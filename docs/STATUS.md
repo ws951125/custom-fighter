@@ -4,7 +4,7 @@
 
 Milestone 4 — Creator Studio.
 
-Current active slice: Issue #56 / M4 Slice 3 — validated Creator-to-Training preview session.
+Current active slice: Issue #56 / PR #57 / M4 Slice 3 — validated Creator-to-Training preview session.
 
 Estimated whole-project completion: **44.4%** across the M0–M8 MVP roadmap under the repository rule that only formally completed milestones count toward the fixed milestone denominator. M0, M1, M2 and M3 are complete; M4 is in progress.
 
@@ -82,11 +82,11 @@ Issue #54 / PR #55 is production-validated and merged to `main` at `1f00ec58e69a
 - Main CI Run #102 first Windows Edge attempt hit a transient `playerRunning` observation timeout while runtime logs already reported `state=RUN`; targeted retry passed. GitHub Pages deployment, public reachability and production Edge then all passed, including `WEB_CREATOR_SKILL_EDITOR_SMOKE_PASSED`.
 - Issue #54 is closed completed after production validation.
 
-## Current work — Issue #56 / M4 Slice 3
+## Current work — Issue #56 / PR #57 / M4 Slice 3
 
 Goal: connect validated Creator drafts to the real Training runtime without hand-editing content files.
 
-Implemented so far on `feature/m4-creator-training-preview`:
+Implemented on `feature/m4-creator-training-preview`:
 
 - Adds an autoloaded, in-memory `CreatorPreviewSession` boundary.
 - Preview staging validates CharacterDraft data through `CharacterDefinition` and projectile SkillDraft data through `SkillDefinition` before runtime handoff.
@@ -102,8 +102,10 @@ Implemented so far on `feature/m4-creator-training-preview`:
 
 Validation status:
 
-- Implementation is committed on the feature branch.
-- GitHub PR validation is the next gate; no user-local machine, local project execution or Remote Desktop Commander validation is permitted or used.
+- PR #57 CI Run #103 failed at Godot import because dynamic autoload method expressions used `:=` across the new preview inheritance boundary; Godot also reported `Could not resolve class res://game/runtime/preview_selectable_main.gd` from `animation_main.gd`.
+- The dynamic preview boundary was hardened with explicit `Variant`, `bool`, `Dictionary` and `PackedStringArray` types plus `has_method()` / `call()` helpers. The solved parser failure is recorded as `L-005` in `docs/LESSONS_LEARNED.md`.
+- PR #57 CI Run #105 on the corrected code head passed Godot import, main boot, all domain tests, Web export, size budget, Chromium `smoke:all` and GitHub-hosted Windows Microsoft Edge `smoke:all`.
+- The documentation sync commits after Run #105 require one fresh latest-head PR CI before merge. No user-local machine, local project execution or Remote Desktop Commander validation is permitted or used.
 
 ## Online validation
 
@@ -127,11 +129,11 @@ Live Creator Studio:
 
 `https://ws951125.github.io/custom-fighter/?mode=creator`
 
-Production currently contains M4 Slice 1 and Slice 2. Slice 3 remains on its feature branch until PR validation, merge and main deployment are complete.
+Production currently contains M4 Slice 1 and Slice 2. Slice 3 remains on PR #57 until the latest PR head is green, the PR is merged and the main deployment completes.
 
 ## Remaining roadmap
 
-- M4 — complete validated preview/training workflow, then broaden Creator skill-template authoring and persistence planning.
+- M4 — finish the validated preview/training workflow, then broaden Creator skill-template authoring and persistence planning.
 - M5 — User VFX import/processing and VFX Creator.
 - M6 — AI-assisted VFX provider layer.
 - M7 — Character package import/export with safe data-only packages.
