@@ -7,6 +7,7 @@ const MAX_DATA_URL_CHARS := 8 * 1024 * 1024
 var draft := VfxDraft.new()
 var draft_revision := 0
 var imported_texture: ImageTexture
+var imported_png_bytes := PackedByteArray()
 var import_error := ""
 var imported := false
 var preview_frame_index := 0
@@ -34,9 +35,11 @@ var _web_set_scale_callback
 var _web_set_frame_count_callback
 var _web_set_fps_callback
 var _web_set_offset_callback
+var _web_back_to_creator_callback
 
 func _ready() -> void:
 	_build_ui()
+	_restore_stored_vfx()
 	_sync_controls_from_draft()
 	_refresh_validation(false)
 	_install_web_bridge()
@@ -321,6 +324,7 @@ func _on_choose_png_pressed() -> void:
 func _on_reset_pressed() -> void:
 	draft.reset()
 	imported_texture = null
+	imported_png_bytes.clear()
 	imported = false
 	import_error = ""
 	_reset_animation_preview()
@@ -329,17 +333,36 @@ func _on_reset_pressed() -> void:
 	_refresh_validation(false)
 
 func _on_creator_pressed() -> void:
-	if OS.has_feature("web"):
-		JavaScriptBridge.eval("window.location.href = window.location.pathname + '?mode=creator';")
-		return
 	var router := get_parent()
 	if router != null and router.has_method("switch_mode"):
-		router.switch_mode("creator")
+		router.call("switch_mode", "creator")
+
+func _restore_stored_vfx() -> void:
+	var session: Variant = get_node_or_null("/root/CreatorPreviewSession")
+	if session == null or not session.has_method("has_stored_vfx") or not bool(session.call("has_stored_vfx")):
+		return
+	if not session.has_method("stored_vfx_data") or not session.has_method("stored_vfx_png_bytes"):
+		return
+	var stored_data: Dictionary = session.call("stored_vfx_data")
+	var stored_bytes: PackedByteArray = session.call("stored_vfx_png_bytes")
+	var errors: PackedStringArray = draft.load_from_dictionary(stored_data)
+	if not errors.is_empty() or stored_bytes.is_empty() or stored_bytes.size() > MAX_FILE_BYTES:
+		import_error = "Stored VFX failed validation"
+		return
+	var image := Image.new()
+	var load_error: Error = image.load_png_from_buffer(stored_bytes)
+	if load_error != OK or image.get_width() != draft.image_width or image.get_height() != draft.image_height:
+		import_error = "Stored VFX PNG failed runtime decode"
+		return
+	imported_png_bytes = stored_bytes.duplicate()
+	imported_texture = ImageTexture.create_from_image(image)
+	imported = true
 
 func _import_png_data(file_name: String, mime_type: String, data_url: String) -> void:
 	import_error = ""
 	imported = false
 	imported_texture = null
+	imported_png_bytes.clear()
 	_reset_animation_preview()
 	if data_url.length() > MAX_DATA_URL_CHARS:
 		_import_failed("PNG data URL exceeds safe transfer limit")
@@ -358,7 +381,7 @@ func _import_png_data(file_name: String, mime_type: String, data_url: String) ->
 		_import_failed("PNG exceeds 5 MB limit")
 		return
 	var image := Image.new()
-	var load_error := image.load_png_from_buffer(bytes)
+	var load_error: Error = image.load_png_from_buffer(bytes)
 	if load_error != OK:
 		_import_failed("PNG bytes failed Godot image decoding")
 		return
@@ -366,6 +389,7 @@ func _import_png_data(file_name: String, mime_type: String, data_url: String) ->
 	if not errors.is_empty():
 		_import_failed(" | ".join(errors))
 		return
+	imported_png_bytes = bytes.duplicate()
 	imported_texture = ImageTexture.create_from_image(image)
 	imported = true
 	draft_revision += 1
@@ -376,6 +400,7 @@ func _import_failed(message: String) -> void:
 	import_error = message
 	imported = false
 	imported_texture = null
+	imported_png_bytes.clear()
 	_reset_animation_preview()
 	draft_revision += 1
 	_refresh_validation(false)
@@ -388,7 +413,7 @@ func _refresh_validation(increment_revision: bool = true) -> void:
 	var error_text := import_error
 	if error_text.is_empty() and not errors.is_empty():
 		error_text = " | ".join(errors)
-	validation_label.text = "VALID · PNG VFX draft passes animation safety rules" if valid else "INVALID · %s" % error_text
+	validation_label.text = "VALID · PNG VFX draft passes animation safety rules · bound to Creator Skill 1 preview" if valid else "INVALID · %s" % error_text
 	validation_label.modulate = Color("7ff0b1") if valid else Color("ff7b86")
 	metadata_label.text = "File: %s · %dx%d · Crop %d,%d %dx%d · Frames %d · Frame %dx%d · Scale %.2f · Offset %.0f,%.0f · FPS %.0f" % [
 		draft.file_name if not draft.file_name.is_empty() else "none",
@@ -406,8 +431,20 @@ func _refresh_validation(increment_revision: bool = true) -> void:
 		draft.offset_y,
 		draft.fps
 	]
+	_sync_preview_session_vfx(valid)
 	_refresh_preview(valid)
 	_set_web_state(errors)
+
+func _sync_preview_session_vfx(valid: bool) -> void:
+	var session: Variant = get_node_or_null("/root/CreatorPreviewSession")
+	if session == null:
+		return
+	if valid and not imported_png_bytes.is_empty() and session.has_method("store_vfx_draft"):
+		var store_errors: PackedStringArray = session.call("store_vfx_draft", draft.to_dictionary(), imported_png_bytes)
+		if not store_errors.is_empty():
+			import_error = "Preview binding rejected: %s" % " | ".join(store_errors)
+	elif session.has_method("clear_vfx_draft"):
+		session.call("clear_vfx_draft")
 
 func _refresh_preview(valid: bool) -> void:
 	_apply_preview_transform(valid)
@@ -455,6 +492,7 @@ func _install_web_bridge() -> void:
 	_web_set_frame_count_callback = JavaScriptBridge.create_callback(_web_set_frame_count)
 	_web_set_fps_callback = JavaScriptBridge.create_callback(_web_set_fps)
 	_web_set_offset_callback = JavaScriptBridge.create_callback(_web_set_offset)
+	_web_back_to_creator_callback = JavaScriptBridge.create_callback(_web_back_to_creator)
 	var window = JavaScriptBridge.get_interface("window")
 	window.customFighterCreatorVfxImportPng = _web_import_callback
 	window.customFighterCreatorVfxImportError = _web_import_error_callback
@@ -464,6 +502,7 @@ func _install_web_bridge() -> void:
 	window.customFighterCreatorVfxSetFrameCount = _web_set_frame_count_callback
 	window.customFighterCreatorVfxSetFps = _web_set_fps_callback
 	window.customFighterCreatorVfxSetOffset = _web_set_offset_callback
+	window.customFighterCreatorVfxBackToCreator = _web_back_to_creator_callback
 
 func _web_import_png(args: Array) -> void:
 	if args.size() < 3:
@@ -476,6 +515,9 @@ func _web_import_error(args: Array) -> void:
 
 func _web_reset(_args: Array) -> void:
 	_on_reset_pressed()
+
+func _web_back_to_creator(_args: Array) -> void:
+	_on_creator_pressed()
 
 func _web_set_crop(args: Array) -> void:
 	if args.size() < 4:
@@ -539,11 +581,16 @@ func _set_web_state(errors: PackedStringArray = PackedStringArray()) -> void:
 	if preview_transform_root != null:
 		applied_scale = preview_transform_root.scale.x
 		applied_offset = preview_transform_root.position
+	var stored_vfx := false
+	var session: Variant = get_node_or_null("/root/CreatorPreviewSession")
+	if session != null and session.has_method("has_stored_vfx"):
+		stored_vfx = bool(session.call("has_stored_vfx"))
 	JavaScriptBridge.eval(
 		"document.documentElement.dataset.creatorVfxReady='true';" +
 		"document.documentElement.dataset.creatorVfxRevision='%d';" % draft_revision +
 		"document.documentElement.dataset.creatorVfxImported='%s';" % ("true" if imported else "false") +
 		"document.documentElement.dataset.creatorVfxValid='%s';" % ("true" if valid else "false") +
+		"document.documentElement.dataset.creatorVfxStored='%s';" % ("true" if stored_vfx else "false") +
 		"document.documentElement.dataset.creatorVfxFileName=%s;" % JSON.stringify(draft.file_name) +
 		"document.documentElement.dataset.creatorVfxMime=%s;" % JSON.stringify(draft.mime_type) +
 		"document.documentElement.dataset.creatorVfxWidth='%d';" % draft.image_width +
