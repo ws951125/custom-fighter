@@ -22,7 +22,7 @@ func _init() -> void:
 	quit(1)
 
 func _test_valid_request_and_reference(failures: PackedStringArray) -> void:
-	var request := _valid_request("req_reference_001")
+	var request: Variant = _valid_request("req_reference_001")
 	var reference := Image.create(12, 10, false, Image.FORMAT_RGBA8)
 	reference.fill(Color(0.2, 0.6, 1.0, 1.0))
 	var png: PackedByteArray = reference.save_png_to_buffer()
@@ -36,7 +36,7 @@ func _test_valid_request_and_reference(failures: PackedStringArray) -> void:
 	_expect(int(reference_meta.get("byte_count", 0)) == png.size(), "serialized reference byte_count should match in-memory PNG", failures)
 
 func _test_invalid_request_fails_closed(failures: PackedStringArray) -> void:
-	var request := _valid_request("../unsafe")
+	var request: Variant = _valid_request("../unsafe")
 	request.prompt = ""
 	request.frame_count = 65
 	var errors: PackedStringArray = request.validate()
@@ -44,13 +44,13 @@ func _test_invalid_request_fails_closed(failures: PackedStringArray) -> void:
 	_expect(_contains(errors, "prompt must not be empty"), "blank prompt must be rejected", failures)
 	_expect(_contains(errors, "frame_count must be between 1 and 64"), "oversized frame count must be rejected", failures)
 
-	var invalid_reference := _valid_request("req_bad_reference_001")
+	var invalid_reference: Variant = _valid_request("req_bad_reference_001")
 	var invalid_bytes := PackedByteArray([1, 2, 3, 4, 5])
 	var reference_errors: PackedStringArray = invalid_reference.set_reference_png("bad.png", "image/png", invalid_bytes)
 	_expect(_contains(reference_errors, "reference PNG bytes failed runtime decode"), "invalid reference bytes must fail closed", failures)
 
 func _test_mock_provider_generation(failures: PackedStringArray) -> void:
-	var request := _valid_request("req_mock_001")
+	var request: Variant = _valid_request("req_mock_001")
 	var provider := MockAiVfxProvider.new()
 	var result: Variant = provider.generate(request)
 	_expect(result != null, "mock provider should return a result object", failures)
@@ -80,7 +80,7 @@ func _test_provider_registry_swap(failures: PackedStringArray) -> void:
 	_expect(registry.register_provider(first).is_empty(), "first provider should register", failures)
 	_expect(registry.register_provider(second).is_empty(), "second provider should register without runtime changes", failures)
 	_expect(registry.active_provider_id() == "mock_ai_vfx", "first provider should become active by default", failures)
-	var request := _valid_request("req_swap_001")
+	var request: Variant = _valid_request("req_swap_001")
 	var first_result: Variant = registry.generate(request)
 	_expect(first_result != null and str(first_result.get("provider_id")) == "mock_ai_vfx", "registry should delegate to active provider", failures)
 	_expect(registry.set_active_provider("mock_ai_vfx_alt").is_empty(), "registered provider should be swappable", failures)
@@ -89,7 +89,7 @@ func _test_provider_registry_swap(failures: PackedStringArray) -> void:
 	_expect(_contains(registry.set_active_provider("missing_provider"), "provider_id is not registered"), "unknown provider selection must fail closed", failures)
 
 func _test_malformed_result_fails_closed(failures: PackedStringArray) -> void:
-	var request := _valid_request("req_result_guard_001")
+	var request: Variant = _valid_request("req_result_guard_001")
 	var provider := MockAiVfxProvider.new()
 	var result: Variant = provider.generate(request)
 	result.set("image_width", int(result.get("image_width")) + 1)
