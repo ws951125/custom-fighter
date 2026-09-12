@@ -13,6 +13,7 @@
     "smoke:buff": "node tests/buff_web_smoke.mjs",
     "smoke:melee": "node tests/melee_web_smoke.mjs",
     "smoke:coordination": "node tests/skill_coordination_web_smoke.mjs",
-    "smoke:all": "npm run smoke:web && npm run smoke:area && npm run smoke:formation && npm run smoke:buff && npm run smoke:melee && npm run smoke:coordination"
+    "smoke:character": "node tests/character_web_smoke.mjs",
+    "smoke:all": "npm run smoke:web && npm run smoke:area && npm run smoke:formation && npm run smoke:buff && npm run smoke:melee && npm run smoke:coordination && npm run smoke:character"
   }
 }
