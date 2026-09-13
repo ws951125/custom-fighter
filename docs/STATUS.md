@@ -88,7 +88,13 @@ Implemented on `feature/m8-windows-native-release`:
 - all pre-existing Web/Chromium/hosted Edge/Pages/production Edge gates remain present.
 
 Validation:
-- PR #79 GitHub-hosted CI is pending on the latest head. No merge until Windows native export/smoke and all existing PR gates are green.
+- PR #79 latest-head CI Run #164 passed all required PR gates on commit `251ce0f408d3891e16bd3f77db5d1cd7cd8d7e47` before documentation-only follow-up commits.
+- `Windows Native Release` passed Godot version verification, Windows x86_64 export, bounded native executable smoke and artifact upload.
+- Uploaded artifact: `custom-fighter-windows-x86_64`, about 39.2 MB, SHA-256 `d7534cfc6e6631f3b46031b8cc6c5099d236ada3f05488880753da285d75c642`.
+- `Godot + Web + Browser` passed import, main boot, domain tests, Web export, size budget and Chromium smoke.
+- `Windows + Microsoft Edge` passed the installed-Edge Web smoke against the validated Web artifact.
+- Earlier Windows runs exposed PowerShell process-exit and spaced-preset argument issues; the fixes and prevention rules are recorded in `docs/LESSONS_LEARNED.md`.
+- Documentation-only follow-up commits must receive a fresh latest-head PR CI before merge.
 
 Planned after Slice 1 production validation:
 - basic end-user/release documentation,
@@ -107,7 +113,7 @@ Creator Studio: `https://ws951125.github.io/custom-fighter/?mode=creator`
 
 VFX Creator: `https://ws951125.github.io/custom-fighter/?mode=vfx`
 
-Production currently contains M0–M7. M8 Windows native release changes remain PR-only until PR validation, merge and main production validation complete.
+Production currently contains M0–M7. M8 Windows native release changes remain PR-only until fresh latest-head PR validation, merge and main production validation complete.
 
 ## Remaining roadmap
 
