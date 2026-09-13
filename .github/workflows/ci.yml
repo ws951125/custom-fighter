@@ -154,14 +154,26 @@ jobs:
 
       - name: Verify Godot
         shell: pwsh
-        run: godot --version
+        run: |
+          $godotExe = Get-ChildItem -Path (Join-Path $HOME 'godot') -Filter 'Godot_v4.7.2-stable_win64.exe' -File | Select-Object -First 1
+          if (-not $godotExe) {
+            throw 'Godot Windows executable was not found after setup-godot.'
+          }
+          & $godotExe.FullName --version
+          if ($LASTEXITCODE -ne 0) {
+            throw "Godot version probe exited with code $LASTEXITCODE"
+          }
 
       - name: Export Windows release build
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force -Path 'build/windows' | Out-Null
           $logPath = Join-Path $env:RUNNER_TEMP 'custom-fighter-windows-export.log'
-          $exportOutput = & godot --headless --path . --export-release 'Windows Desktop' 'build/windows/CustomFighter.exe' 2>&1
+          $godotExe = Get-ChildItem -Path (Join-Path $HOME 'godot') -Filter 'Godot_v4.7.2-stable_win64.exe' -File | Select-Object -First 1
+          if (-not $godotExe) {
+            throw 'Godot Windows executable was not found after setup-godot.'
+          }
+          $exportOutput = & $godotExe.FullName --headless --path . --export-release 'Windows Desktop' 'build/windows/CustomFighter.exe' 2>&1
           $exportExitCode = $LASTEXITCODE
           $exportOutput | Tee-Object -FilePath $logPath
           if ($exportExitCode -ne 0) {
