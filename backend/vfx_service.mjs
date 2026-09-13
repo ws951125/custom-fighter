@@ -5,6 +5,8 @@ const MAX_PROMPT_CHARS = 1000;
 const MAX_FRAMES = 8;
 const MAX_FRAME_DIMENSION = 128;
 const MAX_OUTPUT_BYTES = 5 * 1024 * 1024;
+const MAX_REFERENCE_BYTES = 5 * 1024 * 1024;
+const MAX_REFERENCE_DIMENSION = 4096;
 
 function reject(message) {
   return { ok: false, error: message };
@@ -23,6 +25,7 @@ export function validateVfxRequest(input) {
   if (!Number.isInteger(frameWidth) || frameWidth < 8 || frameWidth > MAX_FRAME_DIMENSION) return 'frame_width is out of range';
   if (!Number.isInteger(frameHeight) || frameHeight < 8 || frameHeight > MAX_FRAME_DIMENSION) return 'frame_height is out of range';
   if (!Number.isFinite(fps) || fps < 1 || fps > 60) return 'fps is out of range';
+  if (input.reference_png_base64 && String(input.reference_mime_type || '').toLowerCase() !== 'image/png') return 'reference image must use image/png';
   return '';
 }
 
@@ -52,12 +55,30 @@ function buildStarterSkillProposal(input) {
   };
 }
 
+async function decodeReference(input) {
+  if (!input.reference_png_base64) return null;
+  const encoded = String(input.reference_png_base64);
+  if (!/^[A-Za-z0-9+/]+={0,2}$/.test(encoded)) throw new Error('reference PNG base64 is invalid');
+  const bytes = Buffer.from(encoded, 'base64');
+  if (!bytes.length || bytes.length > MAX_REFERENCE_BYTES) throw new Error('reference PNG exceeds 5 MB limit');
+  const metadata = await sharp(bytes).metadata();
+  if (metadata.format !== 'png') throw new Error('reference image must decode as PNG');
+  if (!metadata.width || !metadata.height || metadata.width > MAX_REFERENCE_DIMENSION || metadata.height > MAX_REFERENCE_DIMENSION) throw new Error('reference PNG dimensions must stay within 4096 px');
+  if (Number(input.reference_width || 0) !== metadata.width || Number(input.reference_height || 0) !== metadata.height) throw new Error('reference PNG dimensions do not match request metadata');
+  return bytes;
+}
+
 export async function createVfxResponse(input, { provider = new OpenAiImageProvider() } = {}) {
   const validationError = validateVfxRequest(input);
   if (validationError) return reject(validationError);
-  if (input.reference_png_base64) return reject('reference-image generation is reserved for the image-to-skill slice');
+  let referencePng = null;
+  try {
+    referencePng = await decodeReference(input);
+  } catch (error) {
+    return reject(String(error?.message || 'reference PNG validation failed'));
+  }
 
-  const source = await provider.generate(String(input.prompt).trim());
+  const source = await provider.generate(String(input.prompt).trim(), { referencePng });
   const frameWidth = Number(input.frame_width);
   const frameHeight = Number(input.frame_height);
   const frameCount = Number(input.frame_count);
