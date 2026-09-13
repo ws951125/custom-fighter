@@ -54,18 +54,25 @@ This repository is developed with **online-only validation**. All engineering va
    - After triggering or observing a GitHub Actions run, continue checking it until success, failure, cancellation, or a confirmed external blocker.
    - If a check fails, inspect logs, fix the issue, push the fix, and re-run/observe CI before declaring success.
 
+12. **Prefer continuous batch progression instead of stopping after each small slice.**
+   - When several adjacent roadmap tasks can be completed safely without new user input, implement, validate, fix, and merge them as one continuous batch before reporting.
+   - Do not stop merely because one sub-step, PR, or test suite completed.
+   - Continue into the next coherent sub-step while the goal and acceptance criteria remain clear.
+   - Stop only for a genuine external blocker, a required secret/credential or authorization that cannot be supplied safely by the repository, a materially ambiguous product decision, or completion of the planned batch.
+
 ## Required workflow for each development step
 
 1. Inspect current repository state and relevant code through GitHub.
 2. State the intended change and acceptance criteria.
-3. Implement the smallest coherent change on a branch.
+3. Implement the smallest coherent change or coherent multi-slice batch on a branch.
 4. Open/update a pull request.
 5. Let GitHub Actions run the applicable automated validation.
 6. Monitor every required workflow/job through terminal state.
 7. Inspect online logs and fix failures before declaring success.
 8. Merge only after required online checks pass, unless an external GitHub/service outage is explicitly documented as the blocker.
-9. Record what changed, online checks run, failures, fixes, remaining risks, and unverified behavior.
-10. Keep docs/roadmap synchronized when architecture or milestone scope changes materially.
+9. If the next adjacent roadmap slice is clear and unblocked, continue it in the same development turn rather than waiting for a separate user prompt.
+10. Record what changed, online checks run, failures, fixes, remaining risks, and unverified behavior.
+11. Keep docs/roadmap synchronized when architecture or milestone scope changes materially.
 
 ## Online validation hierarchy
 
