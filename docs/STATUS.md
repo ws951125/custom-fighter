@@ -4,7 +4,7 @@
 
 Milestone 7 — Character Packages is the active roadmap milestone.
 
-Current active slice: **Issue #72 — M7 Slice 1: versioned safe character package data boundary** on `feature/m7-character-package-data-boundary` / PR #73.
+Current active slice: **Issue #74 — M7 Slice 2: Creator JSON character package export/import** on `feature/m7-package-json-export-import` / PR #75.
 
 Estimated whole-project completion: **77.8% (7/9 milestones)**. M0–M6 are formally complete; M7 is in progress.
 
@@ -32,27 +32,13 @@ Validated PNG/sprite-strip import, crop/frame/FPS/scale/offset authoring, previe
 M6 acceptance is satisfied: a reference PNG plus prompt/skill description can produce usable generated skill VFX through a replaceable provider boundary without coupling the combat runtime to a specific AI service.
 
 Completed slices:
-- Issue #68 / PR #69 — provider-neutral AiVfxRequest, AiVfxResult, AiVfxProvider, provider registry and deterministic mock provider.
-- Issue #70 / PR #71 — VFX Creator prompt/reference Generate/Regenerate workflow integrated with the existing preview/session/runtime binding path.
-
-Production functionality:
-- Prompt / skill-description authoring.
-- Optional validated reference PNG.
-- Bounded output frame count, dimensions and FPS.
-- Generate and Regenerate through AiVfxProviderRegistry.
-- Revalidation of provider output, PNG bytes and generated VfxDraft metadata before preview/binding.
-- Generated VFX preserved through Creator -> VFX Creator -> Creator -> Training.
-- Real `U` Skill 1 projectile renders generated VFX while combat behavior remains data-driven by the existing skill runtime.
-- Runtime remains provider-neutral and can continue without AI generation availability.
+- Issue #68 / PR #69 — provider-neutral AI VFX request/result/provider boundary.
+- Issue #70 / PR #71 — Creator prompt/reference Generate/Regenerate workflow.
 
 Validation:
 - PR #69 latest-head CI Run #138 passed required PR gates; Slice 1 reached production through main Runs #139/#140.
-- PR #71 latest head `e5c2c258c77810fed690f3f39afbb24d4dc895c4` passed PR CI Run #143.
-- PR #71 merged to main at `a5b6d869541c8bcb5255e6b243e8a2782faade0a` and closed Issue #70 completed.
-- Main CI Run #144 passed all five production gates.
-- Follow-up M6 completion/status commit `206b7a40f337873351e4ff057d73eee48e7fb91e` passed full main CI Run #145, including production Edge.
-
-A real cloud/local image-generation provider remains a future replaceable integration rather than an M6 acceptance blocker.
+- PR #71 latest head passed PR CI Run #143 and merged at `a5b6d869541c8bcb5255e6b243e8a2782faade0a`.
+- Main CI Run #144 and follow-up status Run #145 passed all production gates.
 
 ## Completed cross-platform slice — Mobile touch controls
 
@@ -60,35 +46,55 @@ Issue #61 / PR #62 is production-validated. Touch-capable Web sessions can use m
 
 ## M7 — Character Packages
 
-### Active Slice 1 — Issue #72 / PR #73 — versioned safe character package data boundary
+### Completed Slice 1 — Issue #72 / PR #73 — versioned safe character package data boundary
 
-Implemented on `feature/m7-character-package-data-boundary`:
+Production now includes `CharacterPackageDefinition`, a versioned, data-only package contract for one character plus its six referenced skills.
 
-- Added `CharacterPackageDefinition` as a versioned, data-only package contract.
-- Top-level package fields are allow-listed and package id/version are validated.
-- Embedded character data is revalidated through `CharacterDefinition`.
-- Embedded skill data is allow-listed and revalidated through `SkillDefinition`.
-- Package/character ids must match; skill ids and visual references must be safe tokens.
-- Every character skill slot must resolve to a packaged skill definition; duplicate, missing and unreferenced skills fail closed.
-- Canonical `to_dictionary()` output sorts skill definitions by id for deterministic serialization/round-trip behavior.
-- Arbitrary package paths, archive extraction, scripts, binaries and filesystem writes remain out of scope for this slice.
-- Added `character_package_test_runner.gd` for valid round trip plus schema mismatch, id mismatch, duplicate skill, unresolved slot, unsafe token/path-like reference, unknown nested field and tampered nested skill rejection.
-- GitHub Actions domain-test wiring has been added.
+Safety/validation properties:
+- top-level and nested fields are allow-listed,
+- package/character ids and versions are validated,
+- embedded character data is revalidated through `CharacterDefinition`,
+- embedded skill data is revalidated through `SkillDefinition`,
+- every character skill slot must resolve to exactly one packaged skill,
+- duplicate, missing and unreferenced skills fail closed,
+- skill ids and visual references must be safe tokens,
+- deterministic `to_dictionary()` serialization sorts skills by id,
+- package paths, archives, scripts/binaries and filesystem writes are not part of the data boundary.
 
 Validation:
-- PR #73 CI Run #146 passed Godot import, main-scene boot, all domain tests including `CHARACTER_PACKAGE_TESTS_PASSED`, Web export/size budget, Chromium `smoke:all` and GitHub-hosted Windows Edge `smoke:all`.
-- A fresh latest-head CI is required after this status sync before merge.
+- PR #73 latest-head CI Run #147 passed Godot import/boot/domain, Web export/size budget, Chromium `smoke:all` and GitHub-hosted Windows Edge `smoke:all`.
+- PR #73 merged to `main` at `8959521fbd5781ae6f3f16f5a6a376efa37f6fab` and closed Issue #72 completed.
+- Main CI Run #148 passed all five production gates: Godot + Web + Browser, hosted Windows Edge, GitHub Pages deploy, public reachability and production Windows Edge real-game flow.
+
+### Active Slice 2 — Issue #74 / PR #75 — Creator JSON package export/import
+
+Implemented on `feature/m7-package-json-export-import`:
+- Creator Studio adds `Export Package` and `Import Package` actions.
+- Export copies the current Character draft, binds the authored Projectile draft to `skill_1`, loads slots 2–6 through the approved production `SkillRegistry`, then validates the complete package through `CharacterPackageDefinition` before download.
+- Export emits one canonical `<package_id>.custom-fighter.json` document and exposes deterministic Web diagnostics for browser regression coverage.
+- Import accepts UTF-8 JSON only and enforces a 256 KB ceiling before parsing.
+- Parsed data must pass `CharacterPackageDefinition` before any Creator draft is changed.
+- Imported Skill 1 must be a Creator-compatible projectile using the approved preview visual/impact tokens.
+- Imported slots 2–6 must resolve to production registry ids and their packaged data must exactly match the approved production definitions.
+- Invalid or unsupported imports fail closed and preserve the current drafts.
+- A valid import restores Character + Skill 1, clears stale VFX binding, stores validated drafts in `CreatorPreviewSession`, and can use the normal `Preview in Training` path.
+- ZIP/archive extraction and embedded binary VFX assets remain out of scope for this slice.
+
+Validation:
+- PR #75 implementation-head CI Run #149 passed Godot import/boot/domain tests, Web export/size budget, Chromium `smoke:all` and GitHub-hosted Windows Edge `smoke:all`.
+- The new `creator_package_web_smoke.mjs` covers canonical export, rejected-import draft preservation, valid import restoration, and a real imported Skill 1 projectile cast/hit in Training.
+- A fresh latest-head PR CI is required after this status sync before merge.
 
 M7 acceptance from `docs/MVP.md`: one user can create a character package and another can load it safely.
 
-Planned next slices after the data boundary is production validated:
-- bounded browser export/import UX for the canonical package document,
-- approved VFX asset packaging with size/type validation and unsafe-entry rejection,
-- end-to-end Creator export -> second-session import -> Training validation.
+Planned next work after Slice 2 production validation:
+- package approved VFX assets with strict type/size validation and unsafe-entry rejection,
+- complete a second-session package flow that preserves player-authored VFX as well as Character/Skill data,
+- formally evaluate M7 acceptance before advancing to M8.
 
 ## Online validation policy
 
-All project engineering validation stays on GitHub-hosted infrastructure and the deployed GitHub Pages build: Godot import/boot, domain tests, Web export/size budget, Chromium smoke:all, hosted Windows Edge smoke:all, Pages deployment/public reachability and production Edge real-game flow. If a required gate is unavailable or failing, record it as Blocked / Residual Risk rather than using the user's computer.
+All project engineering validation stays on GitHub-hosted infrastructure and the deployed GitHub Pages build: Godot import/boot, domain tests, Web export/size budget, Chromium `smoke:all`, hosted Windows Edge `smoke:all`, Pages deployment/public reachability and production Edge real-game flow. If a required gate is unavailable or failing, record it as Blocked / Residual Risk rather than using the user's computer.
 
 ## Production links
 
@@ -98,9 +104,9 @@ Creator Studio: `https://ws951125.github.io/custom-fighter/?mode=creator`
 
 VFX Creator: `https://ws951125.github.io/custom-fighter/?mode=vfx`
 
-Production contains completed M0–M6 scope, mobile touch controls, provider-neutral AI VFX contracts and the Prompt / Reference / Generate / Regenerate VFX workflow. M7 Issue #72 remains feature-branch-only until PR and main production validation complete.
+Production currently contains M7 Slice 1 package validation only. Slice 2 Export/Import UI remains PR-only until latest-head PR validation, merge and main production validation complete.
 
 ## Remaining roadmap
 
-- M7 — safe character package export/import, schema/version validation and unsafe-file rejection.
+- Complete M7 safe Character Package export/import including approved VFX asset transport.
 - M8 — Web/Windows MVP release hardening and final creator-to-training release flow.
