@@ -3,7 +3,9 @@ extends SceneTree
 const AiVfxRequest = preload("res://game/ai/provider/ai_vfx_request.gd")
 const AiVfxResult = preload("res://game/ai/provider/ai_vfx_result.gd")
 const AiVfxProviderRegistry = preload("res://game/ai/provider/ai_vfx_provider_registry.gd")
+const AiVfxProviderConfig = preload("res://game/ai/provider/ai_vfx_provider_config.gd")
 const MockAiVfxProvider = preload("res://game/ai/mock/mock_ai_vfx_provider.gd")
+const RemoteAiVfxProvider = preload("res://game/ai/remote/remote_ai_vfx_provider.gd")
 const VfxDraft = preload("res://game/creator/vfx_editor/vfx_draft.gd")
 
 func _init() -> void:
@@ -12,6 +14,7 @@ func _init() -> void:
 	_test_invalid_request_fails_closed(failures)
 	_test_mock_provider_generation(failures)
 	_test_provider_registry_swap(failures)
+	_test_remote_provider_configuration(failures)
 	_test_malformed_result_fails_closed(failures)
 	if failures.is_empty():
 		print("AI_VFX_PROVIDER_TESTS_PASSED")
@@ -87,6 +90,37 @@ func _test_provider_registry_swap(failures: PackedStringArray) -> void:
 	var second_result: Variant = registry.generate(request)
 	_expect(second_result != null and str(second_result.get("provider_id")) == "mock_ai_vfx_alt", "provider swap should change only adapter selection", failures)
 	_expect(_contains(registry.set_active_provider("missing_provider"), "provider_id is not registered"), "unknown provider selection must fail closed", failures)
+
+func _test_remote_provider_configuration(failures: PackedStringArray) -> void:
+	var default_config := AiVfxProviderConfig.new()
+	_expect(default_config.provider_id == "mock_ai_vfx", "default provider configuration must remain mock", failures)
+	_expect(default_config.validate().is_empty(), "default provider configuration should validate", failures)
+
+	var missing_endpoint := AiVfxProviderConfig.new()
+	missing_endpoint.provider_id = "remote_ai_vfx"
+	_expect(_contains(missing_endpoint.validate(), "requires CUSTOM_FIGHTER_AI_VFX_ENDPOINT"), "remote provider without backend endpoint must fail closed", failures)
+
+	var insecure_endpoint := AiVfxProviderConfig.new()
+	insecure_endpoint.provider_id = "remote_ai_vfx"
+	insecure_endpoint.remote_endpoint = "http://example.com/generate"
+	_expect(_contains(insecure_endpoint.validate(), "must be an https URL"), "remote provider must reject non-HTTPS endpoints", failures)
+
+	var credential_endpoint := AiVfxProviderConfig.new()
+	credential_endpoint.provider_id = "remote_ai_vfx"
+	credential_endpoint.remote_endpoint = "https://user:secret@example.com/generate"
+	_expect(_contains(credential_endpoint.validate(), "must be an https URL"), "remote provider must reject embedded credentials", failures)
+
+	var config := AiVfxProviderConfig.new()
+	config.provider_id = "remote_ai_vfx"
+	config.remote_endpoint = "https://ai.example.com/v1/vfx/generate"
+	_expect(config.validate().is_empty(), "safe HTTPS backend endpoint should validate", failures)
+	var remote := RemoteAiVfxProvider.new(config.remote_endpoint)
+	_expect(remote.provider_id() == "remote_ai_vfx", "remote provider id should be stable", failures)
+	var caps: Dictionary = remote.capabilities()
+	_expect(bool(caps.get("network_required", false)), "remote provider must declare network requirement", failures)
+	_expect(str(caps.get("transport", "")) == "trusted_backend", "remote provider must declare trusted backend transport", failures)
+	var result: Variant = remote.generate(_valid_request("req_remote_001"))
+	_expect(result != null and str(result.get("status")) == "error", "remote transport must fail closed until asynchronous backend client is wired", failures)
 
 func _test_malformed_result_fails_closed(failures: PackedStringArray) -> void:
 	var request: Variant = _valid_request("req_result_guard_001")
