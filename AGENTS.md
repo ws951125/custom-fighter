@@ -54,16 +54,18 @@ This repository is developed with **online-only validation**. All engineering va
    - After triggering or observing a GitHub Actions run, continue checking it until success, failure, cancellation, or a confirmed external blocker.
    - If a check fails, inspect logs, fix the issue, push the fix, and re-run/observe CI before declaring success.
 
-12. **Prefer continuous multi-slice execution over stop-and-wait development.**
-   - When several adjacent roadmap items can be completed safely in one coherent batch, continue through them without stopping after each small slice to ask the user to say “continue”.
-   - A normal batch should include implementation, regression coverage, cloud validation, fixes, merge, documentation/status synchronization, and then the next adjacent slice when no real blocker exists.
-   - Stop only for a genuine external dependency or decision that cannot be inferred safely, such as a missing secret/API credential, unavailable third-party service, destructive operation requiring explicit approval, or a materially ambiguous product decision.
-   - Keep the user informed during long batches, but do not treat routine progress updates as approval gates.
+12. **Complete the whole active phase without stop-and-wait development.**
+   - Once work on a roadmap phase starts, continue through every safe, inferable task in that phase: implementation, adjacent slices, regression coverage, cloud validation, failure diagnosis/fixes, merge, documentation/status synchronization, deployment work that is already authorized, and final acceptance evidence.
+   - Do not stop merely because one slice, commit, PR, test group, or sub-milestone finished, and do not require the user to repeatedly say “continue”.
+   - Continue automatically into the next task in the same phase and, when safe and clearly implied, the next adjacent phase task.
+   - Stop only when progress genuinely requires explicit user action or approval that cannot be inferred safely, such as supplying a missing secret/API credential, authorizing payment, granting a new external-account permission, approving a destructive operation, or resolving a materially ambiguous product decision.
+   - A missing approval for one external dependency does not block unrelated safe work in the same phase; complete all non-blocked work first.
+   - Keep the user informed during long batches, but routine progress updates are not approval gates.
 
 ## Required workflow for each development batch
 
 1. Inspect current repository state and relevant code through GitHub.
-2. State the intended batch scope and acceptance criteria.
+2. State the intended batch/phase scope and acceptance criteria.
 3. Group adjacent coherent changes on a branch; do not fragment work into unnecessary micro-PRs.
 4. Implement the batch with regression coverage.
 5. Open/update a pull request.
@@ -71,9 +73,10 @@ This repository is developed with **online-only validation**. All engineering va
 7. Monitor every required workflow/job through terminal state.
 8. Inspect online logs and fix failures before declaring success.
 9. Merge only after required online checks pass, unless an external GitHub/service outage is explicitly documented as the blocker.
-10. Continue into the next adjacent roadmap slice when it can be completed safely without new user input.
-11. Record what changed, online checks run, failures, fixes, remaining risks, and unverified behavior.
-12. Keep docs/roadmap synchronized when architecture or milestone scope changes materially.
+10. Continue through the rest of the active phase and then into the next safe adjacent task without waiting for another “continue”.
+11. Before stopping for an explicit-approval blocker, finish every remaining non-blocked task that can still be completed safely.
+12. Record what changed, online checks run, failures, fixes, remaining risks, and unverified behavior.
+13. Keep docs/roadmap synchronized when architecture or milestone scope changes materially.
 
 ## Online validation hierarchy
 

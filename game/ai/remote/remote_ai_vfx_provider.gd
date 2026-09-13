@@ -21,7 +21,8 @@ func capabilities() -> Dictionary:
 		"network_required": true,
 		"deterministic": false,
 		"transport": "trusted_backend",
-		"async_generation": true
+		"async_generation": true,
+		"readiness_probe": true
 	}
 
 func generate(request: Variant) -> Variant:
@@ -33,6 +34,34 @@ func generate(request: Variant) -> Variant:
 		return result
 	result.configure_error(provider_id(), request_id, "remote AI VFX generation is asynchronous; use generate_async with a scene-tree host")
 	return result
+
+func check_readiness(host: Node, client: Variant = null) -> Dictionary:
+	if endpoint.is_empty():
+		return {"ok": false, "configured": false, "error": "remote AI VFX endpoint is not configured"}
+	var transport: Variant = client
+	if transport == null:
+		transport = RemoteAiVfxHttpClient.new()
+	if not transport.has_method("get_json"):
+		return {"ok": false, "configured": false, "error": "remote AI VFX transport does not implement get_json"}
+	var response: Variant = await transport.call("get_json", host, _health_endpoint())
+	if not (response is Dictionary):
+		return {"ok": false, "configured": false, "error": "remote AI VFX readiness returned an invalid response type"}
+	var data: Dictionary = response
+	if not bool(data.get("ok", false)):
+		return {"ok": false, "configured": false, "error": str(data.get("error", "trusted AI backend readiness check failed"))}
+	var ai_value: Variant = data.get("ai", {})
+	if not (ai_value is Dictionary):
+		return {"ok": false, "configured": false, "error": "trusted AI backend readiness response is missing ai metadata"}
+	var ai: Dictionary = ai_value
+	if not ai.has("configured"):
+		return {"ok": false, "configured": false, "error": "trusted AI backend readiness response is missing configured state"}
+	return {
+		"ok": true,
+		"configured": bool(ai.get("configured", false)),
+		"provider": str(ai.get("provider", "")),
+		"model": str(ai.get("model", "")),
+		"health_endpoint": _health_endpoint()
+	}
 
 func generate_async(request: Variant, host: Node, client: Variant = null) -> Variant:
 	var request_id := _request_id(request)
@@ -57,6 +86,14 @@ func generate_async(request: Variant, host: Node, client: Variant = null) -> Var
 		result.configure_error(provider_id(), request_id, "remote AI VFX transport returned an invalid response type")
 		return result
 	return codec.decode_response(provider_id(), request, response)
+
+func _health_endpoint() -> String:
+	var scheme_index := endpoint.find("://")
+	if scheme_index < 0:
+		return ""
+	var path_index := endpoint.find("/", scheme_index + 3)
+	var origin := endpoint if path_index < 0 else endpoint.substr(0, path_index)
+	return "%s/healthz" % origin
 
 func _validate_remote_request(request: Variant) -> String:
 	if endpoint.is_empty():
