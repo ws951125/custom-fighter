@@ -126,6 +126,18 @@ jobs:
           path: build/web
           if-no-files-found: error
 
+      - name: Configure GitHub Pages
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: actions/configure-pages@v5
+        with:
+          enablement: true
+
+      - name: Upload GitHub Pages artifact
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: build/web
+
   windows-native-release:
     name: Windows Native Release
     runs-on: ubuntu-latest
@@ -207,3 +219,77 @@ jobs:
           } finally {
             if ($server -and -not $server.HasExited) { Stop-Process -Id $server.Id -Force }
           }
+
+  deploy-pages:
+    name: Deploy Web Demo
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [validate-web, windows-native-release, windows-edge-online]
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+  verify-production:
+    name: Verify Public Web Demo
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: deploy-pages
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Verify production URLs are publicly reachable
+        run: |
+          for LIVE_URL in \
+            'https://ws951125.github.io/custom-fighter/' \
+            'https://ws951125.github.io/custom-fighter/?mode=creator' \
+            'https://ws951125.github.io/custom-fighter/?mode=vfx'; do
+            echo "Checking $LIVE_URL"
+            curl \
+              --fail \
+              --silent \
+              --show-error \
+              --location \
+              --retry 12 \
+              --retry-delay 5 \
+              --retry-all-errors \
+              --connect-timeout 10 \
+              --max-time 30 \
+              --output /tmp/custom-fighter-live.html \
+              --write-out 'HTTP %{http_code}\n' \
+              "$LIVE_URL"
+            test -s /tmp/custom-fighter-live.html
+          done
+          echo "PUBLIC_WEB_DEMO_REACHABLE"
+
+  windows-edge-production:
+    name: Windows Edge Production Full Smoke
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [deploy-pages, verify-production]
+    runs-on: windows-latest
+    timeout-minutes: 25
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: 24
+
+      - name: Install test dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Install Playwright Chromium fallback
+        run: npx playwright install chromium
+
+      - name: Run full smoke suite against GitHub Pages in Microsoft Edge
+        env:
+          BROWSER_CHANNEL: msedge
+          CUSTOM_FIGHTER_WEB_URL: https://ws951125.github.io/custom-fighter/
+        run: npm run smoke:all
