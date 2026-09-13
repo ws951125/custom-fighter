@@ -78,10 +78,9 @@ jobs:
         uses: actions/setup-node@v5
         with:
           node-version: 24
-          cache: npm
 
       - name: Install Node dependencies
-        run: npm ci --no-audit --no-fund
+        run: npm install --no-audit --no-fund
 
       - name: Run trusted-backend tests
         run: |
@@ -183,10 +182,9 @@ jobs:
         uses: actions/setup-node@v5
         with:
           node-version: 24
-          cache: npm
 
       - name: Install test dependencies
-        run: npm ci --no-audit --no-fund
+        run: npm install --no-audit --no-fund
 
       - name: Smoke-test Web build in Microsoft Edge
         shell: pwsh
