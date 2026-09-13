@@ -122,3 +122,14 @@
 - **Prevention Rule:** 每次有意識地升級持久化/交換 schema 時，同一 change set 必須盤點所有 hard-coded version assertions。測試應分成 current-export contract 與 legacy-import compatibility 兩類，不以舊 export version assertion 阻擋合法 schema evolution。
 - **Validation:** Fix 已提交至 PR #77；fresh latest-head CI Run #153 正在執行，需等待 Chromium 與 hosted Windows Edge 全綠後才標記完成。
 - **Status:** Fix committed; fresh CI pending
+
+## L-012 — Windows Godot CI should use process exit codes and preserve quoted preset arguments
+
+- **Date:** 2026-09-13
+- **Area:** GitHub Actions / Windows PowerShell / Godot export
+- **Symptom:** M8 PR #79 的早期 Windows native runs 在 `Verify Godot` / export 階段失敗。直接呼叫 Godot 後讀取 `$LASTEXITCODE` 時，runner 上可看到 Godot 正常輸出版本，但 `$LASTEXITCODE` 仍為空值；改用 `Start-Process -Wait -PassThru` 後，下一輪才暴露真正錯誤：Godot 回報 `Invalid export preset name: Windows`，雖然 `export_presets.cfg` 中正確 preset 名稱是 `Windows Desktop`。
+- **Root Cause:** 這個 GitHub-hosted Windows PowerShell invocation path 不應依賴 `$LASTEXITCODE` 作為 Godot process 的可靠結果來源；另外 `Start-Process -ArgumentList` 的參數序列化會讓含空白的 `Windows Desktop` 在未保留引號時被拆成兩個 command-line token。
+- **Fix:** 改用 `Start-Process -Wait -PassThru` 並以 `$process.ExitCode` 判斷 Godot version/export 結果；export 則改成明確的 argument string，將 `"Windows Desktop"` 與輸出路徑保留為帶引號的單一參數。
+- **Prevention Rule:** GitHub-hosted Windows runner 執行 Godot native process 時，優先用 `Start-Process -Wait -PassThru` 或等價 process API 取得真實 exit code；任何含空白的 export preset/path 必須在送入 Godot 前驗證其 command-line quoting，不可假設 PowerShell array serialization 一定保留 token 邊界。
+- **Validation:** PR #79 latest-head CI Run #164 通過 `Verify Godot`、Windows x86_64 export、bounded native executable smoke、artifact upload、Godot/Web/Chromium regression，以及 GitHub-hosted Windows Microsoft Edge smoke。
+- **Status:** Verified
