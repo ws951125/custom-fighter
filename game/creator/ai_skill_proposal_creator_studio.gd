@@ -63,7 +63,7 @@ func stage_ai_skill_proposal(data: Dictionary) -> PackedStringArray:
 func _refresh_ai_proposal_ui() -> void:
 	if ai_proposal_panel == null:
 		return
-	var valid := ai_skill_proposal != null and ai_skill_proposal.validate().is_empty()
+	var valid: bool = ai_skill_proposal != null and ai_skill_proposal.validate().is_empty()
 	ai_proposal_panel.visible = valid
 	if not valid:
 		return
@@ -135,9 +135,9 @@ func _web_discard_ai_proposal(_args: Array) -> void:
 func _set_ai_proposal_web_state(error_message: String = "") -> void:
 	if not OS.has_feature("web"):
 		return
-	var valid := ai_skill_proposal != null and ai_skill_proposal.validate().is_empty()
-	var confirmed := valid and bool(ai_skill_proposal.user_confirmed)
-	var applied := valid and confirmed and ai_proposal_apply_button != null and ai_proposal_apply_button.disabled
+	var valid: bool = ai_skill_proposal != null and ai_skill_proposal.validate().is_empty()
+	var confirmed: bool = valid and bool(ai_skill_proposal.user_confirmed)
+	var applied: bool = valid and confirmed and ai_proposal_apply_button != null and ai_proposal_apply_button.disabled
 	JavaScriptBridge.eval(
 		"document.documentElement.dataset.creatorAiSkillProposalReady='true';" +
 		"document.documentElement.dataset.creatorAiSkillProposalValid='%s';" % ("true" if valid else "false") +
