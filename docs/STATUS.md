@@ -10,8 +10,8 @@ Roadmap:
 - M0–M8 MVP: 9/9 complete.
 - P1 Safe real-provider boundary: complete.
 - P2 Async remote AI transport: complete.
-- P3 Production AI provider/backend integration: in progress; source/backend integration is substantially complete, production real-provider acceptance is blocked by the missing server-side `OPENAI_API_KEY`.
-- P4 Image → skill proposal → Creator → Training production flow: in progress; source flow and deterministic cloud E2E are substantially complete, final real-provider production acceptance remains.
+- P3 Production AI provider/backend integration: in progress; source/backend integration and deterministic cloud acceptance are substantially complete, while real-provider production acceptance is blocked by the missing server-side `OPENAI_API_KEY`.
+- P4 Image → skill proposal → Creator → Training production flow: in progress; source flow and deterministic cloud E2E are substantially complete, while final real-provider production acceptance remains.
 
 ## Completed milestones
 
@@ -50,23 +50,28 @@ Completed through PR #86. Includes Godot `HTTPRequest`, strict JSON/PNG response
 
 ## P3 — Production provider/backend integration — IN PROGRESS
 
-Implemented in source:
+Implemented and production-hardened:
 - trusted Node backend with `/healthz` and `/v1/vfx/generate`,
 - server-side OpenAI provider adapter,
 - provider/model readiness reporting without exposing secrets,
 - Render service deployment at `https://custom-fighter-ai-vfx.onrender.com`,
 - Creator remote-provider selection via validated HTTPS endpoint,
+- Creator preflight readiness check before Generate,
+- Generate is disabled while the backend is checking, unavailable, or provider credentials are not configured,
 - async remote request path,
 - strict CORS/body/output bounds,
 - generation response revalidation,
 - browser/runtime contains no provider credential,
 - reference-image requests use the provider image-edit boundary,
 - Godot request serialization matches the trusted backend contract,
-- production errors fail closed.
+- production errors fail closed,
+- Render runtime uses `NODE_ENV=production`,
+- production image pipeline dependency upgraded to `sharp 0.35.4`,
+- Render build for main commit `4ecada703e168ab6f372aee9d3e5da7408b99466` completed live with `found 0 vulnerabilities`.
 
 Current external blocker:
 - Render readiness reports `configured:false` until a server-side `OPENAI_API_KEY` is supplied.
-- Therefore a real paid/provider generation request cannot yet be truthfully accepted as production E2E.
+- Therefore a real provider generation request cannot yet be truthfully accepted as production E2E.
 
 ## P4 — Image → skill → Creator → Training — IN PROGRESS
 
@@ -92,7 +97,7 @@ Remaining P4 acceptance:
 - real reference image + prompt → production backend → generated VFX + skill proposal,
 - explicit user confirmation,
 - real generated asset cast in Training,
-- final production acceptance and public deployment verification.
+- final real-provider production acceptance.
 
 ## Validation policy
 
@@ -105,20 +110,29 @@ Required path:
 4. Web export and size budget,
 5. Chromium full `smoke:all`,
 6. Windows x86_64 release cross-export,
-7. Microsoft Edge full browser smoke on a GitHub-hosted Windows runner.
+7. Microsoft Edge full browser smoke on a GitHub-hosted Windows runner,
+8. after a successful `main` push, deploy the validated Web artifact to GitHub Pages,
+9. verify public Training / Creator / VFX URLs are reachable,
+10. run the full `smoke:all` suite against the real GitHub Pages deployment in Microsoft Edge.
 
 Do not use Remote Desktop Commander, the user's local machine, local Godot/npm/browser caches, or user-device storage for validation unless the user explicitly reverses this policy.
 
-Latest accepted cloud evidence before this status batch:
-- CI Run #189: SUCCESS,
+Latest accepted cloud evidence before restoring the Pages production gate:
+- PR #101 CI Run #198: SUCCESS,
+- main CI Run #199: SUCCESS,
+- PR #102 CI Run #200: SUCCESS,
 - `Godot + Backend + Web + Chromium`: SUCCESS,
 - `Windows Native Release`: SUCCESS,
 - `Windows + Microsoft Edge`: SUCCESS,
-- PR #98 merged at `98c97c416ff2d9235495b0fe08a1f87d2216adfb`.
+- PR #102 merged as `4ecada703e168ab6f372aee9d3e5da7408b99466`,
+- Render auto-deploy for `4ecada703e168ab6f372aee9d3e5da7408b99466`: LIVE,
+- Render production install audit: 0 vulnerabilities.
+
+The Pages/public-production gates are being restored because they were present in the earlier online-first release workflow and were unintentionally dropped during a later validation-policy rewrite.
 
 ## Execution policy
 
-Development should proceed in coherent multi-slice batches. Do not stop after every small implementation step merely to request another “continue”. Continue through adjacent implementation, regression, cloud validation, fixes, merge and documentation work until a genuine external blocker or materially ambiguous product decision is reached.
+Once a roadmap phase is started, continue through all non-blocked implementation, regression, cloud validation, fixes, merge and documentation work for that phase. Do not stop merely because a slice, commit, PR or test group completed. Stop only at a genuine external blocker or a decision requiring explicit user approval. If one item is externally blocked, finish the other non-blocked work in the same phase first.
 
 ## Production links
 
@@ -128,11 +142,8 @@ Creator Studio: `https://ws951125.github.io/custom-fighter/?mode=creator`
 
 VFX Creator: `https://ws951125.github.io/custom-fighter/?mode=vfx`
 
-These public GitHub Pages links may lag the latest merged source unless a deployment for the current source revision has been intentionally completed and verified.
-
 ## Remaining roadmap
 
 To reach 13/13:
-- finish P3 with real production provider configuration and acceptance,
-- finish P4 with real reference-image → VFX + skill proposal → explicit confirmation → Training cast production E2E,
-- deploy and verify the accepted production Web revision.
+- finish P3 by configuring the real production provider secret and completing real-provider acceptance,
+- finish P4 with real reference-image → VFX + skill proposal → explicit confirmation → Training cast production E2E.
