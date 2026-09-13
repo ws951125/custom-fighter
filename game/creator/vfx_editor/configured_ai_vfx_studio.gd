@@ -5,6 +5,16 @@ const RemoteAiVfxProviderScript = preload("res://game/ai/remote/remote_ai_vfx_pr
 
 var active_ai_provider: Variant
 var active_ai_provider_id := "mock_ai_vfx"
+var remote_readiness_status := "not_applicable"
+var remote_backend_configured := false
+var remote_backend_provider := ""
+var remote_backend_model := ""
+var remote_readiness_error := ""
+
+func _ready() -> void:
+	super()
+	if active_ai_provider_id == AiVfxProviderConfigScript.REMOTE_PROVIDER_ID:
+		_probe_remote_readiness()
 
 func _initialize_provider() -> void:
 	var config := AiVfxProviderConfigScript.new()
@@ -20,6 +30,7 @@ func _initialize_provider() -> void:
 
 	if config.provider_id == AiVfxProviderConfigScript.REMOTE_PROVIDER_ID:
 		active_ai_provider = RemoteAiVfxProviderScript.new(config.remote_endpoint)
+		remote_readiness_status = "checking"
 	else:
 		active_ai_provider = MockAiVfxProviderScript.new()
 	_register_and_select(active_ai_provider)
@@ -48,9 +59,50 @@ func _apply_web_query_config(config: Variant) -> void:
 	if not endpoint_text.is_empty():
 		config.remote_endpoint = endpoint_text
 
+func _probe_remote_readiness() -> void:
+	if active_ai_provider_id != AiVfxProviderConfigScript.REMOTE_PROVIDER_ID:
+		return
+	if active_ai_provider == null or not active_ai_provider.has_method("check_readiness"):
+		remote_readiness_status = "error"
+		remote_readiness_error = "Remote provider does not expose trusted backend readiness"
+		_refresh_ai_ui()
+		_set_ai_web_state()
+		return
+	remote_readiness_status = "checking"
+	remote_backend_configured = false
+	remote_backend_provider = ""
+	remote_backend_model = ""
+	remote_readiness_error = ""
+	_refresh_ai_ui()
+	_set_ai_web_state()
+	var readiness: Variant = await active_ai_provider.call("check_readiness", self)
+	if not (readiness is Dictionary):
+		remote_readiness_status = "error"
+		remote_readiness_error = "Trusted AI backend readiness returned an invalid response"
+	elif not bool(readiness.get("ok", false)):
+		remote_readiness_status = "error"
+		remote_readiness_error = str(readiness.get("error", "Trusted AI backend readiness check failed"))
+	else:
+		remote_backend_configured = bool(readiness.get("configured", false))
+		remote_backend_provider = str(readiness.get("provider", ""))
+		remote_backend_model = str(readiness.get("model", ""))
+		if remote_backend_configured:
+			remote_readiness_status = "ready"
+		else:
+			remote_readiness_status = "unconfigured"
+			remote_readiness_error = "Trusted AI backend is online but its provider API key is not configured"
+	_refresh_ai_ui()
+	_set_ai_web_state()
+
 func _on_generate_pressed() -> void:
 	if active_ai_provider_id != AiVfxProviderConfigScript.REMOTE_PROVIDER_ID:
 		super._on_generate_pressed()
+		return
+	if remote_readiness_status == "checking":
+		_set_ai_error("Trusted AI backend readiness check is still running")
+		return
+	if remote_readiness_status != "ready" or not remote_backend_configured:
+		_set_ai_error(remote_readiness_error if not remote_readiness_error.is_empty() else "Trusted AI backend is not ready for generation")
 		return
 	var next_request_id := "creator_ai_vfx_%d" % (ai_generation_count + 1)
 	var request: Variant = AiVfxRequestScript.new()
@@ -134,10 +186,37 @@ func _apply_remote_result(result: Variant, request: Variant, next_request_id: St
 
 func _refresh_ai_ui() -> void:
 	super._refresh_ai_ui()
-	if ai_status_label == null:
+	if generate_button != null and active_ai_provider_id == AiVfxProviderConfigScript.REMOTE_PROVIDER_ID:
+		generate_button.disabled = ai_last_status == "generating" or remote_readiness_status != "ready" or not remote_backend_configured
+	if ai_status_label == null or active_ai_provider_id != AiVfxProviderConfigScript.REMOTE_PROVIDER_ID:
 		return
-	if ai_last_status == "generating":
+	if remote_readiness_status == "checking":
+		ai_status_label.text = "CHECKING · trusted AI backend readiness"
+		ai_status_label.modulate = Color("9fb0d2")
+	elif remote_readiness_status == "unconfigured":
+		ai_status_label.text = "BACKEND ONLINE · provider API key is not configured server-side"
+		ai_status_label.modulate = Color("ffb86b")
+	elif remote_readiness_status == "error":
+		ai_status_label.text = "BACKEND UNAVAILABLE · %s" % remote_readiness_error
+		ai_status_label.modulate = Color("ff7b86")
+	elif ai_last_status == "generating":
 		ai_status_label.text = "GENERATING · waiting for trusted AI backend"
 		ai_status_label.modulate = Color("9fb0d2")
-	elif ai_last_status == "ready" and active_ai_provider_id == AiVfxProviderConfigScript.REMOTE_PROVIDER_ID:
-		ai_status_label.text = "READY · production remote AI provider"
+	elif ai_last_status == "ready" and remote_readiness_status == "ready":
+		var provider_label := remote_backend_provider if not remote_backend_provider.is_empty() else "remote provider"
+		var model_label := " · %s" % remote_backend_model if not remote_backend_model.is_empty() else ""
+		ai_status_label.text = "READY · %s%s via trusted backend" % [provider_label, model_label]
+		ai_status_label.modulate = Color("7ff0b1")
+
+func _set_ai_web_state() -> void:
+	super._set_ai_web_state()
+	if not OS.has_feature("web"):
+		return
+	JavaScriptBridge.eval(
+		"document.documentElement.dataset.creatorAiVfxBackendReadiness=%s;" % JSON.stringify(remote_readiness_status) +
+		"document.documentElement.dataset.creatorAiVfxBackendConfigured='%s';" % ("true" if remote_backend_configured else "false") +
+		"document.documentElement.dataset.creatorAiVfxBackendProvider=%s;" % JSON.stringify(remote_backend_provider) +
+		"document.documentElement.dataset.creatorAiVfxBackendModel=%s;" % JSON.stringify(remote_backend_model) +
+		"document.documentElement.dataset.creatorAiVfxBackendError=%s;" % JSON.stringify(remote_readiness_error) +
+		"document.documentElement.dataset.creatorAiVfxGenerateEnabled='%s';" % ("true" if generate_button != null and not generate_button.disabled else "false")
+	)
