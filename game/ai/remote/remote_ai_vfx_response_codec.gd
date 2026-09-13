@@ -5,10 +5,26 @@ const AiVfxResult = preload("res://game/ai/provider/ai_vfx_result.gd")
 const AiSkillProposal = preload("res://game/ai/skill/ai_skill_proposal.gd")
 
 func request_payload(request: Variant) -> Dictionary:
-	if request == null or not request.has_method("to_dictionary"):
+	if request == null or not request.has_method("validate"):
 		return {}
-	var payload: Variant = request.call("to_dictionary")
-	return payload.duplicate(true) if payload is Dictionary else {}
+	var request_errors: PackedStringArray = request.call("validate")
+	if not request_errors.is_empty():
+		return {}
+	var payload := {
+		"request_id": str(request.get("request_id")),
+		"prompt": str(request.get("prompt")).strip_edges(),
+		"frame_count": int(request.get("frame_count")),
+		"frame_width": int(request.get("frame_width")),
+		"frame_height": int(request.get("frame_height")),
+		"fps": float(request.get("fps"))
+	}
+	var reference_bytes: Variant = request.get("reference_png_bytes")
+	if reference_bytes is PackedByteArray and not reference_bytes.is_empty():
+		payload["reference_png_base64"] = Marshalls.raw_to_base64(reference_bytes)
+		payload["reference_mime_type"] = str(request.get("reference_mime_type"))
+		payload["reference_width"] = int(request.get("reference_width"))
+		payload["reference_height"] = int(request.get("reference_height"))
+	return payload
 
 func decode_response(provider_id: String, request: Variant, response: Dictionary) -> Variant:
 	var request_id := "unknown_request"

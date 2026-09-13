@@ -52,10 +52,6 @@ func _on_generate_pressed() -> void:
 	if active_ai_provider_id != AiVfxProviderConfigScript.REMOTE_PROVIDER_ID:
 		super._on_generate_pressed()
 		return
-	if not reference_png_bytes.is_empty():
-		_set_ai_error("Reference-image generation will be enabled in the image-to-skill slice")
-		return
-
 	var next_request_id := "creator_ai_vfx_%d" % (ai_generation_count + 1)
 	var request: Variant = AiVfxRequestScript.new()
 	request.set("request_id", next_request_id)
@@ -64,6 +60,11 @@ func _on_generate_pressed() -> void:
 	request.set("frame_width", roundi(ai_frame_width_spin.value))
 	request.set("frame_height", roundi(ai_frame_height_spin.value))
 	request.set("fps", ai_fps_spin.value)
+	if not reference_png_bytes.is_empty():
+		var reference_errors: PackedStringArray = request.call("set_reference_png", reference_file_name, reference_mime_type, reference_png_bytes)
+		if not reference_errors.is_empty():
+			_set_ai_error("Reference rejected: %s" % " | ".join(reference_errors))
+			return
 	var request_errors: PackedStringArray = request.call("validate")
 	if not request_errors.is_empty():
 		_set_ai_error("Request rejected: %s" % " | ".join(request_errors))

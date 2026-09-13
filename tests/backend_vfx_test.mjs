@@ -38,7 +38,7 @@ assert.match(response.skill_proposal.rationale, /review and confirm/i);
 
 const refRejected = await createVfxResponse({ ...validRequest, reference_png_base64: 'abc' }, { provider: fakeProvider });
 assert.equal(refRejected.ok, false);
-assert.match(refRejected.error, /reference-image/);
+assert.match(refRejected.error, /image\/png/);
 
 let capturedRequest;
 const fakeFetch = async (url, options) => {
