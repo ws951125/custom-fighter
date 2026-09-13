@@ -183,6 +183,9 @@ jobs:
       - name: Install test dependencies
         run: npm install --no-audit --no-fund
 
+      - name: Install Playwright Chromium fallback
+        run: npx playwright install chromium
+
       - name: Smoke-test Web build in Microsoft Edge
         shell: pwsh
         env:
