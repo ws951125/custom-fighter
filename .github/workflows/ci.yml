@@ -65,6 +65,7 @@ jobs:
           godot --headless --path . --script res://tests/creator_vfx_draft_test_runner.gd
           godot --headless --path . --script res://tests/ai_vfx_provider_test_runner.gd
           godot --headless --path . --script res://tests/character_package_test_runner.gd
+          godot --headless --path . --script res://tests/self_contained_character_package_test_runner.gd
           godot --headless --path . --script res://tests/formation_test_runner.gd
           godot --headless --path . --script res://tests/buff_test_runner.gd
           godot --headless --path . --script res://tests/melee_test_runner.gd
@@ -114,6 +115,7 @@ jobs:
           fi
 
           npm run smoke:all
+          node tests/creator_package_vfx_web_smoke.mjs
 
       - name: Upload Web build artifact
         uses: actions/upload-artifact@v4
@@ -181,6 +183,7 @@ jobs:
               throw 'Local Web server did not become ready.'
             }
             npm run smoke:all
+            node tests/creator_package_vfx_web_smoke.mjs
           } finally {
             if ($server -and -not $server.HasExited) {
               Stop-Process -Id $server.Id -Force
@@ -253,4 +256,6 @@ jobs:
         env:
           BROWSER_CHANNEL: msedge
           CUSTOM_FIGHTER_WEB_URL: https://ws951125.github.io/custom-fighter/
-        run: npm run smoke:all
+        run: |
+          npm run smoke:all
+          node tests/creator_package_vfx_web_smoke.mjs
