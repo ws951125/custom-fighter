@@ -161,9 +161,11 @@ jobs:
         run: |
           New-Item -ItemType Directory -Force -Path 'build/windows' | Out-Null
           $logPath = Join-Path $env:RUNNER_TEMP 'custom-fighter-windows-export.log'
-          & godot --headless --path . --export-release 'Windows Desktop' 'build/windows/CustomFighter.exe' 2>&1 | Tee-Object -FilePath $logPath
-          if ($LASTEXITCODE -ne 0) {
-            throw "Godot Windows export exited with code $LASTEXITCODE"
+          $exportOutput = & godot --headless --path . --export-release 'Windows Desktop' 'build/windows/CustomFighter.exe' 2>&1
+          $exportExitCode = $LASTEXITCODE
+          $exportOutput | Tee-Object -FilePath $logPath
+          if ($exportExitCode -ne 0) {
+            throw "Godot Windows export exited with code $exportExitCode"
           }
           $logText = Get-Content -Raw -Path $logPath
           if ($logText -match 'SCRIPT ERROR:|Parse Error:|ERROR: Failed to load script|FATAL:') {
