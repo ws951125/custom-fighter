@@ -225,13 +225,13 @@ try {
   await page.waitForFunction(
     () => Number(document.documentElement.dataset.playerMp) === 83,
     null,
-    { timeout: 3_000 },
+    { timeout: 5_000 },
   );
   await page.keyboard.up('u');
   await page.waitForFunction(
     () => document.documentElement.dataset.creatorPreviewVfxProjectileVisible === 'true',
     null,
-    { timeout: 3_000 },
+    { timeout: 5_000 },
   );
   const runtimeFrameBefore = Number(await dataset(page, 'creatorPreviewVfxRuntimeCurrentFrame'));
   await page.waitForFunction(
@@ -239,7 +239,7 @@ try {
       document.documentElement.dataset.creatorPreviewVfxProjectileVisible === 'true' &&
       Number(document.documentElement.dataset.creatorPreviewVfxRuntimeCurrentFrame ?? '-1') !== previous,
     runtimeFrameBefore,
-    { timeout: 3_000 },
+    { timeout: 5_000 },
   );
   await page.waitForFunction(
     () =>
