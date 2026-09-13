@@ -4,7 +4,7 @@
 
 Milestone 8 — MVP Release is the active roadmap milestone.
 
-Current active slice: **Issue #78 — M8 Slice 1: Windows native release artifact and CI smoke** on `feature/m8-windows-native-release` / PR #79.
+Current active slice: **Issue #80 — M8 Slice 2: release documentation and final Creator-to-Training acceptance** on `feature/m8-release-docs-acceptance`.
 
 Estimated whole-project completion: **88.9% (8/9 milestones)**. M0–M7 are formally complete; M8 is in progress.
 
@@ -76,30 +76,38 @@ Roadmap requirements from `docs/MVP.md`:
 - basic documentation,
 - stable Creator-to-Training loop.
 
-### Active Slice 1 — Issue #78 / PR #79 — Windows native release artifact and CI smoke
+### Completed Slice 1 — Issue #78 / PR #79 — Windows native release artifact and CI smoke
 
-Implemented on `feature/m8-windows-native-release`:
-- added a Godot `Windows Desktop` x86_64 release export preset with deterministic output under `build/windows`,
-- added a GitHub-hosted `Windows Native Release` job using Godot 4.7.2 plus official export templates,
-- the job validates both `CustomFighter.exe` and `CustomFighter.pck`,
-- a bounded native smoke launches the exported executable headlessly and requires a clean exit without script/fatal diagnostics,
-- the complete Windows bundle is uploaded as `custom-fighter-windows-x86_64`,
-- GitHub Pages deployment now also waits for the Windows native release gate on main,
-- all pre-existing Web/Chromium/hosted Edge/Pages/production Edge gates remain present.
+Implemented and production-validated:
+- Godot `Windows Desktop` x86_64 release export preset with deterministic output under `build/windows`,
+- GitHub-hosted `Windows Native Release` job using Godot 4.7.2 plus official export templates,
+- validation of both `CustomFighter.exe` and `CustomFighter.pck`,
+- bounded headless native smoke requiring a clean exit without script/fatal diagnostics,
+- uploaded `custom-fighter-windows-x86_64` release bundle,
+- GitHub Pages deployment waits for the Windows native release gate on main,
+- all Web/Chromium/hosted Edge/Pages/public/production Edge gates preserved.
 
 Validation:
-- PR #79 latest-head CI Run #164 passed all required PR gates on commit `251ce0f408d3891e16bd3f77db5d1cd7cd8d7e47` before documentation-only follow-up commits.
-- `Windows Native Release` passed Godot version verification, Windows x86_64 export, bounded native executable smoke and artifact upload.
-- Uploaded artifact: `custom-fighter-windows-x86_64`, about 39.2 MB, SHA-256 `d7534cfc6e6631f3b46031b8cc6c5099d236ada3f05488880753da285d75c642`.
-- `Godot + Web + Browser` passed import, main boot, domain tests, Web export, size budget and Chromium smoke.
-- `Windows + Microsoft Edge` passed the installed-Edge Web smoke against the validated Web artifact.
-- Earlier Windows runs exposed PowerShell process-exit and spaced-preset argument issues; the fixes and prevention rules are recorded in `docs/LESSONS_LEARNED.md`.
-- Documentation-only follow-up commits must receive a fresh latest-head PR CI before merge.
+- PR #79 final latest-head CI Run #166 passed Windows Native Release, Godot + Web + Browser and Windows + Microsoft Edge on head `e8d4fca97f2b0db068f7d3fcfaea76934c8d066a`.
+- PR #79 squash-merged to `main` at `b575a17cb69f06f162e4a6c800db693c2aaebdde`; Issue #78 is closed completed.
+- Main CI Run #167 completed with `conclusion=success` and passed all six production jobs: Windows Native Release, Godot + Web + Browser, Windows + Microsoft Edge, Deploy Web Demo, Verify Public Web Demo and Windows Edge Production Game.
+- Production Pages was deployed successfully and the public URL was verified reachable.
+- Production Edge ran the real game flow against GitHub Pages successfully.
+- Earlier Windows PowerShell process-exit and spaced-preset argument issues and their prevention rules are recorded in `docs/LESSONS_LEARNED.md`.
 
-Planned after Slice 1 production validation:
-- basic end-user/release documentation,
-- final stable Creator → package → Training release acceptance flow,
-- formal M8/MVP completion review.
+### Active Slice 2 — Issue #80 — release documentation and final Creator-to-Training acceptance
+
+In progress on `feature/m8-release-docs-acceptance`:
+- refresh the stale repository README from M0-era text to the current M8 release state,
+- add a first-time-user Web/Windows release and usage guide,
+- explicitly gate the existing self-contained Creator package VFX browser regression in `smoke:all`,
+- use that regression as final release acceptance evidence for Creator → schema-v2 package → second-session import → Training → runtime VFX load/cast,
+- preserve all existing CI and production gates.
+
+Acceptance remaining:
+- latest-head PR CI must pass the expanded `smoke:all` suite in Chromium and hosted Windows Edge plus Windows native release validation,
+- after merge, main CI must pass Windows native, Web/Chromium, hosted Edge, Pages deployment/public reachability and production Edge real-game flow,
+- then perform formal M8/MVP completion review.
 
 ## Online validation policy
 
@@ -113,8 +121,9 @@ Creator Studio: `https://ws951125.github.io/custom-fighter/?mode=creator`
 
 VFX Creator: `https://ws951125.github.io/custom-fighter/?mode=vfx`
 
-Production currently contains M0–M7. M8 Windows native release changes remain PR-only until fresh latest-head PR validation, merge and main production validation complete.
+Production currently contains M0–M7 plus the M8 Windows native release pipeline from Slice 1. Slice 2 documentation and expanded release acceptance remain branch-only until PR validation, merge and main production validation complete.
 
 ## Remaining roadmap
 
-- Complete M8 — Windows native release, basic documentation and final stable creator-to-training release flow.
+- Complete M8 Slice 2 release documentation and final stable Creator-to-package-to-Training acceptance.
+- Perform formal M8/MVP completion review once Slice 2 reaches production.
