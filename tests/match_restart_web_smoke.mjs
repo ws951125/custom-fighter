@@ -56,8 +56,10 @@ try {
     () =>
       document.documentElement.dataset.godotReady === 'true' &&
       document.documentElement.dataset.matchRestartReady === 'true' &&
+      document.documentElement.dataset.matchReturnCreatorReady === 'true' &&
       document.documentElement.dataset.matchOver === 'false' &&
-      typeof window.customFighterRestartMatch === 'function',
+      typeof window.customFighterRestartMatch === 'function' &&
+      typeof window.customFighterReturnToCreator === 'function',
     null,
     { timeout: 60_000 },
   );
@@ -94,6 +96,7 @@ try {
   await page.waitForFunction(
     ({ playerX, dummyX }) =>
       document.documentElement.dataset.matchRestartReady === 'true' &&
+      document.documentElement.dataset.matchReturnCreatorReady === 'true' &&
       document.documentElement.dataset.matchOver === 'false' &&
       document.documentElement.dataset.matchResult === '' &&
       Number(document.documentElement.dataset.dummyHp) === 100 &&
@@ -108,7 +111,16 @@ try {
     { timeout: 60_000 },
   );
 
-  console.log(`WEB_MATCH_RESTART_SMOKE_PASSED victory=true restart=true result=${await text('matchResult')}`);
+  await page.evaluate(() => window.customFighterReturnToCreator());
+  await page.waitForFunction(
+    () =>
+      document.documentElement.dataset.appMode === 'creator' &&
+      document.documentElement.dataset.creatorReady === 'true',
+    null,
+    { timeout: 60_000 },
+  );
+
+  console.log(`WEB_MATCH_RESTART_SMOKE_PASSED victory=true restart=true returnCreator=true result=${await text('matchResult')}`);
 } finally {
   await browser.close();
 }
