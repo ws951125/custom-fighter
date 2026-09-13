@@ -63,21 +63,29 @@ This repository is developed as a GitHub-only, CI-first Godot project. The defau
    - Keep this control map synchronized as controls are added, removed, remapped, or change semantics.
    - If the current build has no actionable UI buttons beyond keyboard/game inputs, say that explicitly rather than omitting the section.
 
+11. **Watch every started validation process through completion before final reporting.**
+   - After triggering or discovering an active GitHub Actions workflow, job, deployment, smoke test, or other validation process, continue checking it until it reaches a terminal state before giving the final result for that development step.
+   - Do not stop with a final reply while the relevant validation is still queued or in progress.
+   - Interim progress updates are allowed when useful, but the final development reply must wait for completion.
+   - If the process fails, inspect the failure, fix it on the same working branch when appropriate, and revalidate before declaring success.
+   - If the process cannot complete because of an external blocker, report the explicit blocker and the last verified state rather than implying completion.
+
 ## Required workflow for each development step
 
 1. Inspect current state and relevant existing code.
 2. State the intended change and acceptance criteria.
 3. Implement the smallest coherent change.
 4. Run/trigger the relevant GitHub-hosted automated validation.
-5. Inspect failures and fix them before declaring success.
-6. Record:
+5. Continue monitoring all relevant active validation processes until they complete or reach a clear external blocker.
+6. Inspect failures and fix them before declaring success.
+7. Record:
    - what changed,
    - tests/checks run,
    - failures encountered,
    - fixes applied,
    - remaining risks or unverified behavior.
-7. Keep docs/roadmap synchronized when architecture or milestone scope changes materially.
-8. After every modification, enumerate the newly added/changed functionality and the complete current user-facing control/button map.
+8. Keep docs/roadmap synchronized when architecture or milestone scope changes materially.
+9. After every modification, enumerate the newly added/changed functionality and the complete current user-facing control/button map.
 
 ## Online validation hierarchy
 
