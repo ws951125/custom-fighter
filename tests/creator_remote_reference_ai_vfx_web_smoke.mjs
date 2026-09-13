@@ -18,12 +18,31 @@ const browser = await chromium.launch(launchOptions);
 let capturedPayload = null;
 try {
   const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
-  await page.route(endpoint, async (route) => {
+  await page.route('https://ai.example.com/**', async (route) => {
+    const requestUrl = new URL(route.request().url());
+    if (requestUrl.pathname === '/healthz') {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        headers: { 'Access-Control-Allow-Origin': '*' },
+        body: JSON.stringify({
+          ok: true,
+          service: 'custom-fighter-ai-vfx',
+          ai: { configured: true, provider: 'openai', model: 'gpt-image-2' },
+        }),
+      });
+      return;
+    }
+    if (requestUrl.pathname !== '/v1/vfx/generate') {
+      await route.abort();
+      return;
+    }
     capturedPayload = route.request().postDataJSON();
     const requestId = String(capturedPayload?.request_id ?? '');
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
+      headers: { 'Access-Control-Allow-Origin': '*' },
       body: JSON.stringify({
         ok: true,
         request_id: requestId,
@@ -63,6 +82,11 @@ try {
   const response = await page.goto(url.toString(), { waitUntil: 'domcontentloaded', timeout: 60_000 });
   if (!response?.ok()) throw new Error(`VFX URL returned HTTP ${response?.status() ?? 'unknown'}`);
   await page.waitForFunction(() => document.documentElement.dataset.creatorAiVfxReady === 'true', null, { timeout: 60_000 });
+  await page.waitForFunction(
+    () => document.documentElement.dataset.creatorAiVfxBackendReadiness === 'ready' && document.documentElement.dataset.creatorAiVfxGenerateEnabled === 'true',
+    null,
+    { timeout: 15_000 },
+  );
 
   const dataUrl = `data:image/png;base64,${referencePng.toString('base64')}`;
   await page.evaluate((value) => window.customFighterCreatorAiVfxImportReference('reference.png', 'image/png', value), dataUrl);
@@ -83,7 +107,7 @@ try {
   if (capturedPayload.frame_count !== 4 || capturedPayload.frame_width !== 64 || capturedPayload.frame_height !== 64 || Number(capturedPayload.fps) !== 10) {
     throw new Error(`Remote output contract mismatch: ${JSON.stringify(capturedPayload)}`);
   }
-  console.log('WEB_CREATOR_REMOTE_REFERENCE_AI_VFX_SMOKE_PASSED reference=true payload=true generated=true proposal=true');
+  console.log('WEB_CREATOR_REMOTE_REFERENCE_AI_VFX_SMOKE_PASSED readiness=true reference=true payload=true generated=true proposal=true');
 } finally {
   await browser.close();
 }
