@@ -111,21 +111,12 @@ jobs:
           python3 -m http.server 8000 --directory build/web >/tmp/custom-fighter-http.log 2>&1 &
           SERVER_PID=$!
           trap 'kill $SERVER_PID || true' EXIT
-
           READY=0
           for i in {1..30}; do
-            if curl -fsS -o /dev/null http://127.0.0.1:8000/index.html; then
-              READY=1
-              break
-            fi
+            if curl -fsS -o /dev/null http://127.0.0.1:8000/index.html; then READY=1; break; fi
             sleep 1
           done
-
-          if [ "$READY" -ne 1 ]; then
-            cat /tmp/custom-fighter-http.log
-            exit 1
-          fi
-
+          if [ "$READY" -ne 1 ]; then cat /tmp/custom-fighter-http.log; exit 1; fi
           npm run smoke:all
 
       - name: Upload Web build artifact
@@ -137,7 +128,7 @@ jobs:
 
   windows-native-release:
     name: Windows Native Release
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
     timeout-minutes: 15
 
     steps:
@@ -152,15 +143,21 @@ jobs:
           include-templates: true
 
       - name: Verify Godot
-        shell: pwsh
         run: godot --version
 
-      - name: Export Windows release build
-        shell: pwsh
+      - name: Import project headlessly
+        run: godot --headless --path . --import
+
+      - name: Cross-export Windows release build
         run: |
-          New-Item -ItemType Directory -Force -Path build/windows | Out-Null
-          godot --headless --path . --export-release "Windows Desktop" "build/windows/CustomFighter.exe"
-          if (-not (Test-Path "build/windows/CustomFighter.exe")) { throw "Windows export missing" }
+          set -o pipefail
+          mkdir -p build/windows
+          godot --headless --path . --export-release "Windows Desktop" build/windows/CustomFighter.exe 2>&1 | tee /tmp/godot-windows-export.log
+          if grep -E "SCRIPT ERROR:|Parse Error:|ERROR: Failed to load script|FATAL:" /tmp/godot-windows-export.log; then
+            echo "::error::Windows export emitted a script/fatal diagnostic."
+            exit 1
+          fi
+          test -f build/windows/CustomFighter.exe
 
   windows-edge-online:
     name: Windows + Microsoft Edge
