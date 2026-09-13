@@ -7,9 +7,11 @@ var ai_proposal_panel: PanelContainer
 var ai_proposal_summary: Label
 var ai_proposal_status: Label
 var ai_proposal_apply_button: Button
+var ai_proposal_preview_button: Button
 var ai_proposal_discard_button: Button
 var _web_stage_ai_proposal_callback
 var _web_confirm_ai_proposal_callback
+var _web_confirm_preview_ai_proposal_callback
 var _web_discard_ai_proposal_callback
 
 func _ready() -> void:
@@ -54,6 +56,10 @@ func _install_ai_proposal_ui() -> void:
 	ai_proposal_apply_button.text = "Confirm & Apply"
 	ai_proposal_apply_button.pressed.connect(_on_confirm_ai_proposal)
 	row.add_child(ai_proposal_apply_button)
+	ai_proposal_preview_button = Button.new()
+	ai_proposal_preview_button.text = "Confirm & Preview"
+	ai_proposal_preview_button.pressed.connect(_on_confirm_preview_ai_proposal)
+	row.add_child(ai_proposal_preview_button)
 	ai_proposal_discard_button = Button.new()
 	ai_proposal_discard_button.text = "Discard"
 	ai_proposal_discard_button.pressed.connect(_on_discard_ai_proposal)
@@ -83,31 +89,42 @@ func _refresh_ai_proposal_ui() -> void:
 	ai_proposal_status.text = "REVIEW REQUIRED"
 	ai_proposal_status.modulate = Color("f6cc69")
 	ai_proposal_apply_button.disabled = false
+	ai_proposal_preview_button.disabled = false
 
-func _on_confirm_ai_proposal() -> void:
+func _apply_confirmed_ai_proposal() -> bool:
 	if ai_skill_proposal == null:
-		return
+		return false
 	var confirm_errors: PackedStringArray = ai_skill_proposal.confirm()
 	if not confirm_errors.is_empty() or not ai_skill_proposal.can_apply():
 		ai_proposal_status.text = "BLOCKED · invalid proposal"
 		ai_proposal_status.modulate = Color("ff7b86")
 		_set_ai_proposal_web_state("invalid proposal")
-		return
+		return false
 	var apply_errors: PackedStringArray = skill_draft.load_from_dictionary(ai_skill_proposal.to_skill_dictionary())
 	if not apply_errors.is_empty():
 		ai_skill_proposal.revoke_confirmation()
 		ai_proposal_status.text = "BLOCKED · SkillDraft rejected"
 		ai_proposal_status.modulate = Color("ff7b86")
 		_set_ai_proposal_web_state("SkillDraft rejected proposal")
-		return
+		return false
 	_sync_skill_controls_from_draft()
 	_refresh_skill_validation(false)
 	skill_draft_revision += 1
 	ai_proposal_status.text = "APPLIED · user confirmed"
 	ai_proposal_status.modulate = Color("7ff0b1")
 	ai_proposal_apply_button.disabled = true
+	ai_proposal_preview_button.disabled = true
 	_set_web_state()
 	_set_ai_proposal_web_state()
+	return true
+
+func _on_confirm_ai_proposal() -> void:
+	_apply_confirmed_ai_proposal()
+
+func _on_confirm_preview_ai_proposal() -> void:
+	if not _apply_confirmed_ai_proposal():
+		return
+	_on_preview_pressed()
 
 func _on_discard_ai_proposal() -> void:
 	if ai_skill_proposal != null:
@@ -122,10 +139,12 @@ func _install_ai_proposal_web_bridge() -> void:
 		return
 	_web_stage_ai_proposal_callback = JavaScriptBridge.create_callback(_web_stage_ai_proposal)
 	_web_confirm_ai_proposal_callback = JavaScriptBridge.create_callback(_web_confirm_ai_proposal)
+	_web_confirm_preview_ai_proposal_callback = JavaScriptBridge.create_callback(_web_confirm_preview_ai_proposal)
 	_web_discard_ai_proposal_callback = JavaScriptBridge.create_callback(_web_discard_ai_proposal)
 	var window = JavaScriptBridge.get_interface("window")
 	window.customFighterCreatorStageAiSkillProposal = _web_stage_ai_proposal_callback
 	window.customFighterCreatorConfirmAiSkillProposal = _web_confirm_ai_proposal_callback
+	window.customFighterCreatorConfirmPreviewAiSkillProposal = _web_confirm_preview_ai_proposal_callback
 	window.customFighterCreatorDiscardAiSkillProposal = _web_discard_ai_proposal_callback
 
 func _web_stage_ai_proposal(args: Array) -> void:
@@ -140,6 +159,9 @@ func _web_stage_ai_proposal(args: Array) -> void:
 
 func _web_confirm_ai_proposal(_args: Array) -> void:
 	_on_confirm_ai_proposal()
+
+func _web_confirm_preview_ai_proposal(_args: Array) -> void:
+	_on_confirm_preview_ai_proposal()
 
 func _web_discard_ai_proposal(_args: Array) -> void:
 	_on_discard_ai_proposal()
