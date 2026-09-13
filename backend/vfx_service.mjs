@@ -26,6 +26,32 @@ export function validateVfxRequest(input) {
   return '';
 }
 
+function buildStarterSkillProposal(input) {
+  const requestId = String(input.request_id);
+  return {
+    proposal_id: `${requestId}_skill`,
+    source_request_id: requestId,
+    skill_id: `${requestId}_projectile`,
+    skill_name: 'AI Generated Projectile',
+    skill_type: 'projectile',
+    damage: 24,
+    mp_cost: 20,
+    cooldown: 1.8,
+    startup: 0.22,
+    active: 0.08,
+    recovery: 0.30,
+    speed: 620,
+    range: 900,
+    hitstun: 0.22,
+    knockback: 280,
+    hitbox_half_width: 28,
+    hitbox_half_depth: 0.08,
+    visual: 'prototype_fireball',
+    impact_visual: 'prototype_impact',
+    rationale: 'Starter proposal derived from the generated VFX request; review and confirm before applying.'
+  };
+}
+
 export async function createVfxResponse(input, { provider = new OpenAiImageProvider() } = {}) {
   const validationError = validateVfxRequest(input);
   if (validationError) return reject(validationError);
@@ -62,6 +88,7 @@ export async function createVfxResponse(input, { provider = new OpenAiImageProvi
     request_id: String(input.request_id),
     frame_count: frameCount,
     fps: Number(input.fps),
-    png_base64: spriteStrip.toString('base64')
+    png_base64: spriteStrip.toString('base64'),
+    skill_proposal: buildStarterSkillProposal(input)
   };
 }
