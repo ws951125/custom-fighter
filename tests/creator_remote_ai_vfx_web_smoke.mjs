@@ -1,7 +1,10 @@
 import { chromium } from 'playwright';
 
 const baseUrl = process.env.CUSTOM_FIGHTER_WEB_URL ?? 'http://127.0.0.1:8000';
-const browser = await chromium.launch({ headless: true });
+const browserChannel = process.env.BROWSER_CHANNEL?.trim();
+const launchOptions = { headless: true };
+if (browserChannel) launchOptions.channel = browserChannel;
+const browser = await chromium.launch(launchOptions);
 
 async function openVfx(page, endpoint) {
   const url = new URL(baseUrl);

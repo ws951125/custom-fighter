@@ -3,6 +3,10 @@ import sharp from 'sharp';
 
 const baseUrl = process.env.CUSTOM_FIGHTER_WEB_URL ?? 'http://127.0.0.1:8000';
 const endpoint = 'https://ai.example.com/v1/vfx/generate';
+const browserChannel = process.env.BROWSER_CHANNEL?.trim();
+const launchOptions = { headless: true };
+if (browserChannel) launchOptions.channel = browserChannel;
+
 const referencePng = await sharp({
   create: { width: 2, height: 2, channels: 4, background: { r: 255, g: 64, b: 32, alpha: 1 } },
 }).png().toBuffer();
@@ -10,7 +14,7 @@ const generatedStrip = await sharp({
   create: { width: 256, height: 64, channels: 4, background: { r: 64, g: 128, b: 255, alpha: 1 } },
 }).png().toBuffer();
 
-const browser = await chromium.launch({ headless: true });
+const browser = await chromium.launch(launchOptions);
 let capturedPayload = null;
 try {
   const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
@@ -20,7 +24,8 @@ try {
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
-      body: JSON.stringify({        ok: true,
+      body: JSON.stringify({
+        ok: true,
         request_id: requestId,
         frame_count: 4,
         fps: 10,
@@ -40,7 +45,8 @@ try {
           speed: 640,
           range: 900,
           hitstun: 0.22,
-          knockback: 300,          hitbox_half_width: 28,
+          knockback: 300,
+          hitbox_half_width: 28,
           hitbox_half_depth: 0.08,
           visual: 'prototype_fireball',
           impact_visual: 'prototype_impact',
@@ -59,7 +65,8 @@ try {
   await page.waitForFunction(() => document.documentElement.dataset.creatorAiVfxReady === 'true', null, { timeout: 60_000 });
 
   const dataUrl = `data:image/png;base64,${referencePng.toString('base64')}`;
-  await page.evaluate((value) => window.customFighterCreatorAiVfxImportReference('reference.png', 'image/png', value), dataUrl);  await page.waitForFunction(() => document.documentElement.dataset.creatorAiVfxReferencePresent === 'true', null, { timeout: 10_000 });
+  await page.evaluate((value) => window.customFighterCreatorAiVfxImportReference('reference.png', 'image/png', value), dataUrl);
+  await page.waitForFunction(() => document.documentElement.dataset.creatorAiVfxReferencePresent === 'true', null, { timeout: 10_000 });
   await page.evaluate(() => window.customFighterCreatorAiVfxSetPrompt('reference guided blue arc'));
   await page.evaluate(() => window.customFighterCreatorAiVfxSetOutput(4, 64, 64, 10));
   await page.evaluate(() => window.customFighterCreatorAiVfxGenerate());
