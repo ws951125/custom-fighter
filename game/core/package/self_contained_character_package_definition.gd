@@ -1,0 +1,218 @@
+class_name SelfContainedCharacterPackageDefinition
+extends RefCounted
+
+const CharacterPackageDefinition = preload("res://game/core/package/character_package_definition.gd")
+const VfxDraft = preload("res://game/creator/vfx_editor/vfx_draft.gd")
+
+const CURRENT_SCHEMA_VERSION := 2
+const LEGACY_SCHEMA_VERSION := 1
+const MAX_VFX_PNG_BYTES := 5 * 1024 * 1024
+const MAX_VFX_BASE64_CHARS := 7 * 1024 * 1024
+const ALLOWED_V2_TOP_LEVEL_FIELDS := [
+	"schema_version", "package_id", "package_version", "character", "skills", "vfx_asset"
+]
+const ALLOWED_VFX_ASSET_FIELDS := [
+	"skill_slot", "skill_id", "mime_type", "metadata", "png_base64"
+]
+
+var schema_version := CURRENT_SCHEMA_VERSION
+var package_id := ""
+var package_version := 1
+var character_data: Dictionary = {}
+var skill_data_by_id: Dictionary = {}
+var vfx_data: Dictionary = {}
+var vfx_png_bytes := PackedByteArray()
+var loaded := false
+
+func reset() -> void:
+	schema_version = CURRENT_SCHEMA_VERSION
+	package_id = ""
+	package_version = 1
+	character_data.clear()
+	skill_data_by_id.clear()
+	vfx_data.clear()
+	vfx_png_bytes.clear()
+	loaded = false
+
+func load_from_dictionary(data: Dictionary) -> PackedStringArray:
+	reset()
+	var requested_schema: int = int(data.get("schema_version", 0))
+	if requested_schema == LEGACY_SCHEMA_VERSION:
+		return _load_legacy(data)
+	if requested_schema != CURRENT_SCHEMA_VERSION:
+		return PackedStringArray(["unsupported package schema_version: %d" % requested_schema])
+	return _load_v2(data)
+
+func _load_legacy(data: Dictionary) -> PackedStringArray:
+	var legacy := CharacterPackageDefinition.new()
+	var errors: PackedStringArray = legacy.load_from_dictionary(data)
+	if not errors.is_empty():
+		return errors
+	_copy_legacy_state(legacy)
+	schema_version = LEGACY_SCHEMA_VERSION
+	loaded = true
+	return PackedStringArray()
+
+func _load_v2(data: Dictionary) -> PackedStringArray:
+	var errors := PackedStringArray()
+	_validate_allowed_fields(data, ALLOWED_V2_TOP_LEVEL_FIELDS, "package", errors)
+	for required_field in ["schema_version", "package_id", "package_version", "character", "skills"]:
+		if not data.has(required_field):
+			errors.append("missing required package field: %s" % required_field)
+	if not errors.is_empty():
+		return errors
+
+	var legacy_input: Dictionary = {
+		"schema_version": LEGACY_SCHEMA_VERSION,
+		"package_id": data.get("package_id", ""),
+		"package_version": data.get("package_version", 0),
+		"character": data.get("character", {}),
+		"skills": data.get("skills", [])
+	}
+	var legacy := CharacterPackageDefinition.new()
+	var legacy_errors: PackedStringArray = legacy.load_from_dictionary(legacy_input)
+	for error in legacy_errors:
+		errors.append(error)
+	if not errors.is_empty():
+		return errors
+
+	_copy_legacy_state(legacy)
+	schema_version = CURRENT_SCHEMA_VERSION
+
+	if data.has("vfx_asset"):
+		var asset_value: Variant = data.get("vfx_asset")
+		if not asset_value is Dictionary:
+			errors.append("vfx_asset must be an object")
+			return errors
+		var asset: Dictionary = asset_value
+		_validate_vfx_asset(asset, errors)
+
+	loaded = errors.is_empty()
+	if not loaded:
+		vfx_data.clear()
+		vfx_png_bytes.clear()
+	return errors
+
+func _validate_vfx_asset(asset: Dictionary, errors: PackedStringArray) -> void:
+	_validate_allowed_fields(asset, ALLOWED_VFX_ASSET_FIELDS, "vfx_asset", errors)
+	for required_field in ALLOWED_VFX_ASSET_FIELDS:
+		if not asset.has(required_field):
+			errors.append("missing required vfx_asset field: %s" % required_field)
+	if not errors.is_empty():
+		return
+
+	var skill_slot: String = str(asset.get("skill_slot", ""))
+	var skill_id: String = str(asset.get("skill_id", "")).strip_edges().to_lower()
+	var mime_type: String = str(asset.get("mime_type", "")).strip_edges().to_lower()
+	if skill_slot != "skill_1":
+		errors.append("vfx_asset skill_slot must be skill_1")
+	var slots: Dictionary = character_data.get("skill_slots", {})
+	if skill_id != str(slots.get("skill_1", "")):
+		errors.append("vfx_asset skill_id must match character skill_1")
+	if mime_type != "image/png":
+		errors.append("vfx_asset mime_type must be image/png")
+
+	var metadata_value: Variant = asset.get("metadata")
+	if not metadata_value is Dictionary:
+		errors.append("vfx_asset metadata must be an object")
+		return
+	var draft := VfxDraft.new()
+	var draft_errors: PackedStringArray = draft.load_from_dictionary(metadata_value)
+	for error in draft_errors:
+		errors.append("vfx_asset metadata: %s" % error)
+	if not _is_safe_png_name(draft.file_name):
+		errors.append("vfx_asset metadata file_name must be a safe .png filename")
+	if not errors.is_empty():
+		return
+
+	var encoded: String = str(asset.get("png_base64", "")).strip_edges()
+	if not _is_valid_base64_shape(encoded):
+		errors.append("vfx_asset png_base64 is malformed or exceeds the encoded size limit")
+		return
+	var png_bytes: PackedByteArray = Marshalls.base64_to_raw(encoded)
+	if png_bytes.is_empty():
+		errors.append("vfx_asset PNG bytes must not be empty")
+		return
+	if png_bytes.size() > MAX_VFX_PNG_BYTES:
+		errors.append("vfx_asset PNG exceeds 5 MB limit")
+		return
+
+	var image := Image.new()
+	var decode_error: Error = image.load_png_from_buffer(png_bytes)
+	if decode_error != OK:
+		errors.append("vfx_asset PNG bytes failed runtime decode")
+		return
+	if image.get_width() != draft.image_width or image.get_height() != draft.image_height:
+		errors.append("vfx_asset decoded PNG dimensions do not match metadata")
+		return
+
+	vfx_data = draft.to_dictionary()
+	vfx_png_bytes = png_bytes.duplicate()
+
+func has_vfx_asset() -> bool:
+	return loaded and not vfx_data.is_empty() and not vfx_png_bytes.is_empty()
+
+func to_dictionary() -> Dictionary:
+	if not loaded:
+		return {}
+	if schema_version == LEGACY_SCHEMA_VERSION:
+		return to_legacy_dictionary()
+
+	var result: Dictionary = to_legacy_dictionary()
+	result["schema_version"] = CURRENT_SCHEMA_VERSION
+	if has_vfx_asset():
+		var slots: Dictionary = character_data.get("skill_slots", {})
+		result["vfx_asset"] = {
+			"skill_slot": "skill_1",
+			"skill_id": str(slots.get("skill_1", "")),
+			"mime_type": "image/png",
+			"metadata": vfx_data.duplicate(true),
+			"png_base64": Marshalls.raw_to_base64(vfx_png_bytes)
+		}
+	return result
+
+func to_legacy_dictionary() -> Dictionary:
+	if package_id.is_empty() or character_data.is_empty() or skill_data_by_id.is_empty():
+		return {}
+	var ordered_skills: Array = []
+	var skill_ids: Array = skill_data_by_id.keys()
+	skill_ids.sort()
+	for raw_id in skill_ids:
+		var skill_id: String = str(raw_id)
+		ordered_skills.append(skill_data_by_id[skill_id].duplicate(true))
+	return {
+		"schema_version": LEGACY_SCHEMA_VERSION,
+		"package_id": package_id,
+		"package_version": package_version,
+		"character": character_data.duplicate(true),
+		"skills": ordered_skills
+	}
+
+func is_valid() -> bool:
+	return loaded
+
+func _copy_legacy_state(legacy: Variant) -> void:
+	package_id = str(legacy.package_id)
+	package_version = int(legacy.package_version)
+	character_data = legacy.character_data.duplicate(true)
+	skill_data_by_id = legacy.skill_data_by_id.duplicate(true)
+
+func _validate_allowed_fields(data: Dictionary, allowed_fields: Array, scope: String, errors: PackedStringArray) -> void:
+	for raw_key in data.keys():
+		var key: String = str(raw_key)
+		if not allowed_fields.has(key):
+			errors.append("unsupported %s field: %s" % [scope, key])
+
+func _is_valid_base64_shape(value: String) -> bool:
+	if value.is_empty() or value.length() > MAX_VFX_BASE64_CHARS or value.length() % 4 != 0:
+		return false
+	var regex := RegEx.new()
+	regex.compile("^[A-Za-z0-9+/]*={0,2}$")
+	return regex.search(value) != null
+
+func _is_safe_png_name(value: String) -> bool:
+	if value.is_empty() or value.contains("/") or value.contains("\\") or value.contains(".."):
+		return false
+	var regex := RegEx.new()
+	regex.compile("^[A-Za-z0-9][A-Za-z0-9_.-]*\\.png$")
+	return regex.search(value) != null
