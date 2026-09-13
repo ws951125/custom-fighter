@@ -66,6 +66,12 @@ try {
     { timeout: 3_000 },
   );
 
+  await page.waitForFunction(
+    () => Number(document.documentElement.dataset.skillCooldown ?? '0') > 0,
+    null,
+    { timeout: 5_000 },
+  );
+
   const mpAfterSimultaneousInput = await readNumber('playerMp');
   const lastClaimed = await readText('skillCoordinatorLastClaimed');
   const claimCount = await readNumber('skillCoordinatorClaimCount');
