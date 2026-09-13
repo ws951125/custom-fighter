@@ -2,7 +2,6 @@ extends "res://game/creator/vfx_editor/ai_vfx_studio.gd"
 
 const AiVfxProviderConfigScript = preload("res://game/ai/provider/ai_vfx_provider_config.gd")
 const RemoteAiVfxProviderScript = preload("res://game/ai/remote/remote_ai_vfx_provider.gd")
-const MockAiVfxProviderScript = preload("res://game/ai/mock/mock_ai_vfx_provider.gd")
 
 var active_ai_provider: Variant
 var active_ai_provider_id := "mock_ai_vfx"
