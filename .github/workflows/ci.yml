@@ -159,28 +159,35 @@ jobs:
           if (-not $godotExe) {
             throw 'Godot Windows executable was not found after setup-godot.'
           }
-          & $godotExe.FullName --version
-          if ($LASTEXITCODE -ne 0) {
-            throw "Godot version probe exited with code $LASTEXITCODE"
+          $stdoutPath = Join-Path $env:RUNNER_TEMP 'godot-version.stdout.log'
+          $stderrPath = Join-Path $env:RUNNER_TEMP 'godot-version.stderr.log'
+          $process = Start-Process -FilePath $godotExe.FullName -ArgumentList '--version' -Wait -PassThru -RedirectStandardOutput $stdoutPath -RedirectStandardError $stderrPath
+          if (Test-Path $stdoutPath) { Get-Content -Raw -Path $stdoutPath | Write-Host }
+          if (Test-Path $stderrPath) { Get-Content -Raw -Path $stderrPath | Write-Host }
+          if ($process.ExitCode -ne 0) {
+            throw "Godot version probe exited with code $($process.ExitCode)"
           }
 
       - name: Export Windows release build
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force -Path 'build/windows' | Out-Null
-          $logPath = Join-Path $env:RUNNER_TEMP 'custom-fighter-windows-export.log'
+          $stdoutPath = Join-Path $env:RUNNER_TEMP 'custom-fighter-windows-export.stdout.log'
+          $stderrPath = Join-Path $env:RUNNER_TEMP 'custom-fighter-windows-export.stderr.log'
           $godotExe = Get-ChildItem -Path (Join-Path $HOME 'godot') -Filter 'Godot_v4.7.2-stable_win64.exe' -File | Select-Object -First 1
           if (-not $godotExe) {
             throw 'Godot Windows executable was not found after setup-godot.'
           }
-          $exportOutput = & $godotExe.FullName --headless --path . --export-release 'Windows Desktop' 'build/windows/CustomFighter.exe' 2>&1
-          $exportExitCode = $LASTEXITCODE
-          $exportOutput | Tee-Object -FilePath $logPath
-          if ($exportExitCode -ne 0) {
-            throw "Godot Windows export exited with code $exportExitCode"
+          $process = Start-Process -FilePath $godotExe.FullName -ArgumentList '--headless','--path','.','--export-release','Windows Desktop','build/windows/CustomFighter.exe' -Wait -PassThru -RedirectStandardOutput $stdoutPath -RedirectStandardError $stderrPath
+          $stdoutText = if (Test-Path $stdoutPath) { Get-Content -Raw -Path $stdoutPath } else { '' }
+          $stderrText = if (Test-Path $stderrPath) { Get-Content -Raw -Path $stderrPath } else { '' }
+          Write-Host $stdoutText
+          Write-Host $stderrText
+          if ($process.ExitCode -ne 0) {
+            throw "Godot Windows export exited with code $($process.ExitCode)"
           }
-          $logText = Get-Content -Raw -Path $logPath
-          if ($logText -match 'SCRIPT ERROR:|Parse Error:|ERROR: Failed to load script|FATAL:') {
+          $combined = "$stdoutText`n$stderrText"
+          if ($combined -match 'SCRIPT ERROR:|Parse Error:|ERROR: Failed to load script|FATAL:') {
             throw 'Godot Windows export emitted a script/fatal diagnostic.'
           }
           if (-not (Test-Path 'build/windows/CustomFighter.exe')) {
