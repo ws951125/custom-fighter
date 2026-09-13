@@ -1,5 +1,5 @@
 import sharp from 'sharp';
-import { OpenAiImageProvider } from './openai_image_provider.mjs';
+import { createConfiguredImageProvider } from './image_provider_factory.mjs';
 
 const MAX_PROMPT_CHARS = 1000;
 const MAX_FRAMES = 8;
@@ -68,7 +68,7 @@ async function decodeReference(input) {
   return bytes;
 }
 
-export async function createVfxResponse(input, { provider = new OpenAiImageProvider() } = {}) {
+export async function createVfxResponse(input, { provider = createConfiguredImageProvider() } = {}) {
   const validationError = validateVfxRequest(input);
   if (validationError) return reject(validationError);
   let referencePng = null;
