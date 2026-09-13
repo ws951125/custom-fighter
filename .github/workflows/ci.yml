@@ -178,7 +178,8 @@ jobs:
           if (-not $godotExe) {
             throw 'Godot Windows executable was not found after setup-godot.'
           }
-          $process = Start-Process -FilePath $godotExe.FullName -ArgumentList '--headless','--path','.','--export-release','Windows Desktop','build/windows/CustomFighter.exe' -Wait -PassThru -RedirectStandardOutput $stdoutPath -RedirectStandardError $stderrPath
+          $argumentString = '--headless --path . --export-release "Windows Desktop" "build/windows/CustomFighter.exe"'
+          $process = Start-Process -FilePath $godotExe.FullName -ArgumentList $argumentString -Wait -PassThru -RedirectStandardOutput $stdoutPath -RedirectStandardError $stderrPath
           $stdoutText = if (Test-Path $stdoutPath) { Get-Content -Raw -Path $stdoutPath } else { '' }
           $stderrText = if (Test-Path $stderrPath) { Get-Content -Raw -Path $stderrPath } else { '' }
           Write-Host $stdoutText
