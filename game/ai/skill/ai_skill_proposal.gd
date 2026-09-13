@@ -1,6 +1,7 @@
 class_name AiSkillProposal
 extends RefCounted
 
+const SkillDefinition = preload("res://game/core/skills/skill_definition.gd")
 const ALLOWED_SKILL_TYPES := ["projectile", "melee", "area", "dash", "formation", "buff"]
 
 var proposal_id := ""
@@ -84,6 +85,7 @@ func can_apply() -> bool:
 
 func to_skill_dictionary() -> Dictionary:
 	return {
+		"schema_version": SkillDefinition.CURRENT_SCHEMA_VERSION,
 		"id": skill_id,
 		"name": skill_name,
 		"type": skill_type,
