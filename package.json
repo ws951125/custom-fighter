@@ -3,10 +3,15 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "dependencies": {
+    "sharp": "0.34.3"
+  },
   "devDependencies": {
     "playwright": "1.63.0"
   },
   "scripts": {
+    "backend:start": "node backend/server.mjs",
+    "test:backend": "node tests/backend_vfx_test.mjs",
     "smoke:web": "node tests/web_smoke.mjs",
     "smoke:area": "node tests/area_web_smoke.mjs",
     "smoke:formation": "node tests/formation_web_smoke.mjs",
