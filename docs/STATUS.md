@@ -4,7 +4,7 @@
 
 Milestone 7 — Character Packages is the active roadmap milestone.
 
-Current active slice: **Issue #72 — M7 Slice 1: versioned safe character package data boundary** on `feature/m7-character-package-data-boundary`.
+Current active slice: **Issue #72 — M7 Slice 1: versioned safe character package data boundary** on `feature/m7-character-package-data-boundary` / PR #73.
 
 Estimated whole-project completion: **77.8% (7/9 milestones)**. M0–M6 are formally complete; M7 is in progress.
 
@@ -60,9 +60,9 @@ Issue #61 / PR #62 is production-validated. Touch-capable Web sessions can use m
 
 ## M7 — Character Packages
 
-### Active Slice 1 — Issue #72 — versioned safe character package data boundary
+### Active Slice 1 — Issue #72 / PR #73 — versioned safe character package data boundary
 
-Implementation underway on `feature/m7-character-package-data-boundary`:
+Implemented on `feature/m7-character-package-data-boundary`:
 
 - Added `CharacterPackageDefinition` as a versioned, data-only package contract.
 - Top-level package fields are allow-listed and package id/version are validated.
@@ -73,7 +73,11 @@ Implementation underway on `feature/m7-character-package-data-boundary`:
 - Canonical `to_dictionary()` output sorts skill definitions by id for deterministic serialization/round-trip behavior.
 - Arbitrary package paths, archive extraction, scripts, binaries and filesystem writes remain out of scope for this slice.
 - Added `character_package_test_runner.gd` for valid round trip plus schema mismatch, id mismatch, duplicate skill, unresolved slot, unsafe token/path-like reference, unknown nested field and tampered nested skill rejection.
-- GitHub Actions domain-test wiring has been added; fresh PR CI is pending.
+- GitHub Actions domain-test wiring has been added.
+
+Validation:
+- PR #73 CI Run #146 passed Godot import, main-scene boot, all domain tests including `CHARACTER_PACKAGE_TESTS_PASSED`, Web export/size budget, Chromium `smoke:all` and GitHub-hosted Windows Edge `smoke:all`.
+- A fresh latest-head CI is required after this status sync before merge.
 
 M7 acceptance from `docs/MVP.md`: one user can create a character package and another can load it safely.
 
