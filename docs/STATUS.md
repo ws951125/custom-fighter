@@ -2,16 +2,16 @@
 
 ## Current phase
 
-**Post-MVP P2 — Async remote AI VFX transport is complete.**
+**Post-MVP P3/P4 production image-to-skill integration is in progress.**
 
-Estimated whole-project completion: **84.6% (11/13 roadmap phases)**.
+Whole-project phase completion remains **84.6% (11/13 roadmap phases fully complete)** because P3 and P4 are not counted until each phase is fully accepted.
 
-The roadmap is now tracked as 13 phases:
+Roadmap:
 - M0–M8 MVP: 9/9 complete.
 - P1 Safe real-provider boundary: complete.
 - P2 Async remote AI transport: complete.
-- P3 Production AI provider/backend integration: not complete.
-- P4 Image → skill proposal → Creator → Training end-to-end production flow: not complete.
+- P3 Production AI provider/backend integration: in progress; source/backend integration is substantially complete, production real-provider acceptance is blocked by the missing server-side `OPENAI_API_KEY`.
+- P4 Image → skill proposal → Creator → Training production flow: in progress; source flow and deterministic cloud E2E are substantially complete, final real-provider production acceptance remains.
 
 ## Completed milestones
 
@@ -34,7 +34,7 @@ Character Editor, Projectile Skill Editor and validated Creator-to-Training prev
 Validated PNG/sprite-strip import, crop/frame/FPS/scale/offset authoring, preview and Skill 1 projectile binding.
 
 ### M6 — AI-assisted VFX — 100%
-Provider-neutral AI VFX request/result/provider boundary plus Creator prompt/reference Generate/Regenerate workflow. The production implementation remains provider-neutral and originally used deterministic mock generation.
+Provider-neutral AI VFX request/result/provider boundary plus Creator prompt/reference Generate/Regenerate workflow.
 
 ### M7 — Character Packages — 100%
 Versioned character package import/export with schema-v2 self-contained validated Skill 1 PNG/sprite-strip VFX and fail-closed package boundaries.
@@ -42,79 +42,83 @@ Versioned character package import/export with schema-v2 self-contained validate
 ### M8 — MVP Release — 100%
 Web release, Windows x86_64 release flow, release documentation and Creator → package → fresh-session import → Training acceptance.
 
-## Post-MVP AI image-to-skill roadmap
-
 ### P1 — Safe real-provider boundary — 100%
-Completed through Issue #84 / PR #85:
-- validated provider configuration,
-- `remote_ai_vfx` provider boundary,
-- HTTPS-only endpoint validation,
-- embedded URL credentials rejected,
-- no provider secrets committed,
-- mock provider preserved as deterministic fallback.
+Completed through PR #85. Includes validated provider configuration, `remote_ai_vfx`, HTTPS-only endpoints, embedded credential rejection, provider-neutral architecture and no secrets in Git.
 
 ### P2 — Async remote AI transport — 100%
-Completed through PR #86 and squash-merged to `main` at `7b193023221f6533339922c3bf7e5a31d94475af`.
+Completed through PR #86. Includes Godot `HTTPRequest`, strict JSON/PNG response decoding, request/result matching, malformed/oversized/invalid output rejection and deterministic mock fallback.
 
-Implemented:
-- async Godot `HTTPRequest` transport for trusted backends,
-- JSON request/response boundary,
-- strict remote response decoding,
-- Base64 PNG decoding and validation back into `AiVfxResult`,
-- request/result matching and VFX draft revalidation,
-- malformed/oversized/non-JSON/invalid-PNG output fails closed,
-- synchronous mock path remains unchanged.
+## P3 — Production provider/backend integration — IN PROGRESS
 
-Local validation on the connected Windows machine using Godot 4.7.2:
-- project import: PASS,
-- main scene headless boot: PASS,
-- core domain suite: PASS,
-- character/registry/animation suites: PASS,
-- Creator character/skill/preview/VFX draft suites: PASS,
-- AI VFX provider suite: PASS,
-- remote AI config/response codec suite: PASS,
-- character package/self-contained package suites: PASS,
-- formation/buff/melee regression suites: PASS.
+Implemented in source:
+- trusted Node backend with `/healthz` and `/v1/vfx/generate`,
+- server-side OpenAI provider adapter,
+- provider/model readiness reporting without exposing secrets,
+- Render service deployment at `https://custom-fighter-ai-vfx.onrender.com`,
+- Creator remote-provider selection via validated HTTPS endpoint,
+- async remote request path,
+- strict CORS/body/output bounds,
+- generation response revalidation,
+- browser/runtime contains no provider credential,
+- reference-image requests use the provider image-edit boundary,
+- Godot request serialization matches the trusted backend contract,
+- production errors fail closed.
 
-The intentional invalid-input tests emit expected Godot PNG/Base64 decode diagnostics while still finishing with the corresponding `*_TESTS_PASSED` markers and overall exit code 0.
+Current external blocker:
+- Render readiness reports `configured:false` until a server-side `OPENAI_API_KEY` is supplied.
+- Therefore a real paid/provider generation request cannot yet be truthfully accepted as production E2E.
 
-### P3 — Production provider/backend integration — 0%
-Remaining:
-- choose/configure the real backend/provider implementation behind the trusted endpoint,
-- keep provider credentials outside browser/Git,
-- wire Creator to select/use the remote provider,
-- define production error/retry/timeout UX,
-- validate real generated assets through the existing fail-closed data boundary.
+## P4 — Image → skill → Creator → Training — IN PROGRESS
 
-### P4 — Image → skill production E2E — 0%
-Remaining:
-- reference image + optional description → generated animated VFX,
-- propose validated skill parameters such as template/type, timing, damage, MP, cooldown, speed/range and visual binding,
-- user preview/edit/accept step,
-- bind to Creator character,
-- enter Training and cast the generated skill,
-- production end-to-end acceptance.
+Implemented in source and deterministic cloud E2E:
+- validated `AiSkillProposal` model,
+- AI proposal includes type/name, damage, MP, cooldown, startup/active/recovery, speed/range, hitstun, knockback, hitbox and visual binding,
+- proposal is never auto-applied,
+- explicit Review / Confirm & Apply / Discard,
+- Confirm & Preview validates and enters Training,
+- backend can return VFX + `skill_proposal` in one response,
+- Godot response codec validates proposal/request matching,
+- proposal handoff through `CreatorPreviewSession`,
+- reference PNG metadata/Base64 contract with strict PNG/size/dimension checks,
+- Web reference-image remote E2E against a fake trusted backend,
+- AI proposal → Training parameter handoff,
+- AI proposal → actual Training skill cast regression,
+- Training match-end victory/defeat state,
+- result overlay with Restart and Return Creator actions,
+- Restart remounts a fresh Training instance to reset HP/MP/positions/cooldowns/projectiles/buffs/controllers/hit counters.
+
+Remaining P4 acceptance:
+- configure the real production provider secret,
+- real reference image + prompt → production backend → generated VFX + skill proposal,
+- explicit user confirmation,
+- real generated asset cast in Training,
+- final production acceptance and public deployment verification.
 
 ## Validation policy
 
-Primary engineering validation is now **local-first** through Remote Desktop Commander on the connected Windows machine.
+Validation is **100% online-only**.
 
-The local validation hierarchy is:
-1. logic/unit tests,
-2. Godot headless import/parse,
-3. Godot integration/domain tests,
-4. Web export when relevant,
-5. local Chromium/Edge smoke when relevant,
-6. Windows native export/smoke when relevant,
-7. optional GitHub Pages deployment/public reachability when intentionally publishing.
+Required path:
+1. GitHub-hosted Godot import/parse and headless boot,
+2. Godot domain/AI contract tests,
+3. trusted-backend tests,
+4. Web export and size budget,
+5. Chromium full `smoke:all`,
+6. Windows x86_64 release cross-export,
+7. Microsoft Edge full browser smoke on a GitHub-hosted Windows runner.
 
-GitHub Actions is now **manual-only** (`workflow_dispatch`) and is no longer a required gate for normal development unless the user explicitly requests cloud CI evidence.
+Do not use Remote Desktop Commander, the user's local machine, local Godot/npm/browser caches, or user-device storage for validation unless the user explicitly reverses this policy.
 
-Previously queued GitHub Actions runs may remain visible until GitHub terminates or completes them; they are no longer used as the blocking validation path.
+Latest accepted cloud evidence before this status batch:
+- CI Run #189: SUCCESS,
+- `Godot + Backend + Web + Chromium`: SUCCESS,
+- `Windows Native Release`: SUCCESS,
+- `Windows + Microsoft Edge`: SUCCESS,
+- PR #98 merged at `98c97c416ff2d9235495b0fe08a1f87d2216adfb`.
 
-## Completed cross-platform slice — Mobile touch controls
+## Execution policy
 
-Issue #61 / PR #62 remains complete. Touch-capable Web sessions can use movement/run, jump/attack/dash/guard and Skill 1–6 controls; `?mobile_controls=1` forces the HUD on and `?mobile_controls=0` forces it off.
+Development should proceed in coherent multi-slice batches. Do not stop after every small implementation step merely to request another “continue”. Continue through adjacent implementation, regression, cloud validation, fixes, merge and documentation work until a genuine external blocker or materially ambiguous product decision is reached.
 
 ## Production links
 
@@ -124,10 +128,11 @@ Creator Studio: `https://ws951125.github.io/custom-fighter/?mode=creator`
 
 VFX Creator: `https://ws951125.github.io/custom-fighter/?mode=vfx`
 
-The currently deployed production build contains the completed M0–M8 MVP. Post-MVP P1/P2 are merged in source; a new production deployment is not implied until intentionally published.
+These public GitHub Pages links may lag the latest merged source unless a deployment for the current source revision has been intentionally completed and verified.
 
 ## Remaining roadmap
 
-Whole-project roadmap remaining after P2:
-- P3 Production AI provider/backend integration.
-- P4 Image → skill → Creator → Training production end-to-end flow.
+To reach 13/13:
+- finish P3 with real production provider configuration and acceptance,
+- finish P4 with real reference-image → VFX + skill proposal → explicit confirmation → Training cast production E2E,
+- deploy and verify the accepted production Web revision.

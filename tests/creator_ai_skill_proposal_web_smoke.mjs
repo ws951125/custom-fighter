@@ -86,12 +86,43 @@ try {
       document.documentElement.dataset.creatorPreviewActive === 'true' &&
       document.documentElement.dataset.creatorPreviewRuntimeSkillDamage === '52' &&
       document.documentElement.dataset.creatorPreviewRuntimeSkillMpCost === '27' &&
-      Math.abs(Number(document.documentElement.dataset.creatorPreviewRuntimeSkillCooldown) - 2.2) < 0.001,
+      Math.abs(Number(document.documentElement.dataset.creatorPreviewRuntimeSkillCooldown) - 2.2) < 0.001 &&
+      document.documentElement.dataset.creatorPreviewReturnReady === 'true' &&
+      typeof window.customFighterPreviewReturnToCreator === 'function',
     null,
     { timeout: 60_000 },
   );
 
-  console.log('WEB_CREATOR_AI_SKILL_PROPOSAL_SMOKE_PASSED reviewRequired=true confirmApplies=true discardSafe=true confirmPreview=true');
+  await page.keyboard.down('u');
+  await page.waitForFunction(
+    () => Number(document.documentElement.dataset.playerMp) === 73,
+    null,
+    { timeout: 5_000 },
+  );
+  await page.keyboard.up('u');
+  await page.waitForFunction(
+    () =>
+      Number(document.documentElement.dataset.dummyHp) === 48 &&
+      document.documentElement.dataset.lastSkillHit === 'true' &&
+      Number(document.documentElement.dataset.skillHitCount) >= 1 &&
+      Number(document.documentElement.dataset.skillCooldown) > 0,
+    null,
+    { timeout: 6_000 },
+  );
+
+  await page.evaluate(() => window.customFighterPreviewReturnToCreator());
+  await page.waitForFunction(
+    () =>
+      document.documentElement.dataset.appMode === 'creator' &&
+      document.documentElement.dataset.creatorSkillDraftName === 'Preview Bolt' &&
+      document.documentElement.dataset.creatorSkillDraftDamage === '52' &&
+      document.documentElement.dataset.creatorSkillDraftMpCost === '27' &&
+      Math.abs(Number(document.documentElement.dataset.creatorSkillDraftCooldown) - 2.2) < 0.001,
+    null,
+    { timeout: 10_000 },
+  );
+
+  console.log('WEB_CREATOR_AI_SKILL_PROPOSAL_SMOKE_PASSED reviewRequired=true confirmApplies=true discardSafe=true confirmPreview=true cast=true damage=52 mpCost=27 cooldown=2.2 draftsRestored=true');
 } finally {
   await browser.close();
 }
