@@ -1,6 +1,15 @@
 # Custom Fighter
 
-A cross-platform 2D action-fighting game and creator platform inspired by the feel of classic side-scrolling arena fighters, with original systems for player-created characters, data-driven skills, custom VFX, and future AI-assisted skill animation generation.
+A cross-platform 2D action-fighting game and creator platform built with Godot 4.7.2. The current MVP supports player-created characters, data-driven skills, custom VFX, character package export/import, Creator-to-Training preview and AI-assisted VFX through a replaceable provider boundary.
+
+## Try the MVP
+
+- **Training / game:** https://ws951125.github.io/custom-fighter/
+- **Creator Studio:** https://ws951125.github.io/custom-fighter/?mode=creator
+- **VFX Creator:** https://ws951125.github.io/custom-fighter/?mode=vfx
+- **Release & usage guide:** [`docs/RELEASE.md`](docs/RELEASE.md)
+
+The primary MVP targets are Web and Windows x86_64. The Windows native bundle is produced by the repository's successful `main` CI run as the `custom-fighter-windows-x86_64` artifact.
 
 ## Project direction
 
@@ -8,21 +17,29 @@ A cross-platform 2D action-fighting game and creator platform inspired by the fe
 - **Language:** GDScript
 - **Primary MVP targets:** Web + Windows
 - **Future targets:** Android + iOS
-- **Development model:** public, CI-first, cloud-tested
+- **Development model:** public, CI-first, GitHub-hosted validation
 - **Creator direction:** PC/Web-first creator tools; runtime designed for cross-platform play
 
-## Core differentiator
+## What the MVP can do
 
-Players will eventually be able to create a character, configure skills without writing code, provide reference images for effects such as fireballs or sword formations, generate/import VFX, preview them, and use the resulting character package in the game.
+- 2.5D movement and combat with run, jump, dash, guard, basic attack and six skill slots.
+- Data-driven melee, projectile, area, dash, formation and buff skill templates.
+- Creator Studio for character and skill authoring without editing source code.
+- VFX Creator for PNG/sprite-strip import, crop/frame/FPS/scale/offset authoring and runtime binding.
+- Provider-neutral AI-assisted VFX generation workflow.
+- Versioned character package JSON export/import with optional self-contained Skill 1 VFX.
+- Creator → package → fresh-session import → Training preview flow.
+- Mobile Web touch controls.
+- Automated Web, Chromium, Microsoft Edge and Windows native release validation.
 
 ## Current milestone
 
-**Milestone 0 — Foundation**
+**Milestone 8 — MVP Release**
 
-The repository is being bootstrapped with a minimal Godot Web prototype, automated headless tests, Web export, browser smoke testing, and GitHub Pages deployment.
+M0–M7 are complete. M8 is finishing release documentation and final release acceptance. The Windows native release pipeline is already merged to `main` and production-validated together with the Web/Pages/browser gates.
 
 ## Online-first validation policy
 
-This project is designed so routine validation happens online. GitHub Actions must run automated project checks, headless tests, Web export, and browser smoke tests. Human testing should normally use the deployed Web build instead of requiring a local Godot installation.
+Routine engineering validation happens on GitHub-hosted infrastructure. CI runs Godot import/boot and domain tests, Web export and size-budget checks, Chromium and hosted Microsoft Edge smoke suites, Windows x86_64 native export/smoke, GitHub Pages deployment/public reachability and a production Edge real-game flow. The user's local computer is not required for project validation.
 
-See `AGENTS.md` and `docs/MVP.md` for the working rules and roadmap.
+See [`AGENTS.md`](AGENTS.md), [`docs/MVP.md`](docs/MVP.md), [`docs/STATUS.md`](docs/STATUS.md) and [`docs/RELEASE.md`](docs/RELEASE.md) for working rules, roadmap, current status and release usage.
