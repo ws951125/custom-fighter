@@ -13,6 +13,7 @@
     "backend:start": "node backend/server.mjs",
     "test:backend": "node tests/backend_vfx_test.mjs && node tests/backend_server_test.mjs",
     "smoke:web": "node tests/web_smoke.mjs",
+    "smoke:match-restart": "node tests/match_restart_web_smoke.mjs",
     "smoke:area": "node tests/area_web_smoke.mjs",
     "smoke:formation": "node tests/formation_web_smoke.mjs",
     "smoke:buff": "node tests/buff_web_smoke.mjs",
@@ -32,7 +33,7 @@
     "smoke:creator-package": "node tests/creator_package_web_smoke.mjs",
     "smoke:creator-package-vfx": "node tests/creator_package_vfx_web_smoke.mjs",
     "smoke:mobile": "node tests/mobile_controls_web_smoke.mjs",
-    "smoke:all": "npm run smoke:web && npm run smoke:area && npm run smoke:formation && npm run smoke:buff && npm run smoke:melee && npm run smoke:coordination && npm run smoke:character && npm run smoke:character-selection && npm run smoke:character-animation && npm run smoke:creator && npm run smoke:creator-skill && npm run smoke:creator-preview && npm run smoke:creator-vfx && npm run smoke:creator-vfx-runtime && npm run smoke:creator-ai-vfx && npm run smoke:creator-remote-ai-vfx && npm run smoke:creator-remote-reference-ai-vfx && npm run smoke:creator-ai-skill-proposal && npm run smoke:creator-package && npm run smoke:creator-package-vfx && npm run smoke:mobile",
+    "smoke:all": "npm run smoke:web && npm run smoke:match-restart && npm run smoke:area && npm run smoke:formation && npm run smoke:buff && npm run smoke:melee && npm run smoke:coordination && npm run smoke:character && npm run smoke:character-selection && npm run smoke:character-animation && npm run smoke:creator && npm run smoke:creator-skill && npm run smoke:creator-preview && npm run smoke:creator-vfx && npm run smoke:creator-vfx-runtime && npm run smoke:creator-ai-vfx && npm run smoke:creator-remote-ai-vfx && npm run smoke:creator-remote-reference-ai-vfx && npm run smoke:creator-ai-skill-proposal && npm run smoke:creator-package && npm run smoke:creator-package-vfx && npm run smoke:mobile",
     "smoke:creator-remote-reference-ai-vfx": "node tests/creator_remote_reference_ai_vfx_web_smoke.mjs"
   }
 }
