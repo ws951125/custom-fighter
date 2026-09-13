@@ -2,9 +2,11 @@
 
 ## Current phase
 
-Milestone 7 — Character Packages is now the active roadmap milestone.
+Milestone 7 — Character Packages is the active roadmap milestone.
 
-Estimated whole-project completion: **77.8% (7/9 milestones)**. M0–M6 are formally complete; M7 is next/in progress.
+Current active slice: **Issue #72 — M7 Slice 1: versioned safe character package data boundary** on `feature/m7-character-package-data-boundary` / PR #73.
+
+Estimated whole-project completion: **77.8% (7/9 milestones)**. M0–M6 are formally complete; M7 is in progress.
 
 ## Completed milestones
 
@@ -45,9 +47,10 @@ Production functionality:
 
 Validation:
 - PR #69 latest-head CI Run #138 passed required PR gates; Slice 1 reached production through main Runs #139/#140.
-- PR #71 latest head `e5c2c258c77810fed690f3f39afbb24d4dc895c4` passed PR CI Run #143: Godot import/boot/domain tests, Web export/size budget, Chromium smoke:all and GitHub-hosted Windows Edge smoke:all.
+- PR #71 latest head `e5c2c258c77810fed690f3f39afbb24d4dc895c4` passed PR CI Run #143.
 - PR #71 merged to main at `a5b6d869541c8bcb5255e6b243e8a2782faade0a` and closed Issue #70 completed.
-- Main CI Run #144 passed all five production gates: Godot + Web + Browser, hosted Windows Edge, GitHub Pages deploy, public reachability and production Windows Edge real-game flow.
+- Main CI Run #144 passed all five production gates.
+- Follow-up M6 completion/status commit `206b7a40f337873351e4ff057d73eee48e7fb91e` passed full main CI Run #145, including production Edge.
 
 A real cloud/local image-generation provider remains a future replaceable integration rather than an M6 acceptance blocker.
 
@@ -57,17 +60,31 @@ Issue #61 / PR #62 is production-validated. Touch-capable Web sessions can use m
 
 ## M7 — Character Packages
 
-Next implementation target: **M7 Slice 1 — safe versioned character-package manifest/data boundary**.
+### Active Slice 1 — Issue #72 / PR #73 — versioned safe character package data boundary
 
-Planned scope:
-- Versioned package manifest/data contract for character, skill and approved VFX references.
-- Data-only package contents with strict validation.
-- Bounded schema/version checks and fail-closed unsafe-entry rejection.
-- Deterministic import/export serialization boundaries before browser file UX.
-- Reuse existing CharacterDefinition, SkillDefinition and VfxDraft validators.
-- GitHub-hosted domain regressions before exposing package import/export in Creator UI.
+Implemented on `feature/m7-character-package-data-boundary`:
+
+- Added `CharacterPackageDefinition` as a versioned, data-only package contract.
+- Top-level package fields are allow-listed and package id/version are validated.
+- Embedded character data is revalidated through `CharacterDefinition`.
+- Embedded skill data is allow-listed and revalidated through `SkillDefinition`.
+- Package/character ids must match; skill ids and visual references must be safe tokens.
+- Every character skill slot must resolve to a packaged skill definition; duplicate, missing and unreferenced skills fail closed.
+- Canonical `to_dictionary()` output sorts skill definitions by id for deterministic serialization/round-trip behavior.
+- Arbitrary package paths, archive extraction, scripts, binaries and filesystem writes remain out of scope for this slice.
+- Added `character_package_test_runner.gd` for valid round trip plus schema mismatch, id mismatch, duplicate skill, unresolved slot, unsafe token/path-like reference, unknown nested field and tampered nested skill rejection.
+- GitHub Actions domain-test wiring has been added.
+
+Validation:
+- PR #73 CI Run #146 passed Godot import, main-scene boot, all domain tests including `CHARACTER_PACKAGE_TESTS_PASSED`, Web export/size budget, Chromium `smoke:all` and GitHub-hosted Windows Edge `smoke:all`.
+- A fresh latest-head CI is required after this status sync before merge.
 
 M7 acceptance from `docs/MVP.md`: one user can create a character package and another can load it safely.
+
+Planned next slices after the data boundary is production validated:
+- bounded browser export/import UX for the canonical package document,
+- approved VFX asset packaging with size/type validation and unsafe-entry rejection,
+- end-to-end Creator export -> second-session import -> Training validation.
 
 ## Online validation policy
 
@@ -81,7 +98,7 @@ Creator Studio: `https://ws951125.github.io/custom-fighter/?mode=creator`
 
 VFX Creator: `https://ws951125.github.io/custom-fighter/?mode=vfx`
 
-Production now contains completed M0–M6 scope, mobile touch controls, provider-neutral AI VFX contracts and the Prompt / Reference / Generate / Regenerate VFX workflow validated through the real Creator-to-Training Skill 1 path.
+Production contains completed M0–M6 scope, mobile touch controls, provider-neutral AI VFX contracts and the Prompt / Reference / Generate / Regenerate VFX workflow. M7 Issue #72 remains feature-branch-only until PR and main production validation complete.
 
 ## Remaining roadmap
 
