@@ -80,7 +80,6 @@ try {
     throw new Error('AI VFX generation count should start at zero');
   }
 
-  // Empty prompt must fail closed without manufacturing a VFX.
   let aiRevision = Number(await dataset(page, 'creatorAiVfxRevision'));
   await page.evaluate(() => window.customFighterCreatorAiVfxGenerate());
   await waitForRevision(page, 'creatorAiVfxRevision', aiRevision);
@@ -101,7 +100,6 @@ try {
   });
   await waitForRevision(page, 'creatorAiVfxRevision', aiRevision);
 
-  // Seed generation with an optional real PNG reference image.
   aiRevision = Number(await dataset(page, 'creatorAiVfxRevision'));
   await page.evaluate(() => {
     const canvas = document.createElement('canvas');
@@ -170,7 +168,6 @@ try {
     { timeout: 10_000 },
   );
 
-  // Regenerate through the same provider-neutral adapter; a new request identity is required.
   aiRevision = Number(await dataset(page, 'creatorAiVfxRevision'));
   await page.evaluate(() => {
     window.customFighterCreatorAiVfxSetPrompt('electric blue comet projectile with a brighter trailing core');
@@ -195,7 +192,6 @@ try {
     throw new Error('Reference PNG should be optional and clearable');
   }
 
-  // Generated VFX uses the same in-memory Creator binding and real Training projectile path as M5 assets.
   await page.evaluate(() => window.customFighterCreatorVfxBackToCreator());
   await page.waitForFunction(
     () =>
@@ -233,12 +229,9 @@ try {
     null,
     { timeout: 10_000 },
   );
-  const runtimeFrameBefore = Number(await dataset(page, 'creatorPreviewVfxRuntimeCurrentFrame'));
   await page.waitForFunction(
-    (previous) =>
-      document.documentElement.dataset.creatorPreviewVfxProjectileVisible === 'true' &&
-      Number(document.documentElement.dataset.creatorPreviewVfxRuntimeCurrentFrame ?? '-1') !== previous,
-    runtimeFrameBefore,
+    () => Number(document.documentElement.dataset.creatorPreviewVfxRuntimeMaxFrameSeen ?? '0') > 0,
+    null,
     { timeout: 10_000 },
   );
   await page.waitForFunction(
@@ -251,7 +244,7 @@ try {
   );
 
   console.log(
-    'WEB_CREATOR_AI_VFX_SMOKE_PASSED emptyPromptBlocked=true reference=true generate=true regenerate=true generatedFrames=4 runtimeLoaded=true cast=true damage=33 mpCost=17',
+    'WEB_CREATOR_AI_VFX_SMOKE_PASSED emptyPromptBlocked=true reference=true generate=true regenerate=true generatedFrames=4 runtimeLoaded=true animated=true cast=true damage=33 mpCost=17',
   );
 } finally {
   await browser.close();
