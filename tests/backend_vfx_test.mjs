@@ -28,6 +28,13 @@ const strip = Buffer.from(response.png_base64, 'base64');
 const metadata = await sharp(strip).metadata();
 assert.equal(metadata.width, 128);
 assert.equal(metadata.height, 24);
+assert.equal(response.skill_proposal.source_request_id, validRequest.request_id);
+assert.equal(response.skill_proposal.skill_type, 'projectile');
+assert.equal(response.skill_proposal.visual, 'prototype_fireball');
+assert.equal(response.skill_proposal.impact_visual, 'prototype_impact');
+assert.equal(response.skill_proposal.damage, 24);
+assert.equal(response.skill_proposal.mp_cost, 20);
+assert.match(response.skill_proposal.rationale, /review and confirm/i);
 
 const refRejected = await createVfxResponse({ ...validRequest, reference_png_base64: 'abc' }, { provider: fakeProvider });
 assert.equal(refRejected.ok, false);
@@ -53,4 +60,4 @@ assert.equal(body.size, '1024x1024');
 assert.equal(capturedRequest.options.headers.Authorization, 'Bearer test-key');
 
 await assert.rejects(() => new OpenAiImageProvider({ apiKey: '' }).generate('x'), /OPENAI_API_KEY/);
-console.log('BACKEND_VFX_TESTS_PASSED');
+console.log('BACKEND_VFX_TESTS_PASSED bundledSkillProposal=true');
