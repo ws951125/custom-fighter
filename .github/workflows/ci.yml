@@ -136,6 +136,78 @@ jobs:
         with:
           path: build/web
 
+  windows-native-release:
+    name: Windows Native Release
+    runs-on: windows-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Godot 4.7.2
+        uses: chickensoft-games/setup-godot@v2
+        with:
+          version: 4.7.2
+          use-dotnet: false
+          include-templates: true
+
+      - name: Verify Godot
+        shell: pwsh
+        run: godot --version
+
+      - name: Export Windows release build
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path 'build/windows' | Out-Null
+          $logPath = Join-Path $env:RUNNER_TEMP 'custom-fighter-windows-export.log'
+          & godot --headless --path . --export-release 'Windows Desktop' 'build/windows/CustomFighter.exe' 2>&1 | Tee-Object -FilePath $logPath
+          if ($LASTEXITCODE -ne 0) {
+            throw "Godot Windows export exited with code $LASTEXITCODE"
+          }
+          $logText = Get-Content -Raw -Path $logPath
+          if ($logText -match 'SCRIPT ERROR:|Parse Error:|ERROR: Failed to load script|FATAL:') {
+            throw 'Godot Windows export emitted a script/fatal diagnostic.'
+          }
+          if (-not (Test-Path 'build/windows/CustomFighter.exe')) {
+            throw 'Windows release executable was not created.'
+          }
+          if (-not (Test-Path 'build/windows/CustomFighter.pck')) {
+            throw 'Windows release PCK was not created.'
+          }
+          Get-ChildItem -Path 'build/windows' | Format-Table Name, Length
+
+      - name: Smoke-test Windows native executable
+        shell: pwsh
+        run: |
+          $stdoutPath = Join-Path $env:RUNNER_TEMP 'custom-fighter-native.stdout.log'
+          $stderrPath = Join-Path $env:RUNNER_TEMP 'custom-fighter-native.stderr.log'
+          $exePath = (Resolve-Path 'build/windows/CustomFighter.exe').Path
+          $process = Start-Process -FilePath $exePath -ArgumentList '--headless','--quit-after','3' -PassThru -RedirectStandardOutput $stdoutPath -RedirectStandardError $stderrPath
+          if (-not $process.WaitForExit(15000)) {
+            Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue
+            throw 'Windows native smoke timed out before bounded headless exit.'
+          }
+          $stdoutText = if (Test-Path $stdoutPath) { Get-Content -Raw -Path $stdoutPath } else { '' }
+          $stderrText = if (Test-Path $stderrPath) { Get-Content -Raw -Path $stderrPath } else { '' }
+          Write-Host $stdoutText
+          Write-Host $stderrText
+          if ($process.ExitCode -ne 0) {
+            throw "Windows native executable exited with code $($process.ExitCode)"
+          }
+          $combined = "$stdoutText`n$stderrText"
+          if ($combined -match 'SCRIPT ERROR:|Parse Error:|ERROR: Failed to load script|FATAL:') {
+            throw 'Windows native smoke emitted a script/fatal diagnostic.'
+          }
+          Write-Host 'WINDOWS_NATIVE_SMOKE_PASSED'
+
+      - name: Upload Windows release artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: custom-fighter-windows-x86_64
+          path: build/windows
+          if-no-files-found: error
+
   windows-edge-local:
     name: Windows + Microsoft Edge
     needs: validate-web
@@ -193,7 +265,7 @@ jobs:
   deploy-pages:
     name: Deploy Web Demo
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    needs: [validate-web, windows-edge-local]
+    needs: [validate-web, windows-native-release, windows-edge-local]
     runs-on: ubuntu-latest
     environment:
       name: github-pages
