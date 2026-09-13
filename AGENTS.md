@@ -54,18 +54,26 @@ This repository is developed with **online-only validation**. All engineering va
    - After triggering or observing a GitHub Actions run, continue checking it until success, failure, cancellation, or a confirmed external blocker.
    - If a check fails, inspect logs, fix the issue, push the fix, and re-run/observe CI before declaring success.
 
-## Required workflow for each development step
+12. **Prefer continuous multi-slice execution over stop-and-wait development.**
+   - When several adjacent roadmap items can be completed safely in one coherent batch, continue through them without stopping after each small slice to ask the user to say “continue”.
+   - A normal batch should include implementation, regression coverage, cloud validation, fixes, merge, documentation/status synchronization, and then the next adjacent slice when no real blocker exists.
+   - Stop only for a genuine external dependency or decision that cannot be inferred safely, such as a missing secret/API credential, unavailable third-party service, destructive operation requiring explicit approval, or a materially ambiguous product decision.
+   - Keep the user informed during long batches, but do not treat routine progress updates as approval gates.
+
+## Required workflow for each development batch
 
 1. Inspect current repository state and relevant code through GitHub.
-2. State the intended change and acceptance criteria.
-3. Implement the smallest coherent change on a branch.
-4. Open/update a pull request.
-5. Let GitHub Actions run the applicable automated validation.
-6. Monitor every required workflow/job through terminal state.
-7. Inspect online logs and fix failures before declaring success.
-8. Merge only after required online checks pass, unless an external GitHub/service outage is explicitly documented as the blocker.
-9. Record what changed, online checks run, failures, fixes, remaining risks, and unverified behavior.
-10. Keep docs/roadmap synchronized when architecture or milestone scope changes materially.
+2. State the intended batch scope and acceptance criteria.
+3. Group adjacent coherent changes on a branch; do not fragment work into unnecessary micro-PRs.
+4. Implement the batch with regression coverage.
+5. Open/update a pull request.
+6. Let GitHub Actions run the applicable automated validation.
+7. Monitor every required workflow/job through terminal state.
+8. Inspect online logs and fix failures before declaring success.
+9. Merge only after required online checks pass, unless an external GitHub/service outage is explicitly documented as the blocker.
+10. Continue into the next adjacent roadmap slice when it can be completed safely without new user input.
+11. Record what changed, online checks run, failures, fixes, remaining risks, and unverified behavior.
+12. Keep docs/roadmap synchronized when architecture or milestone scope changes materially.
 
 ## Online validation hierarchy
 
