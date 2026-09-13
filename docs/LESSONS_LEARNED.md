@@ -92,13 +92,13 @@
 
 ## L-009 — Verify successful GitHub mutations before repeating them
 
-- **Date:** 2026-09-13
-- **Area:** GitHub connector / branch mutation workflow
-- **Symptom:** 建立 `feature/m6-ai-vfx-provider-boundary` 成功後，同一個 branch-create mutation 被重複送出，GitHub 連續回傳 HTTP 422 `Reference already exists`。Repository 狀態本身沒有損壞，但產生了不必要的寫入失敗與噪音。
-- **Root Cause:** 成功 mutation 後沒有先讀回 branch state，再執行下一個不同操作；重複使用上一個 branch-create action，造成 idempotency 不成立的 create-ref 被再次提交。
-- **Fix:** 停止重送 branch creation，重新做 operation-specific tool discovery，確認 Issue mutation schema 後建立 Issue #68，並沿用已存在的 feature branch。
-- **Prevention Rule:** 任何 create branch / issue / PR / file 等非冪等 GitHub mutation 成功後，先把回傳物件視為 source of truth；若下一步工具選擇或狀態有疑義，先 read/search/verify，再執行下一次 mutation。不得用重送相同 create 動作確認狀態。
-- **Validation:** `feature/m6-ai-vfx-provider-boundary` 保持單一有效 branch；Issue #68 已正確建立並指向該 work unit，後續程式與文件 commit 都持續寫入該 branch。
+- **Date:** 2026-09-13; recurrence during M7 Slice 2
+- **Area:** GitHub connector / branch and file mutation workflow
+- **Symptom:** 建立 `feature/m6-ai-vfx-provider-boundary` 成功後，同一個 branch-create mutation 被重複送出，GitHub 回傳 HTTP 422 `Reference already exists`。M7 Slice 2 又曾在 feature branch 尚未建立前直接送出 `create_file`，GitHub 正確回傳 404 `Branch ... not found`。兩次都沒有破壞 repository，但造成不必要的寫入失敗與流程噪音。
+- **Root Cause:** 非冪等 GitHub mutation 前後沒有把 branch/file existence 當成明確前置條件與 source of truth；第一次是成功後重送 create，第二次是 file mutation 早於 branch creation。
+- **Fix:** 停止重送 branch creation；M7 recurrence 則先建立 `feature/m7-package-json-export-import`，確認 branch 成功後再提交檔案。後續 M7 Slice 3 也遵循 Issue → branch → file commit → PR 順序。
+- **Prevention Rule:** 任何 create branch / issue / PR / file 等非冪等 mutation 都要按依賴順序執行。成功回傳即視為 source of truth；建立 feature file 前必須先確認 target branch 已存在。不得用重送 create 動作確認狀態。
+- **Validation:** M7 Slice 2 branch 建立後所有 commit 均正確落在該 branch，PR #75 最終 merge 且 production Run #151 全綠；Slice 3 branch 亦在任何 feature file mutation 前成功建立。
 - **Status:** Verified
 
 ## L-010 — Inherited GDScript constants must not be redeclared when a child becomes a direct dependency
@@ -109,5 +109,16 @@
 - **Root Cause:** Slice 1 的 mock provider 雖存在且由 domain flow 使用，但沒有被 Creator scene 直接 preload，因此這個 child/parent member collision 沒有在先前一般 scene import 路徑曝光。GDScript 繼承 member 會包含 parent constant，child 不可再以相同名稱宣告；同時 generic `max()` 搭配除法讓 `:=` 推斷落入 Variant warning。
 - **Fix:** 移除 child 的重複 `AiVfxResult` preload，直接使用 parent inherited constant；將 radius 改為明確 `int` 並使用 `maxi()`，避免 Variant inference。
 - **Prevention Rule:** 新增 inheritance-based adapter/provider 時，parent 已提供的 preload/constants 不在 child 重宣告。任何首次被 scene 直接 preload 的 provider 都必須經完整 Godot import gate；數值 helper 在 warning-as-error 專案中優先使用 typed `maxi`/`maxf` 並明確宣告結果型別。
-- **Validation:** 修正已提交至 PR #71 最新 head；等待新的 GitHub-hosted CI 驗證 Godot import、browser workflow 與 Edge gate。
+- **Validation:** PR #71 修正後 latest-head CI Run #143 通過 Godot import/boot/domain、Web export/size budget、Chromium 與 hosted Windows Edge；merge 後 main Run #144 與後續 Run #145 均通過 production gates。
+- **Status:** Verified
+
+## L-011 — Browser regressions must evolve with intentional package schema changes
+
+- **Date:** 2026-09-13
+- **Area:** M7 Character Packages / Playwright / schema evolution
+- **Symptom:** M7 Slice 3 PR #77 CI Run #152 通過 Godot import/boot、所有 domain tests、Web export與 size budget，但 Chromium 在既有 `tests/creator_package_web_smoke.mjs` 失敗：Slice 2 regression 固定要求 `exported.schema_version === 1`，而 Slice 3 已刻意將新 export contract 升級為 schema v2 以容納 optional embedded VFX。
+- **Root Cause:** Runtime/package implementation 的 schema evolution是預期行為，但既有 end-to-end 測試把舊版本號當成永久 invariant；domain tests 已覆蓋 schema-v1 backward compatibility，browser test 應驗證「目前 export contract」而不是凍結 legacy export 版本。
+- **Fix:** 將既有 Creator package browser regression 更新為要求目前 export schema v2，並在沒有 authored VFX 的情境額外確認輸出不包含 `vfx_asset`，因此仍驗證 prototype-fallback/no-asset 行為。Schema-v1 backward compatibility繼續由 self-contained package domain tests專門驗證。
+- **Prevention Rule:** 每次有意識地升級持久化/交換 schema 時，同一 change set 必須盤點所有 hard-coded version assertions。測試應分成 current-export contract 與 legacy-import compatibility 兩類，不以舊 export version assertion 阻擋合法 schema evolution。
+- **Validation:** Fix 已提交至 PR #77；fresh latest-head CI Run #153 正在執行，需等待 Chromium 與 hosted Windows Edge 全綠後才標記完成。
 - **Status:** Fix committed; fresh CI pending
