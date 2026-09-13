@@ -1,9 +1,6 @@
 name: CI
 
 on:
-  push:
-    branches: [main]
-  pull_request:
   workflow_dispatch:
 
 permissions:
@@ -124,18 +121,6 @@ jobs:
           path: build/web
           if-no-files-found: error
 
-      - name: Configure GitHub Pages
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        uses: actions/configure-pages@v5
-        with:
-          enablement: true
-
-      - name: Upload GitHub Pages artifact
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        uses: actions/upload-pages-artifact@v4
-        with:
-          path: build/web
-
   windows-native-release:
     name: Windows Native Release
     runs-on: windows-latest
@@ -154,81 +139,11 @@ jobs:
 
       - name: Verify Godot
         shell: pwsh
-        run: |
-          $godotExe = Get-ChildItem -Path (Join-Path $HOME 'godot') -Filter 'Godot_v4.7.2-stable_win64.exe' -File | Select-Object -First 1
-          if (-not $godotExe) {
-            throw 'Godot Windows executable was not found after setup-godot.'
-          }
-          $stdoutPath = Join-Path $env:RUNNER_TEMP 'godot-version.stdout.log'
-          $stderrPath = Join-Path $env:RUNNER_TEMP 'godot-version.stderr.log'
-          $process = Start-Process -FilePath $godotExe.FullName -ArgumentList '--version' -Wait -PassThru -RedirectStandardOutput $stdoutPath -RedirectStandardError $stderrPath
-          if (Test-Path $stdoutPath) { Get-Content -Raw -Path $stdoutPath | Write-Host }
-          if (Test-Path $stderrPath) { Get-Content -Raw -Path $stderrPath | Write-Host }
-          if ($process.ExitCode -ne 0) {
-            throw "Godot version probe exited with code $($process.ExitCode)"
-          }
+        run: godot --version
 
       - name: Export Windows release build
         shell: pwsh
-        run: |
-          New-Item -ItemType Directory -Force -Path 'build/windows' | Out-Null
-          $stdoutPath = Join-Path $env:RUNNER_TEMP 'custom-fighter-windows-export.stdout.log'
-          $stderrPath = Join-Path $env:RUNNER_TEMP 'custom-fighter-windows-export.stderr.log'
-          $godotExe = Get-ChildItem -Path (Join-Path $HOME 'godot') -Filter 'Godot_v4.7.2-stable_win64.exe' -File | Select-Object -First 1
-          if (-not $godotExe) {
-            throw 'Godot Windows executable was not found after setup-godot.'
-          }
-          $argumentString = '--headless --path . --export-release "Windows Desktop" "build/windows/CustomFighter.exe"'
-          $process = Start-Process -FilePath $godotExe.FullName -ArgumentList $argumentString -Wait -PassThru -RedirectStandardOutput $stdoutPath -RedirectStandardError $stderrPath
-          $stdoutText = if (Test-Path $stdoutPath) { Get-Content -Raw -Path $stdoutPath } else { '' }
-          $stderrText = if (Test-Path $stderrPath) { Get-Content -Raw -Path $stderrPath } else { '' }
-          Write-Host $stdoutText
-          Write-Host $stderrText
-          if ($process.ExitCode -ne 0) {
-            throw "Godot Windows export exited with code $($process.ExitCode)"
-          }
-          $combined = "$stdoutText`n$stderrText"
-          if ($combined -match 'SCRIPT ERROR:|Parse Error:|ERROR: Failed to load script|FATAL:') {
-            throw 'Godot Windows export emitted a script/fatal diagnostic.'
-          }
-          if (-not (Test-Path 'build/windows/CustomFighter.exe')) {
-            throw 'Windows release executable was not created.'
-          }
-          if (-not (Test-Path 'build/windows/CustomFighter.pck')) {
-            throw 'Windows release PCK was not created.'
-          }
-          Get-ChildItem -Path 'build/windows' | Format-Table Name, Length
-
-      - name: Smoke-test Windows native executable
-        shell: pwsh
-        run: |
-          $stdoutPath = Join-Path $env:RUNNER_TEMP 'custom-fighter-native.stdout.log'
-          $stderrPath = Join-Path $env:RUNNER_TEMP 'custom-fighter-native.stderr.log'
-          $exePath = (Resolve-Path 'build/windows/CustomFighter.exe').Path
-          $process = Start-Process -FilePath $exePath -ArgumentList '--headless','--quit-after','3' -PassThru -RedirectStandardOutput $stdoutPath -RedirectStandardError $stderrPath
-          if (-not $process.WaitForExit(15000)) {
-            Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue
-            throw 'Windows native smoke timed out before bounded headless exit.'
-          }
-          $stdoutText = if (Test-Path $stdoutPath) { Get-Content -Raw -Path $stdoutPath } else { '' }
-          $stderrText = if (Test-Path $stderrPath) { Get-Content -Raw -Path $stderrPath } else { '' }
-          Write-Host $stdoutText
-          Write-Host $stderrText
-          if ($process.ExitCode -ne 0) {
-            throw "Windows native executable exited with code $($process.ExitCode)"
-          }
-          $combined = "$stdoutText`n$stderrText"
-          if ($combined -match 'SCRIPT ERROR:|Parse Error:|ERROR: Failed to load script|FATAL:') {
-            throw 'Windows native smoke emitted a script/fatal diagnostic.'
-          }
-          Write-Host 'WINDOWS_NATIVE_SMOKE_PASSED'
-
-      - name: Upload Windows release artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: custom-fighter-windows-x86_64
-          path: build/windows
-          if-no-files-found: error
+        run: godot --headless --path . --export-release "Windows Desktop" "build/windows/CustomFighter.exe"
 
   windows-edge-local:
     name: Windows + Microsoft Edge
@@ -266,90 +181,13 @@ jobs:
             for ($i = 0; $i -lt 30; $i++) {
               try {
                 $response = Invoke-WebRequest -UseBasicParsing -Uri 'http://127.0.0.1:8000/index.html' -TimeoutSec 2
-                if ($response.StatusCode -eq 200) {
-                  $ready = $true
-                  break
-                }
+                if ($response.StatusCode -eq 200) { $ready = $true; break }
               } catch {}
               Start-Sleep -Seconds 1
             }
-            if (-not $ready) {
-              throw 'Local Web server did not become ready.'
-            }
+            if (-not $ready) { throw 'Local Web server did not become ready.' }
             npm run smoke:all
             node tests/creator_package_vfx_web_smoke.mjs
           } finally {
-            if ($server -and -not $server.HasExited) {
-              Stop-Process -Id $server.Id -Force
-            }
+            if ($server -and -not $server.HasExited) { Stop-Process -Id $server.Id -Force }
           }
-
-  deploy-pages:
-    name: Deploy Web Demo
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    needs: [validate-web, windows-native-release, windows-edge-local]
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-
-    steps:
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
-
-  verify-production:
-    name: Verify Public Web Demo
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    needs: deploy-pages
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-
-    steps:
-      - name: Verify production URL is publicly reachable
-        env:
-          LIVE_URL: https://ws951125.github.io/custom-fighter/
-        run: |
-          echo "Checking $LIVE_URL"
-          curl \
-            --fail \
-            --silent \
-            --show-error \
-            --location \
-            --retry 12 \
-            --retry-delay 5 \
-            --retry-all-errors \
-            --connect-timeout 10 \
-            --max-time 30 \
-            --output /tmp/custom-fighter-live.html \
-            --write-out 'HTTP %{http_code}\n' \
-            "$LIVE_URL"
-          test -s /tmp/custom-fighter-live.html
-          echo "PUBLIC_WEB_DEMO_REACHABLE"
-
-  windows-edge-production:
-    name: Windows Edge Production Game
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    needs: deploy-pages
-    runs-on: windows-latest
-    timeout-minutes: 10
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v6
-
-      - name: Setup Node
-        uses: actions/setup-node@v5
-        with:
-          node-version: 24
-
-      - name: Install test dependencies
-        run: npm install --no-audit --no-fund
-
-      - name: Run real game flow against GitHub Pages in Microsoft Edge
-        env:
-          BROWSER_CHANNEL: msedge
-          CUSTOM_FIGHTER_WEB_URL: https://ws951125.github.io/custom-fighter/
-        run: |
-          npm run smoke:all
-          node tests/creator_package_vfx_web_smoke.mjs

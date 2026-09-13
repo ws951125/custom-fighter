@@ -2,6 +2,8 @@ extends SceneTree
 
 const AiVfxProviderConfig = preload("res://game/ai/provider/ai_vfx_provider_config.gd")
 const RemoteAiVfxProvider = preload("res://game/ai/remote/remote_ai_vfx_provider.gd")
+const RemoteAiVfxResponseCodec = preload("res://game/ai/remote/remote_ai_vfx_response_codec.gd")
+const MockAiVfxProvider = preload("res://game/ai/mock/mock_ai_vfx_provider.gd")
 const AiVfxRequest = preload("res://game/ai/provider/ai_vfx_request.gd")
 
 func _init() -> void:
@@ -9,6 +11,7 @@ func _init() -> void:
 	_test_default_config(failures)
 	_test_remote_config_validation(failures)
 	_test_remote_provider_boundary(failures)
+	_test_remote_response_codec(failures)
 	if failures.is_empty():
 		print("AI_VFX_REMOTE_CONFIG_TESTS_PASSED")
 		quit(0)
@@ -48,20 +51,47 @@ func _test_remote_provider_boundary(failures: PackedStringArray) -> void:
 	var caps: Dictionary = provider.capabilities()
 	_expect(bool(caps.get("network_required", false)), "remote provider must declare network requirement", failures)
 	_expect(str(caps.get("transport", "")) == "trusted_backend", "remote provider must use trusted backend transport", failures)
+	_expect(bool(caps.get("async_generation", false)), "remote provider must advertise asynchronous generation", failures)
 
+	var request: Variant = _valid_request("req_remote_001")
+	var result: Variant = provider.generate(request)
+	_expect(result != null, "synchronous remote provider call must fail closed", failures)
+	if result != null:
+		_expect(str(result.get("status")) == "error", "synchronous remote path must never report generated content", failures)
+		_expect(str(result.get("message")).contains("asynchronous"), "synchronous remote path should direct callers to generate_async", failures)
+
+func _test_remote_response_codec(failures: PackedStringArray) -> void:
+	var request: Variant = _valid_request("req_remote_codec_001")
+	var mock := MockAiVfxProvider.new("remote_ai_vfx")
+	var mock_result: Variant = mock.generate(request)
+	_expect(mock_result != null and str(mock_result.get("status")) == "success", "fixture provider should generate a valid PNG", failures)
+	if mock_result == null or str(mock_result.get("status")) != "success":
+		return
+	var png_bytes: PackedByteArray = mock_result.get("png_bytes")
+	var codec := RemoteAiVfxResponseCodec.new()
+	var decoded: Variant = codec.decode_response("remote_ai_vfx", request, {
+		"ok": true,
+		"png_base64": Marshalls.raw_to_base64(png_bytes),
+		"frame_count": int(request.get("frame_count")),
+		"fps": float(request.get("fps"))
+	})
+	_expect(decoded != null and str(decoded.get("status")) == "success", "valid trusted-backend response should decode into a usable AI VFX result", failures)
+	if decoded != null:
+		var decoded_errors: PackedStringArray = decoded.call("validate_against_request", request)
+		_expect(decoded_errors.is_empty(), "decoded remote result must revalidate against the original request", failures)
+	var malformed: Variant = codec.decode_response("remote_ai_vfx", request, {"ok": true, "png_base64": "not-valid-png", "frame_count": 4, "fps": 12.0})
+	_expect(malformed != null and str(malformed.get("status")) == "error", "malformed remote PNG data must fail closed", failures)
+
+func _valid_request(id: String) -> Variant:
 	var request := AiVfxRequest.new()
-	request.request_id = "req_remote_001"
+	request.request_id = id
 	request.prompt = "A blue arc projectile with a bright core"
 	request.generation_kind = "projectile_vfx"
 	request.frame_count = 4
 	request.frame_width = 32
 	request.frame_height = 32
 	request.fps = 12.0
-	var result: Variant = provider.generate(request)
-	_expect(result != null, "remote provider must return a fail-closed result until async transport is wired", failures)
-	if result != null:
-		_expect(str(result.get("status")) == "error", "unfinished transport must never report generated content", failures)
-		_expect(str(result.get("provider_id")) == "remote_ai_vfx", "remote provider error must preserve provider id", failures)
+	return request
 
 func _contains(errors: PackedStringArray, text: String) -> bool:
 	for error in errors:
