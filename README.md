@@ -1,6 +1,6 @@
 # Custom Fighter
 
-A cross-platform 2D action-fighting game and creator platform built with Godot 4.7.2. The current MVP supports player-created characters, data-driven skills, custom VFX, character package export/import, Creator-to-Training preview and AI-assisted VFX through a replaceable provider boundary.
+A cross-platform 2D action-fighting game and creator platform built with Godot 4.7.2. The production-validated MVP supports player-created characters, data-driven skills, custom VFX, character package export/import, Creator-to-Training preview and AI-assisted VFX through a replaceable provider boundary.
 
 ## Try the MVP
 
@@ -32,11 +32,11 @@ The primary MVP targets are Web and Windows x86_64. The Windows native bundle is
 - Mobile Web touch controls.
 - Automated Web, Chromium, Microsoft Edge and Windows native release validation.
 
-## Current milestone
+## Roadmap status
 
-**Milestone 8 — MVP Release**
+**M0–M8 MVP roadmap complete — 100% (9/9 milestones).**
 
-M0–M7 are complete. M8 is finishing release documentation and final release acceptance. The Windows native release pipeline is already merged to `main` and production-validated together with the Web/Pages/browser gates.
+Milestone 8 — MVP Release is production-validated. The Web release, Windows x86_64 build, release documentation and stable Creator → package → fresh-session import → Training acceptance flow have all passed GitHub-hosted validation, including main CI Run #169 after PR #81 merged to `main`.
 
 ## Online-first validation policy
 
