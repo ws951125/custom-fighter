@@ -1,6 +1,10 @@
 name: CI
 
 on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
   workflow_dispatch:
 
 permissions:
@@ -14,9 +18,9 @@ concurrency:
 
 jobs:
   validate-web:
-    name: Godot + Web + Browser
+    name: Godot + Backend + Web + Chromium
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
 
     steps:
       - name: Checkout
@@ -50,7 +54,7 @@ jobs:
             exit 1
           fi
 
-      - name: Run domain tests
+      - name: Run Godot domain and AI contract tests
         run: |
           godot --headless --path . --script res://tests/test_runner.gd
           godot --headless --path . --script res://tests/character_test_runner.gd
@@ -61,11 +65,31 @@ jobs:
           godot --headless --path . --script res://tests/creator_preview_session_test_runner.gd
           godot --headless --path . --script res://tests/creator_vfx_draft_test_runner.gd
           godot --headless --path . --script res://tests/ai_vfx_provider_test_runner.gd
+          godot --headless --path . --script res://tests/ai_vfx_remote_config_test_runner.gd
+          godot --headless --path . --script res://tests/ai_skill_proposal_test_runner.gd
+          godot --headless --path . --script res://tests/ai_vfx_reference_request_test_runner.gd
           godot --headless --path . --script res://tests/character_package_test_runner.gd
           godot --headless --path . --script res://tests/self_contained_character_package_test_runner.gd
           godot --headless --path . --script res://tests/formation_test_runner.gd
           godot --headless --path . --script res://tests/buff_test_runner.gd
           godot --headless --path . --script res://tests/melee_test_runner.gd
+
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install Node dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Run trusted-backend tests
+        run: |
+          npm run test:backend
+          node tests/reference_image_backend_test.mjs
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
 
       - name: Export Web build
         run: |
@@ -81,17 +105,9 @@ jobs:
       - name: Enforce Web build size budget
         run: python3 tools/check_web_size.py build/web
 
-      - name: Setup Node
-        uses: actions/setup-node@v5
-        with:
-          node-version: 24
-
-      - name: Install browser-test dependencies
-        run: |
-          npm install --no-audit --no-fund
-          npx playwright install --with-deps chromium
-
       - name: Smoke-test exported Web game in Chromium
+        env:
+          CUSTOM_FIGHTER_WEB_URL: http://127.0.0.1:8000
         run: |
           python3 -m http.server 8000 --directory build/web >/tmp/custom-fighter-http.log 2>&1 &
           SERVER_PID=$!
@@ -112,7 +128,6 @@ jobs:
           fi
 
           npm run smoke:all
-          node tests/creator_package_vfx_web_smoke.mjs
 
       - name: Upload Web build artifact
         uses: actions/upload-artifact@v4
@@ -143,13 +158,16 @@ jobs:
 
       - name: Export Windows release build
         shell: pwsh
-        run: godot --headless --path . --export-release "Windows Desktop" "build/windows/CustomFighter.exe"
+        run: |
+          New-Item -ItemType Directory -Force -Path build/windows | Out-Null
+          godot --headless --path . --export-release "Windows Desktop" "build/windows/CustomFighter.exe"
+          if (-not (Test-Path "build/windows/CustomFighter.exe")) { throw "Windows export missing" }
 
-  windows-edge-local:
+  windows-edge-online:
     name: Windows + Microsoft Edge
     needs: validate-web
     runs-on: windows-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
 
     steps:
       - name: Checkout
@@ -165,11 +183,12 @@ jobs:
         uses: actions/setup-node@v5
         with:
           node-version: 24
+          cache: npm
 
       - name: Install test dependencies
-        run: npm install --no-audit --no-fund
+        run: npm ci --no-audit --no-fund
 
-      - name: Smoke-test Web build in installed Microsoft Edge
+      - name: Smoke-test Web build in Microsoft Edge
         shell: pwsh
         env:
           BROWSER_CHANNEL: msedge
@@ -185,9 +204,8 @@ jobs:
               } catch {}
               Start-Sleep -Seconds 1
             }
-            if (-not $ready) { throw 'Local Web server did not become ready.' }
+            if (-not $ready) { throw 'GitHub-hosted Web server did not become ready.' }
             npm run smoke:all
-            node tests/creator_package_vfx_web_smoke.mjs
           } finally {
             if ($server -and -not $server.HasExited) { Stop-Process -Id $server.Id -Force }
           }
