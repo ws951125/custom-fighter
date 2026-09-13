@@ -13,6 +13,7 @@ var preview_vfx_texture: ImageTexture
 var preview_vfx_loaded := false
 var preview_vfx_load_error := ""
 var preview_vfx_frame_index := 0
+var preview_vfx_max_frame_seen := 0
 var preview_vfx_elapsed := 0.0
 var preview_vfx_projectile_was_active := false
 
@@ -41,6 +42,7 @@ func _load_creator_preview_vfx() -> void:
 	preview_vfx_texture = null
 	preview_vfx_load_error = ""
 	preview_vfx_frame_index = 0
+	preview_vfx_max_frame_seen = 0
 	preview_vfx_elapsed = 0.0
 	preview_vfx_projectile_was_active = false
 
@@ -80,6 +82,7 @@ func _tick_creator_preview_vfx(delta: float) -> void:
 	var projectile_active := fireball_projectile.active
 	if projectile_active and not preview_vfx_projectile_was_active:
 		preview_vfx_frame_index = 0
+		preview_vfx_max_frame_seen = 0
 		preview_vfx_elapsed = 0.0
 	elif projectile_active and preview_vfx_draft.frame_count > 1:
 		var seconds_per_frame := 1.0 / preview_vfx_draft.fps
@@ -87,6 +90,7 @@ func _tick_creator_preview_vfx(delta: float) -> void:
 		while preview_vfx_elapsed >= seconds_per_frame:
 			preview_vfx_elapsed -= seconds_per_frame
 			preview_vfx_frame_index = (preview_vfx_frame_index + 1) % preview_vfx_draft.frame_count
+			preview_vfx_max_frame_seen = maxi(preview_vfx_max_frame_seen, preview_vfx_frame_index)
 	elif not projectile_active:
 		preview_vfx_frame_index = 0
 		preview_vfx_elapsed = 0.0
@@ -196,6 +200,7 @@ func _set_web_state() -> void:
 		"document.documentElement.dataset.creatorPreviewVfxRuntimeLoaded='%s';" % ("true" if preview_vfx_loaded else "false") +
 		"document.documentElement.dataset.creatorPreviewVfxRuntimeFrameCount='%d';" % (preview_vfx_draft.frame_count if preview_vfx_loaded else 0) +
 		"document.documentElement.dataset.creatorPreviewVfxRuntimeCurrentFrame='%d';" % preview_vfx_frame_index +
+		"document.documentElement.dataset.creatorPreviewVfxRuntimeMaxFrameSeen='%d';" % preview_vfx_max_frame_seen +
 		"document.documentElement.dataset.creatorPreviewVfxRuntimeScale='%.3f';" % (preview_vfx_draft.scale if preview_vfx_loaded else 1.0) +
 		"document.documentElement.dataset.creatorPreviewVfxRuntimeOffsetX='%.3f';" % (preview_vfx_draft.offset_x if preview_vfx_loaded else 0.0) +
 		"document.documentElement.dataset.creatorPreviewVfxRuntimeOffsetY='%.3f';" % (preview_vfx_draft.offset_y if preview_vfx_loaded else 0.0) +
