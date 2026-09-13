@@ -1,5 +1,6 @@
 import http from 'node:http';
 import { createVfxResponse } from './vfx_service.mjs';
+import { imageProviderReadiness } from './image_provider_factory.mjs';
 
 const PORT = Number(process.env.PORT || 8787);
 const ALLOWED_ORIGIN = process.env.CUSTOM_FIGHTER_ALLOWED_ORIGIN || 'https://ws951125.github.io';
@@ -29,14 +30,6 @@ async function readJson(req) {
   return JSON.parse(text || '{}');
 }
 
-function providerReadiness() {
-  return {
-    configured: Boolean(String(process.env.OPENAI_API_KEY || '').trim()),
-    provider: 'openai',
-    model: process.env.OPENAI_IMAGE_MODEL || 'gpt-image-2'
-  };
-}
-
 export function createServer({ service = createVfxResponse } = {}) {
   return http.createServer(async (req, res) => {
     const origin = String(req.headers.origin || '');
@@ -58,7 +51,7 @@ export function createServer({ service = createVfxResponse } = {}) {
       return;
     }
     if (req.method === 'GET' && req.url === '/healthz') {
-      sendJson(res, 200, { ok: true, service: 'custom-fighter-ai-vfx', ai: providerReadiness() }, origin);
+      sendJson(res, 200, { ok: true, service: 'custom-fighter-ai-vfx', ai: imageProviderReadiness() }, origin);
       return;
     }
     if (req.method !== 'POST' || req.url !== '/v1/vfx/generate') {
