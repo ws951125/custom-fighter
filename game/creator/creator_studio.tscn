@@ -1,6 +1,6 @@
 [gd_scene load_steps=2 format=3]
 
-[ext_resource type="Script" path="res://game/creator/package_vfx_creator_studio.gd" id="1_creator"]
+[ext_resource type="Script" path="res://game/creator/ai_skill_proposal_creator_studio.gd" id="1_creator"]
 
 [node name="CreatorStudio" type="Control"]
 layout_mode = 3
