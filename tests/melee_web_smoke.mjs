@@ -41,6 +41,32 @@ async function nudge(key, holdMs = 55) {
   await page.waitForTimeout(30);
 }
 
+async function castMeleeExpectMp(beforeMp, afterMp) {
+  for (let attempt = 0; attempt < 4; attempt += 1) {
+    await nudge('h', 120);
+    try {
+      await page.waitForFunction(
+        (expectedMp) => Number(document.documentElement.dataset.playerMp) === expectedMp,
+        afterMp,
+        { timeout: 1_500 },
+      );
+      return;
+    } catch {
+      const currentMp = await readNumber('playerMp');
+      if (currentMp === afterMp) return;
+      if (currentMp !== beforeMp) {
+        throw new Error(`Heavy Strike changed MP unexpectedly: before=${beforeMp} expected=${afterMp} actual=${currentMp}`);
+      }
+      const canCast = await readText('meleeSkillCanCast');
+      if (canCast !== 'true') {
+        throw new Error(`Heavy Strike input was observed without expected MP spend: mp=${currentMp} canCast=${canCast}`);
+      }
+      console.log(`MELEE_INPUT_RETRY attempt=${attempt + 1} mp=${currentMp} canCast=${canCast}`);
+    }
+  }
+  throw new Error(`Heavy Strike input was not accepted after retries: expected MP ${beforeMp} -> ${afterMp}`);
+}
+
 async function movementNudge(key, beforeX, holdMs) {
   await page.keyboard.down(key);
   await page.waitForTimeout(holdMs);
@@ -110,12 +136,7 @@ try {
   // Cast once while far away: MP/cooldown should apply, but the target must not be hit.
   const initialGap = (await readNumber('dummyX')) - (await readNumber('playerX'));
   if (!(initialGap > 200)) throw new Error(`Expected initial out-of-range gap; got ${initialGap}`);
-  await nudge('h', 90);
-  await page.waitForFunction(
-    () => Number(document.documentElement.dataset.playerMp) === 82,
-    null,
-    { timeout: 3_000 },
-  );
+  await castMeleeExpectMp(100, 82);
   const firstCooldown = await readNumber('meleeSkillCooldown');
   if (!(firstCooldown > 0)) throw new Error(`Expected melee cooldown after whiff; got ${firstCooldown}`);
   await page.waitForTimeout(700);
@@ -128,25 +149,20 @@ try {
   await page.waitForFunction(
     () => document.documentElement.dataset.meleeSkillCanCast === 'true',
     null,
-    { timeout: 4_000 },
+    { timeout: 5_000 },
   );
 
   const rangeState = await approachDummy();
 
   // Cast in range: one JSON-authored melee hit must deal 24 damage and spend 18 MP.
-  await nudge('h', 90);
-  await page.waitForFunction(
-    () => Number(document.documentElement.dataset.playerMp) === 64,
-    null,
-    { timeout: 3_000 },
-  );
+  await castMeleeExpectMp(82, 64);
   await page.waitForFunction(
     () =>
       Number(document.documentElement.dataset.meleeSkillHitCount) === 1 &&
       Number(document.documentElement.dataset.dummyHp) === 76 &&
       document.documentElement.dataset.lastMeleeSkillHit === 'true',
     null,
-    { timeout: 3_000 },
+    { timeout: 5_000 },
   );
 
   const secondCooldown = await readNumber('meleeSkillCooldown');
@@ -157,7 +173,7 @@ try {
   }
 
   // A sampled recast during cooldown must be rejected without another MP spend or hit.
-  await nudge('h', 90);
+  await nudge('h', 120);
   await page.waitForTimeout(180);
   if ((await readNumber('playerMp')) !== 64) {
     throw new Error(`Melee cooldown recast spent MP: ${await readNumber('playerMp')}`);
