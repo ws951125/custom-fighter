@@ -2,16 +2,16 @@
 
 ## Purpose
 
-This repository is developed as a local-validation-first Godot project. The default expectation is that an agent changes code in GitHub, validates it on the user's connected Windows machine through Remote Desktop Commander, records evidence, and uses GitHub Actions only when explicitly requested or when a cloud-only validation step is required.
+This repository is developed with **online-only validation**. All engineering validation must run in GitHub-hosted CI or other explicitly approved cloud environments. Do not connect to, execute commands on, inspect, or use the user's local machine for testing or validation.
 
 ## Non-negotiable rules
 
-1. **Primary engineering validation is local through Remote Desktop Commander.**
-   - Use the connected Windows machine for Godot headless import/boot, automated tests, Web export, browser smoke tests, and Windows native export/smoke when practical.
-   - Remote Desktop Commander is authorized for this repository.
-   - Do not ask the user to manually execute commands when the agent can run them remotely.
-   - GitHub Actions is no longer the default validation path; keep it manual-only unless the user explicitly re-enables automatic CI.
-   - GitHub Pages may still be used for deployment/public URL checks when a deployment is intentionally performed.
+1. **All validation is online-only.**
+   - GitHub Actions is the primary and required validation path for code changes.
+   - Do not use Remote Desktop Commander, local terminals, local Godot, local browsers, local npm, or any user-device filesystem for this repository.
+   - Do not ask the user to run local commands for routine validation.
+   - If cloud validation is blocked by an external service, report the blocker and the last verified online state rather than falling back to local testing.
+   - GitHub Pages may be used for deployed/public Web validation.
 
 2. **Keep the runtime cross-platform.**
    - Core combat, character, skill, package, and decision logic must not depend on desktop-only APIs.
@@ -19,7 +19,7 @@ This repository is developed as a local-validation-first Godot project. The defa
    - Creator tooling may be PC/Web-first, but runtime data formats must remain portable.
 
 3. **Use data-driven content.**
-   - Characters and skills must be defined by validated data/resources rather than by one-off hard-coded character logic.
+   - Characters and skills must be defined by validated data/resources rather than one-off hard-coded character logic.
    - Adding a normal character or normal skill should not require edits to the combat engine.
 
 4. **Player content must not execute arbitrary code.**
@@ -29,61 +29,58 @@ This repository is developed as a local-validation-first Godot project. The defa
 5. **AI/VFX providers must be replaceable.**
    - AI-assisted image/VFX generation must sit behind an adapter/provider boundary.
    - The game runtime must not depend on a specific cloud AI vendor.
-   - Local generation and cloud providers must remain swappable at the architecture level.
+   - Provider implementations must remain swappable at the architecture level.
 
 6. **Regression protection is required.**
    - Bug fixes should add or strengthen an automated test when practical.
-   - Do not merge known failing automated checks.
+   - Do not merge known failing required online checks.
 
 7. **Secrets never enter Git.**
    - No API keys, credentials, signing keys, private tokens, or confidential model credentials in source or history.
-   - Use environment variables or external secret stores for future services.
+   - Use GitHub/hosting-provider secret stores or environment variables.
 
 8. **Always provide the online test link when the user can test a deployed build.**
    - When a playable/testable Web build is deployed, every result/progress reply must include a directly usable test URL.
    - If no online build was deployed for the current step, say so explicitly.
 
-9. **Every development result reply must report whole-project progress, not only the current slice.**
-   - Include the current overall project phase/milestone.
-   - Include an estimated total project completion percentage.
-   - Include completed, in-progress, and remaining work.
-   - Update the estimate when milestone scope or completion materially changes.
+9. **Every development result reply must report whole-project progress.**
+   - Include current overall project phase/milestone, estimated total completion percentage, completed work, in-progress work, and remaining work.
 
-10. **After every modification, explicitly report both feature changes and the complete current control map.**
-   - Include a New / changed functionality section.
-   - Include a Current controls / buttons section covering every current user-facing actionable input.
+10. **After every modification, report feature changes and the complete current control map.**
+   - Include New / changed functionality.
+   - Include Current controls / buttons covering every user-facing actionable input.
 
-11. **Watch every started validation process through completion before final reporting.**
-   - After starting any local validation process, continue checking it until terminal state before final reporting.
-   - If a process fails, inspect, fix, and re-run before declaring success.
-   - If blocked by an external dependency, report the blocker and last verified state.
+11. **Watch every required online validation run through terminal state before final reporting.**
+   - After triggering or observing a GitHub Actions run, continue checking it until success, failure, cancellation, or a confirmed external blocker.
+   - If a check fails, inspect logs, fix the issue, push the fix, and re-run/observe CI before declaring success.
 
 ## Required workflow for each development step
 
-1. Inspect current state and relevant existing code.
+1. Inspect current repository state and relevant code through GitHub.
 2. State the intended change and acceptance criteria.
-3. Implement the smallest coherent change.
-4. Sync/checkout the target branch on the connected Windows machine.
-5. Run the relevant local automated validation through Remote Desktop Commander.
-6. Continue monitoring all local validation processes until terminal state.
-7. Inspect failures and fix them before declaring success.
-8. Record what changed, tests/checks run, failures, fixes, remaining risks, and unverified behavior.
-9. Keep docs/roadmap synchronized when architecture or milestone scope changes materially.
-10. After every modification, enumerate new/changed functionality and the complete current user-facing control/button map.
+3. Implement the smallest coherent change on a branch.
+4. Open/update a pull request.
+5. Let GitHub Actions run the applicable automated validation.
+6. Monitor every required workflow/job through terminal state.
+7. Inspect online logs and fix failures before declaring success.
+8. Merge only after required online checks pass, unless an external GitHub/service outage is explicitly documented as the blocker.
+9. Record what changed, online checks run, failures, fixes, remaining risks, and unverified behavior.
+10. Keep docs/roadmap synchronized when architecture or milestone scope changes materially.
 
-## Local validation hierarchy
+## Online validation hierarchy
 
-Use the highest applicable local level:
+Use the highest applicable cloud-hosted level:
 
-1. Pure logic/unit tests.
-2. Godot headless project parse/import checks.
-3. Godot headless integration/domain tests.
-4. Successful Web export.
-5. Chromium/Edge browser smoke/E2E against the exported local build.
-6. Windows native export and bounded executable smoke.
-7. Optional GitHub Pages deployment/public reachability when intentionally publishing a build.
+1. Pure logic/unit tests in GitHub Actions.
+2. Godot headless project parse/import checks in GitHub Actions.
+3. Godot headless integration/domain tests in GitHub Actions.
+4. Web export in GitHub Actions.
+5. Chromium browser smoke/E2E against the exported artifact in GitHub Actions.
+6. Windows native export in GitHub Actions.
+7. Microsoft Edge smoke/E2E on a GitHub-hosted Windows runner.
+8. GitHub Pages/public deployment reachability when intentionally publishing a build.
 
-GitHub Actions is manual-only by default and is not required to declare a local development slice validated unless the user explicitly requests cloud CI evidence.
+Local validation is prohibited for this repository unless the user explicitly reverses this policy in a later instruction.
 
 ## Architecture boundaries
 
@@ -135,7 +132,7 @@ Keep core rules independent from UI and rendering wherever practical.
 
 ## Reporting format
 
-For every meaningful development result/progress reply, report succinctly and include the whole-project view:
+For every meaningful development result/progress reply, report succinctly and include:
 
 - Project total progress.
 - Completed.
@@ -143,9 +140,9 @@ For every meaningful development result/progress reply, report succinctly and in
 - Remaining.
 - New / changed functionality.
 - Current controls / buttons.
-- Validation: exact local commands/checks and result; identify any optional cloud checks separately.
+- Validation: exact GitHub Actions workflow/jobs and terminal result.
 - Errors/Fixes.
 - Test link when an online build is available; otherwise state that no new online deployment was made.
 - Next.
 
-Do not report only the current small task while omitting overall project status. Do not claim a test passed without evidence from an executed local or explicitly requested cloud check.
+Do not report a test as passed without evidence from an executed online check. Do not use the user's local machine as a fallback validation environment.
