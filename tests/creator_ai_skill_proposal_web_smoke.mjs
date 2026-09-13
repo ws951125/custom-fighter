@@ -1,7 +1,10 @@
 import { chromium } from 'playwright';
 
 const baseUrl = process.env.CUSTOM_FIGHTER_WEB_URL ?? 'http://127.0.0.1:8000';
-const browser = await chromium.launch({ headless: true });
+const browserChannel = process.env.BROWSER_CHANNEL?.trim();
+const launchOptions = { headless: true };
+if (browserChannel) launchOptions.channel = browserChannel;
+const browser = await chromium.launch(launchOptions);
 
 async function dataset(page, key) {
   return String(await page.evaluate((name) => document.documentElement.dataset[name] ?? '', key));
@@ -40,6 +43,7 @@ try {
     document.documentElement.dataset.creatorAiSkillProposalReady === 'true' &&
     typeof window.customFighterCreatorStageAiSkillProposal === 'function' &&
     typeof window.customFighterCreatorConfirmAiSkillProposal === 'function' &&
+    typeof window.customFighterCreatorConfirmPreviewAiSkillProposal === 'function' &&
     typeof window.customFighterCreatorDiscardAiSkillProposal === 'function',
     null,
     { timeout: 60_000 },
@@ -63,7 +67,31 @@ try {
   await page.waitForFunction(() => document.documentElement.dataset.creatorAiSkillProposalValid === 'false', null, { timeout: 5_000 });
   if (Number(await dataset(page, 'creatorSkillDraftDamage')) !== 44) throw new Error('Discarded proposal mutated SkillDraft');
 
-  console.log('WEB_CREATOR_AI_SKILL_PROPOSAL_SMOKE_PASSED reviewRequired=true confirmApplies=true discardSafe=true');
+  const previewProposal = {
+    ...proposal,
+    proposal_id: 'proposal_preview_001',
+    source_request_id: 'req_preview_001',
+    skill_id: 'preview_bolt_001',
+    skill_name: 'Preview Bolt',
+    damage: 52,
+    mp_cost: 27,
+    cooldown: 2.2,
+  };
+  await page.evaluate((json) => window.customFighterCreatorStageAiSkillProposal(json), JSON.stringify(previewProposal));
+  await page.waitForFunction(() => document.documentElement.dataset.creatorAiSkillProposalValid === 'true', null, { timeout: 5_000 });
+  await page.evaluate(() => window.customFighterCreatorConfirmPreviewAiSkillProposal());
+  await page.waitForFunction(
+    () =>
+      document.documentElement.dataset.appMode === 'training' &&
+      document.documentElement.dataset.creatorPreviewActive === 'true' &&
+      document.documentElement.dataset.creatorPreviewRuntimeSkillDamage === '52' &&
+      document.documentElement.dataset.creatorPreviewRuntimeSkillMpCost === '27' &&
+      Math.abs(Number(document.documentElement.dataset.creatorPreviewRuntimeSkillCooldown) - 2.2) < 0.001,
+    null,
+    { timeout: 60_000 },
+  );
+
+  console.log('WEB_CREATOR_AI_SKILL_PROPOSAL_SMOKE_PASSED reviewRequired=true confirmApplies=true discardSafe=true confirmPreview=true');
 } finally {
   await browser.close();
 }
