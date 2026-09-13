@@ -2,6 +2,7 @@ class_name RemoteAiVfxResponseCodec
 extends RefCounted
 
 const AiVfxResult = preload("res://game/ai/provider/ai_vfx_result.gd")
+const AiSkillProposal = preload("res://game/ai/skill/ai_skill_proposal.gd")
 
 func request_payload(request: Variant) -> Dictionary:
 	if request == null or not request.has_method("to_dictionary"):
@@ -30,9 +31,19 @@ func decode_response(provider_id: String, request: Variant, response: Dictionary
 	if png_bytes.is_empty():
 		result.configure_error(provider_id, request_id, "remote AI VFX response png_base64 could not be decoded")
 		return result
+	var proposal_value: Variant = response.get("skill_proposal", {})
+	if not (proposal_value is Dictionary):
+		result.configure_error(provider_id, request_id, "remote AI VFX response skill_proposal must be an object")
+		return result
+	var proposal := AiSkillProposal.new()
+	var proposal_errors: PackedStringArray = proposal.load_from_dictionary(proposal_value)
+	if not proposal_errors.is_empty() or proposal.source_request_id != request_id:
+		result.configure_error(provider_id, request_id, "remote AI VFX response skill_proposal failed validation")
+		return result
 	var frame_count := int(response.get("frame_count", 0))
 	var fps := float(response.get("fps", 0.0))
 	var configure_errors: PackedStringArray = result.configure_success(provider_id, request_id, png_bytes, frame_count, fps)
+	result.skill_proposal = proposal_value.duplicate(true)
 	if not configure_errors.is_empty():
 		var invalid := AiVfxResult.new()
 		invalid.configure_error(provider_id, request_id, "invalid remote AI VFX response: %s" % " | ".join(configure_errors))

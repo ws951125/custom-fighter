@@ -21,6 +21,7 @@ var image_height := 0
 var frame_count := 1
 var fps := 12.0
 var png_bytes := PackedByteArray()
+var skill_proposal: Dictionary = {}
 
 func configure_success(source_provider_id: String, source_request_id: String, generated_png: PackedByteArray, generated_frame_count: int, generated_fps: float) -> PackedStringArray:
 	reset()
@@ -60,6 +61,7 @@ func reset() -> void:
 	frame_count = 1
 	fps = 12.0
 	png_bytes.clear()
+	skill_proposal.clear()
 
 func to_dictionary() -> Dictionary:
 	return {
@@ -74,7 +76,8 @@ func to_dictionary() -> Dictionary:
 		"image_height": image_height,
 		"frame_count": frame_count,
 		"fps": fps,
-		"byte_count": png_bytes.size()
+		"byte_count": png_bytes.size(),
+		"skill_proposal": skill_proposal.duplicate(true)
 	}
 
 func to_vfx_draft_dictionary() -> Dictionary:

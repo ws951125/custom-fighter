@@ -5,6 +5,7 @@ const CharacterVisualProfile = preload("res://game/core/character/character_visu
 const CharacterAnimationMap = preload("res://game/core/character/character_animation_map.gd")
 const SkillDefinition = preload("res://game/core/skills/skill_definition.gd")
 const VfxDraft = preload("res://game/creator/vfx_editor/vfx_draft.gd")
+const AiSkillProposal = preload("res://game/ai/skill/ai_skill_proposal.gd")
 
 const PREVIEW_SKILL_TYPE := "projectile"
 const APPROVED_PREVIEW_VISUAL := "prototype_fireball"
@@ -15,6 +16,7 @@ var _draft_character_data: Dictionary = {}
 var _draft_skill_data: Dictionary = {}
 var _stored_vfx_data: Dictionary = {}
 var _stored_vfx_png_bytes := PackedByteArray()
+var _pending_ai_skill_proposal: Dictionary = {}
 var _preview_character_data: Dictionary = {}
 var _preview_skill_data: Dictionary = {}
 var _preview_vfx_data: Dictionary = {}
@@ -84,6 +86,25 @@ func store_vfx_draft(vfx_data: Dictionary, png_bytes: PackedByteArray) -> Packed
 		_clear_preview_vfx()
 	revision += 1
 	return PackedStringArray()
+
+func store_ai_skill_proposal(proposal_data: Dictionary) -> PackedStringArray:
+	var proposal := AiSkillProposal.new()
+	var errors: PackedStringArray = proposal.load_from_dictionary(proposal_data)
+	if not errors.is_empty():
+		_pending_ai_skill_proposal.clear()
+		return errors
+	_pending_ai_skill_proposal = proposal_data.duplicate(true)
+	revision += 1
+	return PackedStringArray()
+
+func has_pending_ai_skill_proposal() -> bool:
+	return not _pending_ai_skill_proposal.is_empty()
+
+func take_pending_ai_skill_proposal() -> Dictionary:
+	var proposal := _pending_ai_skill_proposal.duplicate(true)
+	_pending_ai_skill_proposal.clear()
+	if not proposal.is_empty(): revision += 1
+	return proposal
 
 func clear_vfx_draft() -> void:
 	_stored_vfx_data.clear()
@@ -192,6 +213,7 @@ func clear() -> void:
 	_draft_skill_data.clear()
 	_stored_vfx_data.clear()
 	_stored_vfx_png_bytes.clear()
+	_pending_ai_skill_proposal.clear()
 	_preview_character_data.clear()
 	_preview_skill_data.clear()
 	_clear_preview_vfx()

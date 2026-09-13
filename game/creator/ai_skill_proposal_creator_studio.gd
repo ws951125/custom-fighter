@@ -16,7 +16,19 @@ func _ready() -> void:
 	super()
 	_install_ai_proposal_ui()
 	_install_ai_proposal_web_bridge()
+	_restore_pending_ai_proposal()
 	_set_ai_proposal_web_state()
+
+func _restore_pending_ai_proposal() -> void:
+	var session: Variant = get_node_or_null("/root/CreatorPreviewSession")
+	if session == null or not session.has_method("has_pending_ai_skill_proposal"):
+		return
+	if not bool(session.call("has_pending_ai_skill_proposal")):
+		return
+	var proposal: Dictionary = session.call("take_pending_ai_skill_proposal")
+	var errors: PackedStringArray = stage_ai_skill_proposal(proposal)
+	if not errors.is_empty():
+		_set_ai_proposal_web_state(" | ".join(errors))
 
 func _install_ai_proposal_ui() -> void:
 	ai_proposal_panel = PanelContainer.new()

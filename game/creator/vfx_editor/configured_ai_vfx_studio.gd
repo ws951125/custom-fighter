@@ -105,6 +105,16 @@ func _apply_remote_result(result: Variant, request: Variant, next_request_id: St
 	if decode_error != OK or image.get_width() != draft.image_width or image.get_height() != draft.image_height:
 		_set_ai_error("Generated PNG failed final runtime decode")
 		return
+	var proposal_value: Variant = result.get("skill_proposal")
+	if proposal_value is Dictionary and not proposal_value.is_empty():
+		var session: Variant = get_node_or_null("/root/CreatorPreviewSession")
+		if session == null or not session.has_method("store_ai_skill_proposal"):
+			_set_ai_error("Creator session cannot preserve AI skill proposal")
+			return
+		var proposal_store_errors: PackedStringArray = session.call("store_ai_skill_proposal", proposal_value)
+		if not proposal_store_errors.is_empty():
+			_set_ai_error("AI skill proposal rejected by Creator session")
+			return
 	imported_png_bytes = generated_bytes.duplicate()
 	imported_texture = ImageTexture.create_from_image(image)
 	imported = true
