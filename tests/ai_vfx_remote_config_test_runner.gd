@@ -69,17 +69,33 @@ func _test_remote_response_codec(failures: PackedStringArray) -> void:
 		return
 	var png_bytes: PackedByteArray = mock_result.get("png_bytes")
 	var codec := RemoteAiVfxResponseCodec.new()
+	var proposal := {
+		"proposal_id": "proposal_req_remote_codec_001",
+		"source_request_id": "req_remote_codec_001",
+		"skill_id": "ai_projectile_001",
+		"skill_name": "AI Projectile",
+		"skill_type": "projectile",
+		"damage": 24, "mp_cost": 20, "cooldown": 2.0,
+		"startup": 0.15, "active": 0.1, "recovery": 0.25,
+		"speed": 600.0, "range": 900.0, "hitstun": 0.2, "knockback": 180.0,
+		"hitbox_half_width": 24.0, "hitbox_half_depth": 0.08,
+		"visual": "prototype_fireball", "impact_visual": "prototype_impact",
+		"rationale": "Review before applying."
+	}
 	var decoded: Variant = codec.decode_response("remote_ai_vfx", request, {
 		"ok": true,
 		"png_base64": Marshalls.raw_to_base64(png_bytes),
 		"frame_count": int(request.get("frame_count")),
-		"fps": float(request.get("fps"))
+		"fps": float(request.get("fps")),
+		"skill_proposal": proposal
 	})
 	_expect(decoded != null and str(decoded.get("status")) == "success", "valid trusted-backend response should decode into a usable AI VFX result", failures)
 	if decoded != null:
 		var decoded_errors: PackedStringArray = decoded.call("validate_against_request", request)
 		_expect(decoded_errors.is_empty(), "decoded remote result must revalidate against the original request", failures)
-	var malformed: Variant = codec.decode_response("remote_ai_vfx", request, {"ok": true, "png_base64": "not-valid-png", "frame_count": 4, "fps": 12.0})
+	var missing_proposal: Variant = codec.decode_response("remote_ai_vfx", request, {"ok": true, "png_base64": Marshalls.raw_to_base64(png_bytes), "frame_count": 4, "fps": 12.0})
+	_expect(missing_proposal != null and str(missing_proposal.get("status")) == "error", "successful remote response without skill_proposal must fail closed", failures)
+	var malformed: Variant = codec.decode_response("remote_ai_vfx", request, {"ok": true, "png_base64": "not-valid-png", "frame_count": 4, "fps": 12.0, "skill_proposal": proposal})
 	_expect(malformed != null and str(malformed.get("status")) == "error", "malformed remote PNG data must fail closed", failures)
 
 func _valid_request(id: String) -> Variant:

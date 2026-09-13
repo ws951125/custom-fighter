@@ -53,6 +53,20 @@ func _run() -> void:
 
 	var store_vfx_errors: PackedStringArray = session.store_vfx_draft(vfx.to_dictionary(), strip_bytes)
 	_check(store_vfx_errors.is_empty(), "valid PNG VFX stores in preview session")
+	var proposal := {
+		"proposal_id": "proposal_session_001", "source_request_id": "req_session_001",
+		"skill_id": "ai_projectile_001", "skill_name": "AI Projectile", "skill_type": "projectile",
+		"damage": 24, "mp_cost": 20, "cooldown": 2.0, "startup": 0.15, "active": 0.1, "recovery": 0.25,
+		"speed": 600.0, "range": 900.0, "hitstun": 0.2, "knockback": 180.0,
+		"hitbox_half_width": 24.0, "hitbox_half_depth": 0.08,
+		"visual": "prototype_fireball", "impact_visual": "prototype_impact", "rationale": "Review before applying."
+	}
+	var proposal_errors: PackedStringArray = session.store_ai_skill_proposal(proposal)
+	_check(proposal_errors.is_empty(), "valid AI skill proposal stores in preview session")
+	_check(session.has_pending_ai_skill_proposal(), "stored AI skill proposal is pending")
+	var taken_proposal: Dictionary = session.take_pending_ai_skill_proposal()
+	_check(str(taken_proposal.get("proposal_id", "")) == "proposal_session_001", "pending AI proposal can be handed to Creator")
+	_check(not session.has_pending_ai_skill_proposal(), "AI proposal handoff is single-consume")
 	_check(session.has_stored_vfx(), "stored VFX binding is available before preview")
 	_check(int(session.stored_vfx_data().get("frame_count", 0)) == 4, "stored VFX keeps authored frame count")
 	_check(session.stored_vfx_png_bytes().size() == strip_bytes.size(), "stored VFX keeps PNG bytes in memory")
