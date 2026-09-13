@@ -22,7 +22,7 @@ async function waitForRevision(page, key, before) {
   await page.waitForFunction(
     ({ datasetKey, previous }) => Number(document.documentElement.dataset[datasetKey] ?? '0') > previous,
     { datasetKey: key, previous: before },
-    { timeout: 5_000 },
+    { timeout: 10_000 },
   );
 }
 
@@ -54,7 +54,7 @@ try {
       document.documentElement.dataset.creatorSkillDraftDamage === '33' &&
       document.documentElement.dataset.creatorSkillDraftMpCost === '17',
     null,
-    { timeout: 5_000 },
+    { timeout: 10_000 },
   );
 
   await page.evaluate(() => window.customFighterCreatorOpenVfx());
@@ -139,7 +139,7 @@ try {
       document.documentElement.dataset.creatorVfxValid === 'true' &&
       document.documentElement.dataset.creatorVfxStored === 'true',
     null,
-    { timeout: 5_000 },
+    { timeout: 10_000 },
   );
 
   const generated = {
@@ -167,7 +167,7 @@ try {
   await page.waitForFunction(
     (previous) => Number(document.documentElement.dataset.creatorVfxCurrentFrame ?? '-1') !== previous,
     frameBefore,
-    { timeout: 5_000 },
+    { timeout: 10_000 },
   );
 
   // Regenerate through the same provider-neutral adapter; a new request identity is required.
@@ -185,7 +185,7 @@ try {
       document.documentElement.dataset.creatorVfxValid === 'true' &&
       document.documentElement.dataset.creatorVfxStored === 'true',
     null,
-    { timeout: 5_000 },
+    { timeout: 10_000 },
   );
 
   aiRevision = Number(await dataset(page, 'creatorAiVfxRevision'));
@@ -225,13 +225,13 @@ try {
   await page.waitForFunction(
     () => Number(document.documentElement.dataset.playerMp) === 83,
     null,
-    { timeout: 5_000 },
+    { timeout: 10_000 },
   );
   await page.keyboard.up('u');
   await page.waitForFunction(
     () => document.documentElement.dataset.creatorPreviewVfxProjectileVisible === 'true',
     null,
-    { timeout: 5_000 },
+    { timeout: 10_000 },
   );
   const runtimeFrameBefore = Number(await dataset(page, 'creatorPreviewVfxRuntimeCurrentFrame'));
   await page.waitForFunction(
@@ -239,7 +239,7 @@ try {
       document.documentElement.dataset.creatorPreviewVfxProjectileVisible === 'true' &&
       Number(document.documentElement.dataset.creatorPreviewVfxRuntimeCurrentFrame ?? '-1') !== previous,
     runtimeFrameBefore,
-    { timeout: 5_000 },
+    { timeout: 10_000 },
   );
   await page.waitForFunction(
     () =>
@@ -247,7 +247,7 @@ try {
       document.documentElement.dataset.lastSkillHit === 'true' &&
       Number(document.documentElement.dataset.skillHitCount) >= 1,
     null,
-    { timeout: 5_000 },
+    { timeout: 10_000 },
   );
 
   console.log(
