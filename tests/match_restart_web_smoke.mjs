@@ -16,15 +16,61 @@ async function numberDataset(page, key) {
   return Number(await dataset(page, key));
 }
 
+async function nudge(page, key, holdMs = 45) {
+  await page.keyboard.down(key);
+  await page.waitForTimeout(holdMs);
+  await page.keyboard.up(key);
+  await page.waitForTimeout(25);
+}
+
+async function waitForDummyToSettle(page, timeout = 4_000) {
+  await page.waitForFunction(
+    () => Math.abs(Number(document.documentElement.dataset.dummyKnockbackVelocity ?? '0')) < 5,
+    null,
+    { timeout },
+  );
+  await page.waitForTimeout(90);
+}
+
+async function approachDummy(page, minGap = 40, maxGap = 105) {
+  await waitForDummyToSettle(page);
+  let playerX = await numberDataset(page, 'playerX');
+  let dummyX = await numberDataset(page, 'dummyX');
+  let gap = dummyX - playerX;
+  const stagingGap = maxGap + 55;
+
+  for (let step = 0; step < 90 && gap < stagingGap; step += 1) {
+    await nudge(page, 'a');
+    playerX = await numberDataset(page, 'playerX');
+    dummyX = await numberDataset(page, 'dummyX');
+    gap = dummyX - playerX;
+  }
+
+  if (gap < stagingGap) {
+    throw new Error(`Failed to stage left of dummy: playerX=${playerX} dummyX=${dummyX} gap=${gap}`);
+  }
+
+  for (let step = 0; step < 90 && gap > maxGap; step += 1) {
+    await nudge(page, 'd');
+    playerX = await numberDataset(page, 'playerX');
+    dummyX = await numberDataset(page, 'dummyX');
+    gap = dummyX - playerX;
+  }
+
+  await waitForDummyToSettle(page);
+  playerX = await numberDataset(page, 'playerX');
+  dummyX = await numberDataset(page, 'dummyX');
+  gap = dummyX - playerX;
+  if (gap < minGap || gap > maxGap) {
+    throw new Error(`Failed to stabilize attack range: playerX=${playerX} dummyX=${dummyX} gap=${gap}`);
+  }
+}
+
 async function castSkill1(page) {
   const beforeHits = await numberDataset(page, 'skillHitCount');
-  await page.keyboard.down('u');
-  await page.waitForTimeout(100);
-  await page.keyboard.up('u');
+  await nudge(page, 'u', 100);
   await page.waitForFunction(
-    (previousHits) =>
-      document.documentElement.dataset.matchOver === 'true' ||
-      Number(document.documentElement.dataset.skillHitCount ?? '0') > previousHits,
+    (previousHits) => Number(document.documentElement.dataset.skillHitCount ?? '0') > previousHits,
     beforeHits,
     { timeout: 6_000 },
   );
@@ -53,15 +99,30 @@ try {
     throw new Error('Training did not start from full HP/MP');
   }
 
-  for (let cast = 0; cast < 6 && (await dataset(page, 'matchOver')) !== 'true'; cast += 1) {
+  // Four real fireball casts spend all 100 MP and leave the dummy at 28 HP.
+  // Finish with the existing real J -> J -> J melee combo so the test does not
+  // manufacture resources or bypass combat rules just to reach match end.
+  for (let cast = 0; cast < 4; cast += 1) {
     await castSkill1(page);
-    if ((await dataset(page, 'matchOver')) === 'true') break;
-    await page.waitForFunction(
-      () => document.documentElement.dataset.skillCanCast === 'true',
-      null,
-      { timeout: 5_000 },
+    if (cast < 3) {
+      await page.waitForFunction(
+        () => document.documentElement.dataset.skillCanCast === 'true',
+        null,
+        { timeout: 5_000 },
+      );
+    }
+  }
+
+  if ((await numberDataset(page, 'dummyHp')) !== 28 || (await numberDataset(page, 'playerMp')) !== 0) {
+    throw new Error(
+      `Unexpected pre-finisher resources: hp=${await dataset(page, 'dummyHp')} mp=${await dataset(page, 'playerMp')}`,
     );
   }
+
+  await approachDummy(page);
+  await nudge(page, 'j', 90);
+  await nudge(page, 'j', 90);
+  await nudge(page, 'j', 90);
 
   await page.waitForFunction(
     () =>
@@ -72,8 +133,8 @@ try {
     { timeout: 6_000 },
   );
 
-  if ((await numberDataset(page, 'skillHitCount')) < 5) {
-    throw new Error(`Victory did not record expected skill hits: ${await dataset(page, 'skillHitCount')}`);
+  if ((await numberDataset(page, 'skillHitCount')) !== 4) {
+    throw new Error(`Victory did not preserve four fireball hits: ${await dataset(page, 'skillHitCount')}`);
   }
 
   await page.evaluate(() => window.customFighterRestartMatch());
