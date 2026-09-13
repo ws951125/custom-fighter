@@ -69,7 +69,8 @@ try {
 
   const exportedJson = await page.evaluate(() => window.customFighterLastPackageJson);
   const exported = JSON.parse(exportedJson);
-  if (exported.schema_version !== 1) throw new Error('Exported package schema_version mismatch');
+  if (exported.schema_version !== 2) throw new Error('Exported package schema_version mismatch');
+  if ('vfx_asset' in exported) throw new Error('Package without authored VFX must not emit a vfx_asset');
   if (exported.package_id !== 'my_fighter_001') throw new Error(`Unexpected package_id ${exported.package_id}`);
   if (exported.character?.name !== 'Package Nova') throw new Error('Exported character name mismatch');
   if (exported.character?.stats?.max_hp !== 222) throw new Error('Exported HP mismatch');
@@ -149,7 +150,7 @@ try {
     { timeout: 5_000 },
   );
 
-  console.log('WEB_CREATOR_PACKAGE_SMOKE_PASSED export=true invalidPreserved=true import=true authoredHp=222 authoredDamage=41 authoredMpCost=19 previewCast=true');
+  console.log('WEB_CREATOR_PACKAGE_SMOKE_PASSED export=true schema=2 noVfxFallback=true invalidPreserved=true import=true authoredHp=222 authoredDamage=41 authoredMpCost=19 previewCast=true');
   await page.close();
 } finally {
   await browser.close();
