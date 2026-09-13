@@ -2,16 +2,21 @@
 
 ## Current phase
 
-**Milestone 8 — MVP Release is complete.**
+**Post-MVP P2 — Async remote AI VFX transport is complete.**
 
-Estimated whole-project completion: **100% (9/9 roadmap milestones)**. M0–M8 are formally complete and the MVP is production-validated on Web and Windows x86_64.
+Estimated whole-project completion: **84.6% (11/13 roadmap phases)**.
 
-There is no active MVP milestone slice. Future work is post-MVP roadmap expansion rather than unfinished M0–M8 scope.
+The roadmap is now tracked as 13 phases:
+- M0–M8 MVP: 9/9 complete.
+- P1 Safe real-provider boundary: complete.
+- P2 Async remote AI transport: complete.
+- P3 Production AI provider/backend integration: not complete.
+- P4 Image → skill proposal → Creator → Training end-to-end production flow: not complete.
 
 ## Completed milestones
 
 ### M0 — Foundation — 100%
-Godot 4.7.2 foundation, GitHub Actions validation, Web export, GitHub Pages deployment and browser smoke coverage.
+Godot 4.7.2 foundation, automated validation, Web export, deployment support and browser smoke coverage.
 
 ### M1 — Combat Prototype — 100%
 2.5D movement, run/jump/dash/guard, HP/MP, three-hit basic attack chain, hit/hurt boxes, hitstun, knockback, knockdown and training dummy.
@@ -20,100 +25,96 @@ Godot 4.7.2 foundation, GitHub Actions validation, Web export, GitHub Pages depl
 Data-driven melee, projectile, area, dash, formation and buff templates with startup/active/recovery, MP and cooldown handling.
 
 ### M3 — Character System — 100%
-Validated CharacterDefinition, movement/visual/animation/loadout boundaries and multiple reference characters. Production validation completed through CI Run #98.
+Validated CharacterDefinition, movement/visual/animation/loadout boundaries and multiple reference characters.
 
 ### M4 — Creator Studio — 100%
-Character Editor, Projectile Skill Editor and validated Creator-to-Training preview flow. A non-programmer can create a basic character and skill and test them in Training.
+Character Editor, Projectile Skill Editor and validated Creator-to-Training preview flow.
 
 ### M5 — VFX Creator — 100%
-Validated PNG/sprite-strip import, crop/frame/FPS/scale/offset authoring, preview and real Skill 1 projectile binding. Main CI Run #134 passed production gates.
+Validated PNG/sprite-strip import, crop/frame/FPS/scale/offset authoring, preview and Skill 1 projectile binding.
 
 ### M6 — AI-assisted VFX — 100%
-A reference PNG plus prompt/skill description can produce usable generated skill VFX through a replaceable provider boundary without coupling the combat runtime to a specific AI service.
-
-Completed slices:
-- Issue #68 / PR #69 — provider-neutral AI VFX request/result/provider boundary.
-- Issue #70 / PR #71 — Creator prompt/reference Generate/Regenerate workflow.
-
-Validation:
-- PR #69 latest-head CI Run #138 passed required PR gates; Slice 1 reached production through main Runs #139/#140.
-- PR #71 latest head passed PR CI Run #143 and merged at `a5b6d869541c8bcb5255e6b243e8a2782faade0a`.
-- Main CI Run #144 and follow-up status Run #145 passed production gates.
+Provider-neutral AI VFX request/result/provider boundary plus Creator prompt/reference Generate/Regenerate workflow. The production implementation remains provider-neutral and originally used deterministic mock generation.
 
 ### M7 — Character Packages — 100%
-A user can create a character package and another browser session can load it safely, including authored Skill 1 PNG/sprite-strip VFX.
-
-Completed slices:
-- Issue #72 / PR #73 — versioned safe character package data boundary.
-- Issue #74 / PR #75 — Creator JSON package export/import.
-- Issue #76 / PR #77 — self-contained VFX asset character packages.
-
-Production package behavior:
-- schema-v1 packages without embedded VFX remain importable,
-- current exports use schema v2,
-- schema v2 can carry one optional validated Skill 1 VFX asset containing `VfxDraft` metadata plus bounded PNG bytes encoded as base64,
-- top-level/package/VFX fields are allow-listed and revalidated,
-- embedded PNG bytes are decoded in memory and dimensions must match validated metadata,
-- scripts, native binaries, arbitrary resource paths, external URLs, ZIP/archive extraction and arbitrary filesystem writes are rejected/out of contract,
-- invalid package imports fail closed before Creator Character/Skill/VFX state is mutated,
-- a valid self-contained package can be imported in another browser session and use the normal Creator → Training preview path.
-
-Validation:
-- PR #77 latest-head CI Run #155 passed Godot import/boot/domain tests, Web export/size budget, Chromium `smoke:all` and GitHub-hosted Windows Edge `smoke:all`.
-- PR #77 squash-merged to `main` at `24caf509aa6a87b856f652856f41725a1d865083`; Issue #76 closed completed.
-- Main CI Run #156 passed production validation.
+Versioned character package import/export with schema-v2 self-contained validated Skill 1 PNG/sprite-strip VFX and fail-closed package boundaries.
 
 ### M8 — MVP Release — 100%
-Roadmap requirements from `docs/MVP.md` are satisfied:
-- Web release,
-- Windows x86_64 build,
-- basic release/use documentation,
-- stable Creator → package → fresh-session import → Training loop.
+Web release, Windows x86_64 release flow, release documentation and Creator → package → fresh-session import → Training acceptance.
 
-#### Slice 1 — Issue #78 / PR #79 — Windows native release artifact and CI smoke — complete
-Implemented and production-validated:
-- Godot `Windows Desktop` x86_64 release export preset with deterministic output under `build/windows`,
-- GitHub-hosted `Windows Native Release` job using Godot 4.7.2 plus official export templates,
-- validation of both `CustomFighter.exe` and `CustomFighter.pck`,
-- bounded native smoke requiring a clean exit without script/fatal diagnostics,
-- uploaded `custom-fighter-windows-x86_64` release bundle,
-- Pages deployment gated on successful Windows native release,
-- existing Web/Chromium/hosted Edge/Pages/public/production Edge gates preserved.
+## Post-MVP AI image-to-skill roadmap
 
-Validation:
-- PR #79 final latest-head CI Run #166 passed Windows Native Release, Godot + Web + Browser and Windows + Microsoft Edge on head `e8d4fca97f2b0db068f7d3fcfaea76934c8d066a`.
-- PR #79 squash-merged to `main` at `b575a17cb69f06f162e4a6c800db693c2aaebdde`.
-- Main CI Run #167 passed all six production jobs.
-- Windows PowerShell process-exit and spaced-preset argument issues discovered during the slice are recorded in `docs/LESSONS_LEARNED.md`.
+### P1 — Safe real-provider boundary — 100%
+Completed through Issue #84 / PR #85:
+- validated provider configuration,
+- `remote_ai_vfx` provider boundary,
+- HTTPS-only endpoint validation,
+- embedded URL credentials rejected,
+- no provider secrets committed,
+- mock provider preserved as deterministic fallback.
 
-#### Slice 2 — Issue #80 / PR #81 — release documentation and final Creator-to-Training acceptance — complete
-Implemented and production-validated:
-- refreshed README from stale M0-era text to the current release state,
-- added `docs/RELEASE.md` for Web/Windows usage, Creator/package/Training flow, controls and package safety boundaries,
-- added `smoke:creator-package-vfx` to required `smoke:all`,
-- final acceptance now proves schema-v2 export, embedded VFX, second-session import, Training transition, runtime VFX load and actual skill cast,
-- all existing validation and production gates remain intact.
+### P2 — Async remote AI transport — 100%
+Completed through PR #86 and squash-merged to `main` at `7b193023221f6533339922c3bf7e5a31d94475af`.
 
-Validation:
-- PR #81 latest-head CI Run #168 passed Windows Native Release, Godot + Web + Browser with expanded Chromium `smoke:all`, and Windows + Microsoft Edge with expanded `smoke:all` on head `b8a5ccf4bb95d327134ccf7de80a9975f28d1d62`.
-- PR #81 squash-merged to `main` at `e831b788dfaf28bcf1ebb4772f64845f47a090a0`.
-- Main CI Run #169 passed all six production jobs:
-  - Windows Native Release,
-  - Godot + Web + Browser,
-  - Windows + Microsoft Edge,
-  - Deploy Web Demo,
-  - Verify Public Web Demo,
-  - Windows Edge Production Game.
-- GitHub Pages deployment succeeded, the public production URL was reachable, and the real game flow against production passed in Microsoft Edge.
-- Issue #80 is closed completed.
+Implemented:
+- async Godot `HTTPRequest` transport for trusted backends,
+- JSON request/response boundary,
+- strict remote response decoding,
+- Base64 PNG decoding and validation back into `AiVfxResult`,
+- request/result matching and VFX draft revalidation,
+- malformed/oversized/non-JSON/invalid-PNG output fails closed,
+- synchronous mock path remains unchanged.
+
+Local validation on the connected Windows machine using Godot 4.7.2:
+- project import: PASS,
+- main scene headless boot: PASS,
+- core domain suite: PASS,
+- character/registry/animation suites: PASS,
+- Creator character/skill/preview/VFX draft suites: PASS,
+- AI VFX provider suite: PASS,
+- remote AI config/response codec suite: PASS,
+- character package/self-contained package suites: PASS,
+- formation/buff/melee regression suites: PASS.
+
+The intentional invalid-input tests emit expected Godot PNG/Base64 decode diagnostics while still finishing with the corresponding `*_TESTS_PASSED` markers and overall exit code 0.
+
+### P3 — Production provider/backend integration — 0%
+Remaining:
+- choose/configure the real backend/provider implementation behind the trusted endpoint,
+- keep provider credentials outside browser/Git,
+- wire Creator to select/use the remote provider,
+- define production error/retry/timeout UX,
+- validate real generated assets through the existing fail-closed data boundary.
+
+### P4 — Image → skill production E2E — 0%
+Remaining:
+- reference image + optional description → generated animated VFX,
+- propose validated skill parameters such as template/type, timing, damage, MP, cooldown, speed/range and visual binding,
+- user preview/edit/accept step,
+- bind to Creator character,
+- enter Training and cast the generated skill,
+- production end-to-end acceptance.
+
+## Validation policy
+
+Primary engineering validation is now **local-first** through Remote Desktop Commander on the connected Windows machine.
+
+The local validation hierarchy is:
+1. logic/unit tests,
+2. Godot headless import/parse,
+3. Godot integration/domain tests,
+4. Web export when relevant,
+5. local Chromium/Edge smoke when relevant,
+6. Windows native export/smoke when relevant,
+7. optional GitHub Pages deployment/public reachability when intentionally publishing.
+
+GitHub Actions is now **manual-only** (`workflow_dispatch`) and is no longer a required gate for normal development unless the user explicitly requests cloud CI evidence.
+
+Previously queued GitHub Actions runs may remain visible until GitHub terminates or completes them; they are no longer used as the blocking validation path.
 
 ## Completed cross-platform slice — Mobile touch controls
 
-Issue #61 / PR #62 is production-validated. Touch-capable Web sessions can use movement/run, jump/attack/dash/guard and Skill 1–6 controls; `?mobile_controls=1` forces the HUD on and `?mobile_controls=0` forces it off. Main CI Run #118 passed production validation.
-
-## Online validation policy
-
-All project engineering validation remains on GitHub-hosted infrastructure and the deployed GitHub Pages build: Godot import/boot, domain tests, Web export/size budget, Chromium smoke coverage, hosted Windows Edge smoke coverage, Windows native export/smoke, Pages deployment/public reachability and production Edge real-game flow. The user's local computer and Remote Desktop Commander are not used for project validation.
+Issue #61 / PR #62 remains complete. Touch-capable Web sessions can use movement/run, jump/attack/dash/guard and Skill 1–6 controls; `?mobile_controls=1` forces the HUD on and `?mobile_controls=0` forces it off.
 
 ## Production links
 
@@ -123,8 +124,10 @@ Creator Studio: `https://ws951125.github.io/custom-fighter/?mode=creator`
 
 VFX Creator: `https://ws951125.github.io/custom-fighter/?mode=vfx`
 
-Production contains the completed M0–M8 MVP roadmap, including the Windows native release pipeline, release documentation and expanded Creator package VFX acceptance gate.
+The currently deployed production build contains the completed M0–M8 MVP. Post-MVP P1/P2 are merged in source; a new production deployment is not implied until intentionally published.
 
 ## Remaining roadmap
 
-The defined M0–M8 MVP roadmap has no remaining incomplete milestone. Further work is post-MVP scope such as additional platforms, content, networking, distribution/signing and production provider integrations.
+Whole-project roadmap remaining after P2:
+- P3 Production AI provider/backend integration.
+- P4 Image → skill → Creator → Training production end-to-end flow.
