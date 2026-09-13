@@ -115,7 +115,7 @@ try {
   await page.waitForFunction(
     () =>
       document.documentElement.dataset.appMode === 'creator' &&
-      document.documentElement.dataset.creatorReady === 'true',
+      document.documentElement.dataset.creatorStudioReady === 'true',
     null,
     { timeout: 60_000 },
   );
