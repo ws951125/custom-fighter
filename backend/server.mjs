@@ -29,6 +29,14 @@ async function readJson(req) {
   return JSON.parse(text || '{}');
 }
 
+function providerReadiness() {
+  return {
+    configured: Boolean(String(process.env.OPENAI_API_KEY || '').trim()),
+    provider: 'openai',
+    model: process.env.OPENAI_IMAGE_MODEL || 'gpt-image-2'
+  };
+}
+
 export function createServer({ service = createVfxResponse } = {}) {
   return http.createServer(async (req, res) => {
     const origin = String(req.headers.origin || '');
@@ -50,7 +58,7 @@ export function createServer({ service = createVfxResponse } = {}) {
       return;
     }
     if (req.method === 'GET' && req.url === '/healthz') {
-      sendJson(res, 200, { ok: true, service: 'custom-fighter-ai-vfx' }, origin);
+      sendJson(res, 200, { ok: true, service: 'custom-fighter-ai-vfx', ai: providerReadiness() }, origin);
       return;
     }
     if (req.method !== 'POST' || req.url !== '/v1/vfx/generate') {
