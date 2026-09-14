@@ -14,13 +14,22 @@ async function num(key) {
 async function text(key) {
   return String(await page.evaluate((k) => document.documentElement.dataset[k] ?? '', key));
 }
-async function tap(key, ms = 80) {
+async function nudge(key, ms = 45) {
   await page.keyboard.down(key);
   await page.waitForTimeout(ms);
   await page.keyboard.up(key);
-  await page.waitForTimeout(45);
+  await page.waitForTimeout(25);
+}
+async function waitForDummyToSettle(timeout = 4_000) {
+  await page.waitForFunction(
+    () => Math.abs(Number(document.documentElement.dataset.dummyKnockbackVelocity ?? '0')) < 5,
+    null,
+    { timeout },
+  );
+  await page.waitForTimeout(90);
 }
 async function approach(minGap = 45, maxGap = 100) {
+  await waitForDummyToSettle();
   let playerX = await num('playerX');
   let dummyX = await num('dummyX');
   let gap = dummyX - playerX;
@@ -29,7 +38,7 @@ async function approach(minGap = 45, maxGap = 100) {
   // Always stage on the dummy's left side first. Numeric melee range alone does not
   // guarantee facing, and a final A correction can make the J hitbox point away.
   for (let i = 0; i < 120 && gap < stagingGap; i += 1) {
-    await tap('a', 25);
+    await nudge('a');
     playerX = await num('playerX');
     dummyX = await num('dummyX');
     gap = dummyX - playerX;
@@ -41,26 +50,34 @@ async function approach(minGap = 45, maxGap = 100) {
   // Approach only with D so the last movement input guarantees the player faces the
   // dummy before the combo begins. This mirrors the proven hosted-Edge melee helper.
   for (let i = 0; i < 120 && gap > maxGap; i += 1) {
-    await tap('d', 25);
+    await nudge('d');
     playerX = await num('playerX');
     dummyX = await num('dummyX');
     gap = dummyX - playerX;
   }
 
+  await waitForDummyToSettle();
+  playerX = await num('playerX');
+  dummyX = await num('dummyX');
+  gap = dummyX - playerX;
   if (gap < minGap || gap > maxGap) {
     throw new Error(`Could not enter stable melee range: playerX=${playerX} dummyX=${dummyX} gap=${gap}`);
   }
 }
-async function hit(expectedHp) {
-  await tap('j', 90);
+async function combo(expectedHp) {
+  // Exercise the real combo input buffer rather than waiting for a runner-observed READY
+  // frame between attacks. Hosted Edge can skip that transient observation window even
+  // when the runtime is healthy. The final hit-step/HP/knockdown state proves 1->2->3.
+  await nudge('j', 90);
+  await nudge('j', 90);
+  await nudge('j', 90);
   await page.waitForFunction(
-    (hp) => Number(document.documentElement.dataset.dummyHp) === hp,
+    (hp) =>
+      Number(document.documentElement.dataset.lastHitStep) === 3 &&
+      Number(document.documentElement.dataset.dummyHp) === hp &&
+      document.documentElement.dataset.lastAttackHit === 'true' &&
+      document.documentElement.dataset.dummyRecoveryState === 'DOWN',
     expectedHp,
-    { timeout: 5_000 },
-  );
-  await page.waitForFunction(
-    () => document.documentElement.dataset.playerState === 'READY',
-    null,
     { timeout: 5_000 },
   );
 }
@@ -94,17 +111,13 @@ try {
   }
 
   await approach();
-  await hit(88);
-  await hit(74);
-  await hit(54);
+  await combo(54);
   await waitRecovered();
   await approach();
-  await hit(42);
-  await hit(28);
-  await hit(8);
+  await combo(8);
   await waitRecovered();
   await approach();
-  await tap('j', 90);
+  await nudge('j', 90);
 
   await page.waitForFunction(
     () =>
