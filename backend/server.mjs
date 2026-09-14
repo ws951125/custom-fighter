@@ -6,6 +6,10 @@ const PORT = Number(process.env.PORT || 8787);
 const ALLOWED_ORIGIN = process.env.CUSTOM_FIGHTER_ALLOWED_ORIGIN || 'https://ws951125.github.io';
 const MAX_BODY_BYTES = 8 * 1024 * 1024;
 
+function deployedRevision() {
+  return String(process.env.RENDER_GIT_COMMIT || process.env.CUSTOM_FIGHTER_REVISION || '').trim();
+}
+
 function sendJson(res, status, body, origin = '') {
   res.statusCode = status;
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
@@ -51,7 +55,17 @@ export function createServer({ service = createVfxResponse } = {}) {
       return;
     }
     if (req.method === 'GET' && req.url === '/healthz') {
-      sendJson(res, 200, { ok: true, service: 'custom-fighter-ai-vfx', ai: imageProviderReadiness() }, origin);
+      sendJson(
+        res,
+        200,
+        {
+          ok: true,
+          service: 'custom-fighter-ai-vfx',
+          revision: deployedRevision(),
+          ai: imageProviderReadiness()
+        },
+        origin
+      );
       return;
     }
     if (req.method !== 'POST' || req.url !== '/v1/vfx/generate') {
