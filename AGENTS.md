@@ -69,6 +69,13 @@ This repository is developed with **online-only validation**. All engineering va
    - Reply to the user only after the requested chain is fully complete, or when progress is genuinely blocked by an external condition that requires explicit user action or approval.
    - A long-running `in_progress` job is not a blocker and must continue to be monitored rather than reported as incomplete work.
 
+14. **Every reply must explicitly state the next action to be performed.**
+   - Every progress update, result report, error report, blocker report, and completion report must include a clearly labeled `Next step to execute` / `下一步要進行的是什麼` item.
+   - The next step must name the concrete engineering action that follows; do not use vague wording such as “continue” or “keep working”.
+   - If progress is blocked, state both the blocking requirement and the first concrete action that will be taken immediately after the blocker is resolved.
+   - If safe non-blocked work remains, perform it before stopping and report that as the current next action.
+   - This field is mandatory in every reply and must not be omitted even when the current work unit is complete.
+
 ## Required workflow for each development batch
 
 1. Inspect current repository state and relevant code through GitHub.
@@ -162,6 +169,6 @@ For every meaningful development result/progress reply, report succinctly and in
 - Validation: exact GitHub Actions workflow/jobs and terminal result.
 - Errors/Fixes.
 - Test link when an online build is available; otherwise state that no new online deployment was made.
-- Next.
+- Next step to execute / 下一步要進行的是什麼.
 
 Do not report a test as passed without evidence from an executed online check. Do not use the user's local machine as a fallback validation environment.
