@@ -1,0 +1,35 @@
+name: Production AI Generation E2E
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm_billable_ai_e2e:
+        description: 'I approve one real production AI image generation request that may incur provider charges.'
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+jobs:
+  production-ai-generation-e2e:
+    name: Real Production AI Generation E2E
+    if: ${{ inputs.confirm_billable_ai_e2e }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: 24
+
+      - name: Run one explicitly approved billable production generation
+        env:
+          CUSTOM_FIGHTER_AI_BACKEND_URL: https://custom-fighter-ai-vfx.onrender.com
+          ALLOW_BILLABLE_AI_E2E: '1'
+        run: node tests/production_ai_generation_e2e.mjs
