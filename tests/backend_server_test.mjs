@@ -15,9 +15,20 @@ const { port } = server.address();
 const base = `http://127.0.0.1:${port}`;
 
 try {
-  const health = await fetch(`${base}/healthz`);
+  const allowedOrigin = 'https://ws951125.github.io';
+  const health = await fetch(`${base}/healthz`, { headers: { Origin: allowedOrigin } });
   assert.equal(health.status, 200);
-  assert.equal((await health.json()).ok, true);
+  assert.equal(health.headers.get('access-control-allow-origin'), allowedOrigin);
+  assert.equal(health.headers.get('cache-control'), 'no-store');
+  assert.equal(health.headers.get('x-content-type-options'), 'nosniff');
+  const healthBody = await health.json();
+  assert.equal(healthBody.ok, true);
+  assert.equal(healthBody.service, 'custom-fighter-ai-vfx');
+  assert.equal(typeof healthBody.revision, 'string');
+  assert.equal(typeof healthBody.ai?.configured, 'boolean');
+  assert.ok(Array.isArray(healthBody.ai?.supported_providers));
+  assert.ok(healthBody.ai.supported_providers.includes('openai'));
+  assert.ok(healthBody.ai.supported_providers.includes('gemini'));
 
   const blocked = await fetch(`${base}/v1/vfx/generate`, {
     method: 'POST',
@@ -26,7 +37,6 @@ try {
   });
   assert.equal(blocked.status, 403);
 
-  const allowedOrigin = 'https://ws951125.github.io';
   const generated = await fetch(`${base}/v1/vfx/generate`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'Origin': allowedOrigin },
