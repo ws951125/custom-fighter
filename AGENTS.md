@@ -62,6 +62,13 @@ This repository is developed with **online-only validation**. All engineering va
    - A missing approval for one external dependency does not block unrelated safe work in the same phase; complete all non-blocked work first.
    - Keep the user informed during long batches, but routine progress updates are not approval gates.
 
+13. **When the user asks to keep monitoring until completion, do not send an intermediate result reply.**
+   - Continue polling every required GitHub Actions job and downstream deployment/production gate until the full requested validation chain reaches a terminal state.
+   - Do not return merely because one job, one runner, one PR check, or one deployment stage finished.
+   - If a required check fails, inspect the online logs, fix the problem in the active branch/PR, trigger the next validation run, and continue monitoring that replacement run as part of the same batch.
+   - Reply to the user only after the requested chain is fully complete, or when progress is genuinely blocked by an external condition that requires explicit user action or approval.
+   - A long-running `in_progress` job is not a blocker and must continue to be monitored rather than reported as incomplete work.
+
 ## Required workflow for each development batch
 
 1. Inspect current repository state and relevant code through GitHub.
@@ -77,6 +84,7 @@ This repository is developed with **online-only validation**. All engineering va
 11. Before stopping for an explicit-approval blocker, finish every remaining non-blocked task that can still be completed safely.
 12. Record what changed, online checks run, failures, fixes, remaining risks, and unverified behavior.
 13. Keep docs/roadmap synchronized when architecture or milestone scope changes materially.
+14. If the user requested continuous monitoring, suppress intermediate result replies and keep polling until all required CI/deployment/production gates are terminal; only then provide the consolidated report.
 
 ## Online validation hierarchy
 
