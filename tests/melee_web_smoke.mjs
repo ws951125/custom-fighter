@@ -99,27 +99,40 @@ async function movementNudge(key, beforeX, holdMs) {
 }
 
 async function approachDummy() {
-  const minGap = 50;
-  const maxGap = 110;
-  const targetGap = 80;
+  const minGap = 40;
+  const maxGap = 105;
+  const stagingGap = maxGap + 55;
   let playerX = await readNumber('playerX');
   let dummyX = await readNumber('dummyX');
   let gap = dummyX - playerX;
 
-  for (let step = 0; step < 100; step += 1) {
-    if (gap >= minGap && gap <= maxGap) return { playerX, dummyX, gap };
-
-    const distanceFromTarget = Math.abs(gap - targetGap);
-    const key = gap > targetGap ? 'd' : 'a';
-    const holdMs = distanceFromTarget > 220 ? 38 : distanceFromTarget > 120 ? 28 : 20;
-    await movementNudge(key, playerX, holdMs);
-
+  // Stage on the dummy's left, then make the final approach only with D. Heavy Strike
+  // captures player facing when it casts, so a last-moment A correction can put a valid
+  // in-range target behind the hitbox on slow hosted Edge runners.
+  for (let step = 0; step < 100 && gap < stagingGap; step += 1) {
+    await movementNudge('a', playerX, 28);
     playerX = await readNumber('playerX');
     dummyX = await readNumber('dummyX');
     gap = dummyX - playerX;
   }
 
-  throw new Error(`Failed to enter Heavy Strike range after adaptive positioning: playerX=${playerX} dummyX=${dummyX} gap=${gap}`);
+  if (gap < stagingGap) {
+    throw new Error(`Failed to stage left of dummy: playerX=${playerX} dummyX=${dummyX} gap=${gap}`);
+  }
+
+  for (let step = 0; step < 100 && gap > maxGap; step += 1) {
+    const distanceFromRange = gap - maxGap;
+    const holdMs = distanceFromRange > 220 ? 38 : distanceFromRange > 120 ? 28 : 20;
+    await movementNudge('d', playerX, holdMs);
+    playerX = await readNumber('playerX');
+    dummyX = await readNumber('dummyX');
+    gap = dummyX - playerX;
+  }
+
+  if (gap < minGap || gap > maxGap) {
+    throw new Error(`Failed to enter Heavy Strike range while facing target: playerX=${playerX} dummyX=${dummyX} gap=${gap}`);
+  }
+  return { playerX, dummyX, gap };
 }
 
 try {
