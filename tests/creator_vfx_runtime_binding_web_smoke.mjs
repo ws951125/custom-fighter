@@ -182,15 +182,14 @@ try {
   );
   const frameBefore = Number(await dataset(page, 'creatorPreviewVfxRuntimeCurrentFrame'));
   await page.waitForFunction(
-    (previous) =>
-      document.documentElement.dataset.creatorPreviewVfxProjectileVisible === 'true' &&
-      Number(document.documentElement.dataset.creatorPreviewVfxRuntimeCurrentFrame ?? '-1') !== previous,
-    frameBefore,
-    { timeout: 3_000 },
+    () => Number(document.documentElement.dataset.creatorPreviewVfxRuntimeMaxFrameSeen ?? '0') >= 1,
+    null,
+    { timeout: 5_000 },
   );
   const frameAfter = Number(await dataset(page, 'creatorPreviewVfxRuntimeCurrentFrame'));
-  if (frameAfter < 0 || frameAfter > 3) {
-    throw new Error(`Runtime VFX frame escaped authored strip: ${frameAfter}`);
+  const maxFrameSeen = Number(await dataset(page, 'creatorPreviewVfxRuntimeMaxFrameSeen'));
+  if (frameAfter < 0 || frameAfter > 3 || maxFrameSeen < 1 || maxFrameSeen > 3) {
+    throw new Error(`Runtime VFX frame evidence escaped authored strip: current=${frameAfter} maxSeen=${maxFrameSeen}`);
   }
 
   await page.waitForFunction(
@@ -244,7 +243,7 @@ try {
   );
 
   console.log(
-    `WEB_CREATOR_VFX_RUNTIME_BINDING_SMOKE_PASSED draftsPreserved=true bound=true runtimeLoaded=true frames=4 frameBefore=${frameBefore} frameAfter=${frameAfter} scale=2 offset=12,-8 mpCost=17 damage=33 resetClears=true`,
+    `WEB_CREATOR_VFX_RUNTIME_BINDING_SMOKE_PASSED draftsPreserved=true bound=true runtimeLoaded=true frames=4 frameBefore=${frameBefore} frameAfter=${frameAfter} maxFrameSeen=${maxFrameSeen} scale=2 offset=12,-8 mpCost=17 damage=33 resetClears=true`,
   );
 } finally {
   await browser.close();
