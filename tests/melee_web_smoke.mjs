@@ -67,6 +67,17 @@ async function castMeleeExpectMp(beforeMp, afterMp) {
   throw new Error(`Heavy Strike input was not accepted after retries: expected MP ${beforeMp} -> ${afterMp}`);
 }
 
+async function waitForPositiveCooldown(label) {
+  await page.waitForFunction(
+    () => Number(document.documentElement.dataset.meleeSkillCooldown) > 0,
+    null,
+    { timeout: 2_500 },
+  );
+  const cooldown = await readNumber('meleeSkillCooldown');
+  if (!(cooldown > 0)) throw new Error(`Expected melee cooldown after ${label}; got ${cooldown}`);
+  return cooldown;
+}
+
 async function movementNudge(key, beforeX, holdMs) {
   await page.keyboard.down(key);
   await page.waitForTimeout(holdMs);
@@ -137,8 +148,7 @@ try {
   const initialGap = (await readNumber('dummyX')) - (await readNumber('playerX'));
   if (!(initialGap > 200)) throw new Error(`Expected initial out-of-range gap; got ${initialGap}`);
   await castMeleeExpectMp(100, 82);
-  const firstCooldown = await readNumber('meleeSkillCooldown');
-  if (!(firstCooldown > 0)) throw new Error(`Expected melee cooldown after whiff; got ${firstCooldown}`);
+  const firstCooldown = await waitForPositiveCooldown('whiff');
   await page.waitForTimeout(700);
   if ((await readNumber('dummyHp')) !== 100 || (await readNumber('meleeSkillHitCount')) !== 0) {
     throw new Error(
@@ -165,8 +175,7 @@ try {
     { timeout: 5_000 },
   );
 
-  const secondCooldown = await readNumber('meleeSkillCooldown');
-  if (!(secondCooldown > 0)) throw new Error(`Expected melee cooldown after hit; got ${secondCooldown}`);
+  const secondCooldown = await waitForPositiveCooldown('hit');
   const centerX = await readNumber('meleeSkillCenterX');
   if (!(centerX > rangeState.playerX)) {
     throw new Error(`Expected right-facing melee hitbox in front: playerX=${rangeState.playerX} centerX=${centerX}`);
