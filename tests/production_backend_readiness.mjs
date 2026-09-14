@@ -52,6 +52,9 @@ assert.equal(typeof body.ai.configured, 'boolean');
 assert.equal(body.ai.configured, body.ai.providers[body.ai.provider].configured);
 assert.equal(body.ai.model, body.ai.providers[body.ai.provider].model);
 
+const openaiConfigured = body.ai.providers.openai.configured;
+const geminiConfigured = body.ai.providers.gemini.configured;
+const anyConfigured = openaiConfigured || geminiConfigured;
 console.log(
-  `PRODUCTION_AI_BACKEND_READINESS_PASSED provider=${body.ai.provider} configured=${body.ai.configured} model=${body.ai.model} revision=${body.revision || '(empty)'}`,
+  `PRODUCTION_AI_BACKEND_READINESS_PASSED provider=${body.ai.provider} configured=${body.ai.configured} model=${body.ai.model} openai_configured=${openaiConfigured} gemini_configured=${geminiConfigured} any_configured=${anyConfigured} revision=${body.revision || '(empty)'}`,
 );

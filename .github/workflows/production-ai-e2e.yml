@@ -24,6 +24,7 @@ permissions:
 jobs:
   production-ai-provider-e2e:
     name: Real Production AI Provider Acceptance
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -46,8 +47,15 @@ jobs:
       - name: Install production test dependency
         run: npm install --no-audit --no-fund
 
+      - name: Verify Render readiness and exact deployed revision
+        env:
+          CUSTOM_FIGHTER_AI_BACKEND_URL: https://custom-fighter-ai-vfx.onrender.com
+          EXPECTED_BACKEND_REVISION: ${{ github.sha }}
+        run: node tests/production_backend_readiness.mjs
+
       - name: Run real text + reference-image production acceptance
         env:
           CUSTOM_FIGHTER_AI_BACKEND_URL: https://custom-fighter-ai-vfx.onrender.com
           EXPECTED_AI_PROVIDER: ${{ inputs.expected_provider }}
+          EXPECTED_BACKEND_REVISION: ${{ github.sha }}
         run: node tests/production_ai_provider_e2e.mjs
