@@ -10,7 +10,7 @@ Roadmap:
 - M0–M8 MVP: 9/9 complete.
 - P1 Safe real-provider boundary: complete.
 - P2 Async remote AI transport: complete.
-- P3 Production AI provider/backend integration: in progress; source/backend integration and deterministic cloud acceptance are substantially complete, while real-provider production acceptance is blocked by the missing server-side `OPENAI_API_KEY`.
+- P3 Production AI provider/backend integration: in progress; source/backend integration and deterministic cloud acceptance are substantially complete, while real-provider production acceptance is blocked until at least one server-side production provider credential is configured.
 - P4 Image → skill proposal → Creator → Training production flow: in progress; source flow and deterministic cloud E2E are substantially complete, while final real-provider production acceptance remains.
 
 ## Completed milestones
@@ -52,26 +52,35 @@ Completed through PR #86. Includes Godot `HTTPRequest`, strict JSON/PNG response
 
 Implemented and production-hardened:
 - trusted Node backend with `/healthz` and `/v1/vfx/generate`,
-- server-side OpenAI provider adapter,
+- provider-neutral server-side image provider factory,
+- OpenAI image provider adapter,
+- Gemini / Nano Banana image provider adapter using the Gemini Interactions API,
+- `AI_IMAGE_PROVIDER=openai|gemini` server-side selection,
+- OpenAI model override through `OPENAI_IMAGE_MODEL`,
+- Gemini model override through `GEMINI_IMAGE_MODEL`,
 - provider/model readiness reporting without exposing secrets,
+- `/healthz` reports the selected provider plus readiness for all supported providers,
 - Render service deployment at `https://custom-fighter-ai-vfx.onrender.com`,
 - Creator remote-provider selection via validated HTTPS endpoint,
 - Creator preflight readiness check before Generate,
-- Generate is disabled while the backend is checking, unavailable, or provider credentials are not configured,
+- Generate is disabled while the backend is checking, unavailable, or selected provider credentials are not configured,
 - async remote request path,
 - strict CORS/body/output bounds,
 - generation response revalidation,
 - browser/runtime contains no provider credential,
-- reference-image requests use the provider image-edit boundary,
+- reference-image requests use the selected provider image-edit boundary,
 - Godot request serialization matches the trusted backend contract,
 - production errors fail closed,
 - Render runtime uses `NODE_ENV=production`,
 - production image pipeline dependency upgraded to `sharp 0.35.4`,
-- Render build for main commit `4ecada703e168ab6f372aee9d3e5da7408b99466` completed live with `found 0 vulnerabilities`.
+- Render production install audit: 0 vulnerabilities,
+- GitHub Pages deployment/public reachability/production Edge full-smoke gates restored and accepted on main Run #204.
 
 Current external blocker:
-- Render readiness reports `configured:false` until a server-side `OPENAI_API_KEY` is supplied.
-- Therefore a real provider generation request cannot yet be truthfully accepted as production E2E.
+- a real production provider credential must be configured server-side on Render.
+- For OpenAI: set `AI_IMAGE_PROVIDER=openai` and `OPENAI_API_KEY`.
+- For Gemini: set `AI_IMAGE_PROVIDER=gemini` and `GEMINI_API_KEY`.
+- Therefore a real provider generation request cannot yet be truthfully accepted as production E2E until one provider is configured.
 
 ## P4 — Image → skill → Creator → Training — IN PROGRESS
 
@@ -93,7 +102,7 @@ Implemented in source and deterministic cloud E2E:
 - Restart remounts a fresh Training instance to reset HP/MP/positions/cooldowns/projectiles/buffs/controllers/hit counters.
 
 Remaining P4 acceptance:
-- configure the real production provider secret,
+- configure one real production provider secret,
 - real reference image + prompt → production backend → generated VFX + skill proposal,
 - explicit user confirmation,
 - real generated asset cast in Training,
@@ -117,18 +126,17 @@ Required path:
 
 Do not use Remote Desktop Commander, the user's local machine, local Godot/npm/browser caches, or user-device storage for validation unless the user explicitly reverses this policy.
 
-Latest accepted cloud evidence before restoring the Pages production gate:
-- PR #101 CI Run #198: SUCCESS,
-- main CI Run #199: SUCCESS,
-- PR #102 CI Run #200: SUCCESS,
+Latest accepted cloud evidence:
+- PR #103 CI Run #203: SUCCESS,
+- PR #103 merged as `68b4abd68a16828d20ae0613595dc3bdc9946777`,
+- main CI Run #204: SUCCESS,
 - `Godot + Backend + Web + Chromium`: SUCCESS,
 - `Windows Native Release`: SUCCESS,
 - `Windows + Microsoft Edge`: SUCCESS,
-- PR #102 merged as `4ecada703e168ab6f372aee9d3e5da7408b99466`,
-- Render auto-deploy for `4ecada703e168ab6f372aee9d3e5da7408b99466`: LIVE,
+- `Deploy Web Demo`: SUCCESS,
+- `Verify Public Web Demo`: SUCCESS,
+- `Windows Edge Production Full Smoke`: SUCCESS,
 - Render production install audit: 0 vulnerabilities.
-
-The Pages/public-production gates are being restored because they were present in the earlier online-first release workflow and were unintentionally dropped during a later validation-policy rewrite.
 
 ## Execution policy
 
@@ -145,5 +153,5 @@ VFX Creator: `https://ws951125.github.io/custom-fighter/?mode=vfx`
 ## Remaining roadmap
 
 To reach 13/13:
-- finish P3 by configuring the real production provider secret and completing real-provider acceptance,
+- finish P3 by configuring at least one real production provider secret and completing real-provider acceptance,
 - finish P4 with real reference-image → VFX + skill proposal → explicit confirmation → Training cast production E2E.
