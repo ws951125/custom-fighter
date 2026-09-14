@@ -4,6 +4,11 @@ import sharp from 'sharp';
 const baseUrl = String(process.env.CUSTOM_FIGHTER_AI_BACKEND_URL || 'https://custom-fighter-ai-vfx.onrender.com').replace(/\/$/, '');
 const expectedProvider = String(process.env.EXPECTED_AI_PROVIDER || '').trim().toLowerCase();
 const origin = 'https://ws951125.github.io';
+const allowBillable = String(process.env.ALLOW_BILLABLE_AI_E2E || '') === '1';
+
+if (!allowBillable) {
+  throw new Error('Real production AI E2E may incur provider charges; set ALLOW_BILLABLE_AI_E2E=1 only after explicit approval.');
+}
 
 async function readJson(response, label) {
   const text = await response.text();
