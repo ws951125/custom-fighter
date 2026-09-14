@@ -96,6 +96,7 @@ async function approachDummy(minGap = 35, maxGap = 100) {
   let playerX = await readNumber('playerX');
   let dummyX = await readNumber('dummyX');
   let gap = dummyX - playerX;
+  const targetGap = (minGap + maxGap) / 2;
   const stagingGap = maxGap + 55;
 
   for (let step = 0; step < 100 && gap < stagingGap; step += 1) {
@@ -108,8 +109,12 @@ async function approachDummy(minGap = 35, maxGap = 100) {
     throw new Error(`Failed to stage left of dummy: playerX=${playerX} dummyX=${dummyX} gap=${gap}`);
   }
 
-  for (let step = 0; step < 100 && gap > maxGap; step += 1) {
-    await holdKey('d', 35, 20);
+  for (let step = 0; step < 160; step += 1) {
+    if (gap >= minGap && gap <= maxGap) break;
+    const key = gap > targetGap ? 'd' : 'a';
+    const error = Math.abs(gap - targetGap);
+    const holdMs = error > 90 ? 28 : error > 45 ? 18 : 10;
+    await holdKey(key, holdMs, 18);
     playerX = await readNumber('playerX');
     dummyX = await readNumber('dummyX');
     gap = dummyX - playerX;
@@ -119,6 +124,15 @@ async function approachDummy(minGap = 35, maxGap = 100) {
   playerX = await readNumber('playerX');
   dummyX = await readNumber('dummyX');
   gap = dummyX - playerX;
+
+  for (let step = 0; step < 40 && (gap < minGap || gap > maxGap); step += 1) {
+    const key = gap > targetGap ? 'd' : 'a';
+    await holdKey(key, 8, 20);
+    playerX = await readNumber('playerX');
+    dummyX = await readNumber('dummyX');
+    gap = dummyX - playerX;
+  }
+
   if (gap < minGap || gap > maxGap) {
     throw new Error(`Failed to stabilize attack range: playerX=${playerX} dummyX=${dummyX} gap=${gap}`);
   }
