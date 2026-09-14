@@ -10,7 +10,7 @@ Roadmap:
 - M0–M8 MVP: 9/9 complete.
 - P1 Safe real-provider boundary: complete.
 - P2 Async remote AI transport: complete.
-- P3 Production AI provider/backend integration: in progress; source/backend integration and deterministic cloud acceptance are substantially complete, while real-provider production acceptance is blocked until at least one server-side production provider credential is configured.
+- P3 Production AI provider/backend integration: in progress; source/backend integration and deterministic cloud acceptance are complete, while real-provider production acceptance is blocked until at least one selected server-side production provider credential is configured and the explicitly billable production E2E is approved/run.
 - P4 Image → skill proposal → Creator → Training production flow: in progress; source flow and deterministic cloud E2E are substantially complete, while final real-provider production acceptance remains.
 
 ## Completed milestones
@@ -76,13 +76,22 @@ Implemented and production-hardened:
 - Render runtime uses `NODE_ENV=production`,
 - production image pipeline dependency upgraded to `sharp 0.35.4`,
 - Render production install audit: 0 vulnerabilities,
-- GitHub Pages deployment/public reachability/production Edge full-smoke gates restored and accepted on main.
+- GitHub Pages deployment/public reachability/production Edge full-smoke gates restored and accepted on main,
+- manual-only billable workflow `.github/workflows/production-ai-e2e.yml` exists for real provider acceptance,
+- real provider acceptance script validates both text-only generation and reference-image generation, PNG dimensions, security headers, request IDs and structured skill proposal output,
+- the billable workflow requires explicit operator confirmation before any real provider request is sent.
+
+Current production readiness evidence:
+- main CI Run #213: `PRODUCTION_AI_BACKEND_READINESS_PASSED provider=openai configured=false model=gpt-image-2 revision=597425ff8f228e9ceb49166923c6ea2ddd2dcf12`.
+- The selected production provider is currently `openai`, but it is not configured, so no real model request can be accepted yet.
+- Gemini is supported as an alternative provider but is not the currently selected production provider.
 
 Current external blocker:
 - a real production provider credential must be configured server-side on Render.
 - For OpenAI: set `AI_IMAGE_PROVIDER=openai` and `OPENAI_API_KEY`.
 - For Gemini: set `AI_IMAGE_PROVIDER=gemini` and `GEMINI_API_KEY`.
-- Therefore a real provider generation request cannot yet be truthfully accepted as production E2E until one provider is configured.
+- After configuration, run **Production AI Provider E2E** with explicit billable-call confirmation; normal push/PR CI intentionally never performs real billable model generation.
+- Therefore a real provider generation request cannot yet be truthfully accepted as production E2E until one provider is configured and the manual billable acceptance is explicitly approved.
 
 ## P4 — Image → skill → Creator → Training — IN PROGRESS
 
@@ -105,6 +114,7 @@ Implemented in source and deterministic cloud E2E:
 
 Remaining P4 acceptance:
 - configure one real production provider secret,
+- run the explicitly confirmed billable production provider E2E,
 - real reference image + prompt → production backend → generated VFX + skill proposal,
 - explicit user confirmation,
 - real generated asset cast in Training,
@@ -127,19 +137,26 @@ Required path:
 10. verify the Render production backend is healthy, exposes the expected provider-readiness contract, permits the GitHub Pages origin, and is serving the exact `main` revision under acceptance,
 11. run the full `smoke:all` suite against the real GitHub Pages deployment in Microsoft Edge.
 
+Real provider generation is intentionally separate because it can incur API charges:
+- use only the manual **Production AI Provider E2E** workflow,
+- require explicit billable-call confirmation,
+- never add push/PR/scheduled billable provider calls without explicit user approval.
+
 Do not use Remote Desktop Commander, the user's local machine, local Godot/npm/browser caches, or user-device storage for validation unless the user explicitly reverses this policy.
 
-Latest accepted cloud evidence before the current P3 readiness-gate change:
-- PR #105 CI Run #208: SUCCESS,
-- PR #105 merged as `29d08cceec4eaa4f0fceefe716bde289547ce937`,
-- main CI Run #209: SUCCESS,
+Latest accepted cloud evidence:
+- PR #107 CI Run #212: SUCCESS,
+- PR #107 merged as `597425ff8f228e9ceb49166923c6ea2ddd2dcf12`,
+- main CI Run #213: completed / SUCCESS,
 - `Godot + Backend + Web + Chromium`: SUCCESS,
 - `Windows Native Release`: SUCCESS,
 - `Windows + Microsoft Edge`: SUCCESS,
+- `Verify Production AI Backend Readiness`: SUCCESS,
 - `Deploy Web Demo`: SUCCESS,
 - `Verify Public Web Demo`: SUCCESS,
 - `Windows Edge Production Full Smoke`: SUCCESS,
-- Render deploy `dep-dajk7edg1s2s73ci9ub0` for the same main revision: LIVE,
+- Render deployment for the same main revision: LIVE,
+- readiness output: selected `openai`, `configured=false`, `gpt-image-2`, exact revision match,
 - Render production install audit: 0 vulnerabilities.
 
 ## Execution policy
@@ -161,5 +178,5 @@ AI VFX backend: `https://custom-fighter-ai-vfx.onrender.com`
 ## Remaining roadmap
 
 To reach 13/13:
-- finish P3 by configuring at least one real production provider secret and completing real-provider acceptance,
+- finish P3 by configuring at least one selected real production provider secret and completing the explicitly confirmed manual real-provider acceptance,
 - finish P4 with real reference-image → VFX + skill proposal → explicit confirmation → Training cast production E2E.
