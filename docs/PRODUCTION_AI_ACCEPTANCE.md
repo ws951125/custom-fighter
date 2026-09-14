@@ -45,3 +45,10 @@ A successful run prints `PRODUCTION_AI_PROVIDER_E2E_PASSED` together with the se
 ## Cost safety
 
 Normal CI only syntax-checks `tests/production_ai_provider_e2e.mjs`; it does **not** invoke a real model. Do not add automatic push/PR/scheduled triggers to the billable workflow without explicit user approval.
+
+There are two independent approval guards before a real provider request can run:
+
+1. The manual workflow requires the operator to confirm billable provider calls.
+2. The E2E script itself refuses to execute unless the approved workflow supplies its explicit real-call approval token.
+
+This second guard prevents accidental direct execution of the cost-bearing script outside the approved workflow path.
