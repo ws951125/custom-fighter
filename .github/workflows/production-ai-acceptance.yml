@@ -1,0 +1,48 @@
+name: Production AI Provider Acceptance
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm_paid_api_call:
+        description: 'I explicitly approve running real production AI generation requests that may incur provider charges.'
+        required: true
+        type: boolean
+        default: false
+      expected_provider:
+        description: 'Expected active production provider.'
+        required: true
+        type: choice
+        default: auto
+        options:
+          - auto
+          - openai
+          - gemini
+
+permissions:
+  contents: read
+
+jobs:
+  production-ai-provider-e2e:
+    name: Real Production AI Provider E2E
+    if: ${{ inputs.confirm_paid_api_call == true }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: 24
+
+      - name: Install runtime dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Run real production AI acceptance
+        env:
+          CUSTOM_FIGHTER_AI_BACKEND_URL: https://custom-fighter-ai-vfx.onrender.com
+          EXPECTED_AI_PROVIDER: ${{ inputs.expected_provider == 'auto' && '' || inputs.expected_provider }}
+          ALLOW_REAL_AI_API_CALLS: YES_I_APPROVE_REAL_AI_COST
+        run: npm run acceptance:production-ai
