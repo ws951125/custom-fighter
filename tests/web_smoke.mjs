@@ -374,14 +374,15 @@ try {
     null,
     { timeout: 2_000 },
   );
+  // Observe the recovery phase and its protection flag atomically. On a busy hosted Edge
+  // runner, the runtime can legitimately advance INVULNERABLE -> READY between two JS reads.
   await page.waitForFunction(
-    () => document.documentElement.dataset.dummyRecoveryState === 'INVULNERABLE',
+    () =>
+      document.documentElement.dataset.dummyRecoveryState === 'INVULNERABLE' &&
+      document.documentElement.dataset.dummyInvulnerable === 'true',
     null,
     { timeout: 2_000 },
   );
-  if (await readText('dummyInvulnerable') !== 'true') {
-    throw new Error('Standing recovery protection must be invulnerable');
-  }
   await page.waitForFunction(
     () => document.documentElement.dataset.dummyRecoveryState === 'READY',
     null,
