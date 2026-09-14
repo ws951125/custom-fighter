@@ -266,10 +266,32 @@ jobs:
           done
           echo "PUBLIC_WEB_DEMO_REACHABLE"
 
+  verify-ai-backend:
+    name: Verify Production AI Backend Readiness
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [validate-web, windows-native-release, windows-edge-online]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: 24
+
+      - name: Verify Render health, provider schema and deployed revision
+        env:
+          CUSTOM_FIGHTER_AI_BACKEND_URL: https://custom-fighter-ai-vfx.onrender.com
+          EXPECTED_BACKEND_REVISION: ${{ github.sha }}
+        run: node tests/production_backend_readiness.mjs
+
   windows-edge-production:
     name: Windows Edge Production Full Smoke
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    needs: [deploy-pages, verify-production]
+    needs: [deploy-pages, verify-production, verify-ai-backend]
     runs-on: windows-latest
     timeout-minutes: 25
 
