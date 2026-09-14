@@ -1,6 +1,13 @@
 import assert from 'node:assert/strict';
 import sharp from 'sharp';
 
+const approval = String(process.env.ALLOW_REAL_AI_API_CALLS || '').trim();
+if (approval !== 'YES_I_APPROVE_REAL_AI_COST') {
+  throw new Error(
+    'Real production AI acceptance is cost-bearing and disabled by default. Set ALLOW_REAL_AI_API_CALLS=YES_I_APPROVE_REAL_AI_COST only after explicit approval.',
+  );
+}
+
 const baseUrl = String(process.env.CUSTOM_FIGHTER_AI_BACKEND_URL || 'https://custom-fighter-ai-vfx.onrender.com').replace(/\/$/, '');
 const expectedProvider = String(process.env.EXPECTED_AI_PROVIDER || '').trim().toLowerCase();
 const origin = 'https://ws951125.github.io';
