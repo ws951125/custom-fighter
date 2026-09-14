@@ -20,13 +20,36 @@ async function tap(key, ms = 80) {
   await page.keyboard.up(key);
   await page.waitForTimeout(45);
 }
-async function approach() {
-  for (let i = 0; i < 120; i += 1) {
-    const gap = (await num('dummyX')) - (await num('playerX'));
-    if (gap >= 45 && gap <= 100) return;
-    await tap(gap > 75 ? 'd' : 'a', 25);
+async function approach(minGap = 45, maxGap = 100) {
+  let playerX = await num('playerX');
+  let dummyX = await num('dummyX');
+  let gap = dummyX - playerX;
+  const stagingGap = maxGap + 55;
+
+  // Always stage on the dummy's left side first. Numeric melee range alone does not
+  // guarantee facing, and a final A correction can make the J hitbox point away.
+  for (let i = 0; i < 120 && gap < stagingGap; i += 1) {
+    await tap('a', 25);
+    playerX = await num('playerX');
+    dummyX = await num('dummyX');
+    gap = dummyX - playerX;
   }
-  throw new Error(`Could not enter melee range: gap=${(await num('dummyX')) - (await num('playerX'))}`);
+  if (gap < stagingGap) {
+    throw new Error(`Could not stage left of dummy: playerX=${playerX} dummyX=${dummyX} gap=${gap}`);
+  }
+
+  // Approach only with D so the last movement input guarantees the player faces the
+  // dummy before the combo begins. This mirrors the proven hosted-Edge melee helper.
+  for (let i = 0; i < 120 && gap > maxGap; i += 1) {
+    await tap('d', 25);
+    playerX = await num('playerX');
+    dummyX = await num('dummyX');
+    gap = dummyX - playerX;
+  }
+
+  if (gap < minGap || gap > maxGap) {
+    throw new Error(`Could not enter stable melee range: playerX=${playerX} dummyX=${dummyX} gap=${gap}`);
+  }
 }
 async function hit(expectedHp) {
   await tap('j', 90);
