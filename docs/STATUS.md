@@ -60,7 +60,9 @@ Implemented and production-hardened:
 - Gemini model override through `GEMINI_IMAGE_MODEL`,
 - provider/model readiness reporting without exposing secrets,
 - `/healthz` reports the selected provider plus readiness for all supported providers,
-- Render service deployment at `https://custom-fighter-ai-vfx.onrender.com`,
+- `/healthz` also exposes the non-secret deployed Git revision so cloud acceptance can verify Render is serving the same `main` commit under test,
+- Render service deployment at `https://custom-fighter-ai-vfx.onrender.com`, service ID `srv-daj3urfqj5pc73c5n9og`, Singapore, auto-deploy from `main`,
+- main-push CI verifies Render reachability, GitHub Pages CORS, provider schema, supported OpenAI/Gemini readiness fields, and exact deployed revision alignment before final production browser acceptance,
 - Creator remote-provider selection via validated HTTPS endpoint,
 - Creator preflight readiness check before Generate,
 - Generate is disabled while the backend is checking, unavailable, or selected provider credentials are not configured,
@@ -74,7 +76,7 @@ Implemented and production-hardened:
 - Render runtime uses `NODE_ENV=production`,
 - production image pipeline dependency upgraded to `sharp 0.35.4`,
 - Render production install audit: 0 vulnerabilities,
-- GitHub Pages deployment/public reachability/production Edge full-smoke gates restored and accepted on main Run #204.
+- GitHub Pages deployment/public reachability/production Edge full-smoke gates restored and accepted on main.
 
 Current external blocker:
 - a real production provider credential must be configured server-side on Render.
@@ -122,25 +124,29 @@ Required path:
 7. Microsoft Edge full browser smoke on a GitHub-hosted Windows runner,
 8. after a successful `main` push, deploy the validated Web artifact to GitHub Pages,
 9. verify public Training / Creator / VFX URLs are reachable,
-10. run the full `smoke:all` suite against the real GitHub Pages deployment in Microsoft Edge.
+10. verify the Render production backend is healthy, exposes the expected provider-readiness contract, permits the GitHub Pages origin, and is serving the exact `main` revision under acceptance,
+11. run the full `smoke:all` suite against the real GitHub Pages deployment in Microsoft Edge.
 
 Do not use Remote Desktop Commander, the user's local machine, local Godot/npm/browser caches, or user-device storage for validation unless the user explicitly reverses this policy.
 
-Latest accepted cloud evidence:
-- PR #103 CI Run #203: SUCCESS,
-- PR #103 merged as `68b4abd68a16828d20ae0613595dc3bdc9946777`,
-- main CI Run #204: SUCCESS,
+Latest accepted cloud evidence before the current P3 readiness-gate change:
+- PR #105 CI Run #208: SUCCESS,
+- PR #105 merged as `29d08cceec4eaa4f0fceefe716bde289547ce937`,
+- main CI Run #209: SUCCESS,
 - `Godot + Backend + Web + Chromium`: SUCCESS,
 - `Windows Native Release`: SUCCESS,
 - `Windows + Microsoft Edge`: SUCCESS,
 - `Deploy Web Demo`: SUCCESS,
 - `Verify Public Web Demo`: SUCCESS,
 - `Windows Edge Production Full Smoke`: SUCCESS,
+- Render deploy `dep-dajk7edg1s2s73ci9ub0` for the same main revision: LIVE,
 - Render production install audit: 0 vulnerabilities.
 
 ## Execution policy
 
 Once a roadmap phase is started, continue through all non-blocked implementation, regression, cloud validation, fixes, merge and documentation work for that phase. Do not stop merely because a slice, commit, PR or test group completed. Stop only at a genuine external blocker or a decision requiring explicit user approval. If one item is externally blocked, finish the other non-blocked work in the same phase first.
+
+When continuous monitoring is requested, keep polling every required CI, deployment and production gate through terminal state. A completed sub-job or an `in_progress` run is not a stopping point. If a required validation fails, inspect the online evidence, fix it when permitted, and follow the replacement run through terminal state. Report only after the requested validation scope is complete or a genuine explicit-approval blocker is reached.
 
 ## Production links
 
@@ -149,6 +155,8 @@ Training: `https://ws951125.github.io/custom-fighter/`
 Creator Studio: `https://ws951125.github.io/custom-fighter/?mode=creator`
 
 VFX Creator: `https://ws951125.github.io/custom-fighter/?mode=vfx`
+
+AI VFX backend: `https://custom-fighter-ai-vfx.onrender.com`
 
 ## Remaining roadmap
 
