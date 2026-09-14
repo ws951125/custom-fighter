@@ -50,4 +50,5 @@ jobs:
         env:
           CUSTOM_FIGHTER_AI_BACKEND_URL: https://custom-fighter-ai-vfx.onrender.com
           EXPECTED_AI_PROVIDER: ${{ inputs.expected_provider }}
+          ALLOW_BILLABLE_AI_E2E: '1'
         run: node tests/production_ai_provider_e2e.mjs
