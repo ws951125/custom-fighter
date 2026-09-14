@@ -3,6 +3,7 @@ import sharp from 'sharp';
 
 const baseUrl = String(process.env.CUSTOM_FIGHTER_AI_BACKEND_URL || 'https://custom-fighter-ai-vfx.onrender.com').replace(/\/$/, '');
 const expectedProvider = String(process.env.EXPECTED_AI_PROVIDER || '').trim().toLowerCase();
+const expectedRevision = String(process.env.EXPECTED_BACKEND_REVISION || '').trim();
 const origin = 'https://ws951125.github.io';
 
 async function readJson(response, label) {
@@ -60,6 +61,7 @@ assert.equal(healthResponse.status, 200);
 const health = await readJson(healthResponse, 'healthz');
 assert.equal(health.ok, true);
 assert.ok(health.ai && typeof health.ai === 'object');
+if (expectedRevision) assert.equal(health.revision, expectedRevision, `Render revision mismatch: expected ${expectedRevision}, got ${health.revision || '(empty)'}`);
 assert.equal(health.ai.configured, true, `Selected production provider '${health.ai.provider}' is not configured`);
 if (expectedProvider) assert.equal(health.ai.provider, expectedProvider);
 console.log(`PRODUCTION_AI_PROVIDER_READY provider=${health.ai.provider} model=${health.ai.model} revision=${health.revision || '(empty)'}`);
@@ -106,4 +108,4 @@ const referenceRequest = {
 };
 await generate(referenceRequest, 'PRODUCTION_AI_REFERENCE_GENERATION');
 
-console.log(`PRODUCTION_AI_PROVIDER_E2E_PASSED provider=${health.ai.provider} model=${health.ai.model}`);
+console.log(`PRODUCTION_AI_PROVIDER_E2E_PASSED provider=${health.ai.provider} model=${health.ai.model} revision=${health.revision || '(empty)'}`);
