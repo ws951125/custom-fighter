@@ -130,9 +130,9 @@ Required path:
 Do not use Remote Desktop Commander, the user's local machine, local Godot/npm/browser caches, or user-device storage for validation unless the user explicitly reverses this policy.
 
 Latest accepted cloud evidence:
-- PR #117 latest-head CI Run #233: SUCCESS,
-- PR #117 merged as `581c4fc77a715cedcb5450c8f7cefc4038293ab9`,
-- main CI Run #234: SUCCESS,
+- PR #119 latest-head CI Run #238: SUCCESS,
+- PR #119 merged as `91c4f949147c4b1428a4d9167b176f34f6fe107b`,
+- main CI Run #241: SUCCESS,
 - `Windows Native Release`: SUCCESS,
 - `Godot + Backend + Web + Chromium`: SUCCESS,
 - `Windows + Microsoft Edge`: SUCCESS,
