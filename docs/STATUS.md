@@ -13,7 +13,9 @@ Roadmap:
 - P3 Production AI provider/backend integration: in progress.
 - P4 Image → skill proposal → Creator → Training production flow: in progress.
 
-Current work unit (2026-09-15): PR #123 **`Test: stabilize production match-restart positioning`** merged to `main` as `6902f7e475c30e90689e4bdab887a8a660b19501`. Main CI Run #264 then passed the complete production validation chain, including the final Microsoft Edge `smoke:all` against the real GitHub Pages deployment. The Run #260 match-restart positioning recurrence is therefore resolved in production. No gameplay parameters or control mappings changed; the fix only made the browser positioning helper deterministic through runtime-observed movement, distance-adaptive holds, stage-left/final-D facing, and restage/retry after overshoot.
+Current work unit (2026-09-15): PR #124 **`Docs: sync Run #264 production validation`** merged to `main` as `eb1087c0089ca00190a37b7265ee9b0b91870082`. Main CI Run #266 then passed the complete production validation chain: Windows Native Release, Godot/backend/Web/Chromium, GitHub-hosted Microsoft Edge, GitHub Pages deploy/public reachability, Production AI Backend Readiness, and the final Windows Edge Production Full Smoke all passed. Render also serves the exact `eb1087c...` revision in deliberate safe-disabled Gemini mode with `project_verified=false`.
+
+PR #125 **`Docs: require GitHub sync before progress reports`** is the current docs/process work unit. It adds an `Agent.md` hard rule that any program/test/document/config progress reported to the user must already be committed to the current GitHub feature branch before it is counted as completed progress; unsynced/local-only work must be explicitly identified and cannot be counted as Done. It also requires branch/head/PR re-checks before progress reports and keeps `docs/STATUS.md` / `docs/LESSONS_LEARNED.md` synchronized for completed work units.
 
 All currently inferable/non-blocked engineering work for the Free Tier safety boundary and deterministic production validation is complete. P3/P4 remain open only because real Gemini Free Tier production acceptance requires an external credential and billing-state verification that cannot be inferred or performed from the repository.
 
@@ -60,12 +62,14 @@ PR #122 **`P3: verify Free Tier project before Gemini activation`** merged to `m
 
 PR #123 **`Test: stabilize production match-restart positioning`** merged to `main` as `6902f7e475c30e90689e4bdab887a8a660b19501` after latest-head PR CI Run #263 passed Windows Native Release, Godot/backend/Web/Chromium and GitHub-hosted Microsoft Edge.
 
+PR #124 **`Docs: sync Run #264 production validation`** merged to `main` as `eb1087c0089ca00190a37b7265ee9b0b91870082`; post-merge main Run #266 passed all production gates.
+
 Render / production backend status:
-- main Run #264 verified the backend is serving exact revision `6902f7e475c30e90689e4bdab887a8a660b19501`,
+- main Run #266 verified the backend is serving exact revision `eb1087c0089ca00190a37b7265ee9b0b91870082`,
 - `/healthz` remains compatible with `supported_providers=[gemini]`,
 - production is deliberately `AI_IMAGE_PROVIDER=disabled`, so no AI provider can be called while credential / billing verification is unresolved,
 - `GEMINI_MODEL=gemini-2.5-flash` and `GEMINI_FREE_TIER_ONLY=true` remain the intended model/policy configuration,
-- main Run #264 Production AI Backend Readiness printed `PRODUCTION_AI_BACKEND_SAFE_DISABLED model=gemini-2.5-flash project_verified=false revision=6902f7e475c30e90689e4bdab887a8a660b19501`,
+- main Run #266 Production AI Backend Readiness printed `PRODUCTION_AI_BACKEND_SAFE_DISABLED model=gemini-2.5-flash project_verified=false revision=eb1087c0089ca00190a37b7265ee9b0b91870082`,
 - `providers.gemini.configured=false`; real Gemini production acceptance is intentionally unavailable until a server-side key and external project verification are supplied.
 
 Implemented and production-hardened:
@@ -87,7 +91,7 @@ Implemented and production-hardened:
 - manual production AI E2E remains strict and requires an actually configured/verified Gemini provider,
 - Render runtime uses `NODE_ENV=production` and Sharp 0.35.4.
 
-Main post-merge Run #264 evidence for `6902f7e475c30e90689e4bdab887a8a660b19501`:
+Main post-merge Run #266 evidence for `eb1087c0089ca00190a37b7265ee9b0b91870082`:
 - Windows Native Release: PASS,
 - Godot + Backend + Web + Chromium: PASS,
 - Windows + Microsoft Edge: PASS,
@@ -95,8 +99,8 @@ Main post-merge Run #264 evidence for `6902f7e475c30e90689e4bdab887a8a660b19501`
 - Verify Public Web Demo: PASS,
 - Verify Production AI Backend Readiness: PASS in explicit safe-disabled mode with exact deployed revision,
 - Windows Edge Production Full Smoke: PASS against `https://ws951125.github.io/custom-fighter/`,
-- production log includes `WEB_MATCH_RESTART_SMOKE_PASSED victory=true restart=true returnCreator=true`, proving the Run #260 `gap=8.11` recurrence is resolved on real GitHub Pages in Microsoft Edge,
-- the same production Edge suite also passed the existing multi-skill, area, formation, buff, melee, coordination, character, Creator/VFX/package and mobile regressions.
+- production match-restart regression remains green after the docs merge,
+- the production Edge suite also passed the existing multi-skill, area, formation, buff, melee, coordination, character, Creator/VFX/package and mobile regressions.
 
 Current external blocker:
 - obtain/configure a server-side `GEMINI_API_KEY` from a Gemini Developer API Free Tier project,
