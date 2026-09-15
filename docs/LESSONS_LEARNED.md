@@ -51,7 +51,7 @@
 - **Date:** 2026-09-12; recurrence 2026-09-13
 - **Area:** Godot / GDScript parser / dynamic and Variant boundaries
 - **Symptom:** PR #57 CI Run #103 在 `Import project headlessly` 失敗。Godot 無法解析 `preview_selectable_main.gd` 作為 `animation_main.gd` 的 parent，並明確回報 `animation_main.gd` 的 `preview_active := session != null and session.has_active_preview()` 無法推斷型別。M6 PR #69 CI Run #135 再次出現同類型問題：新 `ai_vfx_provider_test_runner.gd` 的 `_valid_request()` 明確回傳 `Variant`，六個 caller 卻用 `var request := _valid_request(...)`，在 warning-as-error 設定下被 parser 拒絕。
-- **Root Cause:** `CreatorPreviewSession`、provider adapter、helper function `-> Variant` 等 runtime/dynamic 邊界都無法提供足夠的靜態型別資訊。對這類值直接使用 `:=`，會讓 GDScript 以 Variant 推斷告警；CI 將該告警視為錯誤。
+- **Root Cause:** `CreatorPreviewSession`、provider adapter、helper function `-> Variant` 等 runtime/dynamic邊界都無法提供足夠的靜態型別資訊。對這類值直接使用 `:=`，會讓 GDScript 以 Variant 推斷告警；CI 將該告警視為錯誤。
 - **Fix:** Preview runtime 邊界改成明確 `Variant` / `bool` / `Dictionary` / `PackedStringArray` 型別，並以 `has_method()` + `call()` 封裝 autoload 的動態方法呼叫。M6 recurrence 則將六個 `_valid_request()` fixture caller 全部改成 `var request: Variant = ...` / `var invalid_reference: Variant = ...`，不再依賴 `:=`。
 - **Prevention Rule:** 對 `get_node_or_null()`、autoload lookup、dynamic host/plugin/provider/interface，以及任何宣告 `-> Variant` 的 helper，不用 `:=` 推斷結果。跨 script / provider / fixture boundary 時，明確宣告 `Variant` 或實際 collection/scalar 型別。
 - **Validation:** PR #57 修正後 CI Run #105 通過完整 GitHub gate；M6 PR #69 latest-head CI Run #138 亦通過 Godot import/boot/domain、Web export/size budget、Chromium 與 hosted Windows Edge。
@@ -177,3 +177,14 @@
 - **Prevention Rule:** Browser positioning loops must use runtime-observed coordinate progress as their command pacing, not fixed sleeps plus potentially stale reads. For narrow or remote corridors, use distance-adaptive movement and an explicit overshoot recovery strategy; do not treat one fixed-duration nudge as bounded displacement across hosted runners.
 - **Validation:** PR #119 first-head CI Run #237 passed Windows Native Release, Chromium `smoke:all`, and GitHub-hosted Windows Microsoft Edge `smoke:all` without retry.
 - **Status:** Fix verified on PR first-head Run #237; merge gate requires latest-head CI.
+
+## L-017 — Heavy Strike smoke corridors must follow authored hitbox geometry
+
+- **Date:** 2026-09-15
+- **Area:** GitHub Actions / Windows Edge / Playwright / Heavy Strike regression smoke
+- **Symptom:** PR #120 Run #242 attempt 2 reproduced the deferred L-008 positioning failure in `tests/melee_web_smoke.mjs`: the final right-facing `D` approach landed at `playerX=828.99`, `dummyX=860`, `gap=31.01`, and the helper rejected it because its hard-coded lower corridor was 40 px. The same PR changes were otherwise documentation-only at that point, while Native and Chromium were green.
+- **Root Cause:** The 40 px lower bound was a test-authored spacing preference, not a gameplay invariant. Heavy Strike is authored with `range=72` and `hitbox_half_width=54`, so its hitbox extends from 18 px to 126 px in front of the cast origin before even accounting for the dummy's own 30 px half-width. A 31 px forward gap is therefore a valid right-facing hit position, and rejecting it conflated one-frame positioning overshoot with a combat failure.
+- **Fix:** Set the smoke helper's lower corridor to the geometry-derived 18 px while preserving stage-left / final-`D` facing. Keep the substantive assertions unchanged: real cast acceptance, exact 24 damage, 18 MP spend, positive cooldown, exactly one hit, hit flag, and hitbox center in front of the player. No gameplay runtime or skill parameter changes.
+- **Prevention Rule:** Coordinate preconditions in browser combat tests must be derived from the authored hitbox/hurtbox contract or another explicit gameplay invariant, not from an arbitrary visual spacing preference. Continue to verify the actual gameplay outcome separately so broader-but-valid geometry cannot hide a missed attack.
+- **Validation:** Fix committed on PR #120 as `8c596f9d6ca89d3508acf63d482156a60090fa32`; fresh latest-head Native/Chromium/hosted Edge CI is required before merge.
+- **Status:** Fix committed; latest-head CI pending.
