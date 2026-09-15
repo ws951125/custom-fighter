@@ -92,13 +92,13 @@
 
 ## L-009 — Verify successful GitHub mutations before repeating them
 
-- **Date:** 2026-09-13; recurrence during M7 Slice 2
+- **Date:** 2026-09-13; recurrence during M7 Slice 2; recurrence 2026-09-15
 - **Area:** GitHub connector / branch and file mutation workflow
-- **Symptom:** 建立 `feature/m6-ai-vfx-provider-boundary` 成功後，同一個 branch-create mutation 被重複送出，GitHub 回傳 HTTP 422 `Reference already exists`。M7 Slice 2 又曾在 feature branch 尚未建立前直接送出 `create_file`，GitHub 正確回傳 404 `Branch ... not found`。兩次都沒有破壞 repository，但造成不必要的寫入失敗與流程噪音。
-- **Root Cause:** 非冪等 GitHub mutation 前後沒有把 branch/file existence 當成明確前置條件與 source of truth；第一次是成功後重送 create，第二次是 file mutation 早於 branch creation。
-- **Fix:** 停止重送 branch creation；M7 recurrence 則先建立 `feature/m7-package-json-export-import`，確認 branch 成功後再提交檔案。後續 M7 Slice 3 也遵循 Issue → branch → file commit → PR 順序。
-- **Prevention Rule:** 任何 create branch / issue / PR / file 等非冪等 mutation 都要按依賴順序執行。成功回傳即視為 source of truth；建立 feature file 前必須先確認 target branch 已存在。不得用重送 create 動作確認狀態。
-- **Validation:** M7 Slice 2 branch 建立後所有 commit 均正確落在該 branch，PR #75 最終 merge 且 production Run #151 全綠；Slice 3 branch 亦在任何 feature file mutation 前成功建立。
+- **Symptom:** 建立 `feature/m6-ai-vfx-provider-boundary` 成功後，同一個 branch-create mutation 被重複送出，GitHub 回傳 HTTP 422 `Reference already exists`。M7 Slice 2 又曾在 feature branch 尚未建立前直接送出 `create_file`，GitHub 正確回傳 404 `Branch ... not found`。2026-09-15 follow-up 又在 `fix/p3-free-tier-project-verification` 尚未建立前誤送 PR create，GitHub 回傳 422；沒有建立 PR、沒有 repository mutation。
+- **Root Cause:** 非冪等 GitHub mutation 前後沒有把 branch/file/PR existence 當成明確前置條件與 source of truth；早期 recurrence 是成功後重送 create 或 file mutation 早於 branch creation，本次則是 PR mutation 早於 branch creation。
+- **Fix:** 停止重送 branch creation；M7 recurrence 先建立 branch 再提交檔案。本次 recurrence 則重新載入 branch-specific action schema，先建立 `fix/p3-free-tier-project-verification`，再依序建立 commits，最後才建立 PR。
+- **Prevention Rule:** 任何 create branch / issue / PR / file 等非冪等 mutation 都要按依賴順序執行。成功回傳即視為 source of truth；建立 feature file / PR 前必須先確認 target branch 已存在。不得用重送 create 動作確認狀態。
+- **Validation:** M7 Slice 2 branch 建立後所有 commit 均正確落在該 branch，PR #75 最終 merge 且 production Run #151 全綠；2026-09-15 的誤送 PR 只回 422 未建立資源，之後 branch 與正式 commits 均由 GitHub connector 正確建立。
 - **Status:** Verified
 
 ## L-010 — Inherited GDScript constants must not be redeclared when a child becomes a direct dependency
@@ -217,10 +217,10 @@
 - **Area:** Production AI / Gemini / cost policy
 - **Symptom:** P3 supported OpenAI image generation and `gemini-3.1-flash-image`; selecting Gemini could still make paid image-generation API calls even though the desired production policy is no paid AI.
 - **Root Cause:** The provider boundary treated vendor/model selection as a functionality concern but did not encode model-level billing eligibility. A Gemini-branded image model was assumed to satisfy a free-Gemini requirement without checking Google's current model pricing.
-- **Fix:** Remove the OpenAI production adapter, allow only `gemini`, allow-list `gemini-2.5-flash` / `gemini-2.5-flash-lite`, use free-tier Gemini for prompt/reference understanding plus strict structured JSON, and render final PNG VFX deterministically with Sharp. Health/readiness now reports `billing_mode=free-tier-only`, requires `GEMINI_FREE_TIER_ONLY=true`, and fails closed for unsupported models/providers. The production key must come from an AI Studio Free Tier project with paid billing disabled.
+- **Fix:** Remove the OpenAI production adapter, allow only `gemini`, allow-list `gemini-2.5-flash` / `gemini-2.5-flash-lite`, use free-tier Gemini for prompt/reference understanding plus strict structured JSON, and render final PNG VFX deterministically with Sharp. Health/readiness reports `billing_mode=free-tier-only`, requires `GEMINI_FREE_TIER_ONLY=true`, and fails closed for unsupported models/providers. The production key must come from an AI Studio Free Tier project with paid billing disabled.
 - **Prevention Rule:** Before adding or changing any production AI model, verify the exact model's current official pricing and API availability. A vendor name is not a cost guarantee. Paid fallback is prohibited unless the user explicitly reverses the cost policy. A free-eligible model alone is insufficient: production configuration must also assert and operationally verify a Free Tier project/key.
-- **Validation:** Source changes are on `feature/p3-free-gemini`; GitHub Actions and Render production acceptance are pending.
-- **Status:** Pending GitHub/production validation
+- **Validation:** PR #121 latest-head CI Run #256 passed all required PR gates and merged as `9fe7f3d3f72e779fa050d1b2cff734dc999f1510`; Render auto-deployed that exact revision and is intentionally `AI_IMAGE_PROVIDER=disabled` while Free Tier credential/project verification remains unresolved.
+- **Status:** Provider/model boundary verified; real Free Tier production acceptance blocked on credential/project verification
 
 ## L-021 — Retry read failures, but verify state before retrying mutations
 
@@ -232,3 +232,25 @@
 - **Prevention Rule:** Retry read-only failures freely within reason; for writes/deploy triggers, verify remote state first and never use the mutation itself as the confirmation mechanism.
 - **Validation:** Render deploy history showed the superseded identical deploys canceled automatically and the latest valid deploy reached `live`; project rules now distinguish read retries from mutation retries.
 - **Status:** Verified
+
+## L-022 — A free-tier policy flag is not proof of project billing state
+
+- **Date:** 2026-09-15
+- **Area:** Production AI / Gemini billing guard / readiness contract
+- **Symptom:** PR #121 的 `/healthz` 將 `free_tier_confirmed=true` 直接等同於 `GEMINI_FREE_TIER_ONLY=true`。這只能證明應用程式政策旗標被打開，不能證明 Google AI Studio / Cloud project 真的沒有啟用 paid billing。
+- **Root Cause:** Application policy assertion 與 external account/project billing verification 被合併成同一欄位，命名又暗示已完成外部確認。
+- **Fix:** Follow-up `fix/p3-free-tier-project-verification` 新增獨立 `GEMINI_FREE_TIER_PROJECT_VERIFIED=true` gate；`configured=true` 必須同時具備 API key、allow-listed free-tier model、`GEMINI_FREE_TIER_ONLY=true` 與 project verification。Readiness 改為 `free_tier_policy_asserted`、`free_tier_project_verified`、`verification_mode=operator-asserted`，不再把 policy 稱為 confirmation。
+- **Prevention Rule:** 對 billing、permissions、external account state 等無法由應用本身證明的條件，必須將「政策」與「外部驗證/attestation」分開建模；名稱不得暗示比實際證據更強的保證。
+- **Validation:** Code/tests committed on branch at `ef96d39ad88608f74e1795cdf09ca49329ad636f`; final GitHub CI pending.
+- **Status:** Fix committed; latest-head CI pending
+
+## L-023 — Repository execution policy must be read before choosing a local/remote tool path
+
+- **Date:** 2026-09-15
+- **Area:** Agent execution workflow / GitHub-only policy
+- **Symptom:** 在 follow-up 開始時，尚未完整核對 `Agent.md` 的 GitHub-only hard rule，就使用 Remote Desktop Commander 做了 branch/local-file inspection 與未提交修改；這與 custom-fighter 明確禁止本機/遠端桌面作為專案 Git/修改/驗證路徑的規則衝突。
+- **Root Cause:** 先依聊天中的舊工作習慣選工具，後讀完整 repository policy，順序錯誤。
+- **Fix:** 一發現規則衝突就停止 Remote Desktop Commander 專案操作，以一次 reset 清除該工具造成的所有未提交變更；後續 branch、blob、commit、PR 與 validation 全部改用 GitHub connector / GitHub Actions。沒有把任何 Remote Desktop 產生的 code commit 到 GitHub。
+- **Prevention Rule:** 對任何 repo，第一個 mutation 前必須先從 repository source of truth 讀完整 Agent/AGENTS policy，再決定允許的工具與 validation path；聊天記憶不能覆蓋 repository hard rule。
+- **Validation:** GitHub branch `fix/p3-free-tier-project-verification` 從 merge SHA `9fe7f3d3f72e779fa050d1b2cff734dc999f1510` 重新建立；正式 follow-up commits 均透過 GitHub Git data APIs 建立。
+- **Status:** Verified process correction; final PR validation pending

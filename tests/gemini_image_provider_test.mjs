@@ -19,7 +19,7 @@ const fetchImpl = async (url, options) => {
   });
 };
 
-const provider = new GeminiImageProvider({ apiKey: 'test-gemini-key', fetchImpl, freeTierOnly: true });
+const provider = new GeminiImageProvider({ apiKey: 'test-gemini-key', fetchImpl, freeTierOnly: true, freeTierProjectVerified: true });
 const generated = await provider.generate('blue energy slash');
 const metadata = await sharp(generated).metadata();
 assert.equal(metadata.format, 'png');
@@ -43,20 +43,24 @@ assert.equal(requests[1].body.input[0].data, reference.toString('base64'));
 assert.equal(requests[1].body.input[1].type, 'text');
 
 await assert.rejects(
-  () => new GeminiImageProvider({ apiKey: '', fetchImpl, freeTierOnly: true }).generate('test'),
+  () => new GeminiImageProvider({ apiKey: '', fetchImpl, freeTierOnly: true, freeTierProjectVerified: true }).generate('test'),
   /GEMINI_API_KEY is not configured/
 );
 assert.throws(
-  () => new GeminiImageProvider({ apiKey: 'x', model: 'gemini-3.1-flash-image', fetchImpl, freeTierOnly: true }),
+  () => new GeminiImageProvider({ apiKey: 'x', model: 'gemini-3.1-flash-image', fetchImpl, freeTierOnly: true, freeTierProjectVerified: true }),
   /approved free-tier model/
 );
 assert.throws(
-  () => new GeminiImageProvider({ apiKey: 'x', model: 'gpt-image-2', fetchImpl, freeTierOnly: true }),
+  () => new GeminiImageProvider({ apiKey: 'x', model: 'gpt-image-2', fetchImpl, freeTierOnly: true, freeTierProjectVerified: true }),
   /approved free-tier model/
 );
 assert.throws(
-  () => new GeminiImageProvider({ apiKey: 'x', fetchImpl, freeTierOnly: false }),
+  () => new GeminiImageProvider({ apiKey: 'x', fetchImpl, freeTierOnly: false, freeTierProjectVerified: true }),
   /GEMINI_FREE_TIER_ONLY=true/
+);
+assert.throws(
+  () => new GeminiImageProvider({ apiKey: 'x', fetchImpl, freeTierOnly: true, freeTierProjectVerified: false }),
+  /GEMINI_FREE_TIER_PROJECT_VERIFIED=true/
 );
 
 console.log('GEMINI_FREE_TIER_PROVIDER_TESTS_PASSED');

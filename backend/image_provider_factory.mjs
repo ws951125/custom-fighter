@@ -25,11 +25,14 @@ export function imageProviderReadiness() {
   })();
   const model = String(process.env.GEMINI_MODEL || DEFAULT_FREE_GEMINI_MODEL).trim();
   const freeTierOnly = String(process.env.GEMINI_FREE_TIER_ONLY || '').trim().toLowerCase() === 'true';
+  const freeTierProjectVerified = String(process.env.GEMINI_FREE_TIER_PROJECT_VERIFIED || '').trim().toLowerCase() === 'true';
   const gemini = {
-    configured: Boolean(String(process.env.GEMINI_API_KEY || '').trim()) && FREE_GEMINI_MODELS.has(model) && freeTierOnly,
+    configured: Boolean(String(process.env.GEMINI_API_KEY || '').trim()) && FREE_GEMINI_MODELS.has(model) && freeTierOnly && freeTierProjectVerified,
     model,
     billing_mode: 'free-tier-only',
-    free_tier_confirmed: freeTierOnly
+    free_tier_policy_asserted: freeTierOnly,
+    free_tier_project_verified: freeTierProjectVerified,
+    verification_mode: 'operator-asserted'
   };
   const providers = { gemini };
   const selected = providers[providerId];

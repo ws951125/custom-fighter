@@ -36,18 +36,35 @@ assert.equal(body.service, 'custom-fighter-ai-vfx');
 assert.equal(typeof body.revision, 'string');
 assert.ok(body.ai && typeof body.ai === 'object');
 assert.deepEqual(body.ai.supported_providers, ['gemini']);
-assert.equal(body.ai.provider, 'gemini');
-assert.equal(body.ai.billing_mode, 'free-tier-only');
-assert.equal(body.ai.providers?.gemini?.free_tier_confirmed, true);
 assert.ok(body.ai.providers && typeof body.ai.providers === 'object');
 assert.deepEqual(Object.keys(body.ai.providers), ['gemini']);
-assert.equal(typeof body.ai.providers.gemini?.configured, 'boolean');
-assert.equal(typeof body.ai.providers.gemini?.model, 'string');
-assert.ok(body.ai.providers.gemini.model.length > 0);
-assert.equal(body.ai.providers.gemini.billing_mode, 'free-tier-only');
-assert.equal(body.ai.configured, body.ai.providers.gemini.configured);
-assert.equal(body.ai.model, body.ai.providers.gemini.model);
 
-console.log(
-  `PRODUCTION_AI_BACKEND_READINESS_PASSED provider=gemini configured=${body.ai.configured} model=${body.ai.model} billing_mode=${body.ai.billing_mode} revision=${body.revision || '(empty)'}`,
-);
+const gemini = body.ai.providers.gemini;
+assert.equal(typeof gemini.configured, 'boolean');
+assert.equal(typeof gemini.model, 'string');
+assert.ok(gemini.model.length > 0);
+assert.equal(gemini.billing_mode, 'free-tier-only');
+assert.equal(typeof gemini.free_tier_policy_asserted, 'boolean');
+assert.equal(typeof gemini.free_tier_project_verified, 'boolean');
+assert.equal(gemini.verification_mode, 'operator-asserted');
+
+if (body.ai.provider === 'disabled') {
+  assert.equal(body.ai.configured, false);
+  assert.equal(body.ai.model, '');
+  assert.equal(body.ai.billing_mode, '');
+  assert.equal(gemini.free_tier_policy_asserted, true);
+  console.log(
+    `PRODUCTION_AI_BACKEND_SAFE_DISABLED model=${gemini.model} project_verified=${gemini.free_tier_project_verified} revision=${body.revision || '(empty)'}`,
+  );
+} else {
+  assert.equal(body.ai.provider, 'gemini');
+  assert.equal(body.ai.configured, true);
+  assert.equal(body.ai.model, gemini.model);
+  assert.equal(body.ai.billing_mode, 'free-tier-only');
+  assert.equal(gemini.configured, true);
+  assert.equal(gemini.free_tier_policy_asserted, true);
+  assert.equal(gemini.free_tier_project_verified, true);
+  console.log(
+    `PRODUCTION_AI_BACKEND_READY provider=gemini model=${body.ai.model} billing_mode=${body.ai.billing_mode} revision=${body.revision || '(empty)'}`,
+  );
+}
