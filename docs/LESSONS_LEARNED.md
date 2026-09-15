@@ -26,14 +26,14 @@
 
 ## L-003 — Mutation tools must be selected by exact operation before writing GitHub state
 
-- **Date:** 2026-09-12
+- **Date:** 2026-09-12; recurrence 2026-09-15
 - **Area:** GitHub connector / repository operations
-- **Symptom:** 開始 M3 Slice 5 時，原本要建立 feature branch，卻誤觸 issue creation action，產生兩個不需要的 tracking issues (#47、#48)。
-- **Root Cause:** 在多個 GitHub mutation actions 可用時，未先鎖定「branch」操作 schema 就執行寫入，造成 action selection 錯誤。
-- **Fix:** 立即將 #47 以 `not_planned` 關閉、#48 以 `duplicate` 關閉；重新載入 branch-specific action schema 後才建立 `feature/m3-character-registry-selection`。
-- **Prevention Rule:** GitHub 寫入前先確認 mutation 類型與目標物件完全一致（issue / branch / file / PR）；若當前工具清單不明確，先做精確 resource discovery，再執行 mutation。不要用測試性寫入確認工具能力。
-- **Validation:** #47、#48 均已關閉；正式 M3 Slice 5 工作只追蹤於 Issue #46 與其 feature branch。
-- **Status:** Verified
+- **Symptom:** 開始 M3 Slice 5 時，原本要建立 feature branch，卻誤觸 issue creation action，產生兩個不需要的 tracking issues (#47、#48)。2026-09-15 PR #125 文件同步時，又在原本要建立 pull request 的步驟誤觸 `create_file`，於 feature branch 暫時建立不需要的 `noop` 檔案。
+- **Root Cause:** 在多個 GitHub mutation actions 可用時，未在送出寫入前再次鎖定「操作類型 + 目標物件 + recipient」，造成 action selection 錯誤；本次 recurrence 是 resource discovery 後切換寫入工具時沒有做最後 recipient/schema 對照。
+- **Fix:** 初次事件立即將 #47 以 `not_planned` 關閉、#48 以 `duplicate` 關閉；本次 recurrence 則先讀取 `noop` blob SHA 並立即從同一 feature branch 刪除，再精確載入 `create_pull_request` schema 後建立 PR #125。未讓 accidental file 進入 `main`。
+- **Prevention Rule:** GitHub 寫入前先確認 mutation 類型、目標物件與 tool recipient 完全一致（issue / branch / file / PR）；若當前工具清單不明確，先做精確 resource discovery，送出前再做一次 recipient/schema final check。不要用測試性寫入確認工具能力。
+- **Validation:** #47、#48 均已關閉；PR #125 branch 上的 accidental `noop` 已刪除，後續 compare 必須確認最終 diff 不包含該檔案。
+- **Status:** Recurrence corrected; final PR diff/CI pending
 
 ## L-004 — Transient browser diagnostics must be distinguished from runtime state evidence
 
@@ -94,11 +94,11 @@
 
 - **Date:** 2026-09-13; recurrence during M7 Slice 2; recurrence 2026-09-15
 - **Area:** GitHub connector / branch and file mutation workflow
-- **Symptom:** 建立 `feature/m6-ai-vfx-provider-boundary` 成功後，同一個 branch-create mutation 被重複送出，GitHub 回傳 HTTP 422 `Reference already exists`。M7 Slice 2 又曾在 feature branch 尚未建立前直接送出 `create_file`，GitHub 正確回傳 404 `Branch ... not found`。2026-09-15 follow-up 又在 `fix/p3-free-tier-project-verification` 尚未建立前誤送 PR create，GitHub 回傳 422；沒有建立 PR、沒有 repository mutation。
-- **Root Cause:** 非冪等 GitHub mutation 前後沒有把 branch/file/PR existence 當成明確前置條件與 source of truth；早期 recurrence 是成功後重送 create 或 file mutation 早於 branch creation，本次則是 PR mutation 早於 branch creation。
-- **Fix:** 停止重送 branch creation；M7 recurrence 先建立 branch 再提交檔案。本次 recurrence 則重新載入 branch-specific action schema，先建立 `fix/p3-free-tier-project-verification`，再依序建立 commits，最後才建立 PR。
+- **Symptom:** 建立 `feature/m6-ai-vfx-provider-boundary` 成功後，同一個 branch-create mutation 被重複送出，GitHub 回傳 HTTP 422 `Reference already exists`。M7 Slice 2 又曾在 feature branch 尚未建立前直接送出 `create_file`，GitHub 正確回傳 404 `Branch ... not found`。2026-09-15 follow-up 又在 `fix/p3-free-tier-project-verification` 尚未建立前誤送 PR create，GitHub 回傳 422；沒有建立 PR、沒有 repository mutation。PR #125 工作中，`docs/agent-github-sync-rule` 已成功建立後又被重送一次 create-branch，GitHub 再次回傳 422 `Reference already exists`。
+- **Root Cause:** 非冪等 GitHub mutation 前後沒有把 branch/file/PR existence 當成明確前置條件與 source of truth；早期 recurrence 是成功後重送 create 或 file mutation 早於 branch creation，後續 recurrence 則是已經有成功 branch response 卻仍再次送出 create。
+- **Fix:** 停止重送 branch creation；M7 recurrence 先建立 branch 再提交檔案；P3 follow-up 重新載入 branch-specific action schema後依序建立 branch、commits、PR；PR #125 recurrence 收到 422 後立即沿用既有 branch，不再嘗試第二次建立。
 - **Prevention Rule:** 任何 create branch / issue / PR / file 等非冪等 mutation 都要按依賴順序執行。成功回傳即視為 source of truth；建立 feature file / PR 前必須先確認 target branch 已存在。不得用重送 create 動作確認狀態。
-- **Validation:** M7 Slice 2 branch 建立後所有 commit 均正確落在該 branch，PR #75 最終 merge 且 production Run #151 全綠；2026-09-15 的誤送 PR 只回 422 未建立資源，之後 branch 與正式 commits 均由 GitHub connector 正確建立。
+- **Validation:** M7 Slice 2 branch 建立後所有 commit 均正確落在該 branch，PR #75 最終 merge 且 production Run #151 全綠；P3 follow-up 後續正式 commits 均由 GitHub connector 正確建立；PR #125 的 422 沒有建立第二個 branch，也沒有改變既有 branch head。
 - **Status:** Verified
 
 ## L-010 — Inherited GDScript constants must not be redeclared when a child becomes a direct dependency
@@ -138,7 +138,7 @@
 
 - **Date:** 2026-09-14; recurrence 2026-09-15
 - **Area:** GitHub Actions / Windows Edge / Playwright / production regression smoke
-- **Symptom:** PR #116 merge 後 main CI Run #228 的 final production Edge smoke first exposed that a bidirectional `approach()` could finish with `A`, leaving the player in numeric melee range but facing away. Main Run #260 later passed every preceding build, browser, Pages and backend-readiness gate, then the same `tests/match_restart_web_smoke.mjs` helper failed before combat with `playerX=971.21`, `dummyX=979.32`, `gap=8.11`: the fixed 45 ms final `D` nudge overshot the accepted 45–100 px corridor.
+- **Symptom:** PR #116 merge 後 main CI Run #228 的 final production Edge smoke first exposed that a bidirectional `approach()` could finish with `A`, leaving the player in numeric melee range but facing away. Main Run #260 later passed every preceding build, browser, Pages and backend-readiness gate, then the same `tests/match_restart_web_smoke.mjs` helper failed before combat with `playerX=971.21`, `dummyX=979.32`, `gap=8.11`: the fixed 45 ms final `D` nudge overshot the accepted 45–100 px corridor。
 - **Root Cause:** The first fix guaranteed final facing but the helper still issued fixed-duration movement commands and immediately re-read `playerX`. Hosted Edge can publish telemetry after a keyboard event completes, so stale samples can queue another nudge and overshoot substantially. Directional melee setup therefore requires distance, facing, runtime-observed pacing and explicit overshoot recovery together.
 - **Fix:** PR #123 ports the proven movement invariant already used by the buff/melee smokes into `match_restart_web_smoke.mjs`: wait for runtime-observed `playerX` change after each movement command, use distance-adaptive D holds, stage left, finish with D, and re-stage/retry after overshoot. The 45–100 px acceptance corridor, combo assertions, damage and gameplay runtime remain unchanged.
 - **Prevention Rule:** Any browser helper that positions for a directional melee outcome must guarantee geometry + facing + runtime-observed command pacing + overshoot recovery. Once the same hosted-runner positioning class recurs, harden the helper rather than relying on targeted reruns.
