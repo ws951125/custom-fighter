@@ -1,14 +1,12 @@
 import assert from 'node:assert/strict';
 import { createConfiguredImageProvider, imageProviderReadiness, selectedImageProviderId } from '../backend/image_provider_factory.mjs';
-import { OpenAiImageProvider } from '../backend/openai_image_provider.mjs';
-import { GeminiImageProvider } from '../backend/gemini_image_provider.mjs';
+import { DEFAULT_FREE_GEMINI_MODEL, GeminiImageProvider } from '../backend/gemini_image_provider.mjs';
 
 const original = {
   AI_IMAGE_PROVIDER: process.env.AI_IMAGE_PROVIDER,
-  OPENAI_API_KEY: process.env.OPENAI_API_KEY,
   GEMINI_API_KEY: process.env.GEMINI_API_KEY,
-  OPENAI_IMAGE_MODEL: process.env.OPENAI_IMAGE_MODEL,
-  GEMINI_IMAGE_MODEL: process.env.GEMINI_IMAGE_MODEL
+  GEMINI_MODEL: process.env.GEMINI_MODEL,
+  GEMINI_FREE_TIER_ONLY: process.env.GEMINI_FREE_TIER_ONLY
 };
 
 function restore() {
@@ -20,31 +18,40 @@ function restore() {
 
 try {
   delete process.env.AI_IMAGE_PROVIDER;
-  process.env.OPENAI_API_KEY = 'openai-test';
-  delete process.env.GEMINI_API_KEY;
-  assert.equal(selectedImageProviderId(), 'openai');
-  assert.ok(createConfiguredImageProvider() instanceof OpenAiImageProvider);
-  let readiness = imageProviderReadiness();
-  assert.equal(readiness.provider, 'openai');
-  assert.equal(readiness.configured, true);
-  assert.deepEqual(readiness.supported_providers, ['openai', 'gemini']);
-  assert.equal(readiness.providers.openai.configured, true);
-  assert.equal(readiness.providers.gemini.configured, false);
-
-  process.env.AI_IMAGE_PROVIDER = 'gemini';
   process.env.GEMINI_API_KEY = 'gemini-test';
-  process.env.GEMINI_IMAGE_MODEL = 'gemini-3.1-flash-image';
+  process.env.GEMINI_FREE_TIER_ONLY = 'true';
+  delete process.env.GEMINI_MODEL;
   assert.equal(selectedImageProviderId(), 'gemini');
   assert.ok(createConfiguredImageProvider() instanceof GeminiImageProvider);
-  readiness = imageProviderReadiness();
+  let readiness = imageProviderReadiness();
   assert.equal(readiness.provider, 'gemini');
   assert.equal(readiness.configured, true);
-  assert.equal(readiness.model, 'gemini-3.1-flash-image');
-
-  process.env.AI_IMAGE_PROVIDER = 'unknown-provider';
-  assert.throws(() => selectedImageProviderId(), /unsupported AI_IMAGE_PROVIDER/);
+  assert.deepEqual(readiness.supported_providers, ['gemini']);
+  assert.equal(readiness.model, DEFAULT_FREE_GEMINI_MODEL);
+  assert.equal(readiness.billing_mode, 'free-tier-only');
+  assert.equal(readiness.providers.gemini.billing_mode, 'free-tier-only');
+  assert.equal(readiness.providers.gemini.free_tier_confirmed, true);
+  process.env.GEMINI_FREE_TIER_ONLY = 'false';
   readiness = imageProviderReadiness();
-  assert.equal(readiness.provider, 'unknown-provider');
+  assert.equal(readiness.configured, false);
+  assert.equal(readiness.providers.gemini.free_tier_confirmed, false);
+  assert.throws(() => createConfiguredImageProvider(), /GEMINI_FREE_TIER_ONLY=true/);
+  process.env.GEMINI_FREE_TIER_ONLY = 'true';
+
+  process.env.GEMINI_MODEL = 'gemini-2.5-flash-lite';
+  readiness = imageProviderReadiness();
+  assert.equal(readiness.configured, true);
+  assert.equal(readiness.model, 'gemini-2.5-flash-lite');
+
+  process.env.GEMINI_MODEL = 'gemini-3.1-flash-image';
+  readiness = imageProviderReadiness();
+  assert.equal(readiness.configured, false);
+  assert.throws(() => createConfiguredImageProvider(), /approved free-tier model/);
+
+  process.env.AI_IMAGE_PROVIDER = 'openai';
+  assert.throws(() => selectedImageProviderId(), /free-Gemini-only/);
+  readiness = imageProviderReadiness();
+  assert.equal(readiness.provider, 'openai');
   assert.equal(readiness.configured, false);
 } finally {
   restore();

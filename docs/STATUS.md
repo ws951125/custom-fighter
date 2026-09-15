@@ -7,6 +7,8 @@
 Whole-project phase completion remains **84.6% (11/13 roadmap phases fully complete)** because P3 and P4 are not counted until each phase is fully accepted.
 
 Roadmap:
+
+Current work unit (2026-09-15): `feature/p3-free-gemini` removes paid-provider production support and constrains P3/P4 to the Gemini Developer API free tier. This work is not counted complete until GitHub CI and the Render production configuration/acceptance gates finish.
 - M0–M8 MVP: 9/9 complete.
 - P1 Safe real-provider boundary: complete.
 - P2 Async remote AI transport: complete.
@@ -52,17 +54,16 @@ Completed through PR #86. Includes Godot `HTTPRequest`, strict JSON/PNG response
 
 Implemented and production-hardened:
 - trusted Node backend with `/healthz` and `/v1/vfx/generate`,
-- provider-neutral server-side image provider factory,
-- OpenAI image provider adapter,
-- Gemini / Nano Banana image provider adapter using the Gemini Interactions API,
-- `AI_IMAGE_PROVIDER=openai|gemini` server-side selection,
-- OpenAI model override through `OPENAI_IMAGE_MODEL`,
-- Gemini model override through `GEMINI_IMAGE_MODEL`,
-- provider/model readiness reporting without exposing secrets,
-- `/healthz` reports the selected provider plus readiness for all supported providers,
+- server-side AI provider factory constrained to free Gemini only,
+- Gemini Interactions API adapter using free-tier text/multimodal models for prompt/reference understanding,
+- deterministic Sharp renderer converts validated Gemini JSON design into the PNG VFX asset,
+- `AI_IMAGE_PROVIDER` defaults to `gemini` and fails closed for any paid/unsupported provider,
+- `GEMINI_MODEL` is allow-listed to `gemini-2.5-flash` or `gemini-2.5-flash-lite`,
+- provider/model/readiness, `billing_mode=free-tier-only`, and `free_tier_confirmed` reporting without exposing secrets,
+- `/healthz` reports only the supported Gemini provider and its readiness,
 - `/healthz` also exposes the non-secret deployed Git revision so cloud acceptance can verify Render is serving the same `main` commit under test,
 - Render service deployment at `https://custom-fighter-ai-vfx.onrender.com`, service ID `srv-daj3urfqj5pc73c5n9og`, Singapore, auto-deploy from `main`,
-- main-push CI verifies Render reachability, GitHub Pages CORS, provider schema, supported OpenAI/Gemini readiness fields, and exact deployed revision alignment before final production browser acceptance,
+- main-push CI verifies Render reachability, GitHub Pages CORS, free-Gemini provider schema/billing mode, and exact deployed revision alignment before final production browser acceptance,
 - Creator remote-provider selection via validated HTTPS endpoint,
 - Creator preflight readiness check before Generate,
 - Generate is disabled while the backend is checking, unavailable, or selected provider credentials are not configured,
@@ -79,10 +80,10 @@ Implemented and production-hardened:
 - GitHub Pages deployment/public reachability/production Edge full-smoke gates restored and accepted on main.
 
 Current external blocker:
-- a real production provider credential must be configured server-side on Render.
-- For OpenAI: set `AI_IMAGE_PROVIDER=openai` and `OPENAI_API_KEY`.
-- For Gemini: set `AI_IMAGE_PROVIDER=gemini` and `GEMINI_API_KEY`.
-- Therefore a real provider generation request cannot yet be truthfully accepted as production E2E until one provider is configured.
+- a Gemini API key for a project that remains on the Gemini Developer API free tier must be configured server-side on Render.
+- Set `AI_IMAGE_PROVIDER=gemini`, `GEMINI_MODEL=gemini-2.5-flash`, `GEMINI_FREE_TIER_ONLY=true`, and a server-side `GEMINI_API_KEY` from an AI Studio project with paid billing disabled.
+- Paid provider fallback and Gemini native image-generation models are intentionally rejected.
+- A real free-tier Gemini request cannot yet be truthfully accepted as production E2E until the Render credential is configured.
 
 ## P4 — Image → skill → Creator → Training — IN PROGRESS
 
@@ -104,7 +105,7 @@ Implemented in source and deterministic cloud E2E:
 - Restart remounts a fresh Training instance to reset HP/MP/positions/cooldowns/projectiles/buffs/controllers/hit counters.
 
 Remaining P4 acceptance:
-- configure one real production provider secret,
+- configure the server-side free-tier Gemini credential,
 - real reference image + prompt → production backend → generated VFX + skill proposal,
 - explicit user confirmation,
 - real generated asset cast in Training,
