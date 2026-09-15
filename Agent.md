@@ -276,3 +276,12 @@ Production 預設：
 - Mutating connector calls (for example Render environment updates/deploy triggers) must not be blindly replayed. After an uncertain result, first inspect current remote state before retrying.
 - If a mutation already succeeded, do not send the same mutation again merely to confirm it; use a read/status endpoint instead.
 - When repeated mutations accidentally occur, stop issuing writes, inspect the resulting deploy/action queue, keep only the latest valid operation in flight, and record the incident in `docs/LESSONS_LEARNED.md`.
+
+## 21. 每次回覆的進度必須先同步到 GitHub
+
+- 任何對使用者的進度回覆，只要宣告某項程式、測試、文件、設定、修正或 work unit 已新增、已修改、已完成或已推進，對應變更必須在該次回覆前先 commit 到目前 GitHub feature branch；不得把 local-only、尚未 push、只存在暫存環境或只存在聊天描述中的內容算成正式進度。
+- 若本次回覆期間產生新的程式／測試／文件修改，回覆前必須確認 GitHub branch head 已包含這些變更；若尚未同步，必須明確標示 `尚未同步到 GitHub`、列出原因與 blocker，且不得把該變更列入已完成進度或 Done 百分比。
+- 每次進度回覆前都必須重新查 GitHub 真實狀態，至少核對目前 branch、head SHA、相關 PR 狀態；回覆中的 branch / commit / PR 資訊必須與 GitHub 當下狀態一致，不得依聊天記憶推測。
+- 每個可辨識 work unit 完成時，除了 source/test/config 變更要同步 GitHub，也必須依本文件規則同步 `docs/STATUS.md`；若有錯誤經驗則同步 `docs/LESSONS_LEARNED.md`。
+- 若 work unit 已通過 merge gate 並合併，回覆前必須重新確認 `main` 的實際 merge SHA；若 production / deployment 適用，也要明確區分「GitHub 已同步」與「production 已部署／已驗證」，不得將兩者混為一談。
+- 此規則適用於每一次回覆，而不是只在階段結束、PR merge 或使用者特別詢問時才執行。
