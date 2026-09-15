@@ -144,3 +144,25 @@
 - **Prevention Rule:** 任何驗證 directional attack 的 browser positioning helper，都必須同時保證「幾何距離」與「面向方向」；最後的 movement input 應明確建立 facing，不可只靠雙向座標校正。已有穩定 helper 時優先共用其 stage-left / one-way-approach 模式。
 - **Validation:** PR #117 CI Run #229 的 Windows Native Release、Chromium `smoke:all` 與 GitHub-hosted Windows Microsoft Edge `smoke:all` 全部通過。
 - **Status:** PR gate verified; main production acceptance pending merge
+
+## L-014 — Combo browser tests should validate the input buffer instead of sampling READY between hits
+
+- **Date:** 2026-09-15
+- **Area:** GitHub Actions / Windows Edge / Playwright / combo regression smoke
+- **Symptom:** PR #117 Run #230 在 Windows Edge 的 `tests/match_restart_web_smoke.mjs` 第二輪 combo 失敗於 `hit(28)` timeout；同一輪第一個 combo `100 → 88 → 74 → 54` 與第二輪第一擊 `54 → 42` 都已成功，顯示 facing 修正有效，但舊 helper 每一擊都等待 runner 觀察到 `playerState === READY` 後才送下一個 `J`。
+- **Root Cause:** 真實 combo 設計依 recovery 期間的 input buffer 接續後續攻擊；把 browser smoke 寫成「每擊後等待短暫 READY frame，再送下一擊」會把 hosted runner 的 observation cadence 變成 combo 能否成立的額外條件。Windows Edge 排程延遲時，測試可能錯過預期輸入窗口，即使 gameplay combo buffer 本身正常。
+- **Fix:** `match_restart_web_smoke.mjs` 改為與主 `web_smoke.mjs` 已證實穩定的策略一致：每個 `J` 都以跨 Godot frame 的 held input 明確送達，連續送出三次讓 runtime 自己的 input buffer 接住第 2、3 擊，再一次驗證 `lastHitStep === 3`、精確 HP 與 `dummyRecoveryState === DOWN`。同時在重新定位前等待 knockback settle。
+- **Prevention Rule:** 驗證 buffered combo 時，不以 runner 是否剛好觀察到中間 READY frame 作為發送下一擊的前置條件。應送出真實可取樣的獨立輸入，最後以 combo step、傷害結果、hit flag 與 recovery state 證明完整序列成立。
+- **Validation:** PR #117 latest-head CI Run #232 的 Chromium `smoke:all` 與 GitHub-hosted Windows Edge `smoke:all` 均通過，包含更新後的 `match_restart` regression。
+- **Status:** Verified on PR latest-head Run #232
+
+## L-015 — Correlated transient runtime state and flags must be observed atomically
+
+- **Date:** 2026-09-15
+- **Area:** GitHub Actions / Windows Edge / Playwright runtime observation
+- **Symptom:** PR #117 Run #231 的 Windows Edge 在既有 `tests/web_smoke.mjs` 回報 `Standing recovery protection must be invulnerable`。同一份 runtime log 明確依序出現 `RECOVERING → INVULNERABLE → READY`；舊測試先等待 `dummyRecoveryState === 'INVULNERABLE'`，promise 返回後才另外讀取 `dummyInvulnerable`，因此第二次 JS 讀值時 runtime 可能已合法進入 READY。
+- **Root Cause:** `recoveryState` 與 `dummyInvulnerable` 描述同一個短暫 runtime phase，卻被拆成兩次非原子 browser observation。Hosted Edge runner 的 event-loop / scheduling latency 足以讓狀態在兩次讀取間前進，造成 observation race，並不代表 gameplay 沒有進入無敵期。
+- **Fix:** 將兩個 assertion 合併為單一 `page.waitForFunction()` predicate，同時要求 `dummyRecoveryState === 'INVULNERABLE' && dummyInvulnerable === 'true'`；不延長 gameplay 無敵時間、不修改 recovery state machine。
+- **Prevention Rule:** 若多個 dataset/diagnostic 欄位共同描述同一個短暫 phase，必須在同一次 browser evaluation 中觀察其一致性；不要先 wait 一個 transient state，再於 promise 返回後用第二次 round-trip 驗證 correlated flag。
+- **Validation:** PR #117 latest-head CI Run #232：Windows Native Release PASS、Chromium `smoke:all` PASS、GitHub-hosted Windows Microsoft Edge `smoke:all` PASS。
+- **Status:** Verified on PR latest-head Run #232
