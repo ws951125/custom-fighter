@@ -99,7 +99,10 @@ async function movementNudge(key, beforeX, holdMs) {
 }
 
 async function approachDummy() {
-  const minGap = 40;
+  // Heavy Strike is centered 72 px in front of the cast origin with a 54 px half-width,
+  // so the target center remains inside the authored hitbox down to an 18 px forward gap.
+  // Keep that runtime geometry as the lower bound instead of an arbitrary 40 px test corridor.
+  const minGap = 18;
   const maxGap = 105;
   const stagingGap = maxGap + 55;
   let playerX = await readNumber('playerX');
