@@ -50,6 +50,26 @@ async function waitForDummyToSettle(timeout = 4_000) {
   await page.waitForTimeout(90);
 }
 
+async function movementNudge(key, beforeX, holdMs) {
+  await page.keyboard.down(key);
+  await page.waitForTimeout(holdMs);
+  await page.keyboard.up(key);
+
+  // Hosted Edge can publish playerX more slowly than keyboard events are sent. Wait for
+  // runtime-observed movement before issuing another command so stale samples cannot queue
+  // several nudges and overshoot a positioning corridor by a large amount.
+  try {
+    await page.waitForFunction(
+      (previousX) => Math.abs(Number(document.documentElement.dataset.playerX) - previousX) > 0.5,
+      beforeX,
+      { timeout: 900 },
+    );
+  } catch {
+    // Frame-polled input can legitimately be missed. The caller re-reads state and retries.
+  }
+  await page.waitForTimeout(55);
+}
+
 async function approachDummy(minGap = 40, maxGap = 105) {
   await waitForDummyToSettle();
   let currentX = await readNumber('playerX');
@@ -57,42 +77,49 @@ async function approachDummy(minGap = 40, maxGap = 105) {
   let gap = currentDummyX - currentX;
   const stagingGap = maxGap + 55;
 
-  // Always stage on the dummy's left side first. This matters after Dash Slash because
-  // it can carry the player through the target; melee attacks use the player's facing.
-  for (let step = 0; step < 90 && gap < stagingGap; step += 1) {
-    await nudge('a');
+  // Re-stage and retry if a busy runner still overshoots the requested corridor. Every
+  // successful attempt approaches only with D, preserving deterministic right-facing for
+  // both the Skill 2 launch corridor and the later melee combo.
+  for (let attempt = 0; attempt < 4; attempt += 1) {
+    for (let step = 0; step < 100 && gap < stagingGap; step += 1) {
+      await movementNudge('a', currentX, 28);
+      currentX = await readNumber('playerX');
+      currentDummyX = await readNumber('dummyX');
+      gap = currentDummyX - currentX;
+    }
+
+    if (gap < stagingGap) {
+      throw new Error(
+        `Failed to stage left of dummy: playerX=${currentX} dummyX=${currentDummyX} gap=${gap}`,
+      );
+    }
+
+    for (let step = 0; step < 100 && gap > maxGap; step += 1) {
+      const distanceFromRange = gap - maxGap;
+      const holdMs = distanceFromRange > 220 ? 38 : distanceFromRange > 120 ? 28 : 20;
+      await movementNudge('d', currentX, holdMs);
+      currentX = await readNumber('playerX');
+      currentDummyX = await readNumber('dummyX');
+      gap = currentDummyX - currentX;
+    }
+
+    await page.waitForTimeout(90);
     currentX = await readNumber('playerX');
     currentDummyX = await readNumber('dummyX');
     gap = currentDummyX - currentX;
-  }
 
-  if (gap < stagingGap) {
-    throw new Error(
-      `Failed to stage left of dummy: playerX=${currentX} dummyX=${currentDummyX} gap=${gap}`,
+    if (gap >= minGap && gap <= maxGap) {
+      return { currentX, currentDummyX, gap };
+    }
+
+    console.log(
+      `APPROACH_RETRY attempt=${attempt + 1} minGap=${minGap} maxGap=${maxGap} playerX=${currentX} dummyX=${currentDummyX} gap=${gap}`,
     );
   }
 
-  // Approach only with D so the final movement input guarantees the player faces right
-  // toward the dummy before the J combo begins. Edge runner frame cadence can overshoot
-  // the nominal threshold by a few pixels, so the lower bound stays inside proven melee range.
-  for (let step = 0; step < 90 && gap > maxGap; step += 1) {
-    await nudge('d');
-    currentX = await readNumber('playerX');
-    currentDummyX = await readNumber('dummyX');
-    gap = currentDummyX - currentX;
-  }
-
-  await waitForDummyToSettle();
-  currentX = await readNumber('playerX');
-  currentDummyX = await readNumber('dummyX');
-  gap = currentDummyX - currentX;
-
-  if (gap < minGap || gap > maxGap) {
-    throw new Error(
-      `Failed to stabilize attack range: playerX=${currentX} dummyX=${currentDummyX} gap=${gap}`,
-    );
-  }
-  return { currentX, currentDummyX, gap };
+  throw new Error(
+    `Failed to stabilize attack range: playerX=${currentX} dummyX=${currentDummyX} gap=${gap}`,
+  );
 }
 
 async function waitForComboRecovery(expectedStep, timeout = 1_500) {

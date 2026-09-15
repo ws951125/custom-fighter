@@ -166,3 +166,14 @@
 - **Prevention Rule:** 若多個 dataset/diagnostic 欄位共同描述同一個短暫 phase，必須在同一次 browser evaluation 中觀察其一致性；不要先 wait 一個 transient state，再於 promise 返回後用第二次 round-trip 驗證 correlated flag。
 - **Validation:** PR #117 latest-head CI Run #232：Windows Native Release PASS、Chromium `smoke:all` PASS、GitHub-hosted Windows Microsoft Edge `smoke:all` PASS。
 - **Status:** Verified on PR latest-head Run #232
+
+## L-016 — Hosted-browser coordinate helpers must wait for runtime-observed movement before issuing the next nudge
+
+- **Date:** 2026-09-15
+- **Area:** GitHub Actions / Windows Edge / Playwright deterministic positioning
+- **Symptom:** main CI Run #236 passed Windows Native and Chromium but hosted Windows Edge failed in `tests/web_smoke.mjs` before Skill 2. `approachDummy(170, 220)` threw `Failed to stabilize attack range: playerX=834.62 dummyX=897.12 gap=62.5`.
+- **Root Cause:** The helper issued fixed-duration A/D nudges and immediately re-read `playerX`. Hosted Edge can publish telemetry after keyboard events, so stale coordinate samples can queue multiple nudges; for a 170–220 launch corridor the accumulated movement overshot all the way to 62.5. The coordinate itself did not indicate a gameplay regression.
+- **Fix:** Reuse the proven `movementNudge()` invariant from the melee smoke: after each movement input, wait for runtime-observed `playerX` motion before another command; shorten hold duration near the target; if an accepted input still overshoots, re-stage left and retry. Successful positioning always finishes with `D` to preserve deterministic right-facing.
+- **Prevention Rule:** Browser positioning loops must use runtime-observed coordinate progress as their command pacing, not fixed sleeps plus potentially stale reads. For narrow or remote corridors, use distance-adaptive movement and an explicit overshoot recovery strategy; do not treat one fixed-duration nudge as bounded displacement across hosted runners.
+- **Validation:** PR #119 first-head CI Run #237 passed Windows Native Release, Chromium `smoke:all`, and GitHub-hosted Windows Microsoft Edge `smoke:all` without retry.
+- **Status:** Fix verified on PR first-head Run #237; merge gate requires latest-head CI.
