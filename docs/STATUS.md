@@ -54,11 +54,10 @@ Completed through PR #86. Includes Godot `HTTPRequest`, strict JSON/PNG response
 
 Current active slice: **PR #121 / `feature/p3-free-gemini` - enforce free-tier Gemini-only production AI.**
 
-Render configuration already applied in the authorized workspace:
-- `AI_IMAGE_PROVIDER=gemini`
-- `GEMINI_MODEL=gemini-2.5-flash`
-- `GEMINI_FREE_TIER_ONLY=true`
-- service remains auto-deployed from `main`; branch code is not production until merge.
+Render safety configuration in the authorized workspace:
+- `AI_IMAGE_PROVIDER=disabled` while production still runs the pre-PR #121 `main`, preventing any paid-provider call.
+- `GEMINI_MODEL=gemini-2.5-flash` and `GEMINI_FREE_TIER_ONLY=true` are prepared for the new code.
+- after PR #121 merges and the Gemini-only revision is live, switch `AI_IMAGE_PROVIDER` to `gemini` and run production acceptance.
 
 
 Implemented and production-hardened:
