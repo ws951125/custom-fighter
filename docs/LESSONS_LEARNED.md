@@ -142,8 +142,8 @@
 - **Root Cause:** The first fix guaranteed final facing but the helper still issued fixed-duration movement commands and immediately re-read `playerX`. Hosted Edge can publish telemetry after a keyboard event completes, so stale samples can queue another nudge and overshoot substantially. Directional melee setup therefore requires distance, facing, runtime-observed pacing and explicit overshoot recovery together.
 - **Fix:** PR #123 ports the proven movement invariant already used by the buff/melee smokes into `match_restart_web_smoke.mjs`: wait for runtime-observed `playerX` change after each movement command, use distance-adaptive D holds, stage left, finish with D, and re-stage/retry after overshoot. The 45–100 px acceptance corridor, combo assertions, damage and gameplay runtime remain unchanged.
 - **Prevention Rule:** Any browser helper that positions for a directional melee outcome must guarantee geometry + facing + runtime-observed command pacing + overshoot recovery. Once the same hosted-runner positioning class recurs, harden the helper rather than relying on targeted reruns.
-- **Validation:** Fix commit `424b5680f976b20b911f242f762ba4b6e93a9ff4` is on PR #123; latest-head GitHub CI is required before merge.
-- **Status:** Fix committed on PR #123; latest-head CI pending
+- **Validation:** PR #123 latest-head CI Run #263 passed Windows Native Release, Chromium `smoke:all`, and GitHub-hosted Windows Microsoft Edge `smoke:all`; PR #123 merged as `6902f7e475c30e90689e4bdab887a8a660b19501`; main Run #264 then passed every production gate, and the real GitHub Pages Microsoft Edge suite logged `WEB_MATCH_RESTART_SMOKE_PASSED victory=true restart=true returnCreator=true`.
+- **Status:** Verified on PR #123 and production main Run #264
 
 ## L-014 — Combo browser tests should validate the input buffer instead of sampling READY between hits
 
