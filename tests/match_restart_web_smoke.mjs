@@ -28,6 +28,25 @@ async function waitForDummyToSettle(timeout = 4_000) {
   );
   await page.waitForTimeout(90);
 }
+async function movementNudge(key, beforeX, holdMs) {
+  await page.keyboard.down(key);
+  await page.waitForTimeout(holdMs);
+  await page.keyboard.up(key);
+
+  // Hosted Edge may publish playerX after the keyboard event completes. Wait until the
+  // runtime-observed position advances before issuing another command so stale telemetry
+  // cannot queue several fixed-duration nudges and overshoot the melee corridor.
+  try {
+    await page.waitForFunction(
+      (previousX) => Math.abs(Number(document.documentElement.dataset.playerX) - previousX) > 0.5,
+      beforeX,
+      { timeout: 900 },
+    );
+  } catch {
+    // Frame-polled movement input can be missed. The caller re-reads state and retries.
+  }
+  await page.waitForTimeout(55);
+}
 async function approach(minGap = 45, maxGap = 100) {
   await waitForDummyToSettle();
   let playerX = await num('playerX');
@@ -35,34 +54,41 @@ async function approach(minGap = 45, maxGap = 100) {
   let gap = dummyX - playerX;
   const stagingGap = maxGap + 55;
 
-  // Always stage on the dummy's left side first. Numeric melee range alone does not
-  // guarantee facing, and a final A correction can make the J hitbox point away.
-  for (let i = 0; i < 120 && gap < stagingGap; i += 1) {
-    await nudge('a');
+  // Always stage on the dummy's left side and finish a successful approach with D. Basic
+  // melee hitboxes follow player facing, so a valid numeric gap is insufficient if the
+  // final correction faces away from the target. Retry from staging after any overshoot.
+  for (let attempt = 0; attempt < 4; attempt += 1) {
+    for (let step = 0; step < 100 && gap < stagingGap; step += 1) {
+      await movementNudge('a', playerX, 28);
+      playerX = await num('playerX');
+      dummyX = await num('dummyX');
+      gap = dummyX - playerX;
+    }
+    if (gap < stagingGap) {
+      throw new Error(`Could not stage left of dummy: playerX=${playerX} dummyX=${dummyX} gap=${gap}`);
+    }
+
+    for (let step = 0; step < 100 && gap > maxGap; step += 1) {
+      const distanceFromRange = gap - maxGap;
+      const holdMs = distanceFromRange > 220 ? 38 : distanceFromRange > 120 ? 28 : 20;
+      await movementNudge('d', playerX, holdMs);
+      playerX = await num('playerX');
+      dummyX = await num('dummyX');
+      gap = dummyX - playerX;
+    }
+
+    await page.waitForTimeout(90);
     playerX = await num('playerX');
     dummyX = await num('dummyX');
     gap = dummyX - playerX;
-  }
-  if (gap < stagingGap) {
-    throw new Error(`Could not stage left of dummy: playerX=${playerX} dummyX=${dummyX} gap=${gap}`);
+    if (gap >= minGap && gap <= maxGap) return { playerX, dummyX, gap };
+
+    console.log(
+      `MATCH_RESTART_APPROACH_RETRY attempt=${attempt + 1} minGap=${minGap} maxGap=${maxGap} playerX=${playerX} dummyX=${dummyX} gap=${gap}`,
+    );
   }
 
-  // Approach only with D so the last movement input guarantees the player faces the
-  // dummy before the combo begins. This mirrors the proven hosted-Edge melee helper.
-  for (let i = 0; i < 120 && gap > maxGap; i += 1) {
-    await nudge('d');
-    playerX = await num('playerX');
-    dummyX = await num('dummyX');
-    gap = dummyX - playerX;
-  }
-
-  await waitForDummyToSettle();
-  playerX = await num('playerX');
-  dummyX = await num('dummyX');
-  gap = dummyX - playerX;
-  if (gap < minGap || gap > maxGap) {
-    throw new Error(`Could not enter stable melee range: playerX=${playerX} dummyX=${dummyX} gap=${gap}`);
-  }
+  throw new Error(`Could not enter stable melee range: playerX=${playerX} dummyX=${dummyX} gap=${gap}`);
 }
 async function combo(expectedHp) {
   // Exercise the real combo input buffer rather than waiting for a runner-observed READY
