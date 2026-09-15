@@ -13,7 +13,7 @@ Roadmap:
 - P3 Production AI provider/backend integration: in progress.
 - P4 Image → skill proposal → Creator → Training production flow: in progress.
 
-Current work unit (2026-09-15): `fix/p3-free-tier-project-verification` hardens the free-Gemini production boundary after PR #121 merged. It separates application free-tier policy from an explicit operator verification that the Google AI Studio project has paid billing disabled, and it keeps main deployment health valid while production AI is intentionally fail-closed.
+Current work unit (2026-09-15): PR #123 / `fix/production-match-restart-positioning` hardens the production Microsoft Edge match-restart smoke after main Run #260 reproduced a hosted-runner positioning overshoot. The change is test-only: it replaces fixed blind movement nudges with runtime-observed movement, distance-adaptive holds and restage/retry behavior while preserving the existing melee acceptance corridor and all gameplay parameters.
 
 ## Completed milestones
 
@@ -54,12 +54,15 @@ Completed through PR #86. Includes Godot `HTTPRequest`, strict JSON/PNG response
 
 PR #121 **`P3: enforce free-tier Gemini AI only`** merged to `main` as `9fe7f3d3f72e779fa050d1b2cff734dc999f1510` after latest-head PR CI Run #256 passed Windows Native Release, Godot/backend/Web/Chromium and GitHub-hosted Microsoft Edge.
 
+PR #122 **`P3: verify Free Tier project before Gemini activation`** merged to `main` as `e1ae9933fa4943af80ff7b7ab4a0ff4ae97d78cb` after latest-head PR CI Run #259 passed Windows Native Release, Godot/backend/Web/Chromium and GitHub-hosted Microsoft Edge.
+
 Render deployment status:
-- service `custom-fighter-ai-vfx` auto-deployed merge SHA `9fe7f3d3f72e779fa050d1b2cff734dc999f1510` and reached `live`,
+- service `custom-fighter-ai-vfx` auto-deployed merge SHA `e1ae9933fa4943af80ff7b7ab4a0ff4ae97d78cb` and reached `live`,
 - `/healthz` reports the exact merge revision and `supported_providers=[gemini]`,
 - production is deliberately `AI_IMAGE_PROVIDER=disabled`, so no AI provider can be called while the credential / billing verification is unresolved,
 - `GEMINI_MODEL=gemini-2.5-flash` and `GEMINI_FREE_TIER_ONLY=true` are present,
-- `providers.gemini.configured=false`; with the model and policy guard already satisfied, this proves the server-side `GEMINI_API_KEY` is currently absent.
+- main Run #260 Production AI Backend Readiness printed `PRODUCTION_AI_BACKEND_SAFE_DISABLED model=gemini-2.5-flash project_verified=false revision=e1ae9933fa4943af80ff7b7ab4a0ff4ae97d78cb`,
+- `providers.gemini.configured=false`; the server-side Gemini API key remains absent and the external project verification guard remains false.
 
 Implemented and production-hardened:
 - trusted Node backend with `/healthz` and `/v1/vfx/generate`,
@@ -72,26 +75,24 @@ Implemented and production-hardened:
 - browser/runtime contains no provider credential,
 - Creator preflight readiness disables Generate while backend/provider is unavailable,
 - deployed revision is exposed without secrets for cloud acceptance,
-- Render runtime uses `NODE_ENV=production` and Sharp 0.35.4.
-
-Active hardening on `fix/p3-free-tier-project-verification`:
-- `GEMINI_FREE_TIER_ONLY=true` now represents only the application cost policy,
-- new `GEMINI_FREE_TIER_PROJECT_VERIFIED=true` is required after an operator verifies the AI Studio / associated Google Cloud project has paid billing disabled,
+- `GEMINI_FREE_TIER_ONLY=true` represents only the application cost policy,
+- `GEMINI_FREE_TIER_PROJECT_VERIFIED=true` is required after an operator verifies the AI Studio / associated Google Cloud project has paid billing disabled,
 - provider `configured=true` requires API key + allow-listed model + both guards,
 - readiness fields are split into `free_tier_policy_asserted`, `free_tier_project_verified`, and `verification_mode=operator-asserted`,
 - deployment-health validation accepts `provider=disabled` only as an explicit safe fail-closed state; this is not counted as real Gemini acceptance,
-- manual production AI E2E remains strict and requires an actually configured/verified Gemini provider.
+- manual production AI E2E remains strict and requires an actually configured/verified Gemini provider,
+- Render runtime uses `NODE_ENV=production` and Sharp 0.35.4.
 
-Main post-merge Run #257 evidence:
+Main post-merge Run #260 evidence for `e1ae9933fa4943af80ff7b7ab4a0ff4ae97d78cb`:
 - Windows Native Release: PASS,
 - Godot + Backend + Web + Chromium: PASS,
 - Windows + Microsoft Edge: PASS,
 - Deploy Web Demo: PASS,
 - Verify Public Web Demo: PASS,
-- Verify Production AI Backend Readiness: FAIL because production was intentionally `provider=disabled`,
-- Windows Edge Production Full Smoke: skipped only because it depended on that readiness job.
+- Verify Production AI Backend Readiness: PASS in explicit safe-disabled mode with matching deployed revision,
+- Windows Edge Production Full Smoke: FAIL only in `tests/match_restart_web_smoke.mjs` because the old fixed 45 ms positioning helper overshot the melee corridor to `playerX=971.21`, `dummyX=979.32`, `gap=8.11`.
 
-The follow-up branch corrects this CI contract without weakening the AI cost boundary.
+PR #123 hardens that existing browser-test helper with the already proven hosted-Edge invariant used by the buff/melee smokes: wait for runtime-observed `playerX` change, shorten movement holds near the target, keep the final approach right-facing, and re-stage/retry after overshoot. No gameplay runtime or control mapping changes are included.
 
 Current external blocker:
 - obtain/configure a server-side `GEMINI_API_KEY` from a Gemini Developer API Free Tier project,

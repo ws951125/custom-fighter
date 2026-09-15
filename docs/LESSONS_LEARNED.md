@@ -134,16 +134,16 @@
 - **Validation:** PR #79 latest-head CI Run #164 通過 `Verify Godot`、Windows x86_64 export、bounded native executable smoke、artifact upload、Godot/Web/Chromium regression，以及 GitHub-hosted Windows Microsoft Edge smoke。
 - **Status:** Verified
 
-## L-013 — Directional melee smoke positioning must guarantee facing, not only numeric range
+## L-013 — Directional melee smoke positioning must guarantee facing, runtime-observed pacing and overshoot recovery
 
-- **Date:** 2026-09-14
+- **Date:** 2026-09-14; recurrence 2026-09-15
 - **Area:** GitHub Actions / Windows Edge / Playwright / production regression smoke
-- **Symptom:** PR #116 merge 後 main CI Run #228 的 Windows Native、Chromium、hosted Windows Edge、GitHub Pages deploy/public reachability 與 Render backend readiness 均成功，但最後的 `Windows Edge Production Full Smoke` 在 `tests/match_restart_web_smoke.mjs` 第一個 `J` 命中等待逾時。原 `approach()` 會依 gap 雙向使用 `D`/`A` 校正位置，因此雖然最後數值距離落在 melee range，最後一次輸入仍可能是 `A`。
-- **Root Cause:** melee hitbox 依 player facing 決定方向；「在數值距離內」本身不足以證明角色正朝向目標。Hosted production Edge 的 frame cadence 會讓最後一次位置修正落在 `A`，使角色面向左側而假人在右側，結果是攻擊動作成立但 hitbox 往錯方向發出。
-- **Fix:** `match_restart_web_smoke.mjs` 改為先把角色穩定放到假人左側，再讓最後逼近只使用 `D`，並在攻擊前驗證最終 gap 落在接受區間。此修正只調整測試定位策略，沒有修改 gameplay runtime。
-- **Prevention Rule:** 任何驗證 directional attack 的 browser positioning helper，都必須同時保證「幾何距離」與「面向方向」；最後的 movement input 應明確建立 facing，不可只靠雙向座標校正。已有穩定 helper 時優先共用其 stage-left / one-way-approach 模式。
-- **Validation:** PR #117 CI Run #229 的 Windows Native Release、Chromium `smoke:all` 與 GitHub-hosted Windows Microsoft Edge `smoke:all` 全部通過。
-- **Status:** PR gate verified; main production acceptance pending merge
+- **Symptom:** PR #116 merge 後 main CI Run #228 的 final production Edge smoke first exposed that a bidirectional `approach()` could finish with `A`, leaving the player in numeric melee range but facing away. Main Run #260 later passed every preceding build, browser, Pages and backend-readiness gate, then the same `tests/match_restart_web_smoke.mjs` helper failed before combat with `playerX=971.21`, `dummyX=979.32`, `gap=8.11`: the fixed 45 ms final `D` nudge overshot the accepted 45–100 px corridor.
+- **Root Cause:** The first fix guaranteed final facing but the helper still issued fixed-duration movement commands and immediately re-read `playerX`. Hosted Edge can publish telemetry after a keyboard event completes, so stale samples can queue another nudge and overshoot substantially. Directional melee setup therefore requires distance, facing, runtime-observed pacing and explicit overshoot recovery together.
+- **Fix:** PR #123 ports the proven movement invariant already used by the buff/melee smokes into `match_restart_web_smoke.mjs`: wait for runtime-observed `playerX` change after each movement command, use distance-adaptive D holds, stage left, finish with D, and re-stage/retry after overshoot. The 45–100 px acceptance corridor, combo assertions, damage and gameplay runtime remain unchanged.
+- **Prevention Rule:** Any browser helper that positions for a directional melee outcome must guarantee geometry + facing + runtime-observed command pacing + overshoot recovery. Once the same hosted-runner positioning class recurs, harden the helper rather than relying on targeted reruns.
+- **Validation:** Fix commit `424b5680f976b20b911f242f762ba4b6e93a9ff4` is on PR #123; latest-head GitHub CI is required before merge.
+- **Status:** Fix committed on PR #123; latest-head CI pending
 
 ## L-014 — Combo browser tests should validate the input buffer instead of sampling READY between hits
 
@@ -239,10 +239,10 @@
 - **Area:** Production AI / Gemini billing guard / readiness contract
 - **Symptom:** PR #121 的 `/healthz` 將 `free_tier_confirmed=true` 直接等同於 `GEMINI_FREE_TIER_ONLY=true`。這只能證明應用程式政策旗標被打開，不能證明 Google AI Studio / Cloud project 真的沒有啟用 paid billing。
 - **Root Cause:** Application policy assertion 與 external account/project billing verification 被合併成同一欄位，命名又暗示已完成外部確認。
-- **Fix:** Follow-up `fix/p3-free-tier-project-verification` 新增獨立 `GEMINI_FREE_TIER_PROJECT_VERIFIED=true` gate；`configured=true` 必須同時具備 API key、allow-listed free-tier model、`GEMINI_FREE_TIER_ONLY=true` 與 project verification。Readiness 改為 `free_tier_policy_asserted`、`free_tier_project_verified`、`verification_mode=operator-asserted`，不再把 policy 稱為 confirmation。
+- **Fix:** Follow-up PR #122 新增獨立 `GEMINI_FREE_TIER_PROJECT_VERIFIED=true` gate；`configured=true` 必須同時具備 API key、allow-listed free-tier model、`GEMINI_FREE_TIER_ONLY=true` 與 project verification。Readiness 改為 `free_tier_policy_asserted`、`free_tier_project_verified`、`verification_mode=operator-asserted`，不再把 policy 稱為 confirmation。
 - **Prevention Rule:** 對 billing、permissions、external account state 等無法由應用本身證明的條件，必須將「政策」與「外部驗證/attestation」分開建模；名稱不得暗示比實際證據更強的保證。
-- **Validation:** Code/tests committed on branch at `ef96d39ad88608f74e1795cdf09ca49329ad636f`; final GitHub CI pending.
-- **Status:** Fix committed; latest-head CI pending
+- **Validation:** PR #122 latest-head CI Run #259 passed Windows Native, Godot/backend/Web/Chromium and hosted Microsoft Edge, then merged as `e1ae9933fa4943af80ff7b7ab4a0ff4ae97d78cb`. Render auto-deployed that exact revision; main Run #260 readiness passed in `PRODUCTION_AI_BACKEND_SAFE_DISABLED` mode with `project_verified=false`.
+- **Status:** Verified safety/readiness boundary; real Free Tier production acceptance remains blocked on credential/project verification
 
 ## L-023 — Repository execution policy must be read before choosing a local/remote tool path
 
@@ -252,5 +252,5 @@
 - **Root Cause:** 先依聊天中的舊工作習慣選工具，後讀完整 repository policy，順序錯誤。
 - **Fix:** 一發現規則衝突就停止 Remote Desktop Commander 專案操作，以一次 reset 清除該工具造成的所有未提交變更；後續 branch、blob、commit、PR 與 validation 全部改用 GitHub connector / GitHub Actions。沒有把任何 Remote Desktop 產生的 code commit 到 GitHub。
 - **Prevention Rule:** 對任何 repo，第一個 mutation 前必須先從 repository source of truth 讀完整 Agent/AGENTS policy，再決定允許的工具與 validation path；聊天記憶不能覆蓋 repository hard rule。
-- **Validation:** GitHub branch `fix/p3-free-tier-project-verification` 從 merge SHA `9fe7f3d3f72e779fa050d1b2cff734dc999f1510` 重新建立；正式 follow-up commits 均透過 GitHub Git data APIs 建立。
-- **Status:** Verified process correction; final PR validation pending
+- **Validation:** GitHub branch `fix/p3-free-tier-project-verification` 從 merge SHA `9fe7f3d3f72e779fa050d1b2cff734dc999f1510` 重新建立；正式 follow-up commits 均透過 GitHub Git data APIs 建立，PR #122 latest-head CI Run #259 passed and the PR merged as `e1ae9933fa4943af80ff7b7ab4a0ff4ae97d78cb`.
+- **Status:** Verified process correction
