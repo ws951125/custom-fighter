@@ -32,8 +32,8 @@
 - **Root Cause:** 在多個 GitHub mutation actions 可用時，未在送出寫入前再次鎖定「操作類型 + 目標物件 + recipient」，造成 action selection 錯誤；本次 recurrence 是 resource discovery 後切換寫入工具時沒有做最後 recipient/schema 對照。
 - **Fix:** 初次事件立即將 #47 以 `not_planned` 關閉、#48 以 `duplicate` 關閉；本次 recurrence 則先讀取 `noop` blob SHA 並立即從同一 feature branch 刪除，再精確載入 `create_pull_request` schema 後建立 PR #125。未讓 accidental file 進入 `main`。
 - **Prevention Rule:** GitHub 寫入前先確認 mutation 類型、目標物件與 tool recipient 完全一致（issue / branch / file / PR）；若當前工具清單不明確，先做精確 resource discovery，送出前再做一次 recipient/schema final check。不要用測試性寫入確認工具能力。
-- **Validation:** #47、#48 均已關閉；PR #125 branch 上的 accidental `noop` 已刪除，後續 compare 必須確認最終 diff 不包含該檔案。
-- **Status:** Recurrence corrected; final PR diff/CI pending
+- **Validation:** #47、#48 均已關閉；PR #125 branch 對 `main` 的 compare 已確認 accidental `noop` 不在最終 diff，changed files 僅為 `Agent.md`、`docs/STATUS.md`、`docs/LESSONS_LEARNED.md`。
+- **Status:** Recurrence corrected; PR diff clean; latest-head CI pending
 
 ## L-004 — Transient browser diagnostics must be distinguished from runtime state evidence
 
@@ -138,7 +138,7 @@
 
 - **Date:** 2026-09-14; recurrence 2026-09-15
 - **Area:** GitHub Actions / Windows Edge / Playwright / production regression smoke
-- **Symptom:** PR #116 merge 後 main CI Run #228 的 final production Edge smoke first exposed that a bidirectional `approach()` could finish with `A`, leaving the player in numeric melee range but facing away. Main Run #260 later passed every preceding build, browser, Pages and backend-readiness gate, then the same `tests/match_restart_web_smoke.mjs` helper failed before combat with `playerX=971.21`, `dummyX=979.32`, `gap=8.11`: the fixed 45 ms final `D` nudge overshot the accepted 45–100 px corridor。
+- **Symptom:** PR #116 merge 後 main CI Run #228 的 final production Edge smoke first exposed that a bidirectional `approach()` could finish with `A`, leaving the player in numeric melee range but facing away. Main Run #260 later passed every preceding build, browser, Pages and backend-readiness gate, then the same `tests/match_restart_web_smoke.mjs` helper failed before combat with `playerX=971.21`, `dummyX=979.32`, `gap=8.11`: the fixed 45 ms final `D` nudge overshot the accepted 45–100 px corridor.
 - **Root Cause:** The first fix guaranteed final facing but the helper still issued fixed-duration movement commands and immediately re-read `playerX`. Hosted Edge can publish telemetry after a keyboard event completes, so stale samples can queue another nudge and overshoot substantially. Directional melee setup therefore requires distance, facing, runtime-observed pacing and explicit overshoot recovery together.
 - **Fix:** PR #123 ports the proven movement invariant already used by the buff/melee smokes into `match_restart_web_smoke.mjs`: wait for runtime-observed `playerX` change after each movement command, use distance-adaptive D holds, stage left, finish with D, and re-stage/retry after overshoot. The 45–100 px acceptance corridor, combo assertions, damage and gameplay runtime remain unchanged.
 - **Prevention Rule:** Any browser helper that positions for a directional melee outcome must guarantee geometry + facing + runtime-observed command pacing + overshoot recovery. Once the same hosted-runner positioning class recurs, harden the helper rather than relying on targeted reruns.
