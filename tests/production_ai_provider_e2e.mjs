@@ -63,8 +63,12 @@ assert.equal(health.ok, true);
 assert.ok(health.ai && typeof health.ai === 'object');
 if (expectedRevision) assert.equal(health.revision, expectedRevision, `Render revision mismatch: expected ${expectedRevision}, got ${health.revision || '(empty)'}`);
 assert.equal(health.ai.configured, true, `Selected production provider '${health.ai.provider}' is not configured`);
+assert.deepEqual(health.ai.supported_providers, ['gemini']);
+assert.equal(health.ai.provider, 'gemini');
+assert.equal(health.ai.billing_mode, 'free-tier-only');
+assert.equal(health.ai.providers?.gemini?.free_tier_confirmed, true);
 if (expectedProvider) assert.equal(health.ai.provider, expectedProvider);
-console.log(`PRODUCTION_AI_PROVIDER_READY provider=${health.ai.provider} model=${health.ai.model} revision=${health.revision || '(empty)'}`);
+console.log(`PRODUCTION_AI_PROVIDER_READY provider=${health.ai.provider} model=${health.ai.model} billing_mode=${health.ai.billing_mode} revision=${health.revision || '(empty)'}`);
 
 const textRequest = {
   request_id: `prod_text_${Date.now()}`,

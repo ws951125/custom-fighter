@@ -1,47 +1,60 @@
-# Production AI Provider Acceptance
+# Production Free Gemini Acceptance
 
-This acceptance is intentionally **manual-only** because it makes real calls to the selected OpenAI or Gemini production provider and may incur provider charges.
+Production AI is **Gemini free-tier only**. Paid AI providers and Gemini native image-generation models are not valid production configurations for custom-fighter.
+
+## Cost policy
+
+As of 2026-09-15, the project uses `gemini-2.5-flash` by default because the Gemini Developer API exposes a free tier for this text/multimodal model. `gemini-2.5-flash-lite` is the only alternate model currently allow-listed.
+
+Native Gemini image-generation models are intentionally rejected because Google does not expose them through the API free tier. OpenAI image generation is no longer a supported production provider.
+
+The free Gemini model analyzes the prompt and optional PNG reference through the stable Interactions API `v1` endpoint, with `store=false`, and returns a strictly validated structured VFX design. The trusted backend then renders the PNG deterministically with Sharp. This preserves the AI-assisted workflow without making paid image-generation calls.
 
 ## Preconditions
 
-The Render service at `https://custom-fighter-ai-vfx.onrender.com` must report the selected provider as configured through `/healthz`.
+The Render service at `https://custom-fighter-ai-vfx.onrender.com` must report through `/healthz`:
 
-Supported production configurations:
+- `provider=gemini`,
+- `billing_mode=free-tier-only`,
+- an allow-listed `model`,
+- `configured=true` only when a server-side `GEMINI_API_KEY` is present and `GEMINI_FREE_TIER_ONLY=true`.
 
-- OpenAI: `AI_IMAGE_PROVIDER=openai` + server-side `OPENAI_API_KEY`.
-- Gemini: `AI_IMAGE_PROVIDER=gemini` + server-side `GEMINI_API_KEY`.
+The API key must belong to a Google AI Studio project that remains on the Free Tier with paid billing disabled. The environment flag is a fail-closed deployment assertion; it does not convert a paid project back to Free Tier.
 
-Provider credentials must remain server-side on Render. Never put them in GitHub source, Pages query parameters, browser storage, Creator configuration, or test fixtures.
+Recommended Render variables:
 
-## Manual workflow
+- `AI_IMAGE_PROVIDER=gemini`
+- `GEMINI_MODEL=gemini-2.5-flash`
+- `GEMINI_API_KEY=<server-side secret from a Free Tier project>`
+- `GEMINI_FREE_TIER_ONLY=true`
 
-GitHub Actions workflow: **Production AI Provider E2E** (`.github/workflows/production-ai-e2e.yml`).
+Never put the API key in GitHub source, Pages query parameters, browser storage, Creator configuration, or test fixtures.
+## Manual production workflow
 
-The workflow has no `push`, `pull_request`, or schedule trigger. It only runs through `workflow_dispatch` and requires the operator to explicitly confirm that real billable provider calls are understood.
+GitHub Actions workflow: **Production Free Gemini E2E** (`.github/workflows/production-ai-e2e.yml`).
 
-Optional `expected_provider` can be set to `openai` or `gemini`. Leaving it empty accepts whichever selected provider `/healthz` reports as configured.
+The workflow remains manual-only so real external quota is not consumed on every push. The operator confirms use of the configured Gemini free-tier quota, then the workflow verifies Render readiness and performs two production requests.
 
 ## Acceptance coverage
 
-The workflow performs two real production generations through the trusted Render backend:
+1. Text-only prompt → free Gemini structured VFX design → deterministic PNG renderer.
+2. Reference PNG + prompt → free Gemini multimodal structured VFX design → deterministic PNG renderer.
 
-1. Text-only prompt → `/v1/vfx/generate`.
-2. Generated PNG reference image + prompt → `/v1/vfx/generate`.
-
-For each response it verifies:
+For each response the workflow verifies:
 
 - HTTP success and GitHub Pages CORS,
-- `no-store` and `nosniff` response protections,
+- `no-store` and `nosniff` protections,
+- exact deployed revision alignment,
+- provider is `gemini` and `billing_mode=free-tier-only`,
 - request/result ID matching,
-- expected frame count and FPS,
-- Base64 payload decodes as PNG,
-- output sprite-strip dimensions are `frame_width × frame_count` by `frame_height`,
-- a structured `skill_proposal` is returned,
-- proposal source request ID matches,
-- skill ID, damage, MP cost and cooldown fields are present and typed.
+- frame count/FPS and valid PNG sprite-strip dimensions,
+- structured `skill_proposal` presence and typed gameplay fields.
 
-A successful run prints `PRODUCTION_AI_PROVIDER_E2E_PASSED` together with the selected provider and model.
+A successful run prints `PRODUCTION_AI_PROVIDER_E2E_PASSED` with provider/model/revision.
 
-## Cost safety
+## Guardrails
 
-Normal CI only syntax-checks `tests/production_ai_provider_e2e.mjs`; it does **not** invoke a real model. Do not add automatic push/PR/scheduled triggers to the billable workflow without explicit user approval.
+- Any `AI_IMAGE_PROVIDER` other than `gemini` fails closed.
+- Any `GEMINI_MODEL` outside the free-tier allow-list fails closed.
+- Pricing/model availability must be rechecked against official Google documentation before changing the allow-list.
+- Paid provider fallback is prohibited unless the user explicitly reverses the project cost policy.

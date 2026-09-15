@@ -27,7 +27,6 @@ async function fetchReadiness() {
 }
 
 const { response, body } = await fetchReadiness();
-
 assert.equal(response.status, 200);
 assert.equal(response.headers.get('access-control-allow-origin'), origin);
 assert.equal(response.headers.get('cache-control'), 'no-store');
@@ -36,25 +35,19 @@ assert.equal(body.ok, true);
 assert.equal(body.service, 'custom-fighter-ai-vfx');
 assert.equal(typeof body.revision, 'string');
 assert.ok(body.ai && typeof body.ai === 'object');
-assert.ok(Array.isArray(body.ai.supported_providers));
-assert.ok(body.ai.supported_providers.includes('openai'));
-assert.ok(body.ai.supported_providers.includes('gemini'));
+assert.deepEqual(body.ai.supported_providers, ['gemini']);
+assert.equal(body.ai.provider, 'gemini');
+assert.equal(body.ai.billing_mode, 'free-tier-only');
+assert.equal(body.ai.providers?.gemini?.free_tier_confirmed, true);
 assert.ok(body.ai.providers && typeof body.ai.providers === 'object');
+assert.deepEqual(Object.keys(body.ai.providers), ['gemini']);
+assert.equal(typeof body.ai.providers.gemini?.configured, 'boolean');
+assert.equal(typeof body.ai.providers.gemini?.model, 'string');
+assert.ok(body.ai.providers.gemini.model.length > 0);
+assert.equal(body.ai.providers.gemini.billing_mode, 'free-tier-only');
+assert.equal(body.ai.configured, body.ai.providers.gemini.configured);
+assert.equal(body.ai.model, body.ai.providers.gemini.model);
 
-for (const provider of ['openai', 'gemini']) {
-  assert.equal(typeof body.ai.providers[provider]?.configured, 'boolean');
-  assert.equal(typeof body.ai.providers[provider]?.model, 'string');
-  assert.ok(body.ai.providers[provider].model.length > 0);
-}
-
-assert.ok(body.ai.supported_providers.includes(body.ai.provider));
-assert.equal(typeof body.ai.configured, 'boolean');
-assert.equal(body.ai.configured, body.ai.providers[body.ai.provider].configured);
-assert.equal(body.ai.model, body.ai.providers[body.ai.provider].model);
-
-const openaiConfigured = body.ai.providers.openai.configured;
-const geminiConfigured = body.ai.providers.gemini.configured;
-const anyConfigured = openaiConfigured || geminiConfigured;
 console.log(
-  `PRODUCTION_AI_BACKEND_READINESS_PASSED provider=${body.ai.provider} configured=${body.ai.configured} model=${body.ai.model} openai_configured=${openaiConfigured} gemini_configured=${geminiConfigured} any_configured=${anyConfigured} revision=${body.revision || '(empty)'}`,
+  `PRODUCTION_AI_BACKEND_READINESS_PASSED provider=gemini configured=${body.ai.configured} model=${body.ai.model} billing_mode=${body.ai.billing_mode} revision=${body.revision || '(empty)'}`,
 );

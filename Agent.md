@@ -251,3 +251,28 @@ Production 預設：
 - 若目前被外部條件阻擋，必須同時寫明 blocker 與解除 blocker 後第一個會執行的工程動作。
 - 若仍有安全且不受 blocker 影響的工作可做，應先連續完成，不因單一 blocker 提前停止。
 - 此欄位是每次回覆固定必填項目，即使本次 work unit 已完成也不得省略。
+## 18. Production AI cost policy — free Gemini only
+
+- Production AI must use Google Gemini's API free tier only; do not connect OpenAI or any other paid AI provider unless the user explicitly reverses this policy.
+- The default production model is `gemini-2.5-flash`; only models explicitly verified to have a Gemini Developer API free tier may enter the allow-list.
+- Production must also require `GEMINI_FREE_TIER_ONLY=true`, and the configured `GEMINI_API_KEY` must belong to an AI Studio project that has not enabled paid billing. The flag is an assertion/guard, not proof of Google account billing state.
+- Gemini native image-generation models are not valid fallbacks when their API pricing has no free tier.
+- The AI path should use free Gemini for prompt/reference understanding and structured design output, then use project-owned deterministic rendering/processing for final VFX assets.
+- `AI_IMAGE_PROVIDER` must fail closed outside `gemini`; paid-provider fallback is prohibited.
+- Provider credentials stay server-side; secrets never enter Git, browser storage, query parameters, fixtures or Creator data.
+- Before changing the allow-list, verify current Google pricing/model availability from official documentation.
+
+## 19. Connector / deployment retry rule
+
+- A single transient connector, authorization, device-routing, network or provider error is not enough to declare GitHub/Render/other authorized tooling unavailable.
+- Retry transient failures multiple times with corrected explicit identifiers or parameters when available (for example device ID or workspace ID), while preserving tool safety requirements.
+- Distinguish transient transport/auth/session errors from hard permission, configuration or destructive-operation blockers.
+- Do not bypass connector safety gates such as explicit workspace confirmation merely to make a retry succeed.
+- Record repeated failures and the final root cause/fix in `docs/LESSONS_LEARNED.md` when the issue affects project execution.
+
+## 20. Retry safety for mutating connectors
+
+- Read-only connector failures may be retried several times after correcting session, device, workspace, or request parameters.
+- Mutating connector calls (for example Render environment updates/deploy triggers) must not be blindly replayed. After an uncertain result, first inspect current remote state before retrying.
+- If a mutation already succeeded, do not send the same mutation again merely to confirm it; use a read/status endpoint instead.
+- When repeated mutations accidentally occur, stop issuing writes, inspect the resulting deploy/action queue, keep only the latest valid operation in flight, and record the incident in `docs/LESSONS_LEARNED.md`.

@@ -210,3 +210,25 @@
 - **Prevention Rule:** Browser integration tests must assert the behavior of the public runtime path they actually drive. Do not expect downstream telemetry from code that an earlier guard intentionally prevents from executing. Use domain tests for lower-level rejection semantics and durable input/phase/resource telemetry for integration gating.
 - **Validation:** PR #120 latest-head CI Run #250 passed Windows Native Release, Chromium `smoke:all`, and GitHub-hosted Windows Microsoft Edge `smoke:all` on head `610037d8207fe8b11bf924c5b5cfb641b212d4c1` before this documentation-only lesson commit.
 - **Status:** Fix verified on Run #250; final latest-head merge gate pending this documentation commit.
+
+## L-020 — Provider name alone does not prove a zero-cost AI path
+
+- **Date:** 2026-09-15
+- **Area:** Production AI / Gemini / cost policy
+- **Symptom:** P3 supported OpenAI image generation and `gemini-3.1-flash-image`; selecting Gemini could still make paid image-generation API calls even though the desired production policy is no paid AI.
+- **Root Cause:** The provider boundary treated vendor/model selection as a functionality concern but did not encode model-level billing eligibility. A Gemini-branded image model was assumed to satisfy a free-Gemini requirement without checking Google's current model pricing.
+- **Fix:** Remove the OpenAI production adapter, allow only `gemini`, allow-list `gemini-2.5-flash` / `gemini-2.5-flash-lite`, use free-tier Gemini for prompt/reference understanding plus strict structured JSON, and render final PNG VFX deterministically with Sharp. Health/readiness now reports `billing_mode=free-tier-only`, requires `GEMINI_FREE_TIER_ONLY=true`, and fails closed for unsupported models/providers. The production key must come from an AI Studio Free Tier project with paid billing disabled.
+- **Prevention Rule:** Before adding or changing any production AI model, verify the exact model's current official pricing and API availability. A vendor name is not a cost guarantee. Paid fallback is prohibited unless the user explicitly reverses the cost policy. A free-eligible model alone is insufficient: production configuration must also assert and operationally verify a Free Tier project/key.
+- **Validation:** Source changes are on `feature/p3-free-gemini`; GitHub Actions and Render production acceptance are pending.
+- **Status:** Pending GitHub/production validation
+
+## L-021 — Retry read failures, but verify state before retrying mutations
+
+- **Date:** 2026-09-15
+- **Area:** Render connector / deployment operations
+- **Symptom:** While switching Render to Gemini, the same environment-variable update was sent repeatedly and each successful write triggered another deploy; earlier deploys were then canceled by newer identical deploys.
+- **Root Cause:** The generic "retry transient connector failures" rule was applied to a mutating operation without first checking whether the previous mutation had already succeeded.
+- **Fix:** Stop repeated writes, inspect Render deploy state, retain the latest valid deploy, and add a separate mutation-retry rule: uncertain writes require a read/status check before any retry.
+- **Prevention Rule:** Retry read-only failures freely within reason; for writes/deploy triggers, verify remote state first and never use the mutation itself as the confirmation mechanism.
+- **Validation:** Render deploy history showed the superseded identical deploys canceled automatically and the latest valid deploy reached `live`; project rules now distinguish read retries from mutation retries.
+- **Status:** Verified

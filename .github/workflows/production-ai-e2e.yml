@@ -1,44 +1,34 @@
-name: Production AI Provider E2E
+name: Production Free Gemini E2E
 
 on:
   workflow_dispatch:
     inputs:
-      confirm_billable_provider_calls:
-        description: 'I understand this workflow makes real billable AI provider calls.'
+      confirm_free_tier_provider_calls:
+        description: 'I understand this workflow makes real Gemini API calls against the configured free-tier project quota.'
         required: true
         type: boolean
         default: false
-      expected_provider:
-        description: 'Optional expected selected provider (openai or gemini). Leave empty to accept either configured provider.'
-        required: false
-        type: choice
-        options:
-          - ''
-          - openai
-          - gemini
-        default: ''
 
 permissions:
   contents: read
 
 jobs:
   production-ai-provider-e2e:
-    name: Real Production AI Provider Acceptance
+    name: Real Production Free Gemini Acceptance
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - name: Require explicit billable-call confirmation
+      - name: Require explicit free-tier-call confirmation
         shell: bash
         run: |
-          if [ "${{ inputs.confirm_billable_provider_calls }}" != "true" ]; then
-            echo "Refusing to call the production AI provider without explicit billable-call confirmation."
+          if [ "${{ inputs.confirm_free_tier_provider_calls }}" != "true" ]; then
+            echo "Refusing to consume Gemini free-tier quota without explicit confirmation."
             exit 1
           fi
 
       - name: Checkout
         uses: actions/checkout@v6
-
       - name: Setup Node
         uses: actions/setup-node@v5
         with:
@@ -56,6 +46,6 @@ jobs:
       - name: Run real text + reference-image production acceptance
         env:
           CUSTOM_FIGHTER_AI_BACKEND_URL: https://custom-fighter-ai-vfx.onrender.com
-          EXPECTED_AI_PROVIDER: ${{ inputs.expected_provider }}
+          EXPECTED_AI_PROVIDER: gemini
           EXPECTED_BACKEND_REVISION: ${{ github.sha }}
         run: node tests/production_ai_provider_e2e.mjs
