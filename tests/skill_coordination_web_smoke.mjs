@@ -53,10 +53,11 @@ try {
   const initialClaimCount = await readNumber('skillCoordinatorClaimCount');
   const initialRejectionCount = await readNumber('skillCoordinatorRejectionCount');
 
-  // Establish the first owner from runtime evidence before sending the competing input. Keeping
-  // U and O held together for a wall-clock duration is not deterministic: a fast hosted runner
-  // can finish U's lock while O is still held, allowing a valid later Area cast. Instead, wait
-  // until U/skill_1 has definitely claimed the coordinator, then inject O only inside that lock.
+  // First make U/skill_1 acquire the coordinator from durable runtime evidence. The Area
+  // controller deliberately checks can_claim() before _try_cast(), so a competing O press is
+  // gated before try_claim() and must NOT increment the coordinator rejection counter.
+  // areaSkillInputLatched proves the O input was actually sampled by the controller while the
+  // first skill owned the coordinator; it avoids relying on an arbitrary wall-clock hold.
   await page.keyboard.down('u');
   try {
     await page.waitForFunction(
@@ -74,12 +75,10 @@ try {
     try {
       await page.waitForFunction(
         ({ expectedClaimCount, initialRejections }) =>
+          document.documentElement.dataset.areaSkillInputLatched === 'true' &&
           Number(document.documentElement.dataset.playerMp) === 75 &&
-          document.documentElement.dataset.skillCoordinatorBusy === 'true' &&
-          document.documentElement.dataset.skillCoordinatorOwner === 'skill_1' &&
-          document.documentElement.dataset.skillCoordinatorLastRejected === 'skill_3' &&
           Number(document.documentElement.dataset.skillCoordinatorClaimCount) === expectedClaimCount &&
-          Number(document.documentElement.dataset.skillCoordinatorRejectionCount) > initialRejections &&
+          Number(document.documentElement.dataset.skillCoordinatorRejectionCount) === initialRejections &&
           document.documentElement.dataset.areaSkillPhase === 'READY' &&
           Number(document.documentElement.dataset.areaSkillCooldown) === 0,
         { expectedClaimCount: initialClaimCount + 1, initialRejections: initialRejectionCount },
@@ -91,6 +90,12 @@ try {
   } finally {
     await page.keyboard.up('u');
   }
+
+  await page.waitForFunction(
+    () => document.documentElement.dataset.areaSkillInputLatched === 'false',
+    null,
+    { timeout: 2_500 },
+  );
 
   const mpAfterContendedInput = await readNumber('playerMp');
   const lastClaimed = await readText('skillCoordinatorLastClaimed');
@@ -107,15 +112,12 @@ try {
   if (lastClaimed !== 'skill_1') {
     throw new Error(`Expected persistent last claim to be skill_1; got '${lastClaimed}'`);
   }
-  if (lastRejected !== 'skill_3') {
-    throw new Error(`Expected competing Area claim to be rejected as skill_3; got '${lastRejected}'`);
-  }
   if (claimCount !== initialClaimCount + 1) {
     throw new Error(`Expected exactly one coordinator claim; before=${initialClaimCount} after=${claimCount}`);
   }
-  if (!(rejectionCount > initialRejectionCount)) {
+  if (rejectionCount !== initialRejectionCount) {
     throw new Error(
-      `Expected at least one coordinator rejection; before=${initialRejectionCount} after=${rejectionCount}`,
+      `Expected Area input gate to avoid try_claim rejection; before=${initialRejectionCount} after=${rejectionCount}`,
     );
   }
   if (areaPhase !== 'READY' || areaCooldown !== 0) {
@@ -123,8 +125,8 @@ try {
   }
 
   // Cooldown is transient and can complete before a production Edge runner gets another
-  // sampling turn. Durable claim/rejection telemetry plus exact MP spend proves exclusivity
-  // without depending on a wall-clock overlap window.
+  // sampling turn. Durable claim telemetry, the Area input latch, and exact MP spend prove
+  // exclusivity without depending on a wall-clock overlap window.
   await page.waitForFunction(
     () =>
       document.documentElement.dataset.skillCoordinatorBusy === 'false' &&
