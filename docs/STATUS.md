@@ -129,18 +129,18 @@ Required path:
 
 Do not use Remote Desktop Commander, the user's local machine, local Godot/npm/browser caches, or user-device storage for validation unless the user explicitly reverses this policy.
 
-Latest accepted cloud evidence before the current P3 readiness-gate change:
-- PR #105 CI Run #208: SUCCESS,
-- PR #105 merged as `29d08cceec4eaa4f0fceefe716bde289547ce937`,
-- main CI Run #209: SUCCESS,
-- `Godot + Backend + Web + Chromium`: SUCCESS,
+Latest accepted cloud evidence:
+- PR #117 latest-head CI Run #233: SUCCESS,
+- PR #117 merged as `581c4fc77a715cedcb5450c8f7cefc4038293ab9`,
+- main CI Run #234: SUCCESS,
 - `Windows Native Release`: SUCCESS,
+- `Godot + Backend + Web + Chromium`: SUCCESS,
 - `Windows + Microsoft Edge`: SUCCESS,
 - `Deploy Web Demo`: SUCCESS,
+- `Verify Production AI Backend Readiness`: SUCCESS; Render health/provider schema/deployed revision matched the accepted `main` revision,
 - `Verify Public Web Demo`: SUCCESS,
-- `Windows Edge Production Full Smoke`: SUCCESS,
-- Render deploy `dep-dajk7edg1s2s73ci9ub0` for the same main revision: LIVE,
-- Render production install audit: 0 vulnerabilities.
+- `Windows Edge Production Full Smoke`: SUCCESS against the real GitHub Pages deployment,
+- production provider credential remains an external blocker; readiness validation does not count as a real-provider generation acceptance.
 
 ## Execution policy
 
