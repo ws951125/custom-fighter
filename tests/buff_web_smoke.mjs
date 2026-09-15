@@ -91,52 +91,70 @@ async function waitForDummyToSettle(timeout = 4_000) {
   await page.waitForTimeout(90);
 }
 
+async function movementNudge(key, beforeX, holdMs) {
+  await page.keyboard.down(key);
+  await page.waitForTimeout(holdMs);
+  await page.keyboard.up(key);
+
+  // Hosted Edge can publish playerX after the keyboard event completes. Wait for runtime
+  // movement before issuing another positioning command so stale samples cannot queue nudges.
+  try {
+    await page.waitForFunction(
+      (previousX) => Math.abs(Number(document.documentElement.dataset.playerX) - previousX) > 0.5,
+      beforeX,
+      { timeout: 900 },
+    );
+  } catch {
+    // Frame-polled movement input can be missed; the caller re-reads state and retries.
+  }
+  await page.waitForTimeout(55);
+}
+
 async function approachDummy(minGap = 35, maxGap = 100) {
   await waitForDummyToSettle();
   let playerX = await readNumber('playerX');
   let dummyX = await readNumber('dummyX');
   let gap = dummyX - playerX;
-  const targetGap = (minGap + maxGap) / 2;
   const stagingGap = maxGap + 55;
 
-  for (let step = 0; step < 100 && gap < stagingGap; step += 1) {
-    await holdKey('a', 35, 20);
+  // Always finish a successful approach with D. Basic melee hitboxes follow player facing,
+  // so a bidirectional final correction can leave a valid numeric gap while facing away.
+  for (let attempt = 0; attempt < 4; attempt += 1) {
+    for (let step = 0; step < 100 && gap < stagingGap; step += 1) {
+      await movementNudge('a', playerX, 28);
+      playerX = await readNumber('playerX');
+      dummyX = await readNumber('dummyX');
+      gap = dummyX - playerX;
+    }
+
+    if (gap < stagingGap) {
+      throw new Error(`Failed to stage left of dummy: playerX=${playerX} dummyX=${dummyX} gap=${gap}`);
+    }
+
+    for (let step = 0; step < 100 && gap > maxGap; step += 1) {
+      const distanceFromRange = gap - maxGap;
+      const holdMs = distanceFromRange > 220 ? 38 : distanceFromRange > 120 ? 28 : 20;
+      await movementNudge('d', playerX, holdMs);
+      playerX = await readNumber('playerX');
+      dummyX = await readNumber('dummyX');
+      gap = dummyX - playerX;
+    }
+
+    await page.waitForTimeout(90);
     playerX = await readNumber('playerX');
     dummyX = await readNumber('dummyX');
     gap = dummyX - playerX;
-  }
-  if (gap < stagingGap) {
-    throw new Error(`Failed to stage left of dummy: playerX=${playerX} dummyX=${dummyX} gap=${gap}`);
+
+    if (gap >= minGap && gap <= maxGap) {
+      return { playerX, dummyX, gap };
+    }
+
+    console.log(
+      `BUFF_APPROACH_RETRY attempt=${attempt + 1} minGap=${minGap} maxGap=${maxGap} playerX=${playerX} dummyX=${dummyX} gap=${gap}`,
+    );
   }
 
-  for (let step = 0; step < 160; step += 1) {
-    if (gap >= minGap && gap <= maxGap) break;
-    const key = gap > targetGap ? 'd' : 'a';
-    const error = Math.abs(gap - targetGap);
-    const holdMs = error > 90 ? 28 : error > 45 ? 18 : 10;
-    await holdKey(key, holdMs, 18);
-    playerX = await readNumber('playerX');
-    dummyX = await readNumber('dummyX');
-    gap = dummyX - playerX;
-  }
-
-  await waitForDummyToSettle();
-  playerX = await readNumber('playerX');
-  dummyX = await readNumber('dummyX');
-  gap = dummyX - playerX;
-
-  for (let step = 0; step < 40 && (gap < minGap || gap > maxGap); step += 1) {
-    const key = gap > targetGap ? 'd' : 'a';
-    await holdKey(key, 8, 20);
-    playerX = await readNumber('playerX');
-    dummyX = await readNumber('dummyX');
-    gap = dummyX - playerX;
-  }
-
-  if (gap < minGap || gap > maxGap) {
-    throw new Error(`Failed to stabilize attack range: playerX=${playerX} dummyX=${dummyX} gap=${gap}`);
-  }
-  return { playerX, dummyX, gap };
+  throw new Error(`Failed to stabilize attack range: playerX=${playerX} dummyX=${dummyX} gap=${gap}`);
 }
 
 async function assertBaselineMultipliers(label) {
