@@ -199,3 +199,14 @@
 - **Prevention Rule:** Every browser smoke that validates a directional melee outcome must treat facing as part of its positioning contract. Shared helpers should combine runtime-observed movement pacing, stage-left placement, one-way final approach toward the target, and explicit overshoot recovery rather than independent bidirectional fixed-sleep loops.
 - **Validation:** Commit `a971e6b78ef50a8f9b6e5a26de9d29a7818a5b3f` on PR #120; CI Run #246 passed Windows Native Release, Chromium `smoke:all`, and GitHub-hosted Windows Microsoft Edge `smoke:all` without retry.
 - **Status:** Verified on PR Run #246; final latest-head merge gate pending documentation sync.
+
+## L-019 — Coordinator-gated browser tests must distinguish pre-claim blocking from rejected claims
+
+- **Date:** 2026-09-15
+- **Area:** GitHub Actions / Playwright / skill coordinator runtime contract
+- **Symptom:** PR #120 Run #248 failed `tests/skill_coordination_web_smoke.mjs` at the second `waitForFunction()` after pressing `O`. The smoke expected `skill_3` to increment coordinator rejection telemetry while `skill_1` owned the coordinator, but that counter never changed.
+- **Root Cause:** `coordinated_area_skill_controller.gd::_can_start_cast()` checks `can_claim(skill_3)` before `_try_cast()` reaches `try_claim(skill_3)`. When another skill owns the coordinator, Area is therefore blocked at the pre-claim gate; no rejected claim occurs and no rejection counter should increment. The test encoded the wrong layer of the runtime contract.
+- **Fix:** Keep `try_claim()` rejection semantics covered by the coordinator domain tests, and change the browser smoke to validate the actual integration contract: expose durable `areaSkillInputLatched` telemetry, prove the `O` input was sampled while `skill_1` still owned the coordinator, and assert Area did not enter a cast, MP was not spent, and claim count did not change. No gameplay behavior, damage, cooldown, MP cost, or control mapping changed.
+- **Prevention Rule:** Browser integration tests must assert the behavior of the public runtime path they actually drive. Do not expect downstream telemetry from code that an earlier guard intentionally prevents from executing. Use domain tests for lower-level rejection semantics and durable input/phase/resource telemetry for integration gating.
+- **Validation:** PR #120 latest-head CI Run #250 passed Windows Native Release, Chromium `smoke:all`, and GitHub-hosted Windows Microsoft Edge `smoke:all` on head `610037d8207fe8b11bf924c5b5cfb641b212d4c1` before this documentation-only lesson commit.
+- **Status:** Fix verified on Run #250; final latest-head merge gate pending this documentation commit.
