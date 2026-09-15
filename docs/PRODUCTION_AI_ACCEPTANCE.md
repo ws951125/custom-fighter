@@ -8,7 +8,7 @@ As of 2026-09-15, the project uses `gemini-2.5-flash` by default because the Gem
 
 Native Gemini image-generation models are intentionally rejected because Google does not expose them through the API free tier. OpenAI image generation is no longer a supported production provider.
 
-The free Gemini model analyzes the prompt and optional PNG reference and returns a strictly validated structured VFX design. The trusted backend then renders the PNG deterministically with Sharp. This preserves the AI-assisted workflow without making paid image-generation calls.
+The free Gemini model analyzes the prompt and optional PNG reference through the stable Interactions API `v1` endpoint, with `store=false`, and returns a strictly validated structured VFX design. The trusted backend then renders the PNG deterministically with Sharp. This preserves the AI-assisted workflow without making paid image-generation calls.
 
 ## Preconditions
 

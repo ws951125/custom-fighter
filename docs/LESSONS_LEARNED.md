@@ -221,3 +221,14 @@
 - **Prevention Rule:** Before adding or changing any production AI model, verify the exact model's current official pricing and API availability. A vendor name is not a cost guarantee. Paid fallback is prohibited unless the user explicitly reverses the cost policy. A free-eligible model alone is insufficient: production configuration must also assert and operationally verify a Free Tier project/key.
 - **Validation:** Source changes are on `feature/p3-free-gemini`; GitHub Actions and Render production acceptance are pending.
 - **Status:** Pending GitHub/production validation
+
+## L-021 — Retry read failures, but verify state before retrying mutations
+
+- **Date:** 2026-09-15
+- **Area:** Render connector / deployment operations
+- **Symptom:** While switching Render to Gemini, the same environment-variable update was sent repeatedly and each successful write triggered another deploy; earlier deploys were then canceled by newer identical deploys.
+- **Root Cause:** The generic "retry transient connector failures" rule was applied to a mutating operation without first checking whether the previous mutation had already succeeded.
+- **Fix:** Stop repeated writes, inspect Render deploy state, retain the latest valid deploy, and add a separate mutation-retry rule: uncertain writes require a read/status check before any retry.
+- **Prevention Rule:** Retry read-only failures freely within reason; for writes/deploy triggers, verify remote state first and never use the mutation itself as the confirmation mechanism.
+- **Validation:** Render deploy history showed the superseded identical deploys canceled automatically and the latest valid deploy reached `live`; project rules now distinguish read retries from mutation retries.
+- **Status:** Verified

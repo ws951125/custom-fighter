@@ -25,18 +25,22 @@ const metadata = await sharp(generated).metadata();
 assert.equal(metadata.format, 'png');
 assert.equal(metadata.width, 256);
 assert.equal(metadata.height, 256);
-assert.equal(requests[0].url, 'https://generativelanguage.googleapis.com/v1beta/interactions');
+assert.equal(requests[0].url, 'https://generativelanguage.googleapis.com/v1/interactions');
 assert.equal(requests[0].options.headers['x-goog-api-key'], 'test-gemini-key');
-assert.equal(requests[0].body.model, DEFAULT_FREE_GEMINI_MODEL);assert.equal(requests[0].body.response_format.type, 'text');
-assert.equal(requests[0].body.response_format.mime_type, 'application/json');
-assert.ok(requests[0].body.response_format.schema);
+assert.equal(requests[0].body.model, DEFAULT_FREE_GEMINI_MODEL);
+assert.equal(requests[0].body.store, false);
+assert.ok(Array.isArray(requests[0].body.response_format));
+assert.equal(requests[0].body.response_format[0].type, 'text');
+assert.equal(requests[0].body.response_format[0].mime_type, 'application/json');
+assert.ok(requests[0].body.response_format[0].schema);
 
 const reference = Buffer.from('reference-png');
 await provider.generate('preserve silhouette, add lightning', { referencePng: reference });
 assert.equal(requests[1].body.input.length, 2);
-assert.equal(requests[1].body.input[1].type, 'image');
-assert.equal(requests[1].body.input[1].mime_type, 'image/png');
-assert.equal(requests[1].body.input[1].data, reference.toString('base64'));
+assert.equal(requests[1].body.input[0].type, 'image');
+assert.equal(requests[1].body.input[0].mime_type, 'image/png');
+assert.equal(requests[1].body.input[0].data, reference.toString('base64'));
+assert.equal(requests[1].body.input[1].type, 'text');
 
 await assert.rejects(
   () => new GeminiImageProvider({ apiKey: '', fetchImpl, freeTierOnly: true }).generate('test'),

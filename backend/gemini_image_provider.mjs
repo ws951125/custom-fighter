@@ -1,6 +1,6 @@
 import sharp from 'sharp';
 
-const GEMINI_INTERACTIONS_URL = 'https://generativelanguage.googleapis.com/v1beta/interactions';
+const GEMINI_INTERACTIONS_URL = 'https://generativelanguage.googleapis.com/v1/interactions';
 export const DEFAULT_FREE_GEMINI_MODEL = 'gemini-2.5-flash';
 export const FREE_GEMINI_MODELS = new Set(['gemini-2.5-flash', 'gemini-2.5-flash-lite']);
 
@@ -87,13 +87,14 @@ export class GeminiImageProvider {
 
   async generate(prompt, { referencePng = null } = {}) {
     if (!this.apiKey) throw new Error('GEMINI_API_KEY is not configured');
-    const input = [{
-      type: 'text',
-      text: `Design a safe 2D fighting-game VFX from this request: ${String(prompt).trim()}. Return only the requested structured design fields; do not return code.`
-    }];
+    const input = [];
     if (referencePng && referencePng.length) {
       input.push({ type: 'image', mime_type: 'image/png', data: Buffer.from(referencePng).toString('base64') });
     }
+    input.push({
+      type: 'text',
+      text: `Design a safe 2D fighting-game VFX from this request: ${String(prompt).trim()}. Return only the requested structured design fields; do not return code.`
+    });
     const response = await this.fetchImpl(GEMINI_INTERACTIONS_URL, {
       method: 'POST',
       headers: {
@@ -102,12 +103,13 @@ export class GeminiImageProvider {
       },
       body: JSON.stringify({
         model: this.model,
+        store: false,
         input,
-        response_format: {
+        response_format: [{
           type: 'text',
           mime_type: 'application/json',
           schema: VFX_SCHEMA
-        }
+        }]
       }),
       signal: AbortSignal.timeout(120000)
     });

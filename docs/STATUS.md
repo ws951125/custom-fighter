@@ -55,7 +55,7 @@ Completed through PR #86. Includes Godot `HTTPRequest`, strict JSON/PNG response
 Implemented and production-hardened:
 - trusted Node backend with `/healthz` and `/v1/vfx/generate`,
 - server-side AI provider factory constrained to free Gemini only,
-- Gemini Interactions API adapter using free-tier text/multimodal models for prompt/reference understanding,
+- Gemini Interactions API stable `v1` adapter using free-tier text/multimodal models for prompt/reference understanding with `store=false`,
 - deterministic Sharp renderer converts validated Gemini JSON design into the PNG VFX asset,
 - `AI_IMAGE_PROVIDER` defaults to `gemini` and fails closed for any paid/unsupported provider,
 - `GEMINI_MODEL` is allow-listed to `gemini-2.5-flash` or `gemini-2.5-flash-lite`,
@@ -71,7 +71,7 @@ Implemented and production-hardened:
 - strict CORS/body/output bounds,
 - generation response revalidation,
 - browser/runtime contains no provider credential,
-- reference-image requests use the selected provider image-edit boundary,
+- reference-image requests use Gemini multimodal understanding and the same validated structured-design boundary,
 - Godot request serialization matches the trusted backend contract,
 - production errors fail closed,
 - Render runtime uses `NODE_ENV=production`,
