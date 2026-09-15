@@ -13,7 +13,9 @@ Roadmap:
 - P3 Production AI provider/backend integration: in progress.
 - P4 Image → skill proposal → Creator → Training production flow: in progress.
 
-Current work unit (2026-09-15): PR #123 / `fix/production-match-restart-positioning` hardens the production Microsoft Edge match-restart smoke after main Run #260 reproduced a hosted-runner positioning overshoot. The change is test-only: it replaces fixed blind movement nudges with runtime-observed movement, distance-adaptive holds and restage/retry behavior while preserving the existing melee acceptance corridor and all gameplay parameters.
+Current work unit (2026-09-15): PR #123 **`Test: stabilize production match-restart positioning`** merged to `main` as `6902f7e475c30e90689e4bdab887a8a660b19501`. Main CI Run #264 then passed the complete production validation chain, including the final Microsoft Edge `smoke:all` against the real GitHub Pages deployment. The Run #260 match-restart positioning recurrence is therefore resolved in production. No gameplay parameters or control mappings changed; the fix only made the browser positioning helper deterministic through runtime-observed movement, distance-adaptive holds, stage-left/final-D facing, and restage/retry after overshoot.
+
+All currently inferable/non-blocked engineering work for the Free Tier safety boundary and deterministic production validation is complete. P3/P4 remain open only because real Gemini Free Tier production acceptance requires an external credential and billing-state verification that cannot be inferred or performed from the repository.
 
 ## Completed milestones
 
@@ -56,13 +58,15 @@ PR #121 **`P3: enforce free-tier Gemini AI only`** merged to `main` as `9fe7f3d3
 
 PR #122 **`P3: verify Free Tier project before Gemini activation`** merged to `main` as `e1ae9933fa4943af80ff7b7ab4a0ff4ae97d78cb` after latest-head PR CI Run #259 passed Windows Native Release, Godot/backend/Web/Chromium and GitHub-hosted Microsoft Edge.
 
-Render deployment status:
-- service `custom-fighter-ai-vfx` auto-deployed merge SHA `e1ae9933fa4943af80ff7b7ab4a0ff4ae97d78cb` and reached `live`,
-- `/healthz` reports the exact merge revision and `supported_providers=[gemini]`,
-- production is deliberately `AI_IMAGE_PROVIDER=disabled`, so no AI provider can be called while the credential / billing verification is unresolved,
-- `GEMINI_MODEL=gemini-2.5-flash` and `GEMINI_FREE_TIER_ONLY=true` are present,
-- main Run #260 Production AI Backend Readiness printed `PRODUCTION_AI_BACKEND_SAFE_DISABLED model=gemini-2.5-flash project_verified=false revision=e1ae9933fa4943af80ff7b7ab4a0ff4ae97d78cb`,
-- `providers.gemini.configured=false`; the server-side Gemini API key remains absent and the external project verification guard remains false.
+PR #123 **`Test: stabilize production match-restart positioning`** merged to `main` as `6902f7e475c30e90689e4bdab887a8a660b19501` after latest-head PR CI Run #263 passed Windows Native Release, Godot/backend/Web/Chromium and GitHub-hosted Microsoft Edge.
+
+Render / production backend status:
+- main Run #264 verified the backend is serving exact revision `6902f7e475c30e90689e4bdab887a8a660b19501`,
+- `/healthz` remains compatible with `supported_providers=[gemini]`,
+- production is deliberately `AI_IMAGE_PROVIDER=disabled`, so no AI provider can be called while credential / billing verification is unresolved,
+- `GEMINI_MODEL=gemini-2.5-flash` and `GEMINI_FREE_TIER_ONLY=true` remain the intended model/policy configuration,
+- main Run #264 Production AI Backend Readiness printed `PRODUCTION_AI_BACKEND_SAFE_DISABLED model=gemini-2.5-flash project_verified=false revision=6902f7e475c30e90689e4bdab887a8a660b19501`,
+- `providers.gemini.configured=false`; real Gemini production acceptance is intentionally unavailable until a server-side key and external project verification are supplied.
 
 Implemented and production-hardened:
 - trusted Node backend with `/healthz` and `/v1/vfx/generate`,
@@ -83,16 +87,16 @@ Implemented and production-hardened:
 - manual production AI E2E remains strict and requires an actually configured/verified Gemini provider,
 - Render runtime uses `NODE_ENV=production` and Sharp 0.35.4.
 
-Main post-merge Run #260 evidence for `e1ae9933fa4943af80ff7b7ab4a0ff4ae97d78cb`:
+Main post-merge Run #264 evidence for `6902f7e475c30e90689e4bdab887a8a660b19501`:
 - Windows Native Release: PASS,
 - Godot + Backend + Web + Chromium: PASS,
 - Windows + Microsoft Edge: PASS,
 - Deploy Web Demo: PASS,
 - Verify Public Web Demo: PASS,
-- Verify Production AI Backend Readiness: PASS in explicit safe-disabled mode with matching deployed revision,
-- Windows Edge Production Full Smoke: FAIL only in `tests/match_restart_web_smoke.mjs` because the old fixed 45 ms positioning helper overshot the melee corridor to `playerX=971.21`, `dummyX=979.32`, `gap=8.11`.
-
-PR #123 hardens that existing browser-test helper with the already proven hosted-Edge invariant used by the buff/melee smokes: wait for runtime-observed `playerX` change, shorten movement holds near the target, keep the final approach right-facing, and re-stage/retry after overshoot. No gameplay runtime or control mapping changes are included.
+- Verify Production AI Backend Readiness: PASS in explicit safe-disabled mode with exact deployed revision,
+- Windows Edge Production Full Smoke: PASS against `https://ws951125.github.io/custom-fighter/`,
+- production log includes `WEB_MATCH_RESTART_SMOKE_PASSED victory=true restart=true returnCreator=true`, proving the Run #260 `gap=8.11` recurrence is resolved on real GitHub Pages in Microsoft Edge,
+- the same production Edge suite also passed the existing multi-skill, area, formation, buff, melee, coordination, character, Creator/VFX/package and mobile regressions.
 
 Current external blocker:
 - obtain/configure a server-side `GEMINI_API_KEY` from a Gemini Developer API Free Tier project,
