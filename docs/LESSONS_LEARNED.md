@@ -32,8 +32,8 @@
 - **Root Cause:** 在多個 GitHub mutation actions 可用時，未在送出寫入前再次鎖定「操作類型 + 目標物件 + recipient」，造成 action selection 錯誤；本次 recurrence 是 resource discovery 後切換寫入工具時沒有做最後 recipient/schema 對照。
 - **Fix:** 初次事件立即將 #47 以 `not_planned` 關閉、#48 以 `duplicate` 關閉；本次 recurrence 則先讀取 `noop` blob SHA 並立即從同一 feature branch 刪除，再精確載入 `create_pull_request` schema 後建立 PR #125。未讓 accidental file 進入 `main`。
 - **Prevention Rule:** GitHub 寫入前先確認 mutation 類型、目標物件與 tool recipient 完全一致（issue / branch / file / PR）；若當前工具清單不明確，先做精確 resource discovery，送出前再做一次 recipient/schema final check。不要用測試性寫入確認工具能力。
-- **Validation:** #47、#48 均已關閉；PR #125 branch 對 `main` 的 compare 已確認 accidental `noop` 不在最終 diff，changed files 僅為 `Agent.md`、`docs/STATUS.md`、`docs/LESSONS_LEARNED.md`。
-- **Status:** Recurrence corrected; PR diff clean; latest-head CI pending
+- **Validation:** #47、#48 均已關閉；PR #125 branch 對 `main` 的 compare 已確認 accidental `noop` 不在最終 diff，changed files 僅為 `Agent.md`、`docs/STATUS.md`、`docs/LESSONS_LEARNED.md`；PR #125 latest-head Run #270 全綠並合併為 `1a6c79fa81c9bd711079abf40009a728591b2237`，main Run #271 最終完整 production chain 亦通過。
+- **Status:** Verified
 
 ## L-004 — Transient browser diagnostics must be distinguished from runtime state evidence
 
@@ -180,14 +180,14 @@
 
 ## L-017 — Heavy Strike smoke corridors must follow authored hitbox geometry
 
-- **Date:** 2026-09-15
+- **Date:** 2026-09-15; recurrence observed on main Run #271
 - **Area:** GitHub Actions / Windows Edge / Playwright / Heavy Strike regression smoke
-- **Symptom:** PR #120 Run #242 attempt 2 reproduced the deferred L-008 positioning failure in `tests/melee_web_smoke.mjs`: the final right-facing `D` approach landed at `playerX=828.99`, `dummyX=860`, `gap=31.01`, and the helper rejected it because its hard-coded lower corridor was 40 px. The same PR changes were otherwise documentation-only at that point, while Native and Chromium were green.
-- **Root Cause:** The 40 px lower bound was a test-authored spacing preference, not a gameplay invariant. Heavy Strike is authored with `range=72` and `hitbox_half_width=54`, so its hitbox extends from 18 px to 126 px in front of the cast origin before even accounting for the dummy's own 30 px half-width. A 31 px forward gap is therefore a valid right-facing hit position, and rejecting it conflated one-frame positioning overshoot with a combat failure.
-- **Fix:** Set the smoke helper's lower corridor to the geometry-derived 18 px while preserving stage-left / final-`D` facing. Keep the substantive assertions unchanged: real cast acceptance, exact 24 damage, 18 MP spend, positive cooldown, exactly one hit, hit flag, and hitbox center in front of the player. No gameplay runtime or skill parameter changes.
-- **Prevention Rule:** Coordinate preconditions in browser combat tests must be derived from the authored hitbox/hurtbox contract or another explicit gameplay invariant, not from an arbitrary visual spacing preference. Continue to verify the actual gameplay outcome separately so broader-but-valid geometry cannot hide a missed attack.
-- **Validation:** PR #120 CI Run #246 passed Windows Native Release, Chromium `smoke:all`, and GitHub-hosted Windows Microsoft Edge `smoke:all` with the geometry-derived 18 px lower corridor.
-- **Status:** Verified on PR Run #246; final latest-head merge gate pending documentation sync.
+- **Symptom:** PR #120 Run #242 attempt 2 reproduced the deferred L-008 positioning failure in `tests/melee_web_smoke.mjs`: the final right-facing `D` approach landed at `playerX=828.99`, `dummyX=860`, `gap=31.01`, and the helper rejected it because its hard-coded lower corridor was 40 px. Main Run #271 later had one isolated hosted Edge attempt land at `playerX=847.04`, `dummyX=860`, `gap=12.96`, below the corrected geometry-derived 18 px corridor; the same SHA had already passed PR #125 Run #270 Edge and Run #271 Chromium.
+- **Root Cause:** The original 40 px lower bound was a test-authored spacing preference, not a gameplay invariant. Heavy Strike is authored with `range=72` and `hitbox_half_width=54`, so its hitbox extends from 18 px to 126 px in front of the cast origin before even accounting for the dummy's own 30 px half-width. The Run #271 12.96 px event did not reproduce on the same SHA and is consistent with an isolated hosted-runner positioning excursion rather than evidence that the 18 px authored geometry invariant or gameplay runtime is wrong.
+- **Fix / Operational Mitigation:** Keep the smoke helper's lower corridor at the geometry-derived 18 px and preserve stage-left / final-`D` facing. For Run #271, do not change gameplay or weaken the geometry invariant after one isolated failure; retry only the failed hosted Edge job. The targeted retry passed without code changes, and the final production Edge suite later passed Heavy Strike with `hitGap=88.89`, exact 24 damage, 18 MP spend, positive cooldown, exactly one hit and forward hitbox geometry.
+- **Prevention Rule:** Coordinate preconditions in browser combat tests must remain derived from authored hitbox/hurtbox geometry, not arbitrary visual spacing. If a future latest-head or targeted retry reproduces `gap < 18` on this helper, harden `melee_web_smoke.mjs` with explicit overshoot re-stage/retry rather than lowering the 18 px invariant or changing gameplay. Continue verifying the actual gameplay outcome separately.
+- **Validation:** PR #120 CI Run #246 passed with the geometry-derived 18 px lower corridor. PR #125 Run #270 passed hosted Edge on the same runtime; main Run #271 Chromium passed, the initial hosted Edge attempt alone hit `gap=12.96`, its targeted Edge retry passed without code changes, and the final GitHub Pages Microsoft Edge production `smoke:all` passed Heavy Strike with `WEB_MELEE_SKILL_SMOKE_PASSED ... hitGap=88.89 ...` plus the rest of the production suite.
+- **Status:** Geometry invariant verified; one isolated Run #271 positioning excursion cleared by targeted retry and production Edge; explicit helper hardening deferred unless reproducible recurrence
 
 ## L-018 — Directional buff damage smoke must preserve facing while stabilizing melee range
 
