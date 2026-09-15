@@ -74,7 +74,7 @@
 - **Area:** GitHub Actions / Windows Edge / Playwright startup readiness
 - **Symptom:** PR #63 CI Run #119 passed Godot import/boot/domain tests, Web export/size budget and Chromium, but the hosted Windows Edge job timed out in unchanged `character_selection_web_smoke.mjs` while waiting for Web/Godot readiness.
 - **Evidence / Diagnosis:** The failing path was outside the M5 VFX changes；the same Character Selection flow was green on production main Run #118 and all prior smoke tests in the failing Edge job had already progressed normally. The failure therefore did not provide reproducible evidence of a Character runtime regression.
-- **Operational Fix:** Treat the single failure as an isolated hosted-browser startup/readiness flake, retry only the failed gate when appropriate, and require a fresh latest-head PR CI after subsequent commits rather than modifying unrelated Character runtime code.
+- **Operational Fix:** Treat the single failure as an isolated hosted-browser startup/readiness flake, retry only the failed gate when appropriate, and require a fresh latest-head PR CI after subsequent commits rather than modifying unrelated Character runtime code。
 - **Prevention Rule:** Before changing runtime code for a hosted-browser timeout, compare changed paths, earlier steps in the same job, same-SHA cross-browser evidence and a fresh run. A targeted retry is acceptable for an isolated readiness/observation timeout, but no PR may merge until the final latest head is green on all required gates.
 - **Validation:** PR #63 latest-head CI Run #126 passed Godot import/boot/domain tests, Web export/size budget, Chromium `smoke:all` and GitHub-hosted Windows Microsoft Edge `smoke:all`, including the unchanged Character Selection regression and the new VFX Creator smoke。
 - **Status:** Verified
@@ -177,3 +177,36 @@
 - **Prevention Rule:** Browser positioning loops must use runtime-observed coordinate progress as their command pacing, not fixed sleeps plus potentially stale reads. For narrow or remote corridors, use distance-adaptive movement and an explicit overshoot recovery strategy; do not treat one fixed-duration nudge as bounded displacement across hosted runners.
 - **Validation:** PR #119 first-head CI Run #237 passed Windows Native Release, Chromium `smoke:all`, and GitHub-hosted Windows Microsoft Edge `smoke:all` without retry.
 - **Status:** Fix verified on PR first-head Run #237; merge gate requires latest-head CI.
+
+## L-017 — Heavy Strike smoke corridors must follow authored hitbox geometry
+
+- **Date:** 2026-09-15
+- **Area:** GitHub Actions / Windows Edge / Playwright / Heavy Strike regression smoke
+- **Symptom:** PR #120 Run #242 attempt 2 reproduced the deferred L-008 positioning failure in `tests/melee_web_smoke.mjs`: the final right-facing `D` approach landed at `playerX=828.99`, `dummyX=860`, `gap=31.01`, and the helper rejected it because its hard-coded lower corridor was 40 px. The same PR changes were otherwise documentation-only at that point, while Native and Chromium were green.
+- **Root Cause:** The 40 px lower bound was a test-authored spacing preference, not a gameplay invariant. Heavy Strike is authored with `range=72` and `hitbox_half_width=54`, so its hitbox extends from 18 px to 126 px in front of the cast origin before even accounting for the dummy's own 30 px half-width. A 31 px forward gap is therefore a valid right-facing hit position, and rejecting it conflated one-frame positioning overshoot with a combat failure.
+- **Fix:** Set the smoke helper's lower corridor to the geometry-derived 18 px while preserving stage-left / final-`D` facing. Keep the substantive assertions unchanged: real cast acceptance, exact 24 damage, 18 MP spend, positive cooldown, exactly one hit, hit flag, and hitbox center in front of the player. No gameplay runtime or skill parameter changes.
+- **Prevention Rule:** Coordinate preconditions in browser combat tests must be derived from the authored hitbox/hurtbox contract or another explicit gameplay invariant, not from an arbitrary visual spacing preference. Continue to verify the actual gameplay outcome separately so broader-but-valid geometry cannot hide a missed attack.
+- **Validation:** PR #120 CI Run #246 passed Windows Native Release, Chromium `smoke:all`, and GitHub-hosted Windows Microsoft Edge `smoke:all` with the geometry-derived 18 px lower corridor.
+- **Status:** Verified on PR Run #246; final latest-head merge gate pending documentation sync.
+
+## L-018 — Directional buff damage smoke must preserve facing while stabilizing melee range
+
+- **Date:** 2026-09-15
+- **Area:** GitHub Actions / Windows Edge / Playwright / buff regression smoke
+- **Symptom:** PR #120 CI Run #245 passed Windows Native and Chromium, and progressed beyond the corrected Heavy Strike smoke, but hosted Windows Edge failed at `tests/buff_web_smoke.mjs:263` while waiting for the second Battle Focus activation's buffed basic attack to reduce dummy HP from 100 to 82. The runtime log showed MP had dropped to 50 and `combo=1 / state=ATTACK_1`, proving both the buff recast and `J` input were accepted, while dummy HP remained 100.
+- **Root Cause:** `buff_web_smoke.mjs` used a bidirectional `approachDummy()` that could finish its final range correction with `A`. The player could therefore be numerically inside melee range but face left while the dummy remained on the right. The attack animation then executed successfully with its directional hitbox projected away from the target. The same helper also paced movement with fixed sleeps, retaining the stale-coordinate/overshoot risk documented in L-016.
+- **Fix:** Replace the buff smoke positioning helper with the proven runtime-observed movement invariant: wait for `playerX` to change after each movement command, stage the player safely to the dummy's left, approach only with `D`, use distance-adaptive held durations, and re-stage/retry after overshoot. All substantive Battle Focus assertions remain unchanged: 1.45x movement, 1.5x attack, 25 MP per accepted cast, cooldown/recast rejection, exact 18 buffed damage, expiration restoration, and exact 12 baseline damage afterward. No gameplay runtime or skill parameters changed.
+- **Prevention Rule:** Every browser smoke that validates a directional melee outcome must treat facing as part of its positioning contract. Shared helpers should combine runtime-observed movement pacing, stage-left placement, one-way final approach toward the target, and explicit overshoot recovery rather than independent bidirectional fixed-sleep loops.
+- **Validation:** Commit `a971e6b78ef50a8f9b6e5a26de9d29a7818a5b3f` on PR #120; CI Run #246 passed Windows Native Release, Chromium `smoke:all`, and GitHub-hosted Windows Microsoft Edge `smoke:all` without retry.
+- **Status:** Verified on PR Run #246; final latest-head merge gate pending documentation sync.
+
+## L-019 — Coordinator-gated browser tests must distinguish pre-claim blocking from rejected claims
+
+- **Date:** 2026-09-15
+- **Area:** GitHub Actions / Playwright / skill coordinator runtime contract
+- **Symptom:** PR #120 Run #248 failed `tests/skill_coordination_web_smoke.mjs` at the second `waitForFunction()` after pressing `O`. The smoke expected `skill_3` to increment coordinator rejection telemetry while `skill_1` owned the coordinator, but that counter never changed.
+- **Root Cause:** `coordinated_area_skill_controller.gd::_can_start_cast()` checks `can_claim(skill_3)` before `_try_cast()` reaches `try_claim(skill_3)`. When another skill owns the coordinator, Area is therefore blocked at the pre-claim gate; no rejected claim occurs and no rejection counter should increment. The test encoded the wrong layer of the runtime contract.
+- **Fix:** Keep `try_claim()` rejection semantics covered by the coordinator domain tests, and change the browser smoke to validate the actual integration contract: expose durable `areaSkillInputLatched` telemetry, prove the `O` input was sampled while `skill_1` still owned the coordinator, and assert Area did not enter a cast, MP was not spent, and claim count did not change. No gameplay behavior, damage, cooldown, MP cost, or control mapping changed.
+- **Prevention Rule:** Browser integration tests must assert the behavior of the public runtime path they actually drive. Do not expect downstream telemetry from code that an earlier guard intentionally prevents from executing. Use domain tests for lower-level rejection semantics and durable input/phase/resource telemetry for integration gating.
+- **Validation:** PR #120 latest-head CI Run #250 passed Windows Native Release, Chromium `smoke:all`, and GitHub-hosted Windows Microsoft Edge `smoke:all` on head `610037d8207fe8b11bf924c5b5cfb641b212d4c1` before this documentation-only lesson commit.
+- **Status:** Fix verified on Run #250; final latest-head merge gate pending this documentation commit.

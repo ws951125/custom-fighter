@@ -51,30 +51,63 @@ try {
   }
 
   const initialClaimCount = await readNumber('skillCoordinatorClaimCount');
+  const initialRejectionCount = await readNumber('skillCoordinatorRejectionCount');
 
-  // U is handled by the parent runtime before O's child controller. Holding both across
-  // multiple Godot frames proves the coordinator, not synthetic key timing, decides exclusivity.
+  // First make U/skill_1 acquire the coordinator from durable runtime evidence. The Area
+  // controller deliberately checks can_claim() before _try_cast(), so a competing O press is
+  // gated before try_claim() and must NOT increment the coordinator rejection counter.
+  // areaSkillInputLatched proves the O input was actually sampled by the controller while the
+  // first skill owned the coordinator; it avoids relying on an arbitrary wall-clock hold.
   await page.keyboard.down('u');
-  await page.keyboard.down('o');
-  await page.waitForTimeout(120);
-  await page.keyboard.up('o');
-  await page.keyboard.up('u');
+  try {
+    await page.waitForFunction(
+      ({ expectedClaimCount }) =>
+        Number(document.documentElement.dataset.playerMp) === 75 &&
+        document.documentElement.dataset.skillCoordinatorBusy === 'true' &&
+        document.documentElement.dataset.skillCoordinatorOwner === 'skill_1' &&
+        document.documentElement.dataset.skillCoordinatorLastClaimed === 'skill_1' &&
+        Number(document.documentElement.dataset.skillCoordinatorClaimCount) === expectedClaimCount,
+      { expectedClaimCount: initialClaimCount + 1 },
+      { timeout: 5_000 },
+    );
+
+    await page.keyboard.down('o');
+    try {
+      await page.waitForFunction(
+        ({ expectedClaimCount, initialRejections }) =>
+          document.documentElement.dataset.areaSkillInputLatched === 'true' &&
+          Number(document.documentElement.dataset.playerMp) === 75 &&
+          Number(document.documentElement.dataset.skillCoordinatorClaimCount) === expectedClaimCount &&
+          Number(document.documentElement.dataset.skillCoordinatorRejectionCount) === initialRejections &&
+          document.documentElement.dataset.areaSkillPhase === 'READY' &&
+          Number(document.documentElement.dataset.areaSkillCooldown) === 0,
+        { expectedClaimCount: initialClaimCount + 1, initialRejections: initialRejectionCount },
+        { timeout: 2_500 },
+      );
+    } finally {
+      await page.keyboard.up('o');
+    }
+  } finally {
+    await page.keyboard.up('u');
+  }
 
   await page.waitForFunction(
-    () => Number(document.documentElement.dataset.playerMp) < 100,
+    () => document.documentElement.dataset.areaSkillInputLatched === 'false',
     null,
-    { timeout: 5_000 },
+    { timeout: 2_500 },
   );
 
-  const mpAfterSimultaneousInput = await readNumber('playerMp');
+  const mpAfterContendedInput = await readNumber('playerMp');
   const lastClaimed = await readText('skillCoordinatorLastClaimed');
+  const lastRejected = await readText('skillCoordinatorLastRejected');
   const claimCount = await readNumber('skillCoordinatorClaimCount');
+  const rejectionCount = await readNumber('skillCoordinatorRejectionCount');
   const areaPhase = await readText('areaSkillPhase');
   const areaCooldown = await readNumber('areaSkillCooldown');
   const fireballCooldown = await readNumber('skillCooldown');
 
-  if (mpAfterSimultaneousInput !== 75) {
-    throw new Error(`Expected exactly one U cast (100 -> 75 MP); got ${mpAfterSimultaneousInput}`);
+  if (mpAfterContendedInput !== 75) {
+    throw new Error(`Expected only U to spend MP (100 -> 75); got ${mpAfterContendedInput}`);
   }
   if (lastClaimed !== 'skill_1') {
     throw new Error(`Expected persistent last claim to be skill_1; got '${lastClaimed}'`);
@@ -82,18 +115,18 @@ try {
   if (claimCount !== initialClaimCount + 1) {
     throw new Error(`Expected exactly one coordinator claim; before=${initialClaimCount} after=${claimCount}`);
   }
+  if (rejectionCount !== initialRejectionCount) {
+    throw new Error(
+      `Expected Area input gate to avoid try_claim rejection; before=${initialRejectionCount} after=${rejectionCount}`,
+    );
+  }
   if (areaPhase !== 'READY' || areaCooldown !== 0) {
     throw new Error(`O cast escaped coordinator: phase=${areaPhase} cooldown=${areaCooldown}`);
   }
 
   // Cooldown is transient and can complete before a production Edge runner gets another
-  // sampling turn. The durable evidence above (exact MP spend, one claim, persistent owner,
-  // and untouched Area skill) proves the intended U cast without relying on a timing window.
-  // We still record the sampled cooldown for diagnostics when it is observable.
-
-  // Current ownership is intentionally transient: a fast runner may observe skill_1 while its
-  // cast is active, while a slower Edge runner can reach this assertion after the normal release.
-  // The durable evidence above proves that only U acquired the coordinator and spent MP.
+  // sampling turn. Durable claim telemetry, the Area input latch, and exact MP spend prove
+  // exclusivity without depending on a wall-clock overlap window.
   await page.waitForFunction(
     () =>
       document.documentElement.dataset.skillCoordinatorBusy === 'false' &&
@@ -109,7 +142,7 @@ try {
   }
 
   console.log(
-    `WEB_SKILL_COORDINATION_SMOKE_PASSED mp=${mpAfterSimultaneousInput} lastClaimed=${lastClaimed} claims=${claimCount - initialClaimCount} sampledFireballCooldown=${fireballCooldown} areaPhase=${areaPhase} areaCooldown=${areaCooldown}`,
+    `WEB_SKILL_COORDINATION_SMOKE_PASSED mp=${mpAfterContendedInput} lastClaimed=${lastClaimed} lastRejected=${lastRejected} claims=${claimCount - initialClaimCount} rejections=${rejectionCount - initialRejectionCount} sampledFireballCooldown=${fireballCooldown} areaPhase=${areaPhase} areaCooldown=${areaCooldown}`,
   );
 } finally {
   await browser.close();
