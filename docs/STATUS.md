@@ -12,7 +12,7 @@ Current work unit (2026-09-15): `feature/p3-free-gemini` removes paid-provider p
 - M0–M8 MVP: 9/9 complete.
 - P1 Safe real-provider boundary: complete.
 - P2 Async remote AI transport: complete.
-- P3 Production AI provider/backend integration: in progress; source/backend integration and deterministic cloud acceptance are substantially complete, while real-provider production acceptance is blocked until at least one server-side production provider credential is configured.
+- P3 Production AI provider/backend integration: in progress; PR #121 is converting production AI to free-tier Gemini only. Source/backend integration is implemented; formal latest-head GitHub validation and final real Free Tier production acceptance remain.
 - P4 Image → skill proposal → Creator → Training production flow: in progress; source flow and deterministic cloud E2E are substantially complete, while final real-provider production acceptance remains.
 
 ## Completed milestones
@@ -51,6 +51,15 @@ Completed through PR #85. Includes validated provider configuration, `remote_ai_
 Completed through PR #86. Includes Godot `HTTPRequest`, strict JSON/PNG response decoding, request/result matching, malformed/oversized/invalid output rejection and deterministic mock fallback.
 
 ## P3 — Production provider/backend integration — IN PROGRESS
+
+Current active slice: **PR #121 / `feature/p3-free-gemini` - enforce free-tier Gemini-only production AI.**
+
+Render configuration already applied in the authorized workspace:
+- `AI_IMAGE_PROVIDER=gemini`
+- `GEMINI_MODEL=gemini-2.5-flash`
+- `GEMINI_FREE_TIER_ONLY=true`
+- service remains auto-deployed from `main`; branch code is not production until merge.
+
 
 Implemented and production-hardened:
 - trusted Node backend with `/healthz` and `/v1/vfx/generate`,
