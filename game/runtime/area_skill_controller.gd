@@ -182,6 +182,7 @@ func _set_web_state() -> void:
 		"document.documentElement.dataset.areaSkillPhase='%s';" % cast_state.phase_name() +
 		"document.documentElement.dataset.areaSkillCooldown='%.3f';" % cast_state.cooldown_remaining +
 		"document.documentElement.dataset.areaSkillCanCast='%s';" % _bool_text(skill.loaded and cast_state.can_cast(host.player_state.mp if host != null else 0)) +
+		"document.documentElement.dataset.areaSkillInputLatched='%s';" % _bool_text(skill_latched) +
 		"document.documentElement.dataset.areaSkillActive='%s';" % _bool_text(area_state.active) +
 		"document.documentElement.dataset.lastAreaSkillHit='%s';" % _bool_text(last_hit) +
 		"document.documentElement.dataset.areaSkillHitCount='%d';" % hit_count
