@@ -13,9 +13,9 @@ Roadmap:
 - P3 Production AI provider/backend integration: in progress.
 - P4 Image → skill proposal → Creator → Training production flow: in progress.
 
-Current work unit (2026-09-15): PR #124 **`Docs: sync Run #264 production validation`** merged to `main` as `eb1087c0089ca00190a37b7265ee9b0b91870082`. Main CI Run #266 then passed the complete production validation chain: Windows Native Release, Godot/backend/Web/Chromium, GitHub-hosted Microsoft Edge, GitHub Pages deploy/public reachability, Production AI Backend Readiness, and the final Windows Edge Production Full Smoke all passed. Render also serves the exact `eb1087c...` revision in deliberate safe-disabled Gemini mode with `project_verified=false`.
+Current work unit (2026-09-15): PR #125 **`Docs: require GitHub sync before progress reports`** merged to `main` as `1a6c79fa81c9bd711079abf40009a728591b2237`. The new `Agent.md` rule requires every program/test/document/config progress claim to already be committed to GitHub before it is counted as completed, with remote branch/head/PR state re-checked before reporting.
 
-PR #125 **`Docs: require GitHub sync before progress reports`** is the current docs/process work unit. It adds an `Agent.md` hard rule that any program/test/document/config progress reported to the user must already be committed to the current GitHub feature branch before it is counted as completed progress; unsynced/local-only work must be explicitly identified and cannot be counted as Done. It also requires branch/head/PR re-checks before progress reports and keeps `docs/STATUS.md` / `docs/LESSONS_LEARNED.md` synchronized for completed work units.
+Main CI Run #271 validated that exact merge revision. The first GitHub-hosted Microsoft Edge attempt failed only in `tests/melee_web_smoke.mjs` when Heavy Strike setup landed at `playerX=847.04`, `dummyX=860`, `gap=12.96`, below the geometry-derived 18 px test corridor. The same SHA had already passed PR #125 Run #270 Edge and Run #271 Chromium, so only the failed Edge job was retried. The targeted retry passed without code changes. GitHub Pages deployment, public reachability, Production AI Backend Readiness, and the final Microsoft Edge production `smoke:all` then all passed. Production Heavy Strike passed with `hitGap=88.89`, confirming the first 12.96 px event was an isolated hosted-runner positioning excursion rather than a gameplay regression.
 
 All currently inferable/non-blocked engineering work for the Free Tier safety boundary and deterministic production validation is complete. P3/P4 remain open only because real Gemini Free Tier production acceptance requires an external credential and billing-state verification that cannot be inferred or performed from the repository.
 
@@ -64,12 +64,14 @@ PR #123 **`Test: stabilize production match-restart positioning`** merged to `ma
 
 PR #124 **`Docs: sync Run #264 production validation`** merged to `main` as `eb1087c0089ca00190a37b7265ee9b0b91870082`; post-merge main Run #266 passed all production gates.
 
+PR #125 **`Docs: require GitHub sync before progress reports`** merged to `main` as `1a6c79fa81c9bd711079abf40009a728591b2237`; post-merge main Run #271 passed the complete production chain after one isolated hosted Edge positioning retry.
+
 Render / production backend status:
-- main Run #266 verified the backend is serving exact revision `eb1087c0089ca00190a37b7265ee9b0b91870082`,
+- main Run #271 verified the backend is serving exact revision `1a6c79fa81c9bd711079abf40009a728591b2237`,
 - `/healthz` remains compatible with `supported_providers=[gemini]`,
 - production is deliberately `AI_IMAGE_PROVIDER=disabled`, so no AI provider can be called while credential / billing verification is unresolved,
 - `GEMINI_MODEL=gemini-2.5-flash` and `GEMINI_FREE_TIER_ONLY=true` remain the intended model/policy configuration,
-- main Run #266 Production AI Backend Readiness printed `PRODUCTION_AI_BACKEND_SAFE_DISABLED model=gemini-2.5-flash project_verified=false revision=eb1087c0089ca00190a37b7265ee9b0b91870082`,
+- main Run #271 Production AI Backend Readiness printed `PRODUCTION_AI_BACKEND_SAFE_DISABLED model=gemini-2.5-flash project_verified=false revision=1a6c79fa81c9bd711079abf40009a728591b2237`,
 - `providers.gemini.configured=false`; real Gemini production acceptance is intentionally unavailable until a server-side key and external project verification are supplied.
 
 Implemented and production-hardened:
@@ -91,16 +93,18 @@ Implemented and production-hardened:
 - manual production AI E2E remains strict and requires an actually configured/verified Gemini provider,
 - Render runtime uses `NODE_ENV=production` and Sharp 0.35.4.
 
-Main post-merge Run #266 evidence for `eb1087c0089ca00190a37b7265ee9b0b91870082`:
+Main post-merge Run #271 evidence for `1a6c79fa81c9bd711079abf40009a728591b2237`:
 - Windows Native Release: PASS,
 - Godot + Backend + Web + Chromium: PASS,
-- Windows + Microsoft Edge: PASS,
+- first GitHub-hosted Windows + Microsoft Edge attempt: FAIL only in Heavy Strike positioning setup at `gap=12.96`,
+- targeted retry of only the failed Edge job on the same SHA: PASS with no code or gameplay changes,
 - Deploy Web Demo: PASS,
 - Verify Public Web Demo: PASS,
 - Verify Production AI Backend Readiness: PASS in explicit safe-disabled mode with exact deployed revision,
 - Windows Edge Production Full Smoke: PASS against `https://ws951125.github.io/custom-fighter/`,
-- production match-restart regression remains green after the docs merge,
-- the production Edge suite also passed the existing multi-skill, area, formation, buff, melee, coordination, character, Creator/VFX/package and mobile regressions.
+- production logs include `WEB_MATCH_RESTART_SMOKE_PASSED victory=true restart=true returnCreator=true`,
+- production Heavy Strike logs include `WEB_MELEE_SKILL_SMOKE_PASSED ... hitGap=88.89 ...`, proving valid authored geometry and gameplay outcome on the real Pages deployment,
+- the same production Edge suite passed multi-skill, area, formation, buff, melee, coordination, character/profile/loadout/selection/animation, Creator, skill editor, preview, VFX/runtime, AI VFX, remote/reference AI VFX, AI skill proposal, package/package VFX and mobile-control regressions.
 
 Current external blocker:
 - obtain/configure a server-side `GEMINI_API_KEY` from a Gemini Developer API Free Tier project,
