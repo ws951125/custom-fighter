@@ -72,13 +72,23 @@ function renderSvg(spec) {
 }
 
 export class GeminiImageProvider {
-  constructor({ apiKey = process.env.GEMINI_API_KEY, fetchImpl = fetch, model = process.env.GEMINI_MODEL || DEFAULT_FREE_GEMINI_MODEL, freeTierOnly = process.env.GEMINI_FREE_TIER_ONLY } = {}) {
+  constructor({
+    apiKey = process.env.GEMINI_API_KEY,
+    fetchImpl = fetch,
+    model = process.env.GEMINI_MODEL || DEFAULT_FREE_GEMINI_MODEL,
+    freeTierOnly = process.env.GEMINI_FREE_TIER_ONLY,
+    freeTierProjectVerified = process.env.GEMINI_FREE_TIER_PROJECT_VERIFIED
+  } = {}) {
     this.apiKey = apiKey || '';
     this.fetchImpl = fetchImpl;
     this.model = String(model || '').trim();
     this.freeTierOnly = freeTierOnly === true || String(freeTierOnly || '').trim().toLowerCase() === 'true';
+    this.freeTierProjectVerified = freeTierProjectVerified === true || String(freeTierProjectVerified || '').trim().toLowerCase() === 'true';
     if (!this.freeTierOnly) {
       throw new Error('GEMINI_FREE_TIER_ONLY=true is required for production AI');
+    }
+    if (!this.freeTierProjectVerified) {
+      throw new Error('GEMINI_FREE_TIER_PROJECT_VERIFIED=true is required after verifying the AI Studio project has paid billing disabled');
     }
     if (!FREE_GEMINI_MODELS.has(this.model)) {
       throw new Error(`GEMINI_MODEL must use an approved free-tier model; got ${this.model || '(empty)'}`);

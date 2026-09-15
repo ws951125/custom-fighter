@@ -66,7 +66,9 @@ assert.equal(health.ai.configured, true, `Selected production provider '${health
 assert.deepEqual(health.ai.supported_providers, ['gemini']);
 assert.equal(health.ai.provider, 'gemini');
 assert.equal(health.ai.billing_mode, 'free-tier-only');
-assert.equal(health.ai.providers?.gemini?.free_tier_confirmed, true);
+assert.equal(health.ai.providers?.gemini?.free_tier_policy_asserted, true);
+assert.equal(health.ai.providers?.gemini?.free_tier_project_verified, true);
+assert.equal(health.ai.providers?.gemini?.verification_mode, 'operator-asserted');
 if (expectedProvider) assert.equal(health.ai.provider, expectedProvider);
 console.log(`PRODUCTION_AI_PROVIDER_READY provider=${health.ai.provider} model=${health.ai.model} billing_mode=${health.ai.billing_mode} revision=${health.revision || '(empty)'}`);
 
