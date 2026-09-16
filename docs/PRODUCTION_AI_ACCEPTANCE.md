@@ -29,13 +29,16 @@ GitHub Actions workflow: **Production Free Gemini E2E** (`.github/workflows/prod
 
 The workflow verifies Render readiness and exact deployed revision, then performs:
 1. text-only prompt → free Gemini structured VFX design → deterministic PNG renderer,
-2. reference PNG + prompt → free Gemini multimodal structured VFX design → deterministic PNG renderer.
+2. reference PNG + prompt → free Gemini multimodal structured VFX design → deterministic PNG renderer,
+3. deployed VFX Creator → reference PNG + prompt → Render/Gemini → generated VFX + skill proposal → explicit Confirm & Preview → Training → actual generated-skill cast.
 
-For each response it verifies HTTP/CORS/security headers, exact revision, Gemini/free-tier identity, request/result matching, valid PNG sprite-strip dimensions, and structured `skill_proposal` gameplay fields.
+For provider responses it verifies HTTP/CORS/security headers, exact revision, Gemini/free-tier identity, request/result matching, valid PNG sprite-strip dimensions, and structured `skill_proposal` gameplay fields. The browser acceptance additionally requires generated VFX validity, an initially unconfirmed proposal, explicit Creator confirmation, Training entry, MP consumption, dummy HP reduction and a registered skill hit.
 
 ## Accepted production evidence — 2026-09-16
 
-P3 production provider acceptance is complete on `main` revision `c5d36b7c9d6f7befa506d70798b0d00fef526e4e`.
+### P3 provider/backend acceptance
+
+P3 production provider acceptance completed on `main` revision `c5d36b7c9d6f7befa506d70798b0d00fef526e4e`.
 
 - PR #128 corrected the Gemini 3.6 Interactions request schema after Run #3 rejected the obsolete top-level `input[0].type=text` shape.
 - Main CI Run #277 passed the exact-revision production readiness and production browser gates.
@@ -44,7 +47,20 @@ P3 production provider acceptance is complete on `main` revision `c5d36b7c9d6f7b
 - Both real text-only and real reference-image requests passed.
 - The successful run emitted `PRODUCTION_AI_PROVIDER_E2E_PASSED`.
 
-This evidence closes P3. It does **not** by itself close P4: P4 additionally requires the real generated result to traverse the deployed Creator review/confirmation UI into Training and be cast there.
+### P4 full Creator → Training acceptance
+
+P4 production acceptance completed on exact `main` revision `a572b0a3e60e377ae9152592c6d8c62e574a8554`.
+
+- PR #130 added the production browser acceptance and was merged to this revision.
+- Main CI #281 passed before the quota-gated run, including GitHub Pages deployment, public web verification, Render exact-revision readiness and production browser smoke.
+- Manual Production Free Gemini E2E Run #5 (`35075099182`) completed successfully on this exact revision.
+- Render readiness emitted `PRODUCTION_AI_BACKEND_READY provider=gemini model=gemini-3.6-flash billing_mode=free-tier-only revision=a572b0a3e60e377ae9152592c6d8c62e574a8554`.
+- Real text generation emitted `PRODUCTION_AI_TEXT_GENERATION_PASSED`.
+- Real reference-image generation emitted `PRODUCTION_AI_REFERENCE_GENERATION_PASSED`.
+- Provider acceptance emitted `PRODUCTION_AI_PROVIDER_E2E_PASSED provider=gemini model=gemini-3.6-flash revision=a572b0a3e60e377ae9152592c6d8c62e574a8554`.
+- The deployed Creator/Training acceptance emitted `PRODUCTION_CREATOR_GEMINI_E2E_PASSED provider=gemini revision=a572b0a3e60e377ae9152592c6d8c62e574a8554 reference=true proposal=true confirmPreview=true cast=true damage=18`.
+
+This closes P4 and the planned roadmap at **13/13 phases complete**.
 
 ## Guardrails
 
