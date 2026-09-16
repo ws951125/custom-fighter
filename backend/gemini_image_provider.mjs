@@ -71,6 +71,18 @@ function renderSvg(spec) {
   </svg>`;
 }
 
+function buildInput(prompt, referencePng) {
+  const text = `Design a safe 2D fighting-game VFX from this request: ${String(prompt).trim()}. Return only the requested structured design fields; do not return code.`;
+  if (!referencePng || !referencePng.length) return text;
+  return [{
+    type: 'user_input',
+    content: [
+      { type: 'image', mime_type: 'image/png', data: Buffer.from(referencePng).toString('base64') },
+      { type: 'text', text }
+    ]
+  }];
+}
+
 export class GeminiImageProvider {
   constructor({
     apiKey = process.env.GEMINI_API_KEY,
@@ -97,14 +109,6 @@ export class GeminiImageProvider {
 
   async generate(prompt, { referencePng = null } = {}) {
     if (!this.apiKey) throw new Error('GEMINI_API_KEY is not configured');
-    const input = [];
-    if (referencePng && referencePng.length) {
-      input.push({ type: 'image', mime_type: 'image/png', data: Buffer.from(referencePng).toString('base64') });
-    }
-    input.push({
-      type: 'text',
-      text: `Design a safe 2D fighting-game VFX from this request: ${String(prompt).trim()}. Return only the requested structured design fields; do not return code.`
-    });
     const response = await this.fetchImpl(GEMINI_INTERACTIONS_URL, {
       method: 'POST',
       headers: {
@@ -114,12 +118,12 @@ export class GeminiImageProvider {
       body: JSON.stringify({
         model: this.model,
         store: false,
-        input,
-        response_format: [{
+        input: buildInput(prompt, referencePng),
+        response_format: {
           type: 'text',
           mime_type: 'application/json',
           schema: VFX_SCHEMA
-        }]
+        }
       }),
       signal: AbortSignal.timeout(120000)
     });
