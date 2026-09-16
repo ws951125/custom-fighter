@@ -14,6 +14,19 @@ function characterUrl(characterId) {
   return url.toString();
 }
 
+async function animationReadinessSnapshot(page) {
+  return page.evaluate(() => ({
+    godotReady: document.documentElement.dataset.godotReady ?? '',
+    selected: document.documentElement.dataset.playerSelectedCharacterId ?? '',
+    characterMap: document.documentElement.dataset.playerCharacterAnimationMap ?? '',
+    mapLoaded: document.documentElement.dataset.playerAnimationMapLoaded ?? '',
+    mapId: document.documentElement.dataset.playerAnimationMapId ?? '',
+    semantic: document.documentElement.dataset.playerAnimationSemantic ?? '',
+    animationId: document.documentElement.dataset.playerAnimationId ?? '',
+    loadError: document.documentElement.dataset.playerAnimationLoadError ?? '',
+  }));
+}
+
 async function openCharacter(browser, characterId) {
   const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
   const url = characterUrl(characterId);
@@ -24,11 +37,17 @@ async function openCharacter(browser, characterId) {
     null,
     { timeout: 60_000 },
   );
-  await page.waitForFunction(
-    () => document.documentElement.dataset.playerAnimationMapLoaded === 'true',
-    null,
-    { timeout: 5_000 },
-  );
+  try {
+    await page.waitForFunction(
+      () => document.documentElement.dataset.playerAnimationMapLoaded === 'true',
+      null,
+      { timeout: 5_000 },
+    );
+  } catch (error) {
+    const snapshot = await animationReadinessSnapshot(page);
+    console.error(`CHARACTER_ANIMATION_READINESS_TIMEOUT snapshot=${JSON.stringify(snapshot)}`);
+    throw error;
+  }
   return page;
 }
 
