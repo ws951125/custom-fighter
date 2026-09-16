@@ -9,13 +9,69 @@ console.log(`CREATOR_PREVIEW_BROWSER=${browserChannel || 'playwright-chromium'}`
 console.log(`CREATOR_PREVIEW_BASE_URL=${baseUrl}`);
 
 const browser = await chromium.launch(launchOptions);
+let page;
+let diagnosticStage = 'browser-launch';
+
+async function diagnosticSnapshot() {
+  if (!page) return {};
+  try {
+    return await page.evaluate(() => {
+      const d = document.documentElement.dataset;
+      const keys = [
+        'appMode',
+        'creatorStudioReady',
+        'creatorPreviewReady',
+        'creatorTimelineReady',
+        'creatorDraftValid',
+        'creatorSkillDraftValid',
+        'creatorPreviewCanLaunch',
+        'creatorPreviewError',
+        'creatorTimelineCount',
+        'creatorTimelineValid',
+        'creatorPreviewActive',
+        'playerCharacterSource',
+        'playerCharacterName',
+        'playerMp',
+        'dummyHp',
+        'lastSkillHit',
+        'skillHitCount',
+        'playerAnimationSemantic',
+        'creatorPreviewTimelineRunning',
+        'creatorPreviewTimelineElapsed',
+        'creatorPreviewTimelineTransitionCount',
+        'creatorPreviewTimelineLastEventId',
+        'creatorPreviewTimelineLastEventType',
+        'creatorPreviewTimelineLastPhase',
+        'creatorPreviewTimelineAnimationSemantic',
+        'creatorPreviewTimelineLastVfx',
+        'creatorPreviewTimelineVfxActive',
+        'creatorPreviewTimelineLastAudioCue',
+        'creatorPreviewTimelineAudioEventCount',
+        'creatorPreviewTimelineHitboxActiveCount',
+        'creatorPreviewTimelineHurtboxActiveCount',
+        'creatorPreviewTimelineHitboxes',
+        'creatorPreviewTimelineHurtboxes',
+      ];
+      return Object.fromEntries(keys.map((key) => [key, d[key] ?? null]));
+    });
+  } catch (error) {
+    return { snapshotError: String(error) };
+  }
+}
+
+function annotationSafe(value) {
+  return String(value).replace(/%/g, '%25').replace(/\r/g, '%0D').replace(/\n/g, '%0A');
+}
+
 try {
+  diagnosticStage = 'creator-navigation';
   const creatorUrl = new URL(baseUrl);
   creatorUrl.searchParams.set('mode', 'creator');
-  const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
+  page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
   const response = await page.goto(creatorUrl.toString(), { waitUntil: 'domcontentloaded', timeout: 60_000 });
   if (!response?.ok()) throw new Error(`Creator preview URL returned HTTP ${response?.status() ?? 'unknown'}`);
 
+  diagnosticStage = 'creator-ready';
   await page.waitForFunction(
     () =>
       document.documentElement.dataset.appMode === 'creator' &&
@@ -31,6 +87,7 @@ try {
     { timeout: 60_000 },
   );
 
+  diagnosticStage = 'invalid-preview-block';
   await page.evaluate(() => window.customFighterCreatorSetName(''));
   await page.waitForFunction(
     () =>
@@ -48,6 +105,7 @@ try {
     { timeout: 5_000 },
   );
 
+  diagnosticStage = 'author-timeline';
   await page.evaluate(() => {
     window.customFighterCreatorSetName('Preview Nova');
     window.customFighterCreatorSetMaxHp(180);
@@ -74,6 +132,8 @@ try {
       half_width: 22, half_depth: 0.09, offset_x: -6, offset_depth: 0.03,
     }));
   });
+
+  diagnosticStage = 'authored-timeline-valid';
   await page.waitForFunction(
     () =>
       document.documentElement.dataset.creatorDraftValid === 'true' &&
@@ -91,6 +151,7 @@ try {
     { timeout: 5_000 },
   );
 
+  diagnosticStage = 'training-preview-launch';
   await page.evaluate(() => window.customFighterCreatorPreview());
   await page.waitForFunction(
     () =>
@@ -110,6 +171,7 @@ try {
     { timeout: 60_000 },
   );
 
+  diagnosticStage = 'skill-cast';
   await page.keyboard.down('u');
   await page.waitForFunction(
     () => Number(document.documentElement.dataset.playerMp) === 83,
@@ -118,6 +180,7 @@ try {
   );
   await page.keyboard.up('u');
 
+  diagnosticStage = 'timeline-overlap-window';
   await page.waitForFunction(
     () =>
       document.documentElement.dataset.creatorPreviewTimelineRunning === 'true' &&
@@ -134,6 +197,7 @@ try {
     { timeout: 5_000 },
   );
 
+  diagnosticStage = 'spatial-payload';
   const runtimeHitboxes = JSON.parse(await page.evaluate(() => document.documentElement.dataset.creatorPreviewTimelineHitboxes ?? '[]'));
   const runtimeHurtboxes = JSON.parse(await page.evaluate(() => document.documentElement.dataset.creatorPreviewTimelineHurtboxes ?? '[]'));
   if (Number(runtimeHitboxes[0]?.half_width) !== 40 || Number(runtimeHitboxes[0]?.offset_x) !== 24) {
@@ -143,6 +207,7 @@ try {
     throw new Error(`Training hurtbox spatial payload mismatch: ${JSON.stringify(runtimeHurtboxes)}`);
   }
 
+  diagnosticStage = 'legacy-projectile-hit';
   await page.waitForFunction(
     () =>
       Number(document.documentElement.dataset.dummyHp) === 67 &&
@@ -152,6 +217,7 @@ try {
     { timeout: 5_000 },
   );
 
+  diagnosticStage = 'timeline-completion';
   await page.waitForFunction(
     () =>
       document.documentElement.dataset.creatorPreviewTimelineRunning === 'false' &&
@@ -162,6 +228,7 @@ try {
     { timeout: 5_000 },
   );
 
+  diagnosticStage = 'creator-return';
   await page.evaluate(() => window.customFighterPreviewReturnToCreator());
   await page.waitForFunction(
     () =>
@@ -179,8 +246,14 @@ try {
     { timeout: 10_000 },
   );
 
+  diagnosticStage = 'passed';
   console.log('WEB_CREATOR_PREVIEW_SMOKE_PASSED invalidBlocked=true authoredHp=180 authoredDamage=33 authoredMpCost=17 authoredCooldown=2.4 timelineRoundTrip=true animationTiming=true vfxTiming=true audioTiming=true spatialHitbox=true spatialHurtbox=true cast=true draftsRestored=true');
   await page.close();
+} catch (error) {
+  const snapshot = await diagnosticSnapshot();
+  const detail = JSON.stringify({ stage: diagnosticStage, message: String(error), snapshot });
+  console.error(`::error title=Creator preview diagnostic::${annotationSafe(detail)}`);
+  throw error;
 } finally {
   await browser.close();
 }
