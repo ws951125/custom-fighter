@@ -29,6 +29,8 @@ async function animationReadinessSnapshot(page) {
 
 async function openCharacter(browser, characterId) {
   const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
+  page.on('console', (message) => console.log(`[animation browser ${message.type()}] ${message.text()}`));
+  page.on('pageerror', (error) => console.error(`[animation pageerror] ${error?.stack || error}`));
   const url = characterUrl(characterId);
   const response = await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 60_000 });
   if (!response?.ok()) throw new Error(`Animation character URL returned HTTP ${response?.status() ?? 'unknown'}: ${url}`);
