@@ -15,20 +15,7 @@ Roadmap:
 
 ## P3 — Production provider/backend integration — 100%
 
-P3 is accepted on 2026-09-16.
-
-Final production evidence:
-- PR #127 migrated the only allow-listed production model to `gemini-3.6-flash`.
-- PR #128 fixed the Gemini 3.6 stable Interactions API request contract after real E2E #3 exposed the obsolete `type: text` input shape.
-- PR #128 merged to `main` as `c5d36b7c9d6f7befa506d70798b0d00fef526e4e`.
-- Main CI Run #277 completed successfully across Windows Native, Godot/backend/Web/Chromium, GitHub-hosted Microsoft Edge, GitHub Pages, public reachability, Production AI Backend Readiness, and Production Edge full smoke.
-- Production readiness proved `provider=gemini`, `model=gemini-3.6-flash`, `billing_mode=free-tier-only`, and exact deployed revision `c5d36b7c9d6f7befa506d70798b0d00fef526e4e`.
-- Manual Production Free Gemini E2E Run #4 (`35061328085`) completed successfully on that exact revision.
-- Run #4 passed both real text-only and real reference-PNG Gemini requests and emitted `PRODUCTION_AI_PROVIDER_E2E_PASSED`.
-- The production browser never receives the Gemini API key; the trusted Render backend retains the credential and both Free Tier guards remain fail-closed.
-- Gemini returns a strictly validated structured VFX/skill design; final PNG rendering remains deterministic through Sharp, with no paid/native-image fallback.
-
-P3 has no remaining acceptance items.
+P3 is accepted on 2026-09-16. Production Free Gemini E2E Run #4 (`35061328085`) passed real text and reference-PNG requests on exact revision `c5d36b7c9d6f7befa506d70798b0d00fef526e4e`, with Gemini 3.6 Flash, Free Tier guards, trusted Render credential isolation, structured VFX/skill output and deterministic Sharp PNG rendering. P3 has no remaining acceptance items.
 
 ## P4 — Image → skill → Creator → Training — IN PROGRESS
 
@@ -36,7 +23,7 @@ Already implemented and cloud-tested:
 - validated `AiSkillProposal` model and typed gameplay fields,
 - prompt/reference PNG request contract with strict PNG/size/dimension validation,
 - production backend returns generated VFX plus `skill_proposal`,
-- real Gemini reference-image production request is now accepted by Run #4,
+- real Gemini reference-image production request accepted by Run #4,
 - proposal is never auto-applied,
 - explicit Review / Confirm & Apply / Discard,
 - Confirm & Preview validates and enters Training,
@@ -45,13 +32,21 @@ Already implemented and cloud-tested:
 - deterministic AI proposal → actual Training skill-cast regression,
 - Restart and Return Creator match-result paths.
 
+P4 final acceptance implementation added on branch `test/p4-production-creator-e2e`:
+- `tests/production_creator_gemini_e2e.mjs` drives the deployed GitHub Pages VFX Creator in Chromium,
+- imports a real in-memory PNG reference and prompt,
+- calls the real trusted Render/Gemini provider through the browser application,
+- requires generated VFX validity and a staged, unconfirmed `skill_proposal`,
+- returns to Creator and performs explicit Confirm & Preview,
+- enters Training and casts Skill 1, requiring MP consumption, dummy HP reduction and a registered skill hit,
+- emits `PRODUCTION_CREATOR_GEMINI_E2E_PASSED` only after the complete chain succeeds,
+- `.github/workflows/production-ai-e2e.yml` now runs this browser acceptance after the existing real-provider checks, still behind explicit Free Tier quota confirmation.
+
 Remaining P4 acceptance:
-1. exercise the deployed Creator against the real Render/Gemini backend with a reference PNG + prompt,
-2. verify the returned real generated VFX and `skill_proposal` are presented for review,
-3. explicitly confirm the proposal in Creator,
-4. enter Training with the confirmed production result,
-5. cast the generated skill and verify the production asset/gameplay handoff,
-6. record the final production-browser acceptance evidence before declaring P4 complete.
+1. merge the P4 production-browser acceptance implementation after normal PR CI passes,
+2. wait for the exact merged `main` revision to deploy to GitHub Pages and Render,
+3. manually dispatch the quota-gated Production Free Gemini E2E once for that exact revision,
+4. require `PRODUCTION_CREATOR_GEMINI_E2E_PASSED` and record the run evidence before declaring P4 complete.
 
 ## Validation policy
 
@@ -77,6 +72,6 @@ AI VFX backend: `https://custom-fighter-ai-vfx.onrender.com`
 
 ## Remaining roadmap
 
-To reach 13/13, complete P4 with the real production browser path:
+To reach 13/13, pass and record the exact-revision production browser path:
 
 `reference PNG + prompt → Gemini/Render → generated VFX + skill proposal → explicit Creator confirmation → Training → actual generated-skill cast`.
