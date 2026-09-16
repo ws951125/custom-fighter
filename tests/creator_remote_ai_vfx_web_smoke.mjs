@@ -50,7 +50,7 @@ async function newRemotePage(configured, healthCounter) {
         body: JSON.stringify({
           ok: true,
           service: 'custom-fighter-ai-vfx',
-          ai: { configured, provider: 'gemini', model: 'gemini-2.5-flash', billing_mode: 'free-tier-only' },
+          ai: { configured, provider: 'gemini', model: 'gemini-3.6-flash', billing_mode: 'free-tier-only' },
         }),
       });
       return;
@@ -81,7 +81,7 @@ try {
   if (healthCounter.count < 2) throw new Error('Trusted backend readiness was not checked for the configured session');
   if ((await state(configuredSession.page, 'creatorAiVfxBackendConfigured')) !== 'true') throw new Error('Configured backend must report configured=true');
   if ((await state(configuredSession.page, 'creatorAiVfxBackendProvider')) !== 'gemini') throw new Error('Backend provider metadata missing');
-  if ((await state(configuredSession.page, 'creatorAiVfxBackendModel')) !== 'gemini-2.5-flash') throw new Error('Backend model metadata missing');
+  if ((await state(configuredSession.page, 'creatorAiVfxBackendModel')) !== 'gemini-3.6-flash') throw new Error('Backend model metadata missing');
   if ((await state(configuredSession.page, 'creatorAiVfxGenerateEnabled')) !== 'true') throw new Error('Generate must be enabled only after readiness succeeds');
   await configuredSession.context.close();
 

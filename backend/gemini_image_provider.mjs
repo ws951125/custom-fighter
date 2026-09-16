@@ -1,8 +1,8 @@
 import sharp from 'sharp';
 
 const GEMINI_INTERACTIONS_URL = 'https://generativelanguage.googleapis.com/v1/interactions';
-export const DEFAULT_FREE_GEMINI_MODEL = 'gemini-2.5-flash';
-export const FREE_GEMINI_MODELS = new Set(['gemini-2.5-flash', 'gemini-2.5-flash-lite']);
+export const DEFAULT_FREE_GEMINI_MODEL = 'gemini-3.6-flash';
+export const FREE_GEMINI_MODELS = new Set(['gemini-3.6-flash']);
 
 const VFX_SCHEMA = {
   type: 'object',

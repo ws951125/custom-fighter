@@ -26,14 +26,14 @@
 
 ## L-003 — Mutation tools must be selected by exact operation before writing GitHub state
 
-- **Date:** 2026-09-12; recurrence 2026-09-15
+- **Date:** 2026-09-12; recurrence 2026-09-15; recurrence 2026-09-16
 - **Area:** GitHub connector / repository operations
-- **Symptom:** 開始 M3 Slice 5 時，原本要建立 feature branch，卻誤觸 issue creation action，產生兩個不需要的 tracking issues (#47、#48)。2026-09-15 PR #125 文件同步時，又在原本要建立 pull request 的步驟誤觸 `create_file`，於 feature branch 暫時建立不需要的 `noop` 檔案。
-- **Root Cause:** 在多個 GitHub mutation actions 可用時，未在送出寫入前再次鎖定「操作類型 + 目標物件 + recipient」，造成 action selection 錯誤；本次 recurrence 是 resource discovery 後切換寫入工具時沒有做最後 recipient/schema 對照。
-- **Fix:** 初次事件立即將 #47 以 `not_planned` 關閉、#48 以 `duplicate` 關閉；本次 recurrence 則先讀取 `noop` blob SHA 並立即從同一 feature branch 刪除，再精確載入 `create_pull_request` schema 後建立 PR #125。未讓 accidental file 進入 `main`。
-- **Prevention Rule:** GitHub 寫入前先確認 mutation 類型、目標物件與 tool recipient 完全一致（issue / branch / file / PR）；若當前工具清單不明確，先做精確 resource discovery，送出前再做一次 recipient/schema final check。不要用測試性寫入確認工具能力。
-- **Validation:** #47、#48 均已關閉；PR #125 branch 對 `main` 的 compare 已確認 accidental `noop` 不在最終 diff，changed files 僅為 `Agent.md`、`docs/STATUS.md`、`docs/LESSONS_LEARNED.md`；PR #125 latest-head Run #270 全綠並合併為 `1a6c79fa81c9bd711079abf40009a728591b2237`，main Run #271 最終完整 production chain 亦通過。
-- **Status:** Verified
+- **Symptom:** 開始 M3 Slice 5 時，原本要建立 feature branch，卻誤觸 issue creation action，產生兩個不需要的 tracking issues (#47、#48)。2026-09-15 PR #125 文件同步時，又在原本要建立 pull request 的步驟誤觸 `create_file`，於 feature branch 暫時建立不需要的 `noop` 檔案。2026-09-16 Gemini 3.6 migration 準備開 PR 時，同類 recipient-selection 錯誤再次誤觸 `create_file`，在 `fix/gemini-3-6-flash` 暫時建立 `noop_should_not_create`。
+- **Root Cause:** 在多個 GitHub mutation actions 可用時，未在送出寫入前再次鎖定「操作類型 + 目標物件 + recipient」，造成 action selection 錯誤；recurrence 都發生在 resource discovery 後切換寫入 recipient 時沒有做最後 schema/recipient 對照。
+- **Fix:** 初次事件立即將 #47 以 `not_planned` 關閉、#48 以 `duplicate` 關閉；2026-09-15 recurrence 立即刪除 `noop`。2026-09-16 recurrence 先讀取 accidental file 的 blob SHA `e69de29b...`，再用 `delete_file` 從同一 feature branch 刪除；未讓任何 accidental file 進入 `main`。
+- **Prevention Rule:** GitHub 寫入前必須先確認 mutation 類型、目標物件與 tool recipient 完全一致（issue / branch / file / PR），並在送出前做一次 recipient/schema final check。特別是在剛做過 tool discovery 或 recipient 切換後，不得依操作慣性送出；不要用測試性寫入確認工具能力。
+- **Validation:** #47、#48 均已關閉；PR #125 accidental `noop` 未進最終 diff；2026-09-16 `noop_should_not_create` 已於 branch 上立即刪除。Gemini 3.6 branch 必須在開 PR 前再次 compare `main...fix/gemini-3-6-flash`，確認最終 changed files 僅包含預期 runtime/tests/docs。
+- **Status:** Recurrence cleaned before PR; final branch diff re-check pending
 
 ## L-004 — Transient browser diagnostics must be distinguished from runtime state evidence
 
@@ -138,7 +138,7 @@
 
 - **Date:** 2026-09-14; recurrence 2026-09-15
 - **Area:** GitHub Actions / Windows Edge / Playwright / production regression smoke
-- **Symptom:** PR #116 merge 後 main CI Run #228 的 final production Edge smoke first exposed that a bidirectional `approach()` could finish with `A`, leaving the player in numeric melee range but facing away. Main Run #260 later passed every preceding build, browser, Pages and backend-readiness gate, then the same `tests/match_restart_web_smoke.mjs` helper failed before combat with `playerX=971.21`, `dummyX=979.32`, `gap=8.11`: the fixed 45 ms final `D` nudge overshot the accepted 45–100 px corridor.
+- **Symptom:** PR #116 merge 後 main CI Run #228 的 final production Edge smoke first exposed that a bidirectional `approach()` could finish with `A`, leaving the player in numeric melee range but facing away. Main Run #260 later passed every preceding build, browser, Pages and backend-readiness gate, then the same `tests/match_restart_web_smoke.mjs` helper failed before combat with `playerX=971.21`, `dummyX=979.32`, `gap=8.11`: the fixed 45 ms final `D` nudge overshot the accepted 45–100 px corridor。
 - **Root Cause:** The first fix guaranteed final facing but the helper still issued fixed-duration movement commands and immediately re-read `playerX`. Hosted Edge can publish telemetry after a keyboard event completes, so stale samples can queue another nudge and overshoot substantially. Directional melee setup therefore requires distance, facing, runtime-observed pacing and explicit overshoot recovery together.
 - **Fix:** PR #123 ports the proven movement invariant already used by the buff/melee smokes into `match_restart_web_smoke.mjs`: wait for runtime-observed `playerX` change after each movement command, use distance-adaptive D holds, stage left, finish with D, and re-stage/retry after overshoot. The 45–100 px acceptance corridor, combo assertions, damage and gameplay runtime remain unchanged.
 - **Prevention Rule:** Any browser helper that positions for a directional melee outcome must guarantee geometry + facing + runtime-observed command pacing + overshoot recovery. Once the same hosted-runner positioning class recurs, harden the helper rather than relying on targeted reruns.
@@ -217,10 +217,10 @@
 - **Area:** Production AI / Gemini / cost policy
 - **Symptom:** P3 supported OpenAI image generation and `gemini-3.1-flash-image`; selecting Gemini could still make paid image-generation API calls even though the desired production policy is no paid AI.
 - **Root Cause:** The provider boundary treated vendor/model selection as a functionality concern but did not encode model-level billing eligibility. A Gemini-branded image model was assumed to satisfy a free-Gemini requirement without checking Google's current model pricing.
-- **Fix:** Remove the OpenAI production adapter, allow only `gemini`, allow-list `gemini-2.5-flash` / `gemini-2.5-flash-lite`, use free-tier Gemini for prompt/reference understanding plus strict structured JSON, and render final PNG VFX deterministically with Sharp. Health/readiness reports `billing_mode=free-tier-only`, requires `GEMINI_FREE_TIER_ONLY=true`, and fails closed for unsupported models/providers. The production key must come from an AI Studio Free Tier project with paid billing disabled.
+- **Fix:** Remove the OpenAI production adapter, allow only `gemini`, allow-list free-tier text/multimodal Gemini models, use free-tier Gemini for prompt/reference understanding plus strict structured JSON, and render final PNG VFX deterministically with Sharp. Health/readiness reports `billing_mode=free-tier-only`, requires `GEMINI_FREE_TIER_ONLY=true`, and fails closed for unsupported models/providers. The production key must come from an AI Studio Free Tier project with paid billing disabled.
 - **Prevention Rule:** Before adding or changing any production AI model, verify the exact model's current official pricing and API availability. A vendor name is not a cost guarantee. Paid fallback is prohibited unless the user explicitly reverses the cost policy. A free-eligible model alone is insufficient: production configuration must also assert and operationally verify a Free Tier project/key.
-- **Validation:** PR #121 latest-head CI Run #256 passed all required PR gates and merged as `9fe7f3d3f72e779fa050d1b2cff734dc999f1510`; Render auto-deployed that exact revision and is intentionally `AI_IMAGE_PROVIDER=disabled` while Free Tier credential/project verification remains unresolved.
-- **Status:** Provider/model boundary verified; real Free Tier production acceptance blocked on credential/project verification
+- **Validation:** PR #121 latest-head CI Run #256 passed all required PR gates and merged as `9fe7f3d3f72e779fa050d1b2cff734dc999f1510`; later real-provider acceptance exposed a separate model-lifecycle availability issue recorded in L-024.
+- **Status:** Verified cost/provider boundary; model lifecycle is separately guarded by L-024
 
 ## L-021 — Retry read failures, but verify state before retrying mutations
 
@@ -242,7 +242,7 @@
 - **Fix:** Follow-up PR #122 新增獨立 `GEMINI_FREE_TIER_PROJECT_VERIFIED=true` gate；`configured=true` 必須同時具備 API key、allow-listed free-tier model、`GEMINI_FREE_TIER_ONLY=true` 與 project verification。Readiness 改為 `free_tier_policy_asserted`、`free_tier_project_verified`、`verification_mode=operator-asserted`，不再把 policy 稱為 confirmation。
 - **Prevention Rule:** 對 billing、permissions、external account state 等無法由應用本身證明的條件，必須將「政策」與「外部驗證/attestation」分開建模；名稱不得暗示比實際證據更強的保證。
 - **Validation:** PR #122 latest-head CI Run #259 passed Windows Native, Godot/backend/Web/Chromium and hosted Microsoft Edge, then merged as `e1ae9933fa4943af80ff7b7ab4a0ff4ae97d78cb`. Render auto-deployed that exact revision; main Run #260 readiness passed in `PRODUCTION_AI_BACKEND_SAFE_DISABLED` mode with `project_verified=false`.
-- **Status:** Verified safety/readiness boundary; real Free Tier production acceptance remains blocked on credential/project verification
+- **Status:** Verified safety/readiness boundary; external project verification was later supplied before production activation
 
 ## L-023 — Repository execution policy must be read before choosing a local/remote tool path
 
@@ -254,3 +254,14 @@
 - **Prevention Rule:** 對任何 repo，第一個 mutation 前必須先從 repository source of truth 讀完整 Agent/AGENTS policy，再決定允許的工具與 validation path；聊天記憶不能覆蓋 repository hard rule。
 - **Validation:** GitHub branch `fix/p3-free-tier-project-verification` 從 merge SHA `9fe7f3d3f72e779fa050d1b2cff734dc999f1510` 重新建立；正式 follow-up commits 均透過 GitHub Git data APIs 建立，PR #122 latest-head CI Run #259 passed and the PR merged as `e1ae9933fa4943af80ff7b7ab4a0ff4ae97d78cb`.
 - **Status:** Verified process correction
+
+## L-024 — Free-tier pricing eligibility and model API availability are separate production gates
+
+- **Date:** 2026-09-16
+- **Area:** Production AI / Gemini model lifecycle / real-provider acceptance
+- **Symptom:** Render readiness became fully READY with a valid server-side key, `provider=gemini`, Free Tier-only policy, operator-verified billing state, and exact revision alignment. However, manual Production Free Gemini E2E Runs #1 and #2 failed immediately on the first real text-generation call: Google returned HTTP 500 stating `models/gemini-2.5-flash` is no longer available to new users and directed new integrations to `models/gemini-3.6-flash`.
+- **Root Cause:** The previous allow-list correctly encoded Free Tier pricing eligibility but treated that eligibility as if it also guaranteed continuing API availability. External model lifecycle/availability can change independently of pricing and application readiness metadata.
+- **Fix:** Recheck current Google official model and pricing documentation, migrate the production default and allow-list to the currently available Free Tier `gemini-3.6-flash`, explicitly reject retired `gemini-2.5-flash`, and align provider factory tests, remote readiness browser fixtures, Agent policy, status, and production acceptance documentation. Keep deterministic Sharp rendering and all no-paid-provider guards unchanged.
+- **Prevention Rule:** Before production activation, model migration, or final real-provider acceptance, verify **both** (1) current official Free Tier pricing eligibility and (2) current API/model availability for the intended account/user class. Readiness/configured status is necessary but cannot replace an actual provider call. Preserve the manual real-provider E2E as the authoritative lifecycle gate.
+- **Validation:** Source/test/docs migration is committed on `fix/gemini-3-6-flash`; GitHub PR CI, merge, Render `GEMINI_MODEL=gemini-3.6-flash`, exact-revision readiness, and successful real text + reference-image E2E are still required before this lesson becomes Verified.
+- **Status:** Fix committed; production verification pending

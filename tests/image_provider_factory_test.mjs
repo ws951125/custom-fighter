@@ -30,6 +30,7 @@ try {
   assert.equal(readiness.configured, true);
   assert.deepEqual(readiness.supported_providers, ['gemini']);
   assert.equal(readiness.model, DEFAULT_FREE_GEMINI_MODEL);
+  assert.equal(readiness.model, 'gemini-3.6-flash');
   assert.equal(readiness.billing_mode, 'free-tier-only');
   assert.equal(readiness.providers.gemini.billing_mode, 'free-tier-only');
   assert.equal(readiness.providers.gemini.free_tier_policy_asserted, true);
@@ -52,10 +53,15 @@ try {
   assert.throws(() => createConfiguredImageProvider(), /GEMINI_FREE_TIER_PROJECT_VERIFIED=true/);
   process.env.GEMINI_FREE_TIER_PROJECT_VERIFIED = 'true';
 
-  process.env.GEMINI_MODEL = 'gemini-2.5-flash-lite';
+  process.env.GEMINI_MODEL = 'gemini-3.6-flash';
   readiness = imageProviderReadiness();
   assert.equal(readiness.configured, true);
-  assert.equal(readiness.model, 'gemini-2.5-flash-lite');
+  assert.equal(readiness.model, 'gemini-3.6-flash');
+
+  process.env.GEMINI_MODEL = 'gemini-2.5-flash';
+  readiness = imageProviderReadiness();
+  assert.equal(readiness.configured, false);
+  assert.throws(() => createConfiguredImageProvider(), /approved free-tier model/);
 
   process.env.GEMINI_MODEL = 'gemini-3.1-flash-image';
   readiness = imageProviderReadiness();
