@@ -251,6 +251,7 @@ Production 預設：
 - 若目前被外部條件阻擋，必須同時寫明 blocker 與解除 blocker 後第一個會執行的工程動作。
 - 若仍有安全且不受 blocker 影響的工作可做，應先連續完成，不因單一 blocker 提前停止。
 - 此欄位是每次回覆固定必填項目，即使本次 work unit 已完成也不得省略。
+
 ## 18. Production AI cost policy — free Gemini only
 
 - Production AI must use Google Gemini's API free tier only; do not connect OpenAI or any other paid AI provider unless the user explicitly reverses this policy.
@@ -285,3 +286,68 @@ Production 預設：
 - 每個可辨識 work unit 完成時，除了 source/test/config 變更要同步 GitHub，也必須依本文件規則同步 `docs/STATUS.md`；若有錯誤經驗則同步 `docs/LESSONS_LEARNED.md`。
 - 若 work unit 已通過 merge gate並合併，回覆前必須重新確認 `main` 的實際 merge SHA；若 production / deployment 適用，也要明確區分「GitHub 已同步」與「production 已部署／已驗證」，不得將兩者混為一談。
 - 此規則適用於每一次回覆，而不是只在階段結束、PR merge 或使用者特別詢問時才執行。
+
+## 22. 每次回報必須說明本輪實際專案功能與用途
+
+- 每一次進度回報都必須包含明確的 `功能說明`。
+- `功能說明` 只能解釋這一輪實際修改、新增、修正或驗證的**專案產品功能**，並以使用者角度說明該功能是做什麼、解決什麼問題、如何影響實際操作或遊戲／Creator 行為。
+- 不得把 `Agent.md`／`AGENTS.md` 規則本身、文件整理、GitHub commit、branch、PR、merge、CI workflow 操作、進度紀錄或其他純工程流程，冒充為產品功能說明。
+- 若同一輪同時有產品功能與工程／文件工作，`功能說明` 只描述產品功能；工程／文件工作應放在其他適當欄位回報。
+- 若這一輪完全沒有修改、新增、修正或驗證任何專案產品功能，`功能說明` 必須逐字明確寫：`這輪沒有產品功能變更`。
+- 若本輪只有驗證既有產品功能，必須說明「驗證的是哪個產品功能」以及該功能的實際用途；不得只寫「CI PASS」或「測試通過」。
+- 本規則適用於每一次回報，不能因為該輪只有文件、GitHub 操作、CI 監控、PR merge 或 blocker 處理而省略。
+
+## 23. 對話長度七分滿時主動提醒換新對話
+
+- Agent 必須持續留意目前開發對話的上下文長度與可用空間。
+- 當對話長度約達整體可用上下文的 **70%（七分滿）** 時，必須主動提醒使用者趕快開新的對話接續，避免對話過長造成卡頓或上下文遺失。
+- 提醒不得等到上下文已接近耗盡才提出；目標是在約 70% 時預警。
+- 若系統無法提供精確的上下文百分比，Agent 必須依可觀察的對話長度、歷史訊息量與工具輸出量做保守估計；接近七成時寧可提早提醒。
+- 在提醒換新對話前，若目前有尚未同步的專案進度，應先依既有規則同步 GitHub、`docs/STATUS.md` 與必要的 `docs/LESSONS_LEARNED.md`，並整理可供新對話接續的 checkpoint。
+- 此規則只影響工作交接與提醒方式，不得中斷正在進行且可安全完成的原子 GitHub mutation。
+
+## 24. Playwright / UI 自動驗證（GitHub-hosted runner only）
+
+本節中的「Vincent」是指本專案擁有者／目前與 AI 協作並負責必要授權與人工驗收的使用者本人。本節只增補 UI 自動驗證；第 1–23 節及既有 Git、Migration、Merge、Deployment、授權、進度回報、功能說明、Cleanup、Checkpoint、對話長度與 GitHub-only 規則全部照舊。若本節與第 4 節衝突，以第 4 節 GitHub-only / Online-only 驗證硬規則為準。
+
+### 24.1 保留既有測試
+- 現有 PowerShell、CLI、lint、typecheck、unit、pytest、integration、API、build、validation 等測試全部保留；Playwright 不取代它們，只補上實際 Browser / UI 操作驗證。
+- PowerShell / CLI / build PASS 不等於 UI 已實際驗證。
+
+### 24.2 Web UI 修改才增加 Targeted Playwright
+- 若本輪修改影響按鈕、表單、選單、Navigation、Drawer、Modal、報表、Table、搜尋、登入、Responsive、前後端 UI 串接或其他 Browser 使用者操作，在原有測試後，由 AI 在 GitHub Actions 的 GitHub-hosted runner 上以 Playwright 實際操作本輪受影響 UI 流程。
+- Backend-only 或不影響 Web UI 的修改，不需要額外執行 Playwright。
+- 預設只跑本輪直接相關的 Targeted Playwright，例如「開頁面 → 點本輪修改的按鈕 → 驗證結果」；不要每輪因此執行整套 Full E2E。
+- Full E2E / Regression 只在重要 Milestone、Release Candidate、重大跨模組修改或確實必要時執行。
+
+### 24.3 取代 Vincent 原本 F12 + 人工操作的工程驗證
+- Playwright UI Scenario 從操作開始到結束必須全程監控：unexpected critical Browser Console error、Page Error / JavaScript runtime exception、相關 Network request failure、非預期關鍵 4xx / 5xx、timeout、CORS 與關鍵 API failure，並驗證 UI 操作後得到預期結果。
+- Playwright 不需要真的打開 F12；直接取得 Console、Page Error 與 Network 資訊。
+- 只要 Playwright 能可靠完成，以前需要 Vincent「開網站 → F12 → 操作 UI → 同時觀察 Console / Network」的工程驗證改由 AI 在 GitHub-hosted runner 自動完成，不再要求 Vincent 人工執行。
+- 已知且有明確依據的無害 warning 不視為 FAIL；不得為了 PASS 忽略真正錯誤。
+- 主觀遊戲手感、視覺品質或其他無法可靠自動判定的人工 acceptance 仍依既有規則由 Vincent 透過 GitHub Pages 驗收。
+
+### 24.4 Playwright 必須真的執行
+- 不得只因 Playwright 已安裝、workflow 存在或 build PASS 就回報 UI PASS。
+- PASS 必須有 GitHub-hosted runner 實際證據：啟動 App → Browser 進入 App → 操作相關 UI → 驗證 UI 結果 → 監控 Console / Page Error / Network。
+- 若目前有 Web UI、技術棧適合但沒有 Playwright，建立最小可用 Playwright 環境即可；不要一次建立龐大 E2E suite。
+- 不重新安裝已存在且可用的 Playwright，也不因單一小型 UI 修改重新盤點整套測試環境。
+
+### 24.5 Cleanup
+- GitHub-hosted runner 的 Playwright 測試結束後，清除本輪測試自行建立且不需要保留的一次性 artifacts，例如 temporary browser profile / userDataDir、temporary run directory、temporary downloads、不需保留的 screenshots / videos / traces / test-results；失敗、Exception 或 Timeout 時也應盡可能 cleanup。
+- 不刪 Playwright browser binaries、node_modules、正式 dependencies、必要 cache、source code、`.env` / secrets、正式資料或來源不明資料。
+- 只刪能確認由本輪測試建立且可安全重建的 temporary artifacts；不做無關的大型磁碟掃描或 Cleanup 壓力測試。
+- 因本專案禁止使用 Vincent 本機作工程驗證，本節不對 Vincent 本機 Browser Profile、Downloads 或磁碟執行任何 cleanup；GitHub-hosted runner 的 ephemeral workspace 仍依 workflow 做 targeted cleanup。
+
+### 24.6 授權制度不變
+- 本節只增加 AI 自動 UI 測試能力；原本需要 Vincent 明確授權的 Migration、Production DB、Merge、Deployment、高風險或不可逆操作，全部依既有規則執行。
+
+### 24.7 每輪回報增加 UI 自動驗證欄位
+保留既有回報格式，另增加：
+- `【UI 自動驗證】`
+- `Playwright：PASS / FAIL / BLOCKED / NOT RUN / NOT APPLICABLE`
+- `實際操作：測了什麼`
+- `Console / Page Error：結果`
+- `Network：結果`
+- `Cleanup：是否清除本輪一次性暫存`
+- 若本輪不涉及 Web UI，明確寫：`本輪不涉及 Web UI，Playwright 不需要執行。`
