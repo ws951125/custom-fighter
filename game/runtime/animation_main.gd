@@ -2,6 +2,8 @@ extends "res://game/runtime/preview_selectable_main.gd"
 
 const CharacterAnimationMap = preload("res://game/core/character/character_animation_map.gd")
 const VfxDraft = preload("res://game/creator/vfx_editor/vfx_draft.gd")
+const TimelineCombatBox = preload("res://game/core/combat/combat_box.gd")
+const TIMELINE_INSTANT_PULSE_SECONDS := 0.18
 
 var player_animation_map := CharacterAnimationMap.new()
 var player_animation_load_error := ""
@@ -16,6 +18,17 @@ var preview_vfx_frame_index := 0
 var preview_vfx_max_frame_seen := 0
 var preview_vfx_elapsed := 0.0
 var preview_vfx_projectile_was_active := false
+
+var preview_timeline_transition_count := 0
+var preview_timeline_last_event_id := ""
+var preview_timeline_last_event_type := ""
+var preview_timeline_last_phase := ""
+var preview_timeline_animation_semantic := ""
+var preview_timeline_animation_pulse_remaining := 0.0
+var preview_timeline_last_vfx := ""
+var preview_timeline_vfx_pulse_remaining := 0.0
+var preview_timeline_last_audio_cue := ""
+var preview_timeline_audio_event_count := 0
 
 func _enter_tree() -> void:
 	super()
@@ -35,7 +48,61 @@ func _ready() -> void:
 
 func _process(delta: float) -> void:
 	super(delta)
+	_consume_creator_preview_timeline_transitions()
+	_tick_creator_preview_timeline_pulses(delta)
 	_tick_creator_preview_vfx(delta)
+
+func _consume_creator_preview_timeline_transitions() -> void:
+	var session: Variant = get_node_or_null("/root/CreatorPreviewSession")
+	if not _preview_session_active(session):
+		return
+	var transitions: Array[Dictionary] = fireball_cast_state.consume_timeline_transitions()
+	if transitions.is_empty():
+		return
+
+	for transition in transitions:
+		var event_value: Variant = transition.get("event", {})
+		if typeof(event_value) != TYPE_DICTIONARY:
+			continue
+		var event: Dictionary = event_value
+		var event_id := str(event.get("id", ""))
+		var event_type := str(event.get("type", ""))
+		var phase_name := str(transition.get("phase", ""))
+		var duration := float(event.get("duration", 0.0))
+
+		preview_timeline_transition_count += 1
+		preview_timeline_last_event_id = event_id
+		preview_timeline_last_event_type = event_type
+		preview_timeline_last_phase = phase_name
+
+		if phase_name == "start":
+			match event_type:
+				"animation":
+					preview_timeline_animation_semantic = str(event.get("animation", "")).strip_edges().to_lower()
+					preview_timeline_animation_pulse_remaining = TIMELINE_INSTANT_PULSE_SECONDS if duration <= 0.0 else 0.0
+				"vfx":
+					preview_timeline_last_vfx = str(event.get("visual", "")).strip_edges().to_lower()
+					preview_timeline_vfx_pulse_remaining = TIMELINE_INSTANT_PULSE_SECONDS if duration <= 0.0 else 0.0
+				"audio":
+					preview_timeline_last_audio_cue = str(event.get("cue", "")).strip_edges().to_lower()
+					preview_timeline_audio_event_count += 1
+		elif phase_name == "end" and event_type == "animation":
+			var ending_semantic := str(event.get("animation", "")).strip_edges().to_lower()
+			if preview_timeline_animation_semantic == ending_semantic:
+				preview_timeline_animation_semantic = ""
+				preview_timeline_animation_pulse_remaining = 0.0
+
+	_set_web_state()
+	queue_redraw()
+
+func _tick_creator_preview_timeline_pulses(delta: float) -> void:
+	var safe_delta := maxf(0.0, delta)
+	if preview_timeline_animation_pulse_remaining > 0.0:
+		preview_timeline_animation_pulse_remaining = maxf(0.0, preview_timeline_animation_pulse_remaining - safe_delta)
+		if preview_timeline_animation_pulse_remaining <= 0.0:
+			preview_timeline_animation_semantic = ""
+	if preview_timeline_vfx_pulse_remaining > 0.0:
+		preview_timeline_vfx_pulse_remaining = maxf(0.0, preview_timeline_vfx_pulse_remaining - safe_delta)
 
 func _load_creator_preview_vfx() -> void:
 	preview_vfx_loaded = false
@@ -99,27 +166,61 @@ func _tick_creator_preview_vfx(delta: float) -> void:
 func _draw_fireball(arena_top: float, arena_bottom: float) -> void:
 	if not preview_vfx_loaded or preview_vfx_texture == null:
 		super(arena_top, arena_bottom)
+	elif fireball_projectile.active:
+		var frame_width := preview_vfx_draft.frame_width()
+		var frame_height := preview_vfx_draft.frame_height()
+		if frame_width < 1 or frame_height < 1:
+			super(arena_top, arena_bottom)
+		else:
+			var center := Vector2(
+				fireball_projectile.x,
+				lerpf(arena_top, arena_bottom, fireball_projectile.depth) - 76.0
+			) + Vector2(preview_vfx_draft.offset_x, preview_vfx_draft.offset_y)
+			var source_region := Rect2(
+				preview_vfx_draft.crop_x + preview_vfx_frame_index * frame_width,
+				preview_vfx_draft.crop_y,
+				frame_width,
+				frame_height
+			)
+			var draw_size := Vector2(frame_width, frame_height) * preview_vfx_draft.scale
+			var destination := Rect2(center - draw_size * 0.5, draw_size)
+			draw_texture_rect_region(preview_vfx_texture, destination, source_region)
+	_draw_creator_preview_timeline_overlays(arena_top, arena_bottom)
+
+func _draw_creator_preview_timeline_overlays(arena_top: float, arena_bottom: float) -> void:
+	var session: Variant = get_node_or_null("/root/CreatorPreviewSession")
+	if not _preview_session_active(session):
 		return
-	if not fireball_projectile.active:
-		return
-	var frame_width := preview_vfx_draft.frame_width()
-	var frame_height := preview_vfx_draft.frame_height()
-	if frame_width < 1 or frame_height < 1:
-		super(arena_top, arena_bottom)
-		return
+
+	var hitboxes: Array[Dictionary] = fireball_cast_state.active_timeline_events("hitbox")
+	for event in hitboxes:
+		_draw_combat_box(_preview_timeline_spatial_box(event), arena_top, arena_bottom, Color(0.35, 0.95, 0.55, 0.82))
+
+	var hurtboxes: Array[Dictionary] = fireball_cast_state.active_timeline_events("hurtbox")
+	for event in hurtboxes:
+		_draw_combat_box(_preview_timeline_spatial_box(event), arena_top, arena_bottom, Color(0.36, 0.72, 1.0, 0.78))
+
+	var vfx_events: Array[Dictionary] = fireball_cast_state.active_timeline_events("vfx")
+	if not vfx_events.is_empty() or preview_timeline_vfx_pulse_remaining > 0.0:
+		var center := Vector2(player_x, lerpf(arena_top, arena_bottom, player_depth) - 76.0)
+		var pulse := 1.0
+		if vfx_events.is_empty():
+			pulse = clampf(preview_timeline_vfx_pulse_remaining / TIMELINE_INSTANT_PULSE_SECONDS, 0.0, 1.0)
+		var radius := 30.0 + (1.0 - pulse) * 26.0
+		draw_circle(center, radius * 0.55, Color(0.58, 0.42, 1.0, 0.14 * pulse))
+		draw_arc(center, radius, 0.0, TAU, 24, Color(0.72, 0.62, 1.0, 0.90 * pulse), 4.0)
+
+func _preview_timeline_spatial_box(event: Dictionary) -> TimelineCombatBox:
+	var direction := 1.0 if player_facing >= 0.0 else -1.0
 	var center := Vector2(
-		fireball_projectile.x,
-		lerpf(arena_top, arena_bottom, fireball_projectile.depth) - 76.0
-	) + Vector2(preview_vfx_draft.offset_x, preview_vfx_draft.offset_y)
-	var source_region := Rect2(
-		preview_vfx_draft.crop_x + preview_vfx_frame_index * frame_width,
-		preview_vfx_draft.crop_y,
-		frame_width,
-		frame_height
+		player_x + direction * float(event.get("offset_x", 0.0)),
+		clampf(player_depth + float(event.get("offset_depth", 0.0)), 0.0, 1.0)
 	)
-	var draw_size := Vector2(frame_width, frame_height) * preview_vfx_draft.scale
-	var destination := Rect2(center - draw_size * 0.5, draw_size)
-	draw_texture_rect_region(preview_vfx_texture, destination, source_region)
+	var half_extents := Vector2(
+		float(event.get("half_width", 1.0)),
+		float(event.get("half_depth", 0.01))
+	)
+	return TimelineCombatBox.new(center, half_extents)
 
 func _install_preview_return_path() -> void:
 	var session: Variant = get_node_or_null("/root/CreatorPreviewSession")
@@ -154,6 +255,11 @@ func _web_return_to_creator(_args: Array) -> void:
 	_return_to_creator()
 
 func _animation_semantic_name() -> String:
+	if (
+		not preview_timeline_animation_semantic.is_empty()
+		and CharacterAnimationMap.REQUIRED_SEMANTICS.has(preview_timeline_animation_semantic)
+	):
+		return preview_timeline_animation_semantic
 	if skill_coordinator.is_busy():
 		var owner := skill_coordinator.owner_name()
 		if CharacterAnimationMap.REQUIRED_SEMANTICS.has(owner):
@@ -189,6 +295,10 @@ func _set_web_state() -> void:
 	var session: Variant = get_node_or_null("/root/CreatorPreviewSession")
 	var preview_active: bool = _preview_session_active(session)
 	var runtime_vfx_active := preview_vfx_loaded and fireball_projectile.active
+	var timeline_vfx_events: Array[Dictionary] = fireball_cast_state.active_timeline_events("vfx") if preview_active else []
+	var timeline_hitboxes: Array[Dictionary] = fireball_cast_state.active_timeline_events("hitbox") if preview_active else []
+	var timeline_hurtboxes: Array[Dictionary] = fireball_cast_state.active_timeline_events("hurtbox") if preview_active else []
+	var timeline_vfx_active := not timeline_vfx_events.is_empty() or preview_timeline_vfx_pulse_remaining > 0.0
 	JavaScriptBridge.eval(
 		"document.documentElement.dataset.playerCharacterAnimationMap=%s;" % JSON.stringify(player_character.animation_map) +
 		"document.documentElement.dataset.playerAnimationMapLoaded='%s';" % _bool_text(player_animation_map.loaded) +
@@ -197,13 +307,28 @@ func _set_web_state() -> void:
 		"document.documentElement.dataset.playerAnimationId=%s;" % JSON.stringify(_current_animation_id()) +
 		"document.documentElement.dataset.playerAnimationLoadError=%s;" % JSON.stringify(player_animation_load_error) +
 		"document.documentElement.dataset.creatorPreviewReturnReady='%s';" % ("true" if preview_active else "false") +
-		"document.documentElement.dataset.creatorPreviewVfxRuntimeLoaded='%s';" % ("true" if preview_vfx_loaded else "false") +
+		"document.documentElement.dataset.creatorPreviewVfxRuntimeLoaded='%s';" % _bool_text(preview_vfx_loaded) +
 		"document.documentElement.dataset.creatorPreviewVfxRuntimeFrameCount='%d';" % (preview_vfx_draft.frame_count if preview_vfx_loaded else 0) +
 		"document.documentElement.dataset.creatorPreviewVfxRuntimeCurrentFrame='%d';" % preview_vfx_frame_index +
 		"document.documentElement.dataset.creatorPreviewVfxRuntimeMaxFrameSeen='%d';" % preview_vfx_max_frame_seen +
 		"document.documentElement.dataset.creatorPreviewVfxRuntimeScale='%.3f';" % (preview_vfx_draft.scale if preview_vfx_loaded else 1.0) +
 		"document.documentElement.dataset.creatorPreviewVfxRuntimeOffsetX='%.3f';" % (preview_vfx_draft.offset_x if preview_vfx_loaded else 0.0) +
 		"document.documentElement.dataset.creatorPreviewVfxRuntimeOffsetY='%.3f';" % (preview_vfx_draft.offset_y if preview_vfx_loaded else 0.0) +
-		"document.documentElement.dataset.creatorPreviewVfxProjectileVisible='%s';" % ("true" if runtime_vfx_active else "false") +
-		"document.documentElement.dataset.creatorPreviewVfxRuntimeLoadError=%s;" % JSON.stringify(preview_vfx_load_error)
+		"document.documentElement.dataset.creatorPreviewVfxProjectileVisible='%s';" % _bool_text(runtime_vfx_active) +
+		"document.documentElement.dataset.creatorPreviewVfxRuntimeLoadError=%s;" % JSON.stringify(preview_vfx_load_error) +
+		"document.documentElement.dataset.creatorPreviewTimelineRunning='%s';" % _bool_text(preview_active and fireball_cast_state.timeline_is_running()) +
+		"document.documentElement.dataset.creatorPreviewTimelineElapsed='%.4f';" % (fireball_cast_state.timeline_elapsed_seconds() if preview_active else 0.0) +
+		"document.documentElement.dataset.creatorPreviewTimelineTransitionCount='%d';" % preview_timeline_transition_count +
+		"document.documentElement.dataset.creatorPreviewTimelineLastEventId=%s;" % JSON.stringify(preview_timeline_last_event_id) +
+		"document.documentElement.dataset.creatorPreviewTimelineLastEventType=%s;" % JSON.stringify(preview_timeline_last_event_type) +
+		"document.documentElement.dataset.creatorPreviewTimelineLastPhase=%s;" % JSON.stringify(preview_timeline_last_phase) +
+		"document.documentElement.dataset.creatorPreviewTimelineAnimationSemantic=%s;" % JSON.stringify(preview_timeline_animation_semantic) +
+		"document.documentElement.dataset.creatorPreviewTimelineLastVfx=%s;" % JSON.stringify(preview_timeline_last_vfx) +
+		"document.documentElement.dataset.creatorPreviewTimelineVfxActive='%s';" % _bool_text(preview_active and timeline_vfx_active) +
+		"document.documentElement.dataset.creatorPreviewTimelineLastAudioCue=%s;" % JSON.stringify(preview_timeline_last_audio_cue) +
+		"document.documentElement.dataset.creatorPreviewTimelineAudioEventCount='%d';" % preview_timeline_audio_event_count +
+		"document.documentElement.dataset.creatorPreviewTimelineHitboxActiveCount='%d';" % timeline_hitboxes.size() +
+		"document.documentElement.dataset.creatorPreviewTimelineHurtboxActiveCount='%d';" % timeline_hurtboxes.size() +
+		"document.documentElement.dataset.creatorPreviewTimelineHitboxes=%s;" % JSON.stringify(timeline_hitboxes) +
+		"document.documentElement.dataset.creatorPreviewTimelineHurtboxes=%s;" % JSON.stringify(timeline_hurtboxes)
 	)
