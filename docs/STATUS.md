@@ -5,7 +5,7 @@
 **V1/MVP is complete; V2 roadmap is now active.**
 
 - V1 completion remains **100% (13/13 phases complete)**.
-- V2 completion starts at **0% (0/8 phases complete)**.
+- V2 completion remains **0% (0/8 phases complete)** until an entire V2 phase meets acceptance.
 - Active V2 phase: **V2-1 Advanced Creator Timeline**.
 
 V1 roadmap:
@@ -19,7 +19,7 @@ V2 roadmap is defined in `docs/V2_ROADMAP.md` and captures previously discussed/
 
 ## V2 roadmap
 
-1. V2-1 Advanced Creator Timeline — **in progress / 0% at roadmap activation**.
+1. V2-1 Advanced Creator Timeline — **in progress**.
 2. V2-2 Extended Skill Families — pending.
 3. V2-3 Character Animation & Audio Authoring — pending.
 4. V2-4 AI Opponents & Single-player Gameplay — pending.
@@ -30,6 +30,19 @@ V2 roadmap is defined in `docs/V2_ROADMAP.md` and captures previously discussed/
 
 V2-1 includes visual event timeline authoring, startup/active/recovery timing, animation/VFX/audio events, hitbox/hurtbox timing and spatial editing, safe multi-event compositions, validation, and Creator → Training preview.
 
+### V2-1 implementation checkpoint
+
+The first V2-1 work unit is synchronized on branch `feat/v2-1-timeline-schema`:
+- `SkillDefinition` accepts an optional backwards-compatible `timeline` object while existing V1 skill JSON remains valid without one.
+- Timeline schema version 1 supports safe declarative `animation`, `vfx`, `audio`, `hitbox`, and `hurtbox` event types.
+- Events have stable IDs, non-negative time/duration, deterministic non-decreasing order, duplicate-ID rejection, a 64-event limit, and a 30-second safety limit.
+- Arbitrary event types/code are rejected.
+- `has_timeline()` and `total_timeline_duration()` expose the parsed timeline without changing the existing V1 cast-state timing path yet.
+- `tests/skill_timeline_test_runner.gd` covers V1 compatibility, valid multi-event timelines, ordering, duplicate IDs, unsupported event types and timeline schema versions.
+- The existing CI domain-test stage now runs the timeline test runner.
+
+Formal GitHub CI validation for this branch is the next gate; this checkpoint is not yet a completed V2-1 phase.
+
 ## V1 production acceptance checkpoint
 
 P3 was accepted on 2026-09-16. Production Free Gemini E2E Run #4 (`35061328085`) passed real text and reference-PNG requests on exact revision `c5d36b7c9d6f7befa506d70798b0d00fef526e4e`, with Gemini 3.6 Flash, Free Tier guards, trusted Render credential isolation, structured VFX/skill output and deterministic Sharp PNG rendering.
@@ -37,6 +50,8 @@ P3 was accepted on 2026-09-16. Production Free Gemini E2E Run #4 (`35061328085`)
 P4 was accepted on 2026-09-16. Production Free Gemini E2E Run #5 (`35075099182`) completed successfully on exact revision `a572b0a3e60e377ae9152592c6d8c62e574a8554` and emitted `PRODUCTION_CREATOR_GEMINI_E2E_PASSED provider=gemini revision=a572b0a3e60e377ae9152592c6d8c62e574a8554 reference=true proposal=true confirmPreview=true cast=true damage=18`.
 
 The V1 completion documentation was merged by PR #131; the V1 completion checkpoint on `main` is `ff744f643b37cc1947225ef4dbe052108d739a66`.
+
+V2 roadmap activation PR #132 was merged to `main` at `41c047029175e4b1409fcd2f49e023332e5663e7`; Main CI #285 (`35084613478`) completed successfully, including Chromium, Windows Native, Microsoft Edge, Pages deployment, production public-Web checks, Render exact-revision readiness and production Edge smoke.
 
 ## Validation policy
 
@@ -64,4 +79,4 @@ AI VFX backend: `https://custom-fighter-ai-vfx.onrender.com`
 
 ## Next implementation target
 
-Begin V2-1 by auditing the existing SkillDefinition/event model, Creator Skill Editor, animation/VFX hooks, hitbox/hurtbox representation and Training preview bridge. Define the smallest backwards-compatible timeline schema before adding editor controls.
+Open and validate the first V2-1 timeline-schema PR. After that schema is stable, connect timeline data to Creator Skill Draft/Editor authoring and then to runtime event execution while preserving the V1 fallback path.

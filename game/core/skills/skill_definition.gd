@@ -3,6 +3,10 @@ extends RefCounted
 
 const SUPPORTED_TYPES = ["melee", "projectile", "area", "dash", "formation", "buff"]
 const CURRENT_SCHEMA_VERSION := 1
+const TIMELINE_SCHEMA_VERSION := 1
+const SUPPORTED_TIMELINE_EVENT_TYPES := ["animation", "vfx", "audio", "hitbox", "hurtbox"]
+const MAX_TIMELINE_EVENTS := 64
+const MAX_TIMELINE_SECONDS := 30.0
 
 var schema_version := CURRENT_SCHEMA_VERSION
 var skill_id := ""
@@ -29,6 +33,8 @@ var move_speed_multiplier := 1.0
 var basic_attack_damage_multiplier := 1.0
 var visual := ""
 var impact_visual := ""
+var timeline_schema_version := TIMELINE_SCHEMA_VERSION
+var timeline_events: Array[Dictionary] = []
 var loaded := false
 
 func load_from_file(path: String) -> PackedStringArray:
@@ -48,6 +54,7 @@ func load_from_file(path: String) -> PackedStringArray:
 
 func load_from_dictionary(data: Dictionary) -> PackedStringArray:
 	loaded = false
+	timeline_events.clear()
 	var errors := PackedStringArray()
 	var required_fields := [
 		"schema_version", "id", "name", "type", "damage", "mp_cost", "cooldown",
@@ -118,8 +125,71 @@ func load_from_dictionary(data: Dictionary) -> PackedStringArray:
 	elif skill_type == "buff":
 		_validate_buff_skill(errors)
 
+	_load_timeline(data, errors)
 	loaded = errors.is_empty()
 	return errors
+
+func has_timeline() -> bool:
+	return not timeline_events.is_empty()
+
+func total_timeline_duration() -> float:
+	var total := startup + active + recovery
+	for event in timeline_events:
+		total = maxf(total, float(event.get("time", 0.0)) + float(event.get("duration", 0.0)))
+	return total
+
+func _load_timeline(data: Dictionary, errors: PackedStringArray) -> void:
+	if not data.has("timeline"):
+		return
+	var raw_timeline = data.get("timeline")
+	if typeof(raw_timeline) != TYPE_DICTIONARY:
+		errors.append("timeline must be an object")
+		return
+	var timeline: Dictionary = raw_timeline
+	timeline_schema_version = int(timeline.get("schema_version", 0))
+	if timeline_schema_version != TIMELINE_SCHEMA_VERSION:
+		errors.append("unsupported timeline schema_version: %d" % timeline_schema_version)
+	var raw_events = timeline.get("events", [])
+	if typeof(raw_events) != TYPE_ARRAY:
+		errors.append("timeline events must be an array")
+		return
+	if raw_events.size() > MAX_TIMELINE_EVENTS:
+		errors.append("timeline exceeds maximum event count: %d" % MAX_TIMELINE_EVENTS)
+		return
+	var seen_ids := {}
+	var previous_time := -1.0
+	for index in range(raw_events.size()):
+		var raw_event = raw_events[index]
+		if typeof(raw_event) != TYPE_DICTIONARY:
+			errors.append("timeline event %d must be an object" % index)
+			continue
+		var event: Dictionary = raw_event.duplicate(true)
+		var event_id := str(event.get("id", "")).strip_edges()
+		var event_type := str(event.get("type", "")).strip_edges().to_lower()
+		var event_time := float(event.get("time", -1.0))
+		var event_duration := float(event.get("duration", 0.0))
+		if event_id.is_empty():
+			errors.append("timeline event %d id must not be empty" % index)
+		elif seen_ids.has(event_id):
+			errors.append("duplicate timeline event id: %s" % event_id)
+		else:
+			seen_ids[event_id] = true
+		if not SUPPORTED_TIMELINE_EVENT_TYPES.has(event_type):
+			errors.append("unsupported timeline event type: %s" % event_type)
+		if event_time < 0.0:
+			errors.append("timeline event %s time must be non-negative" % event_id)
+		if event_duration < 0.0:
+			errors.append("timeline event %s duration must be non-negative" % event_id)
+		if event_time + event_duration > MAX_TIMELINE_SECONDS:
+			errors.append("timeline event %s exceeds maximum timeline duration" % event_id)
+		if event_time + 0.0001 < previous_time:
+			errors.append("timeline events must be ordered by non-decreasing time")
+		previous_time = maxf(previous_time, event_time)
+		event["id"] = event_id
+		event["type"] = event_type
+		event["time"] = event_time
+		event["duration"] = event_duration
+		timeline_events.append(event)
 
 func _validate_melee_skill(errors: PackedStringArray) -> void:
 	if range <= 0.0:
