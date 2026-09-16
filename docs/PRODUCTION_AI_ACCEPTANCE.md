@@ -4,9 +4,11 @@ Production AI is **Gemini free-tier only**. Paid AI providers and Gemini native 
 
 ## Cost policy
 
-As of 2026-09-15, the project uses `gemini-2.5-flash` by default because the Gemini Developer API exposes a free tier for this text/multimodal model. `gemini-2.5-flash-lite` is the only alternate model currently allow-listed.
+As of 2026-09-16, the production default and only allow-listed model is `gemini-3.6-flash`. Google’s official Gemini API documentation identifies Gemini 3.6 Flash as a current stable multimodal model, and the official pricing table exposes Free Tier input, output, and context caching for this model.
 
-Native Gemini image-generation models are intentionally rejected because Google does not expose them through the API free tier. OpenAI image generation is no longer a supported production provider.
+`gemini-2.5-flash` and `gemini-2.5-flash-lite` are no longer allow-listed. Real production acceptance on 2026-09-16 showed that `gemini-2.5-flash` is no longer available to new users and the provider explicitly directed new integrations to `gemini-3.6-flash`.
+
+Native Gemini image-generation models remain intentionally rejected when Google does not expose them through the API free tier. OpenAI image generation is not a supported production provider.
 
 The free Gemini model analyzes the prompt and optional PNG reference through the stable Interactions API `v1` endpoint, with `store=false`, and returns a strictly validated structured VFX design. The trusted backend then renders the PNG deterministically with Sharp. This preserves the AI-assisted workflow without making paid image-generation calls.
 
@@ -16,7 +18,7 @@ The Render service at `https://custom-fighter-ai-vfx.onrender.com` must report t
 
 - `provider=gemini`,
 - `billing_mode=free-tier-only`,
-- an allow-listed `model`,
+- `model=gemini-3.6-flash`,
 - `free_tier_policy_asserted=true`,
 - `free_tier_project_verified=true`,
 - `verification_mode=operator-asserted`,
@@ -29,12 +31,12 @@ A production operator must first verify in Google AI Studio / the associated Goo
 Recommended Render variables after that verification:
 
 - `AI_IMAGE_PROVIDER=gemini`
-- `GEMINI_MODEL=gemini-2.5-flash`
+- `GEMINI_MODEL=gemini-3.6-flash`
 - `GEMINI_API_KEY=<server-side secret from the verified Free Tier project>`
 - `GEMINI_FREE_TIER_ONLY=true`
 - `GEMINI_FREE_TIER_PROJECT_VERIFIED=true`
 
-Until the credential and project verification are available, production must remain `AI_IMAGE_PROVIDER=disabled`. In that state `/healthz` may pass deployment-health validation only as an explicit fail-closed state; it is **not** real Gemini readiness or production AI acceptance.
+If the credential or project verification is unavailable, production must remain non-generating/fail-closed. `/healthz` may pass deployment-health validation only as an explicit safe-disabled state; that is **not** real Gemini readiness or production AI acceptance.
 
 Never put the API key in GitHub source, Pages query parameters, browser storage, Creator configuration, or test fixtures.
 
@@ -68,5 +70,6 @@ A successful run prints `PRODUCTION_AI_PROVIDER_E2E_PASSED` with provider/model/
 - Any `GEMINI_MODEL` outside the free-tier allow-list fails closed.
 - Missing `GEMINI_FREE_TIER_ONLY=true` fails closed.
 - Missing `GEMINI_FREE_TIER_PROJECT_VERIFIED=true` fails closed.
-- Pricing/model availability must be rechecked against official Google documentation before changing the allow-list.
+- Pricing eligibility and API/model availability are separate checks; verify both against current official Google documentation before changing the allow-list or activating production.
+- Real provider E2E remains the authoritative acceptance gate after any model-lifecycle change.
 - Paid provider fallback is prohibited unless the user explicitly reverses the project cost policy.
