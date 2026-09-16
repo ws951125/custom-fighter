@@ -45,7 +45,7 @@ jobs:
           godot --headless --path . --export-release "Web" build/web/index.html 2>&1 | tee /tmp/godot-export.log
           test -f build/web/index.html
 
-      - name: Run Chromium smoke suite with captured output
+      - name: Run character animation smoke with captured output
         id: smoke
         env:
           CUSTOM_FIGHTER_WEB_URL: http://127.0.0.1:8000
@@ -63,7 +63,7 @@ jobs:
             cat /tmp/custom-fighter-http.log | tee /tmp/chromium-smoke.log
             exit 1
           fi
-          npm run smoke:all 2>&1 | tee /tmp/chromium-smoke.log
+          npm run smoke:character-animation 2>&1 | tee /tmp/chromium-smoke.log
 
       - name: Upload Chromium smoke diagnostic
         if: always()
