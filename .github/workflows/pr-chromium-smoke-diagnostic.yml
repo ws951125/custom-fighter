@@ -1,0 +1,77 @@
+name: PR Chromium Smoke Diagnostic
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose-chromium-smoke:
+    if: github.head_ref == 'feat/v2-1-training-timeline-consumers'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Godot 4.7.2
+        uses: chickensoft-games/setup-godot@v2
+        with:
+          version: 4.7.2
+          use-dotnet: false
+          include-templates: true
+
+      - name: Import project headlessly
+        run: godot --headless --path . --import
+
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: 24
+
+      - name: Install Node dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Export Web build
+        run: |
+          set -o pipefail
+          mkdir -p build/web
+          godot --headless --path . --export-release "Web" build/web/index.html 2>&1 | tee /tmp/godot-export.log
+          test -f build/web/index.html
+
+      - name: Run Chromium smoke suite with captured output
+        id: smoke
+        env:
+          CUSTOM_FIGHTER_WEB_URL: http://127.0.0.1:8000
+        run: |
+          set -o pipefail
+          python3 -m http.server 8000 --directory build/web >/tmp/custom-fighter-http.log 2>&1 &
+          SERVER_PID=$!
+          trap 'kill $SERVER_PID || true' EXIT
+          READY=0
+          for i in {1..30}; do
+            if curl -fsS -o /dev/null http://127.0.0.1:8000/index.html; then READY=1; break; fi
+            sleep 1
+          done
+          if [ "$READY" -ne 1 ]; then
+            cat /tmp/custom-fighter-http.log | tee /tmp/chromium-smoke.log
+            exit 1
+          fi
+          npm run smoke:all 2>&1 | tee /tmp/chromium-smoke.log
+
+      - name: Upload Chromium smoke diagnostic
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pr143-chromium-smoke-diagnostic
+          path: |
+            /tmp/chromium-smoke.log
+            /tmp/custom-fighter-http.log
+            /tmp/godot-export.log
+          if-no-files-found: warn
