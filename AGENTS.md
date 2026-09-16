@@ -286,3 +286,15 @@ When the conversation reaches roughly 70% of its usable length:
 ## 20. Legacy filename migration rule
 
 `AGENTS.md` is the only active root Agent instruction file. `Agent.md` must not be recreated or maintained. Active documentation, scripts, workflow comments, and configuration must reference `AGENTS.md` instead. Historical text inside immutable/preserved engineering incident narratives may mention the old filename only when necessary to accurately describe what happened at that time; such a historical mention is not an active instruction source.
+
+## 21. Test efficiency and targeted revalidation
+
+These rules supplement, and do not replace, the existing Playwright, regression, GitHub-online validation, Definition of Done, and PR/merge requirements above.
+
+- Follow a fast-to-slow validation order. Prefer the cheapest applicable checks first: lint/static checks where available, type/parse checks where available, affected unit/domain tests, then affected integration tests.
+- Run targeted Playwright/browser automation only when the change affects Web UI, browser interaction, or an actual user-operation flow that requires browser-level evidence. Do not use Playwright as a substitute for validation that can be completed adequately by lighter deterministic tests.
+- When Playwright or another test fails, analyze the failure and correct the proven cause before rerunning. After a fix, first rerun only the failed test, affected test group, or directly affected user flow needed to verify that correction.
+- Do not rerun the complete E2E/full regression suite after every individual fix merely because one test failed. Do not blindly rerun unrelated tests that already passed.
+- After targeted tests pass, a full Playwright/E2E/regression run is not automatically required after every small correction. Run the broader applicable regression at the appropriate existing gate, such as completion of the coherent work unit, an important milestone, a substantial cross-module change, release-candidate validation, or before PR merge when required by the repository's existing merge/Definition-of-Done policy.
+- Preserve autonomous AI validation behavior: the Agent should still discover failures, diagnose them, fix them, and revalidate without unnecessary stop-and-wait. The efficiency rule changes test scope/order, not the requirement to obtain actual online evidence for required checks.
+- Minimize unnecessary browser launches, repeated full E2E runs, duplicate checks, and resource consumption while retaining all existing required final validation gates. If an existing rule explicitly requires a broader test at a particular milestone or merge gate, that requirement remains authoritative and is not weakened by this section.
