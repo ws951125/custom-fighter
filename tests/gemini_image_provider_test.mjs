@@ -13,7 +13,9 @@ const spec = {
 };
 const fetchImpl = async (url, options) => {
   requests.push({ url, options, body: JSON.parse(options.body) });
-  return new Response(JSON.stringify({ output_text: JSON.stringify(spec) }), {
+  return new Response(JSON.stringify({
+    steps: [{ type: 'model_output', content: [{ type: 'text', text: JSON.stringify(spec) }] }]
+  }), {
     status: 200,
     headers: { 'Content-Type': 'application/json' }
   });
@@ -29,18 +31,22 @@ assert.equal(requests[0].url, 'https://generativelanguage.googleapis.com/v1/inte
 assert.equal(requests[0].options.headers['x-goog-api-key'], 'test-gemini-key');
 assert.equal(requests[0].body.model, DEFAULT_FREE_GEMINI_MODEL);
 assert.equal(requests[0].body.store, false);
-assert.ok(Array.isArray(requests[0].body.response_format));
-assert.equal(requests[0].body.response_format[0].type, 'text');
-assert.equal(requests[0].body.response_format[0].mime_type, 'application/json');
-assert.ok(requests[0].body.response_format[0].schema);
+assert.equal(typeof requests[0].body.input, 'string');
+assert.match(requests[0].body.input, /blue energy slash/);
+assert.equal(requests[0].body.response_format.type, 'text');
+assert.equal(requests[0].body.response_format.mime_type, 'application/json');
+assert.ok(requests[0].body.response_format.schema);
 
 const reference = Buffer.from('reference-png');
 await provider.generate('preserve silhouette, add lightning', { referencePng: reference });
-assert.equal(requests[1].body.input.length, 2);
-assert.equal(requests[1].body.input[0].type, 'image');
-assert.equal(requests[1].body.input[0].mime_type, 'image/png');
-assert.equal(requests[1].body.input[0].data, reference.toString('base64'));
-assert.equal(requests[1].body.input[1].type, 'text');
+assert.equal(requests[1].body.input.length, 1);
+assert.equal(requests[1].body.input[0].type, 'user_input');
+assert.equal(requests[1].body.input[0].content.length, 2);
+assert.equal(requests[1].body.input[0].content[0].type, 'image');
+assert.equal(requests[1].body.input[0].content[0].mime_type, 'image/png');
+assert.equal(requests[1].body.input[0].content[0].data, reference.toString('base64'));
+assert.equal(requests[1].body.input[0].content[1].type, 'text');
+assert.match(requests[1].body.input[0].content[1].text, /preserve silhouette, add lightning/);
 
 await assert.rejects(
   () => new GeminiImageProvider({ apiKey: '', fetchImpl, freeTierOnly: true, freeTierProjectVerified: true }).generate('test'),
