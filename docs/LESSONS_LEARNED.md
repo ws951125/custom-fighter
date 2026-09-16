@@ -29,7 +29,7 @@
 - **Date:** 2026-09-12; recurrence 2026-09-15; recurrence 2026-09-16
 - **Area:** GitHub connector / repository operations
 - **Symptom:** 開始 M3 Slice 5 時，原本要建立 feature branch，卻誤觸 issue creation action，產生兩個不需要的 tracking issues (#47、#48)。2026-09-15 PR #125 文件同步時，又在原本要建立 pull request 的步驟誤觸 `create_file`，於 feature branch 暫時建立不需要的 `noop` 檔案。2026-09-16 Gemini 3.6 migration 準備開 PR 時，同類 recipient-selection 錯誤再次誤觸 `create_file`，在 `fix/gemini-3-6-flash` 暫時建立 `noop_should_not_create`。
-- **Root Cause:** 在多個 GitHub mutation actions可用時，未在送出寫入前再次鎖定「操作類型 + 目標物件 + recipient」，造成 action selection 錯誤；recurrence 都發生在 resource discovery 後切換寫入 recipient 時沒有做最後 schema/recipient 對照。
+- **Root Cause:** 在多個 GitHub mutation actions 可用時，未在送出寫入前再次鎖定「操作類型 + 目標物件 + recipient」，造成 action selection 錯誤；recurrence 都發生在 resource discovery 後切換寫入 recipient 時沒有做最後 schema/recipient 對照。
 - **Fix:** 初次事件立即將 #47 以 `not_planned` 關閉、#48 以 `duplicate` 關閉；2026-09-15 recurrence 立即刪除 `noop`。2026-09-16 recurrence 先讀取 accidental file 的 blob SHA `e69de29b...`，再用 `delete_file` 從同一 feature branch 刪除；未讓任何 accidental file 進入 `main`。
 - **Prevention Rule:** GitHub 寫入前必須先確認 mutation 類型、目標物件與 tool recipient 完全一致（issue / branch / file / PR），並在送出前做一次 recipient/schema final check。特別是在剛做過 tool discovery 或 recipient 切換後，不得依操作慣性送出；不要用測試性寫入確認工具能力。
 - **Validation:** #47、#48 均已關閉；PR #125 accidental `noop` 未進最終 diff；2026-09-16 `noop_should_not_create` 已於 branch 上立即刪除。Gemini 3.6 branch 必須在開 PR 前再次 compare `main...fix/gemini-3-6-flash`，確認最終 changed files 僅包含預期 runtime/tests/docs。
@@ -39,7 +39,7 @@
 
 - **Date:** 2026-09-12
 - **Area:** GitHub Actions / Windows Edge / Playwright runtime observation
-- **Symptom:** PR #55 merge 後 main CI Run #102 的第一個 GitHub-hosted Windows Edge attempt，在 `tests/web_smoke.mjs` 等待 `playerRunning === 'true'` 時 timeout；同一份 runtime log 卻持續印出 `CUSTOM_FIGHTER_STATE ... state=RUN`。PR 上相同程式與 artifact 的 Edge gate 先前已通過，Ubuntu/Chromium gate 亦成功。
+- **Symptom:** PR #55 merge 後 main CI Run #102 的第一個 GitHub-hosted Windows Edge attempt，在 `tests/web_smoke.mjs` 等待 `playerRunning === 'true'` 時 timeout；同一份 log 卻持續印出 `CUSTOM_FIGHTER_STATE ... state=RUN`。PR 上相同程式與 artifact 的 Edge gate 先前已通過，Ubuntu/Chromium gate 亦成功。
 - **Root Cause:** 證據顯示 gameplay runtime 已進入 `RUN`，失敗發生在 Playwright 對短暫 dataset boolean 的觀察時窗／runner scheduling，而非 movement runtime regression。這是 observation-gate flake，不能與實際 gameplay failure 混為一談。
 - **Fix / Operational Mitigation:** 只重跑失敗的 Windows Edge job，而非重跑所有成功 gate；第二次 attempt 通過，後續 GitHub Pages deployment、public reachability 與 production Edge `smoke:all` 亦全部通過，包含 Creator Skill Editor regression。
 - **Prevention Rule:** 遇到 transient state timeout 時先比對 runtime 自身 diagnostics、相同 SHA 的跨瀏覽器結果與重現性。只有 runtime evidence 也失敗時才視為 gameplay regression。若 `playerRunning` 這個 observation timeout 再次出現，將 assertion 改成較穩定的 `playerState === 'RUN'` 或增加穩定 observation window；不可用廣泛 retry 掩蓋真正錯誤。
@@ -98,7 +98,7 @@
 - **Root Cause:** 非冪等 GitHub mutation 前後沒有把 branch/file/PR existence 當成明確前置條件與 source of truth；早期 recurrence 是成功後重送 create 或 file mutation 早於 branch creation，後續 recurrence 則是已經有成功 branch response 卻仍再次送出 create。
 - **Fix:** 停止重送 branch creation；M7 recurrence 先建立 branch 再提交檔案；P3 follow-up 重新載入 branch-specific action schema後依序建立 branch、commits、PR；PR #125 recurrence 收到 422 後立即沿用既有 branch，不再嘗試第二次建立。
 - **Prevention Rule:** 任何 create branch / issue / PR / file 等非冪等 mutation 都要按依賴順序執行。成功回傳即視為 source of truth；建立 feature file / PR 前必須先確認 target branch 已存在。不得用重送 create 動作確認狀態。
-- **Validation:** M7 Slice 2 branch 建立後所有 commit 均正確落在該 branch，PR #75 最終 merge且 production Run #151 全綠；P3 follow-up 後續正式 commits 均由 GitHub connector 正確建立；PR #125 的 422 沒有建立第二個 branch，也沒有改變既有 branch head。
+- **Validation:** M7 Slice 2 branch 建立後所有 commit 均正確落在該 branch，PR #75 最終 merge 且 production Run #151 全綠；P3 follow-up 後續正式 commits 均由 GitHub connector 正確建立；PR #125 的 422 沒有建立第二個 branch，也沒有改變既有 branch head。
 - **Status:** Verified
 
 ## L-010 — Inherited GDScript constants must not be redeclared when a child becomes a direct dependency
@@ -174,7 +174,7 @@
 - **Symptom:** main CI Run #236 passed Windows Native and Chromium but hosted Windows Edge failed in `tests/web_smoke.mjs` before Skill 2. `approachDummy(170, 220)` threw `Failed to stabilize attack range: playerX=834.62 dummyX=897.12 gap=62.5`.
 - **Root Cause:** The helper issued fixed-duration A/D nudges and immediately re-read `playerX`. Hosted Edge can publish telemetry after keyboard events, so stale coordinate samples can queue multiple nudges; for a 170–220 launch corridor the accumulated movement overshot all the way to 62.5. The coordinate itself did not indicate a gameplay regression.
 - **Fix:** Reuse the proven `movementNudge()` invariant from the melee smoke: after each movement input, wait for runtime-observed `playerX` motion before another command; shorten hold duration near the target; if an accepted input still overshoots, re-stage left and retry. Successful positioning always finishes with `D` to preserve deterministic right-facing.
-- **Prevention Rule:** Browser positioning loops must use runtime-observed coordinate progress as their command pacing, not fixed sleeps plus potentially stale reads. For narrow or remote corridors, use distance-adaptive movement and an explicit overshoot recovery strategy; do not treat one fixed-duration nudge as bounded displacement across hosted runners.
+- **Prevention Rule:** Browser positioning loops must use runtime-observed coordinate progress as their command pacing, not fixed sleeps plus potentially stale reads. For narrow or remote corridors, use distance-adaptive movement and an explicit overshoot recovery strategy；do not treat one fixed-duration nudge as bounded displacement across hosted runners.
 - **Validation:** PR #119 first-head CI Run #237 passed Windows Native Release, Chromium `smoke:all`, and GitHub-hosted Windows Microsoft Edge `smoke:all` without retry.
 - **Status:** Fix verified on PR first-head Run #237; merge gate requires latest-head CI.
 
