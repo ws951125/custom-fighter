@@ -305,3 +305,49 @@ Production 預設：
 - 若系統無法提供精確的上下文百分比，Agent 必須依可觀察的對話長度、歷史訊息量與工具輸出量做保守估計；接近七成時寧可提早提醒。
 - 在提醒換新對話前，若目前有尚未同步的專案進度，應先依既有規則同步 GitHub、`docs/STATUS.md` 與必要的 `docs/LESSONS_LEARNED.md`，並整理可供新對話接續的 checkpoint。
 - 此規則只影響工作交接與提醒方式，不得中斷正在進行且可安全完成的原子 GitHub mutation。
+
+## 24. Playwright / UI 自動驗證（GitHub-hosted runner only）
+
+本節中的「Vincent」是指本專案擁有者／目前與 AI 協作並負責必要授權與人工驗收的使用者本人。本節只增補 UI 自動驗證；第 1–23 節及既有 Git、Migration、Merge、Deployment、授權、進度回報、功能說明、Cleanup、Checkpoint、對話長度與 GitHub-only 規則全部照舊。若本節與第 4 節衝突，以第 4 節 GitHub-only / Online-only 驗證硬規則為準。
+
+### 24.1 保留既有測試
+- 現有 PowerShell、CLI、lint、typecheck、unit、pytest、integration、API、build、validation 等測試全部保留；Playwright 不取代它們，只補上實際 Browser / UI 操作驗證。
+- PowerShell / CLI / build PASS 不等於 UI 已實際驗證。
+
+### 24.2 Web UI 修改才增加 Targeted Playwright
+- 若本輪修改影響按鈕、表單、選單、Navigation、Drawer、Modal、報表、Table、搜尋、登入、Responsive、前後端 UI 串接或其他 Browser 使用者操作，在原有測試後，由 AI 在 GitHub Actions 的 GitHub-hosted runner 上以 Playwright 實際操作本輪受影響 UI 流程。
+- Backend-only 或不影響 Web UI 的修改，不需要額外執行 Playwright。
+- 預設只跑本輪直接相關的 Targeted Playwright，例如「開頁面 → 點本輪修改的按鈕 → 驗證結果」；不要每輪因此執行整套 Full E2E。
+- Full E2E / Regression 只在重要 Milestone、Release Candidate、重大跨模組修改或確實必要時執行。
+
+### 24.3 取代 Vincent 原本 F12 + 人工操作的工程驗證
+- Playwright UI Scenario 從操作開始到結束必須全程監控：unexpected critical Browser Console error、Page Error / JavaScript runtime exception、相關 Network request failure、非預期關鍵 4xx / 5xx、timeout、CORS 與關鍵 API failure，並驗證 UI 操作後得到預期結果。
+- Playwright 不需要真的打開 F12；直接取得 Console、Page Error 與 Network 資訊。
+- 只要 Playwright 能可靠完成，以前需要 Vincent「開網站 → F12 → 操作 UI → 同時觀察 Console / Network」的工程驗證改由 AI 在 GitHub-hosted runner 自動完成，不再要求 Vincent 人工執行。
+- 已知且有明確依據的無害 warning 不視為 FAIL；不得為了 PASS 忽略真正錯誤。
+- 主觀遊戲手感、視覺品質或其他無法可靠自動判定的人工 acceptance 仍依既有規則由 Vincent 透過 GitHub Pages 驗收。
+
+### 24.4 Playwright 必須真的執行
+- 不得只因 Playwright 已安裝、workflow 存在或 build PASS 就回報 UI PASS。
+- PASS 必須有 GitHub-hosted runner 實際證據：啟動 App → Browser 進入 App → 操作相關 UI → 驗證 UI 結果 → 監控 Console / Page Error / Network。
+- 若目前有 Web UI、技術棧適合但沒有 Playwright，建立最小可用 Playwright 環境即可；不要一次建立龐大 E2E suite。
+- 不重新安裝已存在且可用的 Playwright，也不因單一小型 UI 修改重新盤點整套測試環境。
+
+### 24.5 Cleanup
+- GitHub-hosted runner 的 Playwright 測試結束後，清除本輪測試自行建立且不需要保留的一次性 artifacts，例如 temporary browser profile / userDataDir、temporary run directory、temporary downloads、不需保留的 screenshots / videos / traces / test-results；失敗、Exception 或 Timeout 時也應盡可能 cleanup。
+- 不刪 Playwright browser binaries、node_modules、正式 dependencies、必要 cache、source code、`.env` / secrets、正式資料或來源不明資料。
+- 只刪能確認由本輪測試建立且可安全重建的 temporary artifacts；不做無關的大型磁碟掃描或 Cleanup 壓力測試。
+- 因本專案禁止使用 Vincent 本機作工程驗證，本節不對 Vincent 本機 Browser Profile、Downloads 或磁碟執行任何 cleanup；GitHub-hosted runner 的 ephemeral workspace 仍依 workflow 做 targeted cleanup。
+
+### 24.6 授權制度不變
+- 本節只增加 AI 自動 UI 測試能力；原本需要 Vincent 明確授權的 Migration、Production DB、Merge、Deployment、高風險或不可逆操作，全部依既有規則執行。
+
+### 24.7 每輪回報增加 UI 自動驗證欄位
+保留既有回報格式，另增加：
+- `【UI 自動驗證】`
+- `Playwright：PASS / FAIL / BLOCKED / NOT RUN / NOT APPLICABLE`
+- `實際操作：測了什麼`
+- `Console / Page Error：結果`
+- `Network：結果`
+- `Cleanup：是否清除本輪一次性暫存`
+- 若本輪不涉及 Web UI，明確寫：`本輪不涉及 Web UI，Playwright 不需要執行。`
