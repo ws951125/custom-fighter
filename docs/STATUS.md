@@ -13,11 +13,11 @@ Roadmap:
 - P3 Production AI provider/backend integration: in progress.
 - P4 Image → skill proposal → Creator → Training production flow: in progress.
 
-Current work unit (2026-09-15): PR #125 **`Docs: require GitHub sync before progress reports`** merged to `main` as `1a6c79fa81c9bd711079abf40009a728591b2237`. The new `Agent.md` rule requires every program/test/document/config progress claim to already be committed to GitHub before it is counted as completed, with remote branch/head/PR state re-checked before reporting.
+Current work unit (2026-09-16): real Free Tier Gemini production activation reached provider readiness on `main` revision `c3ab7e5dee0a30ef54ceb69ea6e7c23169b2ff96`, but manual **Production Free Gemini E2E** Runs #1 and #2 failed on the first real text-generation request because Google reported `models/gemini-2.5-flash` is no longer available to new users and directed new integrations to `models/gemini-3.6-flash`.
 
-Main CI Run #271 validated that exact merge revision. The first GitHub-hosted Microsoft Edge attempt failed only in `tests/melee_web_smoke.mjs` when Heavy Strike setup landed at `playerX=847.04`, `dummyX=860`, `gap=12.96`, below the geometry-derived 18 px test corridor. The same SHA had already passed PR #125 Run #270 Edge and Run #271 Chromium, so only the failed Edge job was retried. The targeted retry passed without code changes. GitHub Pages deployment, public reachability, Production AI Backend Readiness, and the final Microsoft Edge production `smoke:all` then all passed. Production Heavy Strike passed with `hitGap=88.89`, confirming the first 12.96 px event was an isolated hosted-runner positioning excursion rather than a gameplay regression.
+The credential/billing blocker is now resolved: the operator configured the server-side `GEMINI_API_KEY`, explicitly verified the Google project is Free Tier with paid billing disabled, and production readiness proved `provider=gemini`, `billing_mode=free-tier-only`, both Free Tier guards true, and exact deployed revision alignment. The active blocker is therefore model lifecycle/API availability, not credentials or billing.
 
-All currently inferable/non-blocked engineering work for the Free Tier safety boundary and deterministic production validation is complete. P3/P4 remain open only because real Gemini Free Tier production acceptance requires an external credential and billing-state verification that cannot be inferred or performed from the repository.
+Feature branch `fix/gemini-3-6-flash` updates the production default and allow-list to `gemini-3.6-flash`, explicitly rejects retired `gemini-2.5-flash`, aligns browser readiness fixtures, updates the production AI policy/acceptance documentation, and records this production failure. Google official documentation/pricing was rechecked before the allow-list change: Gemini 3.6 Flash is a current stable multimodal model and its Gemini Developer API Free Tier lists input/output/context-caching as free. Production Render remains on `GEMINI_MODEL=gemini-2.5-flash` until the code migration is validated and merged; real generation is therefore not accepted yet.
 
 ## Completed milestones
 
@@ -56,28 +56,26 @@ Completed through PR #86. Includes Godot `HTTPRequest`, strict JSON/PNG response
 
 ## P3 — Production provider/backend integration — IN PROGRESS
 
-PR #121 **`P3: enforce free-tier Gemini AI only`** merged to `main` as `9fe7f3d3f72e779fa050d1b2cff734dc999f1510` after latest-head PR CI Run #256 passed Windows Native Release, Godot/backend/Web/Chromium and GitHub-hosted Microsoft Edge.
+Relevant merged history:
+- PR #121 **`P3: enforce free-tier Gemini AI only`** merged as `9fe7f3d3f72e779fa050d1b2cff734dc999f1510`.
+- PR #122 **`P3: verify Free Tier project before Gemini activation`** merged as `e1ae9933fa4943af80ff7b7ab4a0ff4ae97d78cb`.
+- PR #123 **`Test: stabilize production match-restart positioning`** merged as `6902f7e475c30e90689e4bdab887a8a660b19501`.
+- PR #124 **`Docs: sync Run #264 production validation`** merged as `eb1087c0089ca00190a37b7265ee9b0b91870082`.
+- PR #125 **`Docs: require GitHub sync before progress reports`** merged as `1a6c79fa81c9bd711079abf40009a728591b2237`.
+- PR #126 **`Docs: sync Run #271 production validation`** merged as current `main` revision `c3ab7e5dee0a30ef54ceb69ea6e7c23169b2ff96`; main CI Run #273 completed successfully across Windows Native, Chromium, hosted Edge, Pages, public reachability, Render readiness, and production Edge full smoke.
 
-PR #122 **`P3: verify Free Tier project before Gemini activation`** merged to `main` as `e1ae9933fa4943af80ff7b7ab4a0ff4ae97d78cb` after latest-head PR CI Run #259 passed Windows Native Release, Godot/backend/Web/Chromium and GitHub-hosted Microsoft Edge.
-
-PR #123 **`Test: stabilize production match-restart positioning`** merged to `main` as `6902f7e475c30e90689e4bdab887a8a660b19501` after latest-head PR CI Run #263 passed Windows Native Release, Godot/backend/Web/Chromium and GitHub-hosted Microsoft Edge.
-
-PR #124 **`Docs: sync Run #264 production validation`** merged to `main` as `eb1087c0089ca00190a37b7265ee9b0b91870082`; post-merge main Run #266 passed all production gates.
-
-PR #125 **`Docs: require GitHub sync before progress reports`** merged to `main` as `1a6c79fa81c9bd711079abf40009a728591b2237`; post-merge main Run #271 passed the complete production chain after one isolated hosted Edge positioning retry.
-
-Render / production backend status:
-- main Run #271 verified the backend is serving exact revision `1a6c79fa81c9bd711079abf40009a728591b2237`,
-- `/healthz` remains compatible with `supported_providers=[gemini]`,
-- production is deliberately `AI_IMAGE_PROVIDER=disabled`, so no AI provider can be called while credential / billing verification is unresolved,
-- `GEMINI_MODEL=gemini-2.5-flash` and `GEMINI_FREE_TIER_ONLY=true` remain the intended model/policy configuration,
-- main Run #271 Production AI Backend Readiness printed `PRODUCTION_AI_BACKEND_SAFE_DISABLED model=gemini-2.5-flash project_verified=false revision=1a6c79fa81c9bd711079abf40009a728591b2237`,
-- `providers.gemini.configured=false`; real Gemini production acceptance is intentionally unavailable until a server-side key and external project verification are supplied.
+Production activation evidence on 2026-09-16:
+- operator configured `GEMINI_API_KEY` directly in Render; the secret never entered Git,
+- operator explicitly verified the associated Google project is Free Tier / paid billing disabled,
+- Render was configured with `AI_IMAGE_PROVIDER=gemini`, `GEMINI_FREE_TIER_ONLY=true`, and `GEMINI_FREE_TIER_PROJECT_VERIFIED=true`,
+- Render deployment `dep-dakvm20ae00c73f1nda0` reached `live` on exact `main` revision `c3ab7e5dee0a30ef54ceb69ea6e7c23169b2ff96`,
+- GitHub Production AI Backend Readiness printed `PRODUCTION_AI_BACKEND_READY provider=gemini model=gemini-2.5-flash billing_mode=free-tier-only revision=c3ab7e5dee0a30ef54ceb69ea6e7c23169b2ff96`, proving the credential and Free Tier guards were effective,
+- manual Production Free Gemini E2E Runs #1 (`35051497128`) and #2 (`35051504664`) both passed readiness but failed the first real provider call with HTTP 500 because Google rejected `gemini-2.5-flash` as unavailable to new users and recommended `gemini-3.6-flash`,
+- this failure is model lifecycle/API availability, not an API-key, CORS, Render readiness, revision-alignment, or billing-guard failure.
 
 Implemented and production-hardened:
 - trusted Node backend with `/healthz` and `/v1/vfx/generate`,
 - production provider factory constrained to Gemini only,
-- `gemini-2.5-flash` / `gemini-2.5-flash-lite` free-tier model allow-list,
 - stable Gemini Interactions API `v1` with `store=false`,
 - Gemini text/reference understanding → strict structured VFX design → deterministic Sharp PNG rendering,
 - no OpenAI production adapter and no paid/native-image fallback,
@@ -85,32 +83,28 @@ Implemented and production-hardened:
 - browser/runtime contains no provider credential,
 - Creator preflight readiness disables Generate while backend/provider is unavailable,
 - deployed revision is exposed without secrets for cloud acceptance,
-- `GEMINI_FREE_TIER_ONLY=true` represents only the application cost policy,
-- `GEMINI_FREE_TIER_PROJECT_VERIFIED=true` is required after an operator verifies the AI Studio / associated Google Cloud project has paid billing disabled,
+- `GEMINI_FREE_TIER_ONLY=true` represents the application cost policy,
+- `GEMINI_FREE_TIER_PROJECT_VERIFIED=true` represents operator verification that paid billing is disabled,
 - provider `configured=true` requires API key + allow-listed model + both guards,
-- readiness fields are split into `free_tier_policy_asserted`, `free_tier_project_verified`, and `verification_mode=operator-asserted`,
-- deployment-health validation accepts `provider=disabled` only as an explicit safe fail-closed state; this is not counted as real Gemini acceptance,
-- manual production AI E2E remains strict and requires an actually configured/verified Gemini provider,
+- readiness fields remain split into `free_tier_policy_asserted`, `free_tier_project_verified`, and `verification_mode=operator-asserted`,
+- real Gemini generation remains a separate acceptance gate and is not inferred from readiness alone,
 - Render runtime uses `NODE_ENV=production` and Sharp 0.35.4.
 
-Main post-merge Run #271 evidence for `1a6c79fa81c9bd711079abf40009a728591b2237`:
-- Windows Native Release: PASS,
-- Godot + Backend + Web + Chromium: PASS,
-- first GitHub-hosted Windows + Microsoft Edge attempt: FAIL only in Heavy Strike positioning setup at `gap=12.96`,
-- targeted retry of only the failed Edge job on the same SHA: PASS with no code or gameplay changes,
-- Deploy Web Demo: PASS,
-- Verify Public Web Demo: PASS,
-- Verify Production AI Backend Readiness: PASS in explicit safe-disabled mode with exact deployed revision,
-- Windows Edge Production Full Smoke: PASS against `https://ws951125.github.io/custom-fighter/`,
-- production logs include `WEB_MATCH_RESTART_SMOKE_PASSED victory=true restart=true returnCreator=true`,
-- production Heavy Strike logs include `WEB_MELEE_SKILL_SMOKE_PASSED ... hitGap=88.89 ...`, proving valid authored geometry and gameplay outcome on the real Pages deployment,
-- the same production Edge suite passed multi-skill, area, formation, buff, melee, coordination, character/profile/loadout/selection/animation, Creator, skill editor, preview, VFX/runtime, AI VFX, remote/reference AI VFX, AI skill proposal, package/package VFX and mobile-control regressions.
+Active migration on `fix/gemini-3-6-flash`:
+- production default: `gemini-3.6-flash`,
+- free-model allow-list: `gemini-3.6-flash` only,
+- retired `gemini-2.5-flash` explicitly fails closed in the provider factory regression test,
+- remote AI and reference-AI browser readiness mocks report `gemini-3.6-flash`,
+- production AI cost policy and acceptance documentation updated to current Google model/pricing state.
 
-Current external blocker:
-- obtain/configure a server-side `GEMINI_API_KEY` from a Gemini Developer API Free Tier project,
-- verify in Google AI Studio / the associated Google Cloud project that paid billing is disabled,
-- only then set `GEMINI_FREE_TIER_PROJECT_VERIFIED=true` and switch `AI_IMAGE_PROVIDER=gemini`,
-- run the manual real Free Tier production E2E before declaring P3 complete.
+Remaining P3 acceptance:
+- validate the migration branch in GitHub Actions,
+- merge after required PR gates are green,
+- let Render deploy the new exact `main` revision,
+- change Render `GEMINI_MODEL` from `gemini-2.5-flash` to `gemini-3.6-flash` without touching the server-side API key,
+- verify `PRODUCTION_AI_BACKEND_READY` on exact merged revision with model 3.6,
+- rerun the manual real text + reference-image Production Free Gemini E2E,
+- declare P3 complete only after that real-provider E2E passes.
 
 ## P4 — Image → skill → Creator → Training — IN PROGRESS
 
@@ -132,9 +126,9 @@ Implemented in source and deterministic cloud E2E:
 - Restart remounts a fresh Training instance to reset HP/MP/positions/cooldowns/projectiles/buffs/controllers/hit counters.
 
 Remaining P4 acceptance:
-- configure and verify the server-side Free Tier Gemini credential,
+- complete the real `gemini-3.6-flash` provider acceptance,
 - real reference image + prompt → production backend → generated VFX + skill proposal,
-- explicit user confirmation,
+- explicit confirmation in Creator,
 - real generated asset cast in Training,
 - final real-provider production acceptance.
 
@@ -152,9 +146,9 @@ Required path:
 7. Microsoft Edge full browser smoke on a GitHub-hosted Windows runner,
 8. after a successful `main` push, deploy the validated Web artifact to GitHub Pages,
 9. verify public Training / Creator / VFX URLs are reachable,
-10. verify the Render backend is healthy, serving the expected revision, and either safely disabled or fully verified/configured for free Gemini,
+10. verify the Render backend is healthy, serving the expected revision, and fully verified/configured for free Gemini,
 11. run the full `smoke:all` suite against the real GitHub Pages deployment in Microsoft Edge,
-12. real Gemini generation is a separate manual acceptance gate and must never be inferred from safe-disabled deployment health.
+12. run the manual real Gemini text + reference-image production acceptance after any provider/model lifecycle change.
 
 Do not use Remote Desktop Commander, the user's local machine, local Godot/npm/browser caches, or user-device storage for project validation or Git synchronization.
 
@@ -177,5 +171,5 @@ AI VFX backend: `https://custom-fighter-ai-vfx.onrender.com`
 ## Remaining roadmap
 
 To reach 13/13:
-- finish P3 by configuring and verifying the real Free Tier Gemini credential and completing real-provider acceptance,
-- finish P4 with real reference-image → VFX + skill proposal → explicit confirmation → Training cast production E2E.
+- finish P3 by merging the Gemini 3.6 migration and passing the real Free Tier provider E2E,
+- finish P4 with real reference-image → VFX + skill proposal → explicit confirmation → Training cast production acceptance.
