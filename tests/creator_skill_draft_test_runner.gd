@@ -20,11 +20,15 @@ func _run() -> void:
 	_check(is_equal_approx(float(data.get("speed", 0.0)), 560.0), "draft serializes projectile speed")
 	_check(is_equal_approx(float(data.get("range", 0.0)), 900.0), "draft serializes projectile range")
 	_check(str(data.get("visual", "")) == "prototype_fireball", "draft preserves safe starter visual")
+	_check(not data.has("timeline"), "legacy Creator draft stays timeline-free until events are authored")
 
 	var definition := SkillDefinition.new()
 	var definition_errors := definition.load_from_dictionary(data)
 	_check(definition_errors.is_empty() and definition.loaded, "draft feeds runtime SkillDefinition contract")
 	_check(definition.skill_type == "projectile", "runtime contract sees projectile type")
+
+	_test_timeline_round_trip(draft)
+	_test_invalid_timeline_fails_closed(draft)
 
 	draft.skill_name = ""
 	_check(_contains_error(draft.validate(), "name must not be empty"), "blank skill name fails closed")
@@ -48,6 +52,7 @@ func _run() -> void:
 	draft.reset()
 	_check(draft.is_valid(), "reset restores valid starter projectile")
 	_check(draft.skill_name == "My Projectile" and draft.damage == 18 and is_equal_approx(draft.speed, 560.0), "reset restores starter values")
+	_check(not draft.has_timeline() and not draft.to_dictionary().has("timeline"), "reset clears authored timeline and restores V1-compatible output")
 
 	if failures == 0:
 		print("CREATOR_SKILL_DRAFT_TESTS_PASSED")
@@ -55,6 +60,46 @@ func _run() -> void:
 		return
 	printerr("CREATOR_SKILL_DRAFT_TEST_FAILURES=%d" % failures)
 	quit(1)
+
+func _test_timeline_round_trip(draft: SkillDraft) -> void:
+	draft.reset()
+	var events: Array[Dictionary] = [
+		{"id": "cast_anim", "type": "animation", "time": 0.0, "duration": 0.22, "animation": "skill_1"},
+		{"id": "spawn_vfx", "type": "vfx", "time": 0.22, "duration": 0.0, "visual": "prototype_fireball"},
+		{"id": "hit_window", "type": "hitbox", "time": 0.22, "duration": 0.08, "half_width": 28.0, "half_depth": 0.08},
+		{"id": "cast_audio", "type": "audio", "time": 0.22, "duration": 0.0, "cue": "skill_cast"}
+	]
+	draft.set_timeline_events(events)
+	_check(draft.has_timeline(), "Creator draft reports authored timeline")
+	_check(draft.is_valid(), "Creator-authored timeline validates through SkillDefinition")
+	var serialized := draft.to_dictionary()
+	_check(serialized.has("timeline"), "Creator draft serializes timeline only when authored")
+	var timeline: Dictionary = serialized.get("timeline", {})
+	_check(int(timeline.get("schema_version", 0)) == SkillDefinition.TIMELINE_SCHEMA_VERSION, "Creator draft emits supported timeline schema")
+	var serialized_events: Array = timeline.get("events", [])
+	_check(serialized_events.size() == 4, "Creator draft serializes all timeline events")
+
+	var loaded := SkillDraft.new()
+	var errors := loaded.load_from_dictionary(serialized)
+	_check(errors.is_empty(), "serialized Creator timeline reloads: %s" % ", ".join(errors))
+	_check(loaded.has_timeline() and loaded.timeline_events.size() == 4, "Creator timeline survives draft round-trip")
+	_check(str(loaded.timeline_events[2].get("id", "")) == "hit_window", "Creator timeline preserves deterministic event order")
+
+	# Ensure the draft owns a deep copy rather than sharing caller-owned dictionaries.
+	events[0]["id"] = "mutated_outside"
+	_check(str(loaded.timeline_events[0].get("id", "")) == "cast_anim", "Creator timeline round-trip is isolated from caller mutation")
+
+func _test_invalid_timeline_fails_closed(draft: SkillDraft) -> void:
+	draft.reset()
+	draft.set_timeline_events([
+		{"id": "late", "type": "vfx", "time": 0.5, "duration": 0.0},
+		{"id": "early", "type": "audio", "time": 0.2, "duration": 0.0}
+	])
+	_check(_contains_error(draft.validate(), "timeline events must be ordered by non-decreasing time"), "Creator draft rejects unsorted timeline")
+	draft.set_timeline_events([
+		{"id": "unsafe", "type": "script", "time": 0.0, "duration": 0.0}
+	])
+	_check(_contains_error(draft.validate(), "unsupported timeline event type: script"), "Creator draft rejects arbitrary executable event types")
 
 func _contains_error(errors: PackedStringArray, expected: String) -> bool:
 	for error in errors:
