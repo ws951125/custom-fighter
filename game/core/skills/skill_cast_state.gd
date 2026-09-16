@@ -2,6 +2,7 @@ class_name SkillCastState
 extends RefCounted
 
 const SkillDefinitionScript = preload("res://game/core/skills/skill_definition.gd")
+const SkillTimelineRuntime = preload("res://game/core/skills/skill_timeline_runtime.gd")
 
 enum Phase {
 	READY,
@@ -15,6 +16,7 @@ var phase: Phase = Phase.READY
 var phase_remaining := 0.0
 var cooldown_remaining := 0.0
 var activation_pending := false
+var timeline_runtime := SkillTimelineRuntime.new()
 
 func configure(skill: SkillDefinitionScript) -> void:
 	definition = skill
@@ -22,10 +24,12 @@ func configure(skill: SkillDefinitionScript) -> void:
 	phase_remaining = 0.0
 	cooldown_remaining = 0.0
 	activation_pending = false
+	timeline_runtime.configure(skill)
 
 func tick(delta: float) -> void:
 	var safe_delta := maxf(0.0, delta)
 	cooldown_remaining = maxf(0.0, cooldown_remaining - safe_delta)
+	timeline_runtime.tick(safe_delta)
 	if phase == Phase.READY or definition == null:
 		return
 
@@ -47,6 +51,7 @@ func can_cast(current_mp: int) -> bool:
 		definition != null
 		and definition.loaded
 		and phase == Phase.READY
+		and not timeline_runtime.is_running()
 		and cooldown_remaining <= 0.0
 		and current_mp >= definition.mp_cost
 	)
@@ -59,6 +64,7 @@ func start_cast(current_mp: int) -> bool:
 	phase = Phase.STARTUP
 	phase_remaining = definition.startup
 	activation_pending = false
+	timeline_runtime.start()
 	_skip_zero_length_phases()
 	return true
 
@@ -68,8 +74,23 @@ func consume_activation() -> bool:
 	activation_pending = false
 	return true
 
+func consume_timeline_transitions() -> Array[Dictionary]:
+	return timeline_runtime.consume_transitions()
+
+func timeline_is_running() -> bool:
+	return timeline_runtime.is_running()
+
+func timeline_elapsed_seconds() -> float:
+	return timeline_runtime.elapsed_seconds()
+
+func timeline_event_is_active(event_id: String) -> bool:
+	return timeline_runtime.is_event_active(event_id)
+
+func active_timeline_events(event_type: String = "") -> Array[Dictionary]:
+	return timeline_runtime.active_events(event_type)
+
 func is_casting() -> bool:
-	return phase != Phase.READY
+	return phase != Phase.READY or timeline_runtime.is_running()
 
 func phase_name() -> String:
 	match phase:
