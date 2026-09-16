@@ -295,9 +295,13 @@ func _set_web_state() -> void:
 	var session: Variant = get_node_or_null("/root/CreatorPreviewSession")
 	var preview_active: bool = _preview_session_active(session)
 	var runtime_vfx_active := preview_vfx_loaded and fireball_projectile.active
-	var timeline_vfx_events: Array[Dictionary] = fireball_cast_state.active_timeline_events("vfx") if preview_active else []
-	var timeline_hitboxes: Array[Dictionary] = fireball_cast_state.active_timeline_events("hitbox") if preview_active else []
-	var timeline_hurtboxes: Array[Dictionary] = fireball_cast_state.active_timeline_events("hurtbox") if preview_active else []
+	var timeline_vfx_events: Array[Dictionary] = []
+	var timeline_hitboxes: Array[Dictionary] = []
+	var timeline_hurtboxes: Array[Dictionary] = []
+	if preview_active:
+		timeline_vfx_events = fireball_cast_state.active_timeline_events("vfx")
+		timeline_hitboxes = fireball_cast_state.active_timeline_events("hitbox")
+		timeline_hurtboxes = fireball_cast_state.active_timeline_events("hurtbox")
 	var timeline_vfx_active := not timeline_vfx_events.is_empty() or preview_timeline_vfx_pulse_remaining > 0.0
 	var timeline_hitboxes_json := JSON.stringify(timeline_hitboxes)
 	var timeline_hurtboxes_json := JSON.stringify(timeline_hurtboxes)
