@@ -251,6 +251,7 @@ Production 預設：
 - 若目前被外部條件阻擋，必須同時寫明 blocker 與解除 blocker 後第一個會執行的工程動作。
 - 若仍有安全且不受 blocker 影響的工作可做，應先連續完成，不因單一 blocker 提前停止。
 - 此欄位是每次回覆固定必填項目，即使本次 work unit 已完成也不得省略。
+
 ## 18. Production AI cost policy — free Gemini only
 
 - Production AI must use Google Gemini's API free tier only; do not connect OpenAI or any other paid AI provider unless the user explicitly reverses this policy.
@@ -272,7 +273,7 @@ Production 預設：
 
 ## 20. Retry safety for mutating connectors
 
-- Read-only connector failures may be retried several times after correcting session, device, workspace, or request parameters.
+- Read-only connector failures may be retried several times after correcting session, device, workspace, or request parameters。
 - Mutating connector calls (for example Render environment updates/deploy triggers) must not be blindly replayed. After an uncertain result, first inspect current remote state before retrying.
 - If a mutation already succeeded, do not send the same mutation again merely to confirm it; use a read/status endpoint instead.
 - When repeated mutations accidentally occur, stop issuing writes, inspect the resulting deploy/action queue, keep only the latest valid operation in flight, and record the incident in `docs/LESSONS_LEARNED.md`.
@@ -285,3 +286,22 @@ Production 預設：
 - 每個可辨識 work unit 完成時，除了 source/test/config 變更要同步 GitHub，也必須依本文件規則同步 `docs/STATUS.md`；若有錯誤經驗則同步 `docs/LESSONS_LEARNED.md`。
 - 若 work unit 已通過 merge gate並合併，回覆前必須重新確認 `main` 的實際 merge SHA；若 production / deployment 適用，也要明確區分「GitHub 已同步」與「production 已部署／已驗證」，不得將兩者混為一談。
 - 此規則適用於每一次回覆，而不是只在階段結束、PR merge 或使用者特別詢問時才執行。
+
+## 22. 每次回報必須說明本輪實際專案功能與用途
+
+- 每一次進度回報都必須包含明確的 `功能說明`。
+- `功能說明` 只能解釋這一輪實際修改、新增、修正或驗證的**專案產品功能**，並以使用者角度說明該功能是做什麼、解決什麼問題、如何影響實際操作或遊戲／Creator 行為。
+- 不得把 `Agent.md`／`AGENTS.md` 規則本身、文件整理、GitHub commit、branch、PR、merge、CI workflow 操作、進度紀錄或其他純工程流程，冒充為產品功能說明。
+- 若同一輪同時有產品功能與工程／文件工作，`功能說明` 只描述產品功能；工程／文件工作應放在其他適當欄位回報。
+- 若這一輪完全沒有修改、新增、修正或驗證任何專案產品功能，`功能說明` 必須逐字明確寫：`這輪沒有產品功能變更`。
+- 若本輪只有驗證既有產品功能，必須說明「驗證的是哪個產品功能」以及該功能的實際用途；不得只寫「CI PASS」或「測試通過」。
+- 本規則適用於每一次回報，不能因為該輪只有文件、GitHub 操作、CI 監控、PR merge 或 blocker 處理而省略。
+
+## 23. 對話長度七分滿時主動提醒換新對話
+
+- Agent 必須持續留意目前開發對話的上下文長度與可用空間。
+- 當對話長度約達整體可用上下文的 **70%（七分滿）** 時，必須主動提醒使用者趕快開新的對話接續，避免對話過長造成卡頓或上下文遺失。
+- 提醒不得等到上下文已接近耗盡才提出；目標是在約 70% 時預警。
+- 若系統無法提供精確的上下文百分比，Agent 必須依可觀察的對話長度、歷史訊息量與工具輸出量做保守估計；接近七成時寧可提早提醒。
+- 在提醒換新對話前，若目前有尚未同步的專案進度，應先依既有規則同步 GitHub、`docs/STATUS.md` 與必要的 `docs/LESSONS_LEARNED.md`，並整理可供新對話接續的 checkpoint。
+- 此規則只影響工作交接與提醒方式，不得中斷正在進行且可安全完成的原子 GitHub mutation。
