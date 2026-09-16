@@ -143,7 +143,7 @@ The architecture previously allowed a future local/open-model AI provider such a
 - V2 starts at 0/8 and advances only when an entire phase meets its acceptance criteria and its evidence is synchronized to GitHub.
 - Partial work is reported inside the active phase but does not count as a completed V2 phase.
 - Every implementation work unit must be committed/pushed before being reported as completed.
-- Formal validation remains GitHub/online-only under the existing Agent.md policy.
+- Formal validation remains GitHub/online-only under the existing `AGENTS.md` policy.
 - Errors and durable fixes continue to be recorded in `docs/LESSONS_LEARNED.md`.
 - `docs/STATUS.md` must identify the active V2 phase while preserving the V1 completion checkpoint.
 

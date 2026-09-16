@@ -54,8 +54,8 @@ Work unit 3 was merged by PR #135 to `main` at `1f4c167c02a11f390234cf8c4c589a53
 - `tests/creator_timeline_editor_web_smoke.mjs` covers empty V1-compatible startup, valid event authoring, invalid ordering detection/recovery, removal and clear.
 - The timeline browser regression is wired into `npm run smoke:all` so normal GitHub Chromium/Edge validation exercises it.
 
-Work unit 4 is synchronized on branch `feat/v2-1-spatial-hitbox-authoring` and PR #139:
-- `hitbox` and `hurtbox` timeline events now normalize safe spatial payloads: `half_width`, `half_depth`, `offset_x`, and normalized-arena `offset_depth`.
+Work unit 4 was merged by PR #139 to `main` at `c84e26f6967883a30fbf1ff0c3f548d2321bda55`:
+- `hitbox` and `hurtbox` timeline events normalize safe spatial payloads: `half_width`, `half_depth`, `offset_x`, and normalized-arena `offset_depth`.
 - Spatial dimensions/offsets are bounded and fail closed when zero/negative or outside safe limits; older V2 spatial events that omitted these payload fields remain backwards compatible through safe defaults.
 - Creator Timeline exposes type-specific spatial controls only for hitbox/hurtbox events and removes stale spatial fields when an event changes back to a non-spatial type.
 - Creator draft/domain tests cover spatial round-trip, deep-copy isolation, backwards-compatible defaults, invalid dimensions and oversized offsets.
@@ -72,6 +72,16 @@ P4 was accepted on 2026-09-16. Production Free Gemini E2E Run #5 (`35075099182`)
 The V1 completion documentation was merged by PR #131; the V1 completion checkpoint on `main` is `ff744f643b37cc1947225ef4dbe052108d739a66`.
 
 V2 roadmap activation PR #132 was merged to `main` at `41c047029175e4b1409fcd2f49e023332e5663e7`; Main CI #285 (`35084613478`) completed successfully, including Chromium, Windows Native, Microsoft Edge, Pages deployment, production public-Web checks, Render exact-revision readiness and production Edge smoke.
+
+## Agent policy source-of-truth migration
+
+2026-09-17 policy-maintenance work is synchronized on branch `chore/unify-agents-source-of-truth`:
+- root `AGENTS.md` is now the single active Agent instruction source of truth;
+- all still-valid rules from legacy `Agent.md` were consolidated without intentionally weakening the stricter online-only, GitHub truth, CI monitoring, reporting, synchronization, safety, Gemini-free-tier, connector-retry, and documentation rules;
+- the roughly-70%-conversation handoff rule is explicitly captured in `AGENTS.md`, including repository checkpoint synchronization and a copyable continuation Prompt with actual GitHub state;
+- active V2 roadmap policy references now point to `AGENTS.md`;
+- legacy root `Agent.md` is removed and must not be recreated;
+- historical incident text may retain the old filename only where required to accurately describe the incident and is explicitly non-normative.
 
 ## Validation policy
 
@@ -99,4 +109,4 @@ AI VFX backend: `https://custom-fighter-ai-vfx.onrender.com`
 
 ## Next implementation target
 
-Validate PR #139 in GitHub CI. If it passes, merge the spatial hitbox/hurtbox authoring checkpoint, then add type-specific animation/VFX/audio timeline payload controls before runtime event execution and Creator → Training timeline acceptance.
+Complete validation/merge of the `AGENTS.md` source-of-truth migration. Then resume V2-1 with type-specific animation/VFX/audio timeline payload controls before runtime event execution and Creator → Training timeline acceptance.
