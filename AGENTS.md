@@ -1,116 +1,110 @@
-# AGENTS.md
+# AGENTS.md — custom-fighter
 
-## Purpose
+`AGENTS.md` is the single source of truth for AI Agent / Codex / automated development instructions in this repository. Do not create or maintain `Agent.md`. Future rule additions or changes must be made incrementally here without deleting, weakening, shortening, or silently overriding existing valid rules. If a nested directory contains its own `AGENTS.md`, obey both this root policy and the applicable nested policy.
 
-This repository is developed with **online-only validation**. All engineering validation must run in GitHub-hosted CI or other explicitly approved cloud environments. Do not connect to, execute commands on, inspect, or use the user's local machine for testing or validation.
+## 1. Project purpose and core principles
 
-## Non-negotiable rules
+`custom-fighter` is a Godot-based, Web-capable, data-driven fighting game / character-skill platform.
 
-1. **All validation is online-only.**
-   - GitHub Actions is the primary and required validation path for code changes.
-   - Do not use Remote Desktop Commander, local terminals, local Godot, local browsers, local npm, or any user-device filesystem for this repository.
-   - Do not ask the user to run local commands for routine validation.
-   - If cloud validation is blocked by an external service, report the blocker and the last verified online state rather than falling back to local testing.
-   - GitHub Pages may be used for deployed/public Web validation.
+Core principles:
+- Cloud-first / CI-first and online-test-first.
+- Data-driven character, skill, VFX, package, and configuration design.
+- Cross-platform runtime; core combat/character/skill/package logic must not depend on desktop-only APIs.
+- Player content must be safe declarative data/assets and must not execute arbitrary code.
+- AI/VFX providers must remain replaceable behind provider/adapter boundaries.
+- Bug fixes should add or strengthen regression coverage when practical.
+- Secrets never enter Git.
 
-2. **Keep the runtime cross-platform.**
-   - Core combat, character, skill, package, and decision logic must not depend on desktop-only APIs.
-   - Input must be represented as actions/intent rather than hard-wired device assumptions.
-   - Creator tooling may be PC/Web-first, but runtime data formats must remain portable.
+Product/validation references include:
+- `AGENTS.md`
+- `docs/MVP.md`
+- `docs/STATUS.md`
+- `docs/ONLINE_TESTING.md`
+- `docs/WEB_LOADING.md`
 
-3. **Use data-driven content.**
-   - Characters and skills must be defined by validated data/resources rather than one-off hard-coded character logic.
-   - Adding a normal character or normal skill should not require edits to the combat engine.
+## 2. Repository/GitHub truth before work
 
-4. **Player content must not execute arbitrary code.**
-   - Character packages may contain validated structured data and approved assets.
-   - Do not load or execute user-supplied GDScript, native libraries, executables, Python, shell scripts, or arbitrary code from character packages.
+Before any mutation, inspect the actual current GitHub/repository state. Do not rely only on chat memory, screenshots, stale checkpoints, local refs, or previous reports.
 
-5. **AI/VFX providers must be replaceable.**
-   - AI-assisted image/VFX generation must sit behind an adapter/provider boundary.
-   - The game runtime must not depend on a specific cloud AI vendor.
-   - Provider implementations must remain swappable at the architecture level.
+At minimum verify:
+1. this `AGENTS.md` in full;
+2. `docs/MVP.md`, `docs/STATUS.md`, and `docs/ONLINE_TESTING.md`;
+3. code/tests/docs directly relevant to the task;
+4. current feature branch and head SHA;
+5. related PR open/closed/merged/mergeable state;
+6. latest relevant GitHub Actions and Web deployment state;
+7. any applicable nested `AGENTS.md`.
 
-6. **Regression protection is required.**
-   - Bug fixes should add or strengthen an automated test when practical.
-   - Do not merge known failing required online checks.
+If chat/checkpoint information conflicts with GitHub, GitHub/repository state wins and the discrepancy must be reported. Re-check GitHub before every progress/result reply; branch/commit/PR information must reflect the current remote state.
 
-7. **Secrets never enter Git.**
-   - No API keys, credentials, signing keys, private tokens, or confidential model credentials in source or history.
-   - Use GitHub/hosting-provider secret stores or environment variables.
+## 3. Branch, commit, PR, and synchronization rules
 
-8. **Always provide the online test link when the user can test a deployed build.**
-   - When a playable/testable Web build is deployed, every result/progress reply must include a directly usable test URL.
-   - If no online build was deployed for the current step, say so explicitly.
+- Write formal code/test/doc/config changes directly to the active GitHub feature branch.
+- Do not use patches/diffs or user copy/paste as the primary delivery mechanism.
+- Unless the user explicitly requests otherwise, do not commit directly to `main`.
+- Keep one coherent work unit in one feature branch/PR where practical; avoid unnecessary micro-PR fragmentation.
+- Commits should represent focused logical work units with clear messages.
+- Never commit secrets, credentials, private tokens, signing keys, production dumps, or confidential model credentials.
+- Every completed code/test/doc/config work unit reported to the user must already be committed/pushed to GitHub. Local-only, temporary, or chat-only work does not count as completed progress.
+- Every recognizable work unit must also synchronize `docs/STATUS.md`; update `docs/MVP.md` when milestone/scope changes materially.
+- If a corrected error yields a durable engineering lesson, synchronize `docs/LESSONS_LEARNED.md` before reporting completion.
+- If a work unit has merged, re-check actual `main` merge SHA before reporting it.
+- Distinguish “synchronized to GitHub” from “deployed/production-validated”.
 
-9. **Every development result reply must report whole-project progress.**
-   - Include current overall project phase/milestone, estimated total completion percentage, completed work, in-progress work, and remaining work.
+## 4. GitHub-only / online-only hard rule
 
-10. **After every modification, report feature changes and the complete current control map.**
-   - Include New / changed functionality.
-   - Include Current controls / buttons covering every user-facing actionable input.
+All engineering validation and project Git synchronization for `custom-fighter` are online-only. Do not connect to, execute commands on, inspect, modify, build, test, debug, or synchronize this project through the user's local computer.
 
-11. **Watch every required online validation run through terminal state before final reporting.**
-   - After triggering or observing a GitHub Actions run, continue checking it until success, failure, cancellation, or a confirmed external blocker.
-   - If a check fails, inspect logs, fix the issue, push the fix, and re-run/observe CI before declaring success.
+Prohibited paths include:
+- Remote Desktop Commander;
+- local/remote user terminals;
+- local Godot, Node/npm, Playwright, PowerShell, Python, browsers, caches, or filesystem;
+- SSH or remote desktop to the user's machine;
+- asking the user to run routine local commands and paste results;
+- falling back to local validation because CI is unavailable.
 
-12. **Complete the whole active phase without stop-and-wait development.**
-   - Once work on a roadmap phase starts, continue through every safe, inferable task in that phase: implementation, adjacent slices, regression coverage, cloud validation, failure diagnosis/fixes, merge, documentation/status synchronization, deployment work that is already authorized, and final acceptance evidence.
-   - Do not stop merely because one slice, commit, PR, test group, or sub-milestone finished, and do not require the user to repeatedly say “continue”.
-   - Continue automatically into the next task in the same phase and, when safe and clearly implied, the next adjacent phase task.
-   - Stop only when progress genuinely requires explicit user action or approval that cannot be inferred safely, such as supplying a missing secret/API credential, authorizing payment, granting a new external-account permission, approving a destructive operation, or resolving a materially ambiguous product decision.
-   - A missing approval for one external dependency does not block unrelated safe work in the same phase; complete all non-blocked work first.
-   - Keep the user informed during long batches, but routine progress updates are not approval gates.
+Allowed/required validation hierarchy, using the highest applicable cloud-hosted level:
+1. pure logic/domain/unit tests in GitHub Actions;
+2. Godot headless parse/import/boot in GitHub Actions;
+3. Godot headless integration/domain tests;
+4. Web export;
+5. Web artifact/size-budget checks;
+6. Chromium browser smoke/E2E on GitHub-hosted runners;
+7. Windows native export where applicable;
+8. Microsoft Edge smoke/E2E on GitHub-hosted Windows runners;
+9. GitHub Pages deployment/public reachability;
+10. user manual gameplay/visual/UX acceptance through the GitHub Pages URL when subjective acceptance is required.
 
-13. **When the user asks to keep monitoring until completion, do not send an intermediate result reply.**
-   - Continue polling every required GitHub Actions job and downstream deployment/production gate until the full requested validation chain reaches a terminal state.
-   - Do not return merely because one job, one runner, one PR check, or one deployment stage finished.
-   - If a required check fails, inspect the online logs, fix the problem in the active branch/PR, trigger the next validation run, and continue monitoring that replacement run as part of the same batch.
-   - Reply to the user only after the requested chain is fully complete, or when progress is genuinely blocked by an external condition that requires explicit user action or approval.
-   - A long-running `in_progress` job is not a blocker and must continue to be monitored rather than reported as incomplete work.
+If a required check cannot be completed online, mark it `Blocked` / `Residual Risk`; never substitute local validation or claim PASS.
 
-14. **Every reply must explicitly state the next action to be performed.**
-   - Every progress update, result report, error report, blocker report, and completion report must include a clearly labeled `Next step to execute` / `下一步要進行的是什麼` item.
-   - The next step must name the concrete engineering action that follows; do not use vague wording such as “continue” or “keep working”.
-   - If progress is blocked, state both the blocking requirement and the first concrete action that will be taken immediately after the blocker is resolved.
-   - If safe non-blocked work remains, perform it before stopping and report that as the current next action.
-   - This field is mandatory in every reply and must not be omitted even when the current work unit is complete.
+## 5. GitHub Actions and continuous monitoring
 
-## Required workflow for each development batch
+- Never report a test as PASS without actual executed online evidence.
+- Never treat queued/in-progress as PASS.
+- Watch every required run/job through a terminal state: success, failure, cancellation, or confirmed external blocker.
+- If the user asks to keep monitoring until completion, do not stop with an intermediate result while required jobs/deployment gates are merely in progress.
+- If a check fails, inspect online logs, distinguish code failure from GitHub/runner/provider failure, fix code/test/workflow issues in the feature branch, and observe the replacement run.
+- Do not waste Actions quota by blindly rerunning unrelated successful jobs.
+- A long-running `in_progress` job is not itself a blocker.
+- Platform quota/runner/stuck/log-access failures must not be misreported as product bugs.
+- Required failing checks block merge.
 
-1. Inspect current repository state and relevant code through GitHub.
-2. State the intended batch/phase scope and acceptance criteria.
-3. Group adjacent coherent changes on a branch; do not fragment work into unnecessary micro-PRs.
-4. Implement the batch with regression coverage.
-5. Open/update a pull request.
-6. Let GitHub Actions run the applicable automated validation.
-7. Monitor every required workflow/job through terminal state.
-8. Inspect online logs and fix failures before declaring success.
-9. Merge only after required online checks pass, unless an external GitHub/service outage is explicitly documented as the blocker.
-10. Continue through the rest of the active phase and then into the next safe adjacent task without waiting for another “continue”.
-11. Before stopping for an explicit-approval blocker, finish every remaining non-blocked task that can still be completed safely.
-12. Record what changed, online checks run, failures, fixes, remaining risks, and unverified behavior.
-13. Keep docs/roadmap synchronized when architecture or milestone scope changes materially.
-14. If the user requested continuous monitoring, suppress intermediate result replies and keep polling until all required CI/deployment/production gates are terminal; only then provide the consolidated report.
+## 6. Continuous phase execution / no stop-and-wait
 
-## Online validation hierarchy
+Once a roadmap phase starts, continue through every safe and inferable task in that phase: implementation, adjacent slices, regression coverage, cloud validation, failure diagnosis/fixes, documentation/status sync, PR/merge work already authorized, deployment work already authorized, and acceptance evidence.
 
-Use the highest applicable cloud-hosted level:
+Do not stop merely because one slice, commit, PR, test group, or sub-milestone finished, and do not require repeated “continue” messages. Stop only when explicit user action/approval is genuinely required, such as a missing secret/API credential, payment, new external-account permission, destructive operation, or materially ambiguous product decision. One blocked dependency does not block unrelated safe work; finish non-blocked work first.
 
-1. Pure logic/unit tests in GitHub Actions.
-2. Godot headless project parse/import checks in GitHub Actions.
-3. Godot headless integration/domain tests in GitHub Actions.
-4. Web export in GitHub Actions.
-5. Chromium browser smoke/E2E against the exported artifact in GitHub Actions.
-6. Windows native export in GitHub Actions.
-7. Microsoft Edge smoke/E2E on a GitHub-hosted Windows runner.
-8. GitHub Pages/public deployment reachability when intentionally publishing a build.
+## 7. Architecture and data-driven boundaries
 
-Local validation is prohibited for this repository unless the user explicitly reverses this policy in a later instruction.
+- Keep core combat/character/skill rules separated from UI/rendering where practical.
+- `CharacterDefinition` / `SkillRegistry` / skill data are runtime sources of truth; do not replace them with hidden controller hard-coded sample paths.
+- Adding a normal character or skill should not require editing the combat engine.
+- Registry/loader paths must fail closed for unknown IDs, unsafe paths, invalid types, arbitrary fields, and controller/type mismatches.
+- Input must be represented as actions/intents rather than hard-wired device assumptions.
+- Creator tooling may be PC/Web-first, but output runtime data formats must remain portable.
 
-## Architecture boundaries
-
-Preferred top-level structure:
+Preferred top-level structure remains:
 
 ```text
 game/
@@ -142,33 +136,153 @@ tests/
 docs/
 ```
 
-Keep core rules independent from UI and rendering wherever practical.
+## 8. Player content and security
 
-## MVP priorities
+Player-created/imported content may use validated structured data and approved assets. Do not load or execute user-supplied GDScript, native libraries, executables, Python, shell/PowerShell scripts, or arbitrary executable code. External paths, resource types, skill IDs, character IDs, and package metadata must pass allow-list/schema/registry validation.
 
-1. Foundation and validation.
-2. Combat feel prototype.
-3. Data-driven skill engine.
-4. Data-driven character system.
-5. Creator Studio basics.
-6. User VFX import and processing.
-7. AI-assisted VFX provider layer.
-8. Character package import/export.
-9. Web MVP release.
+High-risk work involving arbitrary code execution, untrusted packages, executable downloads, secrets/credentials, major architecture replacement, or breaking data migrations must stop for user confirmation when existing policy does not already resolve the decision. Reversible low-risk engineering details should be handled autonomously and validated.
 
-## Reporting format
+## 9. Regression and Web validation
 
-For every meaningful development result/progress reply, report succinctly and include:
+- Bug fixes should add repeatable regression tests when practical.
+- Domain/loader/registry changes require deterministic fixtures or explicit assertions.
+- Gameplay input/skill-binding changes require applicable browser smoke or equivalent runtime coverage.
+- Web export changes require production export/boot validation and existing reasonable size-budget validation.
+- UI/browser changes requiring Playwright must use headless automation by default in GitHub-hosted CI, with the minimum necessary browsers/workers.
+- Browser validation must monitor relevant console errors, page errors, request/network failures, and unexpected 4xx/5xx responses across the tested flow.
+- Browser/process resources created by CI tests must be closed/cleaned at completion; disposable test artifacts/profiles must not be intentionally retained without a documented reason.
 
-- Project total progress.
-- Completed.
-- In progress.
-- Remaining.
-- New / changed functionality.
-- Current controls / buttons.
-- Validation: exact GitHub Actions workflow/jobs and terminal result.
-- Errors/Fixes.
-- Test link when an online build is available; otherwise state that no new online deployment was made.
-- Next step to execute / 下一步要進行的是什麼.
+## 10. Permanent error lessons
 
-Do not report a test as passed without evidence from an executed online check. Do not use the user's local machine as a fallback validation environment.
+`docs/LESSONS_LEARNED.md` is permanent engineering memory. When an Agent/Codex code change, test, deployment, CI flow, or tool operation fails, and the root cause and fix become known, record or update the lesson rather than discarding the history.
+
+Each lesson should include at least:
+- Symptom
+- Root Cause
+- Fix
+- Prevention Rule
+- Validation
+- Status (`Verified`, `Pending`, etc.)
+
+Update recurring lessons instead of deleting valid history.
+
+## 11. Documentation/status synchronization
+
+Every recognizable work unit must update `docs/STATUS.md`. Status should answer:
+- date/work unit or milestone;
+- completed content;
+- validation method/result;
+- primary files;
+- remaining work;
+- next step.
+
+Do not allow code to be “complete” while repository progress records remain stale.
+
+## 12. Definition of Done
+
+A feature is Done only after all applicable items are satisfied:
+1. implementation complete;
+2. basic error handling and fail-closed behavior complete;
+3. repeatable GitHub-online validation exists;
+4. relevant unit/domain/integration/regression tests pass in GitHub Actions;
+5. Godot import/boot/parse gates pass;
+6. if Web runtime is affected, Web export and applicable browser smoke pass;
+7. documentation is synchronized;
+8. `docs/STATUS.md` is synchronized;
+9. corrected durable errors are recorded in `docs/LESSONS_LEARNED.md`;
+10. PR/branch/merge state is re-verified;
+11. unverified online items are explicitly `Residual Risk` / `Manual Acceptance`;
+12. subjective gameplay/visual acceptance, when required, has a GitHub Pages URL and is not treated as accepted before the required user acceptance.
+
+## 13. PR / merge rules
+
+- Merge only after required online validation passes.
+- If a work unit requires user GitHub Pages gameplay/UX acceptance, do not merge before the user explicitly reports PASS.
+- If user acceptance fails, fix the same feature branch/PR and revalidate online.
+- Every report must state the previous relevant PR merge state, current PR number/title/branch, whether it merged to `main`, and actual merge SHA when merged.
+- Re-check GitHub before reporting; do not report from memory.
+
+## 14. Online test URL
+
+Whenever a playable/testable Web build is deployed, every relevant progress/result reply must include a directly usable online URL.
+
+Production default:
+`https://ws951125.github.io/custom-fighter/`
+
+If production does not yet contain the current PR, explicitly say so. Label a branch/preview URL as Preview. If no preview exists, do not imply that production can validate the new change. Never substitute localhost or a user-machine build.
+
+## 15. Whole-project progress and mandatory report format
+
+Every meaningful development/result/progress/error/blocker reply must include, succinctly:
+- `📊 整個專案總進度`
+- `📈 整個專案總進度百分比`
+- `✅ 已完成`
+- `🟡 進行中`
+- `⏳ 未完成 / 下一步`
+- `⚠️ Blocked / Residual Risk`
+- `🆕 New / changed functionality`
+- `🎮 Current controls / buttons`
+- `🧪 Validation`
+- `🐞 Errors / Fixes`
+- `🔗 Test link`
+- `🌿 Branch / PR / Merge`
+- `➡️ 下一步要進行的是什麼`
+
+Progress percentage must be derived from repository-defined milestones rather than intuition. For the V1/MVP M0–M8 structure, only formally Done milestones count toward the completed numerator unless repository roadmap documents formally change the denominator. V2 progress is tracked independently according to `docs/V2_ROADMAP.md`; partial work inside an active V2 phase does not count as a completed V2 phase.
+
+Every code/content/config modification report must also list the complete current user-facing control map for the playable/testable build, not only controls changed in that batch. Include keyboard combinations, mouse/touch UI where applicable, action name, purpose, and contextual/disabled/diagnostic-only status. If no clickable gameplay/touch UI exists, state that explicitly.
+
+The `➡️ 下一步要進行的是什麼` field is mandatory even when a work unit is complete. It must name a concrete engineering action, not vague wording such as “continue”. If blocked, state the blocker and the first concrete action after it clears; complete safe non-blocked work before stopping.
+
+## 16. Checkpoint / handoff and conversation-length rule
+
+Maintain repository-synchronized checkpoints/handoffs sufficient to continue work without relying on chat memory. A handoff must capture the actual project/repo, active branch, HEAD SHA, remote/PR state, completed work, remaining work, latest tests, blockers/residual risks, and concrete next action.
+
+When the conversation reaches roughly 70% of its usable length:
+1. remind Vincent to start a new conversation;
+2. first synchronize the latest project progress and checkpoint/handoff to the repository according to this file;
+3. in the same reply, provide a directly copyable continuation Prompt;
+4. that Prompt must contain the actual project/repo, branch, HEAD commit, authoritative Git/remote state, completed/todo items, latest test results, blockers, and next action;
+5. the new conversation Prompt must require the next Agent to read the complete current `AGENTS.md` first and verify the checkpoint against actual GitHub/Git/remote state before doing any mutation;
+6. the new Agent must not assume that local `main`, an old feature branch, or a previously reported commit is still latest.
+
+## 17. Production AI cost policy — free Gemini only
+
+- Production AI must use Google Gemini API free tier only; do not connect OpenAI or another paid AI provider unless the user explicitly reverses this policy.
+- Default production model is `gemini-3.6-flash`; only models verified from current official Google documentation to have a Gemini Developer API free tier and current API availability may enter the allow-list.
+- Production also requires `GEMINI_FREE_TIER_ONLY=true`; the configured `GEMINI_API_KEY` must belong to an AI Studio project without paid billing. The flag is a guard/assertion, not proof of Google account billing state.
+- Gemini native image-generation models are not valid fallbacks when their API pricing has no free tier.
+- Use free Gemini for prompt/reference understanding and structured design output, then project-owned deterministic rendering/processing for final VFX assets.
+- `AI_IMAGE_PROVIDER` must fail closed outside `gemini`; paid-provider fallback is prohibited.
+- Provider credentials remain server-side and never enter Git, browser storage, query parameters, fixtures, or Creator data.
+- Before changing the allow-list, verify current Google pricing/model availability from official documentation.
+
+## 18. Connector/deployment retry safety
+
+- One transient connector/auth/device-routing/network/provider error is not enough to declare authorized tooling unavailable.
+- Read-only failures may be retried several times with corrected explicit identifiers/parameters while preserving safety gates.
+- Distinguish transient transport/auth/session failures from hard permission/configuration/destructive-operation blockers.
+- Do not bypass connector safety gates merely to make retries succeed.
+- Mutating connector calls must not be blindly replayed after uncertain results. Inspect current remote state first; if the mutation already succeeded, use read/status operations instead of repeating it.
+- If repeated mutations accidentally occur, stop writes, inspect resulting queues/state, retain only the latest valid operation in flight where safely possible, and record the incident in `docs/LESSONS_LEARNED.md`.
+
+## 19. Required workflow for each development batch
+
+1. Inspect current GitHub/repository state and relevant code/policy.
+2. Define batch/phase scope and acceptance criteria.
+3. Group coherent changes on a feature branch.
+4. Implement with regression coverage.
+5. Open/update the PR.
+6. Run applicable GitHub-hosted validation.
+7. Monitor every required workflow/job through terminal state.
+8. Inspect logs and fix failures before declaring success.
+9. Merge only after required gates and any required user acceptance pass.
+10. Continue through the rest of the active phase/next safe adjacent task without stop-and-wait.
+11. Before stopping for an approval blocker, finish safe non-blocked work.
+12. Record changes, tests, failures/fixes, risks, and unverified behavior.
+13. Synchronize STATUS/roadmap/lessons as required.
+14. Re-check branch/head/PR/main/deployment truth before final reporting.
+
+## 20. Legacy filename migration rule
+
+`AGENTS.md` is the only active root Agent instruction file. `Agent.md` must not be recreated or maintained. Active documentation, scripts, workflow comments, and configuration must reference `AGENTS.md` instead. Historical text inside immutable/preserved engineering incident narratives may mention the old filename only when necessary to accurately describe what happened at that time; such a historical mention is not an active instruction source.
