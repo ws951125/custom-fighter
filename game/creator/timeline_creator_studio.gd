@@ -2,7 +2,8 @@ extends "res://game/creator/ai_skill_proposal_creator_studio.gd"
 
 const SkillDefinition = preload("res://game/core/skills/skill_definition.gd")
 const SPATIAL_TIMELINE_FIELDS := ["half_width", "half_depth", "offset_x", "offset_depth"]
-const WEB_TIMELINE_EDITABLE_FIELDS := ["type", "time", "duration", "half_width", "half_depth", "offset_x", "offset_depth"]
+const MEDIA_TIMELINE_FIELDS := ["animation", "visual", "cue"]
+const WEB_TIMELINE_EDITABLE_FIELDS := ["type", "time", "duration", "animation", "visual", "cue", "half_width", "half_depth", "offset_x", "offset_depth"]
 
 var timeline_panel: PanelContainer
 var timeline_event_list: ItemList
@@ -10,6 +11,9 @@ var timeline_type: OptionButton
 var timeline_time: SpinBox
 var timeline_duration: SpinBox
 var timeline_status: Label
+var timeline_media_row: HBoxContainer
+var timeline_media_name: Label
+var timeline_media_value: LineEdit
 var timeline_spatial_row: HBoxContainer
 var timeline_half_width: SpinBox
 var timeline_half_depth: SpinBox
@@ -71,6 +75,20 @@ func _install_timeline_editor() -> void:
 	timeline_status.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	row.add_child(timeline_status)
 
+	timeline_media_row = HBoxContainer.new()
+	timeline_media_row.add_theme_constant_override("separation", 8)
+	stack.add_child(timeline_media_row)
+	_add_timeline_label(timeline_media_row, "Payload", 86.0)
+	timeline_media_name = Label.new()
+	timeline_media_name.custom_minimum_size = Vector2(90, 0)
+	timeline_media_row.add_child(timeline_media_name)
+	timeline_media_value = LineEdit.new()
+	timeline_media_value.custom_minimum_size = Vector2(260, 0)
+	timeline_media_value.placeholder_text = "safe lowercase token"
+	timeline_media_value.text_changed.connect(_on_timeline_media_value_changed)
+	timeline_media_row.add_child(timeline_media_value)
+	timeline_media_row.visible = false
+
 	timeline_spatial_row = HBoxContainer.new()
 	timeline_spatial_row.add_theme_constant_override("separation", 8)
 	stack.add_child(timeline_spatial_row)
@@ -129,6 +147,38 @@ func _next_timeline_id() -> String:
 func _is_spatial_timeline_type(event_type: String) -> bool:
 	return SkillDefinition.TIMELINE_SPATIAL_EVENT_TYPES.has(event_type)
 
+func _is_media_timeline_type(event_type: String) -> bool:
+	return SkillDefinition.TIMELINE_MEDIA_EVENT_TYPES.has(event_type)
+
+func _media_field_for_type(event_type: String) -> String:
+	if event_type == "animation":
+		return "animation"
+	if event_type == "vfx":
+		return "visual"
+	if event_type == "audio":
+		return "cue"
+	return ""
+
+func _media_label_for_type(event_type: String) -> String:
+	if event_type == "animation":
+		return "Animation"
+	if event_type == "vfx":
+		return "VFX"
+	if event_type == "audio":
+		return "Audio Cue"
+	return "Payload"
+
+func _media_default_for_type(event_type: String) -> String:
+	if event_type == "animation":
+		return SkillDefinition.DEFAULT_TIMELINE_ANIMATION
+	if event_type == "vfx":
+		if skill_draft != null and not skill_draft.visual.is_empty():
+			return skill_draft.visual
+		return SkillDefinition.DEFAULT_TIMELINE_VFX
+	if event_type == "audio":
+		return SkillDefinition.DEFAULT_TIMELINE_AUDIO_CUE
+	return ""
+
 func _normalize_timeline_event_payload(event: Dictionary) -> Dictionary:
 	var normalized: Dictionary = event.duplicate(true)
 	var event_type := str(normalized.get("type", "")).strip_edges().to_lower()
@@ -140,6 +190,16 @@ func _normalize_timeline_event_payload(event: Dictionary) -> Dictionary:
 		normalized["offset_depth"] = float(normalized.get("offset_depth", 0.0))
 	else:
 		for key in SPATIAL_TIMELINE_FIELDS:
+			normalized.erase(key)
+
+	if _is_media_timeline_type(event_type):
+		var active_field := _media_field_for_type(event_type)
+		for key in MEDIA_TIMELINE_FIELDS:
+			if key != active_field:
+				normalized.erase(key)
+		normalized[active_field] = str(normalized.get(active_field, _media_default_for_type(event_type))).strip_edges().to_lower()
+	else:
+		for key in MEDIA_TIMELINE_FIELDS:
 			normalized.erase(key)
 	return normalized
 
@@ -227,6 +287,16 @@ func _on_timeline_time_changed(value: float) -> void:
 func _on_timeline_duration_changed(value: float) -> void:
 	_update_selected_timeline_field("duration", value)
 
+func _on_timeline_media_value_changed(value: String) -> void:
+	var index := _selected_timeline_index()
+	if index < 0 or index >= skill_draft.timeline_events.size():
+		return
+	var event_type := str(skill_draft.timeline_events[index].get("type", ""))
+	var field := _media_field_for_type(event_type)
+	if field.is_empty():
+		return
+	_update_selected_timeline_field(field, value)
+
 func _on_timeline_half_width_changed(value: float) -> void:
 	_update_selected_timeline_field("half_width", value)
 
@@ -244,10 +314,15 @@ func _refresh_timeline_editor(select_index: int = -1) -> void:
 		return
 	timeline_event_list.clear()
 	for event in skill_draft.timeline_events:
-		var item_text := "%s · %s · %.2fs + %.2fs" % [event.get("id", ""), event.get("type", ""), float(event.get("time", 0.0)), float(event.get("duration", 0.0))]
-		if _is_spatial_timeline_type(str(event.get("type", ""))):
+		var event_type := str(event.get("type", ""))
+		var item_text := "%s · %s · %.2fs + %.2fs" % [event.get("id", ""), event_type, float(event.get("time", 0.0)), float(event.get("duration", 0.0))]
+		if _is_media_timeline_type(event_type):
+			var media_field := _media_field_for_type(event_type)
+			item_text += " · %s=%s" % [media_field, str(event.get(media_field, _media_default_for_type(event_type)))]
+		if _is_spatial_timeline_type(event_type):
 			item_text += " · %.1fx%.3f @ %.1f/%.3f" % [float(event.get("half_width", SkillDefinition.DEFAULT_TIMELINE_SPATIAL_HALF_WIDTH)), float(event.get("half_depth", SkillDefinition.DEFAULT_TIMELINE_SPATIAL_HALF_DEPTH)), float(event.get("offset_x", 0.0)), float(event.get("offset_depth", 0.0))]
 		timeline_event_list.add_item(item_text)
+	timeline_media_row.visible = false
 	timeline_spatial_row.visible = false
 	if select_index >= 0 and select_index < skill_draft.timeline_events.size():
 		timeline_event_list.select(select_index)
@@ -258,6 +333,13 @@ func _refresh_timeline_editor(select_index: int = -1) -> void:
 			timeline_type.select(type_index)
 		timeline_time.set_value_no_signal(float(event.get("time", 0.0)))
 		timeline_duration.set_value_no_signal(float(event.get("duration", 0.0)))
+		if _is_media_timeline_type(event_type):
+			var media_field := _media_field_for_type(event_type)
+			timeline_media_row.visible = true
+			timeline_media_name.text = _media_label_for_type(event_type)
+			timeline_media_value.set_block_signals(true)
+			timeline_media_value.text = str(event.get(media_field, _media_default_for_type(event_type)))
+			timeline_media_value.set_block_signals(false)
 		if _is_spatial_timeline_type(event_type):
 			timeline_spatial_row.visible = true
 			timeline_half_width.set_value_no_signal(float(event.get("half_width", SkillDefinition.DEFAULT_TIMELINE_SPATIAL_HALF_WIDTH)))
