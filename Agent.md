@@ -273,7 +273,7 @@ Production 預設：
 
 ## 20. Retry safety for mutating connectors
 
-- Read-only connector failures may be retried several times after correcting session, device, workspace, or request parameters。
+- Read-only connector failures may be retried several times after correcting session, device, workspace, or request parameters.
 - Mutating connector calls (for example Render environment updates/deploy triggers) must not be blindly replayed. After an uncertain result, first inspect current remote state before retrying.
 - If a mutation already succeeded, do not send the same mutation again merely to confirm it; use a read/status endpoint instead.
 - When repeated mutations accidentally occur, stop issuing writes, inspect the resulting deploy/action queue, keep only the latest valid operation in flight, and record the incident in `docs/LESSONS_LEARNED.md`.
