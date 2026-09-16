@@ -47,14 +47,21 @@ Work unit 2 was merged by PR #134 to `main` at `543510aef21663f6eb55f7b374d055b0
 - Reset/clear operations remove authored timeline state without affecting existing projectile defaults.
 - Creator draft tests cover valid animation/VFX/hitbox/audio event round-trip, deterministic order, deep-copy isolation, reset compatibility, unsorted-event rejection and arbitrary event-type rejection.
 
-Work unit 3 is synchronized on branch `feat/v2-1-timeline-editor-controls` and PR #135:
+Work unit 3 was merged by PR #135 to `main` at `1f4c167c02a11f390234cf8c4c589a53d0ec5012`; Main CI #293 (`35099330271`) completed successfully:
 - Creator Skill Editor exposes a Timeline panel with event list, safe event type selection, time/duration fields, add/remove, explicit up/down ordering and clear controls.
 - Event authoring mutates `SkillDraft.timeline_events`; `SkillDefinition` remains the authoritative validator and invalid chronological ordering fails closed instead of silently changing semantics.
 - Browser bridge exposes deterministic timeline add/remove/move/update/clear operations and publishes event count, validity, serialized event state and validation error state for regression testing.
 - `tests/creator_timeline_editor_web_smoke.mjs` covers empty V1-compatible startup, valid event authoring, invalid ordering detection/recovery, removal and clear.
 - The timeline browser regression is wired into `npm run smoke:all` so normal GitHub Chromium/Edge validation exercises it.
 
-V2-1 is not complete yet: spatial hitbox/hurtbox authoring, type-specific animation/VFX/audio payload controls, runtime event execution and Creator → Training timeline acceptance remain.
+Work unit 4 is synchronized on branch `feat/v2-1-spatial-hitbox-authoring` and PR #139:
+- `hitbox` and `hurtbox` timeline events now normalize safe spatial payloads: `half_width`, `half_depth`, `offset_x`, and normalized-arena `offset_depth`.
+- Spatial dimensions/offsets are bounded and fail closed when zero/negative or outside safe limits; older V2 spatial events that omitted these payload fields remain backwards compatible through safe defaults.
+- Creator Timeline exposes type-specific spatial controls only for hitbox/hurtbox events and removes stale spatial fields when an event changes back to a non-spatial type.
+- Creator draft/domain tests cover spatial round-trip, deep-copy isolation, backwards-compatible defaults, invalid dimensions and oversized offsets.
+- Browser regression covers hitbox/hurtbox authoring, invalid-dimension fail-closed recovery, stale-payload cleanup, deterministic ordering, removal and clear.
+
+V2-1 is not complete yet: type-specific animation/VFX/audio payload controls, runtime timeline event execution and Creator → Training timeline acceptance remain.
 
 ## V1 production acceptance checkpoint
 
@@ -92,4 +99,4 @@ AI VFX backend: `https://custom-fighter-ai-vfx.onrender.com`
 
 ## Next implementation target
 
-Validate PR #135 in GitHub CI. If it passes, merge the timeline editor controls checkpoint and then add type-specific timeline payload authoring, beginning with spatial hitbox/hurtbox dimensions/offsets while preserving V1 fallback and fail-closed validation.
+Validate PR #139 in GitHub CI. If it passes, merge the spatial hitbox/hurtbox authoring checkpoint, then add type-specific animation/VFX/audio timeline payload controls before runtime event execution and Creator → Training timeline acceptance.
