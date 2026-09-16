@@ -2,42 +2,45 @@
 
 ## Current phase
 
-**All planned roadmap phases are complete.**
+**V1/MVP is complete; V2 roadmap is now active.**
 
-Whole-project phase completion is now **100% (13/13 roadmap phases fully complete)**.
+- V1 completion remains **100% (13/13 phases complete)**.
+- V2 completion starts at **0% (0/8 phases complete)**.
+- Active V2 phase: **V2-1 Advanced Creator Timeline**.
 
-Roadmap:
+V1 roadmap:
 - M0–M8 MVP: 9/9 complete.
 - P1 Safe real-provider boundary: complete.
 - P2 Async remote AI transport: complete.
 - P3 Production AI provider/backend integration: complete.
-- P4 Image → skill proposal → Creator → Training production flow: **complete**.
+- P4 Image → skill proposal → Creator → Training production flow: complete.
 
-## P3 — Production provider/backend integration — 100%
+V2 roadmap is defined in `docs/V2_ROADMAP.md` and captures previously discussed/deferred capabilities outside the V1 acceptance boundary.
 
-P3 was accepted on 2026-09-16. Production Free Gemini E2E Run #4 (`35061328085`) passed real text and reference-PNG requests on exact revision `c5d36b7c9d6f7befa506d70798b0d00fef526e4e`, with Gemini 3.6 Flash, Free Tier guards, trusted Render credential isolation, structured VFX/skill output and deterministic Sharp PNG rendering. P3 has no remaining acceptance items.
+## V2 roadmap
 
-## P4 — Image → skill → Creator → Training — 100%
+1. V2-1 Advanced Creator Timeline — **in progress / 0% at roadmap activation**.
+2. V2-2 Extended Skill Families — pending.
+3. V2-3 Character Animation & Audio Authoring — pending.
+4. V2-4 AI Opponents & Single-player Gameplay — pending.
+5. V2-5 Game Modes, Balance & Competitive Foundation — pending.
+6. V2-6 Network PvP — pending.
+7. V2-7 Creator Sharing Ecosystem — pending.
+8. V2-8 Mobile Targets — pending.
 
-P4 is accepted on 2026-09-16. Production Free Gemini E2E Run #5 (`35075099182`) completed successfully on exact `main` revision `a572b0a3e60e377ae9152592c6d8c62e574a8554` after PR #130 and Main CI #281 deployed and validated that revision on GitHub Pages and Render.
+V2-1 includes visual event timeline authoring, startup/active/recovery timing, animation/VFX/audio events, hitbox/hurtbox timing and spatial editing, safe multi-event compositions, validation, and Creator → Training preview.
 
-Accepted production path:
-- deployed GitHub Pages VFX Creator opened in Chromium,
-- real in-memory PNG reference imported with a prompt,
-- trusted Render backend reported Gemini 3.6 Flash, Free Tier only, and exact revision `a572b0a3e60e377ae9152592c6d8c62e574a8554`,
-- real Gemini text-only generation passed,
-- real Gemini reference-image generation passed,
-- browser generation produced valid VFX plus a staged, unconfirmed `skill_proposal`,
-- Creator required explicit Confirm & Preview,
-- Training opened with the generated proposal applied,
-- Skill 1 was actually cast, consumed MP, hit the dummy and reduced dummy HP,
-- final marker: `PRODUCTION_CREATOR_GEMINI_E2E_PASSED provider=gemini revision=a572b0a3e60e377ae9152592c6d8c62e574a8554 reference=true proposal=true confirmPreview=true cast=true damage=18`.
+## V1 production acceptance checkpoint
 
-Run #5 also emitted `PRODUCTION_AI_PROVIDER_E2E_PASSED` for the same exact revision. P4 has no remaining acceptance items.
+P3 was accepted on 2026-09-16. Production Free Gemini E2E Run #4 (`35061328085`) passed real text and reference-PNG requests on exact revision `c5d36b7c9d6f7befa506d70798b0d00fef526e4e`, with Gemini 3.6 Flash, Free Tier guards, trusted Render credential isolation, structured VFX/skill output and deterministic Sharp PNG rendering.
+
+P4 was accepted on 2026-09-16. Production Free Gemini E2E Run #5 (`35075099182`) completed successfully on exact revision `a572b0a3e60e377ae9152592c6d8c62e574a8554` and emitted `PRODUCTION_CREATOR_GEMINI_E2E_PASSED provider=gemini revision=a572b0a3e60e377ae9152592c6d8c62e574a8554 reference=true proposal=true confirmPreview=true cast=true damage=18`.
+
+The V1 completion documentation was merged by PR #131; the V1 completion checkpoint on `main` is `ff744f643b37cc1947225ef4dbe052108d739a66`.
 
 ## Validation policy
 
-Validation is **100% online-only**. Formal project validation uses GitHub-hosted Godot/domain/backend tests, Web export, Chromium, GitHub-hosted Microsoft Edge, GitHub Pages, Render exact-revision readiness, production Edge smoke, and the manual real Gemini E2E when real provider quota is required.
+Validation is **100% online-only**. Formal project validation uses GitHub-hosted Godot/domain/backend tests, Web export, Chromium, GitHub-hosted Microsoft Edge, GitHub Pages, Render exact-revision readiness, production Edge smoke, and manual real Gemini E2E only when real provider quota is required.
 
 Do not use Remote Desktop Commander, the user's local machine, local Godot/npm/browser caches, or user-device storage for formal project validation or Git synchronization.
 
@@ -46,6 +49,8 @@ Do not use Remote Desktop Commander, the user's local machine, local Godot/npm/b
 Continue through all non-blocked implementation, regression, cloud validation, fixes, merge and documentation work for the active phase. Do not stop at a completed sub-job. If a required validation fails, inspect online evidence, fix it when permitted, and follow the replacement run through terminal state.
 
 Every reported completed code/test/doc/config work unit must already be synchronized to GitHub. Unsynchronized work cannot be counted as Done.
+
+V1 stays 100%. V2 progress is independent and advances only when V2 phase acceptance criteria are met and synchronized.
 
 ## Production links
 
@@ -57,6 +62,6 @@ VFX Creator: `https://ws951125.github.io/custom-fighter/?mode=vfx`
 
 AI VFX backend: `https://custom-fighter-ai-vfx.onrender.com`
 
-## Remaining roadmap
+## Next implementation target
 
-No planned roadmap phases remain. **13/13 phases are complete.** Future work is maintenance, regression hardening, UX/content expansion, or a newly defined roadmap rather than completion of the current roadmap.
+Begin V2-1 by auditing the existing SkillDefinition/event model, Creator Skill Editor, animation/VFX hooks, hitbox/hurtbox representation and Training preview bridge. Define the smallest backwards-compatible timeline schema before adding editor controls.
