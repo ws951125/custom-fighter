@@ -17,7 +17,7 @@ jobs:
     name: Real Production Free Gemini Acceptance
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
       - name: Require explicit free-tier-call confirmation
         shell: bash
@@ -49,3 +49,13 @@ jobs:
           EXPECTED_AI_PROVIDER: gemini
           EXPECTED_BACKEND_REVISION: ${{ github.sha }}
         run: node tests/production_ai_provider_e2e.mjs
+
+      - name: Install Chromium for Creator production acceptance
+        run: npx playwright install --with-deps chromium
+
+      - name: Run production Creator reference → Gemini → confirm → Training cast acceptance
+        env:
+          CUSTOM_FIGHTER_WEB_URL: https://ws951125.github.io/custom-fighter/
+          CUSTOM_FIGHTER_AI_BACKEND_URL: https://custom-fighter-ai-vfx.onrender.com
+          EXPECTED_BACKEND_REVISION: ${{ github.sha }}
+        run: node tests/production_creator_gemini_e2e.mjs
