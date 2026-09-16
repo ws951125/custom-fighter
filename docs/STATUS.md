@@ -61,18 +61,28 @@ Work unit 4 was merged by PR #139 to `main` at `c84e26f6967883a30fbf1ff0c3f548d2
 - Creator draft/domain tests cover spatial round-trip, deep-copy isolation, backwards-compatible defaults, invalid dimensions and oversized offsets.
 - Browser regression covers hitbox/hurtbox authoring, invalid-dimension fail-closed recovery, stale-payload cleanup, deterministic ordering, removal and clear.
 - Merge Main CI #307 (`35120183809`) passed Windows Native plus Godot/backend/Web/Chromium, but its hosted Windows Edge job timed out in unchanged `character_animation_web_smoke.mjs` while waiting for a short-lived animation observation; downstream production gates were skipped. No unrelated runtime code was changed solely for that isolated timeout, consistent with `docs/LESSONS_LEARNED.md` L-007.
-- Current `main` at `bb42d0aad815ebe41911f2cad82b779ae3748b25` subsequently completed Main CI #309 (`35122183786`) successfully across Godot/backend/Web/Chromium, Windows Native, hosted Microsoft Edge, GitHub Pages deployment/public reachability, Render production-backend readiness, and production Microsoft Edge full smoke. This is the current production validation checkpoint for the merged spatial timeline code.
+- `main` at `bb42d0aad815ebe41911f2cad82b779ae3748b25` subsequently completed Main CI #309 (`35122183786`) successfully across Godot/backend/Web/Chromium, Windows Native, hosted Microsoft Edge, GitHub Pages deployment/public reachability, Render production-backend readiness, and production Microsoft Edge full smoke.
 
-Work unit 5 is synchronized on branch `feat/v2-1-media-event-payload-authoring` and is awaiting PR CI:
-- `animation`, `vfx`, and `audio` timeline events now have type-specific declarative payloads: `animation`, `visual`, and `cue`.
+Work unit 5 was merged by PR #141 to `main` at `dfa9232a7746fce940a828b60826d3bfbf3b9382`; PR CI #310 (`35124462507`) and Main CI #311 (`35125601715`) completed successfully:
+- `animation`, `vfx`, and `audio` timeline events have type-specific declarative payloads: `animation`, `visual`, and `cue`.
 - Media payload values are normalized as safe lowercase reference tokens; path/URL/code-like values such as `../evil.gd`, remote URLs, and filesystem audio paths fail closed instead of becoming runtime references.
 - Older V2 media events that omit the new payload remain backwards compatible through safe defaults: `skill_1` for animation, the skill's validated root `visual` (or `projectile`) for VFX, and `skill_cast` for audio.
 - Cross-type payload cleanup is explicit: switching an event type removes stale media or spatial fields that no longer belong to that type.
 - Creator Timeline exposes a type-specific media payload editor for Animation, VFX, and Audio Cue while keeping the existing spatial controls for hitbox/hurtbox.
 - Creator draft/domain regressions cover media serialization, reload, deep-copy isolation, defaults, unsafe-value rejection, and stale-field cleanup.
 - Browser regression covers animation/VFX/audio authoring, unsafe media fail-closed recovery, media type switching, spatial-to-media cleanup, deterministic ordering, removal, and clear.
+- Main CI #311 validated the merged revision across Windows Native, Godot import/boot/domain/backend tests, Web export/size budget, Chromium, hosted Microsoft Edge, GitHub Pages deployment/public reachability, Render exact-revision readiness, and production Microsoft Edge full smoke.
 
-V2-1 is not complete yet: work unit 5 still requires GitHub PR/main validation and merge; after that, runtime timeline event execution and Creator → Training timeline acceptance remain.
+Work unit 6 is synchronized on branch `feat/v2-1-runtime-timeline-execution` and is awaiting PR CI:
+- `SkillTimelineRuntime` converts validated declarative timeline events into deterministic runtime start/end boundaries without evaluating code or loading arbitrary paths.
+- Time-zero events are emitted immediately when a cast starts; duration events track active windows and emit explicit end transitions; zero-duration events remain one-shot starts.
+- Boundary ordering is deterministic across frame hitches and large deltas. If one event ends exactly when another starts, the end transition is emitted first, then starts follow source order.
+- `SkillCastState` now owns the timeline scheduler. Legacy startup/active/recovery semantics remain intact, while a timeline that extends beyond those phases keeps the skill busy and blocks recast/coordinator release until its final boundary executes.
+- Runtime transition consumption is one-shot and deep-copied; active-event queries are read-only data views for future Training consumers.
+- Dedicated `skill_timeline_runtime_test_runner.gd` regression covers time-zero start, negative-delta safety, large-delta multi-boundary execution, same-time ordering, active windows, late events beyond legacy recovery, recast blocking, and no-timeline backwards compatibility.
+- CI is wired to run the dedicated runtime regression before browser/export gates.
+
+V2-1 is not complete yet: work unit 6 still requires PR/main online validation and merge. After that, Creator → Training must consume the runtime transitions for authored animation/VFX/audio/hitbox/hurtbox behavior and complete the deployed round-trip acceptance.
 
 ## V1 production acceptance checkpoint
 
@@ -120,4 +130,4 @@ AI VFX backend: `https://custom-fighter-ai-vfx.onrender.com`
 
 ## Next implementation target
 
-Validate and merge work unit 5 on `feat/v2-1-media-event-payload-authoring`. After its PR and production-main gates are green, implement safe runtime timeline event execution, then complete Creator → Training timeline round-trip acceptance for V2-1.
+Validate and merge work unit 6 on `feat/v2-1-runtime-timeline-execution`. After its PR and production-main gates are green, connect Creator-authored runtime timeline transitions to Training animation/VFX/audio/hitbox/hurtbox behavior and complete Creator → Training deployed acceptance for V2-1.
