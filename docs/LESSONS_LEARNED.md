@@ -26,14 +26,14 @@
 
 ## L-003 — Mutation tools must be selected by exact operation before writing GitHub state
 
-- **Date:** 2026-09-12; recurrence 2026-09-15
+- **Date:** 2026-09-12; recurrence 2026-09-15; recurrence 2026-09-16
 - **Area:** GitHub connector / repository operations
-- **Symptom:** 開始 M3 Slice 5 時，原本要建立 feature branch，卻誤觸 issue creation action，產生兩個不需要的 tracking issues (#47、#48)。2026-09-15 PR #125 文件同步時，又在原本要建立 pull request 的步驟誤觸 `create_file`，於 feature branch 暫時建立不需要的 `noop` 檔案。
-- **Root Cause:** 在多個 GitHub mutation actions 可用時，未在送出寫入前再次鎖定「操作類型 + 目標物件 + recipient」，造成 action selection 錯誤；本次 recurrence 是 resource discovery 後切換寫入工具時沒有做最後 recipient/schema 對照。
-- **Fix:** 初次事件立即將 #47 以 `not_planned` 關閉、#48 以 `duplicate` 關閉；本次 recurrence 則先讀取 `noop` blob SHA 並立即從同一 feature branch 刪除，再精確載入 `create_pull_request` schema 後建立 PR #125。未讓 accidental file 進入 `main`。
-- **Prevention Rule:** GitHub 寫入前先確認 mutation 類型、目標物件與 tool recipient 完全一致（issue / branch / file / PR）；若當前工具清單不明確，先做精確 resource discovery，送出前再做一次 recipient/schema final check。不要用測試性寫入確認工具能力。
-- **Validation:** #47、#48 均已關閉；PR #125 branch 對 `main` 的 compare 已確認 accidental `noop` 不在最終 diff，changed files 僅為 `Agent.md`、`docs/STATUS.md`、`docs/LESSONS_LEARNED.md`；PR #125 latest-head Run #270 全綠並合併為 `1a6c79fa81c9bd711079abf40009a728591b2237`，main Run #271 最終完整 production chain 亦通過。
-- **Status:** Verified
+- **Symptom:** 開始 M3 Slice 5 時，原本要建立 feature branch，卻誤觸 issue creation action，產生兩個不需要的 tracking issues (#47、#48)。2026-09-15 PR #125 文件同步時，又在原本要建立 pull request 的步驟誤觸 `create_file`，於 feature branch 暫時建立不需要的 `noop` 檔案。2026-09-16 Gemini 3.6 migration 準備開 PR 時，同類 recipient-selection 錯誤再次誤觸 `create_file`，在 `fix/gemini-3-6-flash` 暫時建立 `noop_should_not_create`。
+- **Root Cause:** 在多個 GitHub mutation actions 可用時，未在送出寫入前再次鎖定「操作類型 + 目標物件 + recipient」，造成 action selection 錯誤；recurrence 都發生在 resource discovery 後切換寫入 recipient 時沒有做最後 schema/recipient 對照。
+- **Fix:** 初次事件立即將 #47 以 `not_planned` 關閉、#48 以 `duplicate` 關閉；2026-09-15 recurrence 立即刪除 `noop`。2026-09-16 recurrence 先讀取 accidental file 的 blob SHA `e69de29b...`，再用 `delete_file` 從同一 feature branch 刪除；未讓任何 accidental file 進入 `main`。
+- **Prevention Rule:** GitHub 寫入前必須先確認 mutation 類型、目標物件與 tool recipient 完全一致（issue / branch / file / PR），並在送出前做一次 recipient/schema final check。特別是在剛做過 tool discovery 或 recipient 切換後，不得依操作慣性送出；不要用測試性寫入確認工具能力。
+- **Validation:** #47、#48 均已關閉；PR #125 accidental `noop` 未進最終 diff；2026-09-16 `noop_should_not_create` 已於 branch 上立即刪除。Gemini 3.6 branch 必須在開 PR 前再次 compare `main...fix/gemini-3-6-flash`，確認最終 changed files 僅包含預期 runtime/tests/docs。
+- **Status:** Recurrence cleaned before PR; final branch diff re-check pending
 
 ## L-004 — Transient browser diagnostics must be distinguished from runtime state evidence
 
