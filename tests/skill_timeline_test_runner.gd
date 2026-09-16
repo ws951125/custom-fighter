@@ -10,8 +10,10 @@ func _init() -> void:
 func _run() -> void:
 	_test_legacy_skill_has_no_timeline()
 	_test_valid_timeline()
+	_test_media_defaults_remain_backwards_compatible()
 	_test_spatial_defaults_remain_backwards_compatible()
 	_test_invalid_timeline()
+	_test_invalid_media_payloads()
 	_test_invalid_spatial_payloads()
 	if failures == 0:
 		print("SKILL_TIMELINE_TESTS_PASSED")
@@ -65,11 +67,39 @@ func _test_valid_timeline() -> void:
 	_check(errors.is_empty(), "valid timeline loads: %s" % ", ".join(errors))
 	_check(skill.loaded and skill.has_timeline(), "timeline marks skill loaded and timeline-present")
 	_check(skill.timeline_events.size() == 5, "timeline preserves all events")
+	_check(str(skill.timeline_events[0].get("animation", "")) == "skill_1", "animation payload is preserved")
+	_check(str(skill.timeline_events[1].get("visual", "")) == "projectile", "VFX payload is preserved")
+	_check(str(skill.timeline_events[3].get("cue", "")) == "skill_cast", "audio cue payload is preserved")
 	_check(skill.timeline_events[2]["id"] == "hit_window", "timeline preserves deterministic event order")
 	_check(is_equal_approx(float(skill.timeline_events[2].get("half_width", 0.0)), 32.0), "hitbox half width is preserved")
 	_check(is_equal_approx(float(skill.timeline_events[2].get("offset_x", 0.0)), 16.0), "hitbox horizontal offset is preserved")
 	_check(is_equal_approx(float(skill.timeline_events[4].get("offset_depth", 0.0)), 0.03), "hurtbox depth offset is preserved")
 	_check(is_equal_approx(skill.total_timeline_duration(), 0.7), "timeline duration includes latest event end")
+
+func _test_media_defaults_remain_backwards_compatible() -> void:
+	var data := _base_skill()
+	data["timeline"] = {
+		"schema_version": 1,
+		"events": [
+			{"id": "legacy_anim", "type": "animation", "time": 0.0, "duration": 0.1},
+			{"id": "legacy_vfx", "type": "vfx", "time": 0.1, "duration": 0.0},
+			{"id": "legacy_audio", "type": "audio", "time": 0.1, "duration": 0.0}
+		]
+	}
+	var skill := SkillDefinition.new()
+	var errors := skill.load_from_dictionary(data)
+	_check(errors.is_empty() and skill.loaded, "pre-media-payload V2 timeline events remain valid")
+	_check(str(skill.timeline_events[0].get("animation", "")) == SkillDefinition.DEFAULT_TIMELINE_ANIMATION, "missing animation payload receives safe default")
+	_check(str(skill.timeline_events[1].get("visual", "")) == "projectile", "missing VFX payload inherits safe skill visual")
+	_check(str(skill.timeline_events[2].get("cue", "")) == SkillDefinition.DEFAULT_TIMELINE_AUDIO_CUE, "missing audio payload receives safe default")
+
+	var stale := _base_skill()
+	stale["timeline"] = {"schema_version": 1, "events": [{"id": "clean", "type": "animation", "time": 0.0, "animation": "skill_2", "visual": "projectile", "cue": "skill_cast", "half_width": 99.0}]}
+	var stale_skill := SkillDefinition.new()
+	var stale_errors := stale_skill.load_from_dictionary(stale)
+	_check(stale_errors.is_empty(), "known stale cross-type payload fields are normalized safely")
+	var normalized: Dictionary = stale_skill.timeline_events[0]
+	_check(normalized.has("animation") and not normalized.has("visual") and not normalized.has("cue") and not normalized.has("half_width"), "cross-type payload fields are removed")
 
 func _test_spatial_defaults_remain_backwards_compatible() -> void:
 	var data := _base_skill()
@@ -124,6 +154,26 @@ func _test_invalid_timeline() -> void:
 	var bad_version_skill := SkillDefinition.new()
 	var bad_version_errors := bad_version_skill.load_from_dictionary(bad_version)
 	_check(not bad_version_errors.is_empty() and not bad_version_skill.loaded, "unsupported timeline schema version is rejected")
+
+func _test_invalid_media_payloads() -> void:
+	var bad_animation := _base_skill()
+	bad_animation["timeline"] = {"schema_version": 1, "events": [{"id": "bad_anim", "type": "animation", "time": 0.0, "animation": "../evil.gd"}]}
+	var animation_skill := SkillDefinition.new()
+	var animation_errors := animation_skill.load_from_dictionary(bad_animation)
+	_check(_contains_error(animation_errors, "animation must be a safe lowercase token"), "animation paths fail closed")
+	_check(not animation_skill.loaded, "invalid animation payload prevents loading")
+
+	var bad_vfx := _base_skill()
+	bad_vfx["timeline"] = {"schema_version": 1, "events": [{"id": "bad_vfx", "type": "vfx", "time": 0.0, "visual": "https://example.com/vfx"}]}
+	var vfx_skill := SkillDefinition.new()
+	var vfx_errors := vfx_skill.load_from_dictionary(bad_vfx)
+	_check(_contains_error(vfx_errors, "visual must be a safe lowercase token"), "VFX URLs fail closed")
+
+	var bad_audio := _base_skill()
+	bad_audio["timeline"] = {"schema_version": 1, "events": [{"id": "bad_audio", "type": "audio", "time": 0.0, "cue": "../../sound.wav"}]}
+	var audio_skill := SkillDefinition.new()
+	var audio_errors := audio_skill.load_from_dictionary(bad_audio)
+	_check(_contains_error(audio_errors, "cue must be a safe lowercase token"), "audio paths fail closed")
 
 func _test_invalid_spatial_payloads() -> void:
 	var bad_width := _base_skill()
