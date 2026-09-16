@@ -51,6 +51,18 @@ If chat/checkpoint information conflicts with GitHub, GitHub/repository state wi
 - If a work unit has merged, re-check actual `main` merge SHA before reporting it.
 - Distinguish “synchronized to GitHub” from “deployed/production-validated”.
 
+### Response Gate — mandatory GitHub synchronization before reporting
+
+Before every reply that reports project progress, completed work, fixes, test results, or a checkpoint, perform a Response Gate. This gate strengthens the synchronization rules above and applies equally to code, tests, configuration, documentation, and `AGENTS.md` changes.
+
+1. Determine whether the current work round contains project changes that should be committed. Never commit disposable temp files, build caches, dependencies, browser profiles, test output, generated caches, or other ignored/non-source artifacts merely to satisfy this gate.
+2. If there are project changes, complete the minimum necessary applicable validation first, then commit them to the active formal feature branch and push them to the repository's authoritative GitHub remote before reporting them as complete.
+3. After the push, re-read the authoritative GitHub branch ref and, when a PR exists, its head SHA. The branch head must equal the commit being reported, and the PR head must equal that same latest pushed branch head.
+4. Because this repository's GitHub-only hard rule prohibits access to the user's local computer, local `git status`, local `HEAD`, `HEAD...origin/<current-branch>`, PowerShell, and local working-tree checks must not be executed for this repository. Their Response Gate purpose is satisfied here by authoritative GitHub branch/commit/PR verification. If an authorized cloud workspace with an actual Git checkout is used in the future without weakening section 4, also require clean intended changes, `Local HEAD = origin/<current-branch>`, and `git rev-list --left-right --count HEAD...origin/<current-branch>` = `0 0`; on Windows PowerShell prefer explicit `origin/<current-branch>` rather than `@{upstream}`.
+5. Do not report a work round as complete if the authoritative GitHub branch/PR does not contain its intended changes. First repair synchronization, or explicitly report `尚未同步 GitHub` with the blocker.
+6. If the user explicitly instructs the Agent not to commit or not to push for that round, obey that instruction and explicitly report that the work is not synchronized to GitHub; do not label local-only/unpushed work complete.
+7. This Response Gate does not replace or weaken testing, Playwright/browser validation, cleanup, PR, merge, deployment, authorization, security, or any other existing rule. Required final validation gates remain required.
+
 ## 4. GitHub-only / online-only hard rule
 
 All engineering validation and project Git synchronization for `custom-fighter` are online-only. Do not connect to, execute commands on, inspect, modify, build, test, debug, or synchronize this project through the user's local computer.
