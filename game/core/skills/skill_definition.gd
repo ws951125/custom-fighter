@@ -5,8 +5,15 @@ const SUPPORTED_TYPES = ["melee", "projectile", "area", "dash", "formation", "bu
 const CURRENT_SCHEMA_VERSION := 1
 const TIMELINE_SCHEMA_VERSION := 1
 const SUPPORTED_TIMELINE_EVENT_TYPES := ["animation", "vfx", "audio", "hitbox", "hurtbox"]
+const TIMELINE_SPATIAL_EVENT_TYPES := ["hitbox", "hurtbox"]
 const MAX_TIMELINE_EVENTS := 64
 const MAX_TIMELINE_SECONDS := 30.0
+const DEFAULT_TIMELINE_SPATIAL_HALF_WIDTH := 24.0
+const DEFAULT_TIMELINE_SPATIAL_HALF_DEPTH := 0.08
+const MAX_TIMELINE_SPATIAL_HALF_WIDTH := 4096.0
+const MAX_TIMELINE_SPATIAL_HALF_DEPTH := 1.0
+const MAX_TIMELINE_SPATIAL_OFFSET_X := 4096.0
+const MAX_TIMELINE_SPATIAL_OFFSET_DEPTH := 1.0
 
 var schema_version := CURRENT_SCHEMA_VERSION
 var skill_id := ""
@@ -189,7 +196,28 @@ func _load_timeline(data: Dictionary, errors: PackedStringArray) -> void:
 		event["type"] = event_type
 		event["time"] = event_time
 		event["duration"] = event_duration
+		_normalize_timeline_spatial_payload(event, event_id, event_type, errors)
 		timeline_events.append(event)
+
+func _normalize_timeline_spatial_payload(event: Dictionary, event_id: String, event_type: String, errors: PackedStringArray) -> void:
+	if not TIMELINE_SPATIAL_EVENT_TYPES.has(event_type):
+		return
+	var half_width := float(event.get("half_width", DEFAULT_TIMELINE_SPATIAL_HALF_WIDTH))
+	var half_depth := float(event.get("half_depth", DEFAULT_TIMELINE_SPATIAL_HALF_DEPTH))
+	var offset_x := float(event.get("offset_x", 0.0))
+	var offset_depth := float(event.get("offset_depth", 0.0))
+	if half_width <= 0.0 or half_width > MAX_TIMELINE_SPATIAL_HALF_WIDTH:
+		errors.append("timeline event %s half_width must be > 0 and <= %.0f" % [event_id, MAX_TIMELINE_SPATIAL_HALF_WIDTH])
+	if half_depth <= 0.0 or half_depth > MAX_TIMELINE_SPATIAL_HALF_DEPTH:
+		errors.append("timeline event %s half_depth must be > 0 and <= %.2f" % [event_id, MAX_TIMELINE_SPATIAL_HALF_DEPTH])
+	if absf(offset_x) > MAX_TIMELINE_SPATIAL_OFFSET_X:
+		errors.append("timeline event %s offset_x exceeds safe spatial limit" % event_id)
+	if absf(offset_depth) > MAX_TIMELINE_SPATIAL_OFFSET_DEPTH:
+		errors.append("timeline event %s offset_depth exceeds safe spatial limit" % event_id)
+	event["half_width"] = half_width
+	event["half_depth"] = half_depth
+	event["offset_x"] = offset_x
+	event["offset_depth"] = offset_depth
 
 func _validate_melee_skill(errors: PackedStringArray) -> void:
 	if range <= 0.0:
