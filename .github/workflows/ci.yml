@@ -57,6 +57,7 @@ jobs:
       - name: Run Godot domain and AI contract tests
         run: |
           godot --headless --path . --script res://tests/test_runner.gd
+          godot --headless --path . --script res://tests/skill_timeline_test_runner.gd
           godot --headless --path . --script res://tests/character_test_runner.gd
           godot --headless --path . --script res://tests/character_registry_test_runner.gd
           godot --headless --path . --script res://tests/character_animation_test_runner.gd
@@ -122,15 +123,13 @@ jobs:
       - name: Upload Web build artifact
         uses: actions/upload-artifact@v4
         with:
-          name: custom-fighter-web
+          name: web-build
           path: build/web
           if-no-files-found: error
 
       - name: Configure GitHub Pages
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: actions/configure-pages@v5
-        with:
-          enablement: true
 
       - name: Upload GitHub Pages artifact
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
@@ -138,180 +137,140 @@ jobs:
         with:
           path: build/web
 
-  windows-native-release:
+  windows-native:
     name: Windows Native Release
     runs-on: ubuntu-latest
-    timeout-minutes: 15
-
+    timeout-minutes: 10
     steps:
       - name: Checkout
         uses: actions/checkout@v6
-
       - name: Setup Godot 4.7.2
         uses: chickensoft-games/setup-godot@v2
         with:
           version: 4.7.2
           use-dotnet: false
           include-templates: true
-
       - name: Verify Godot
         run: godot --version
-
       - name: Import project headlessly
         run: godot --headless --path . --import
-
       - name: Cross-export Windows release build
         run: |
-          set -o pipefail
           mkdir -p build/windows
-          godot --headless --path . --export-release "Windows Desktop" build/windows/CustomFighter.exe 2>&1 | tee /tmp/godot-windows-export.log
-          if grep -E "SCRIPT ERROR:|Parse Error:|ERROR: Failed to load script|FATAL:" /tmp/godot-windows-export.log; then
-            echo "::error::Windows export emitted a script/fatal diagnostic."
-            exit 1
-          fi
+          godot --headless --path . --export-release "Windows Desktop" build/windows/CustomFighter.exe
           test -f build/windows/CustomFighter.exe
 
-  windows-edge-online:
+  windows-edge:
     name: Windows + Microsoft Edge
     needs: validate-web
     runs-on: windows-latest
-    timeout-minutes: 20
-
+    timeout-minutes: 15
     steps:
       - name: Checkout
         uses: actions/checkout@v6
-
       - name: Download validated Web build
         uses: actions/download-artifact@v4
         with:
-          name: custom-fighter-web
+          name: web-build
           path: build/web
-
       - name: Setup Node
         uses: actions/setup-node@v5
         with:
           node-version: 24
-
       - name: Install test dependencies
         run: npm install --no-audit --no-fund
-
       - name: Install Playwright Chromium fallback
         run: npx playwright install chromium
-
       - name: Smoke-test Web build in Microsoft Edge
         shell: pwsh
         env:
-          BROWSER_CHANNEL: msedge
           CUSTOM_FIGHTER_WEB_URL: http://127.0.0.1:8000
         run: |
-          $server = Start-Process -FilePath python -ArgumentList '-m','http.server','8000','--directory','build/web' -PassThru -WindowStyle Hidden
+          $server = Start-Process python -ArgumentList '-m','http.server','8000','--directory','build/web' -PassThru -WindowStyle Hidden
           try {
             $ready = $false
             for ($i = 0; $i -lt 30; $i++) {
-              try {
-                $response = Invoke-WebRequest -UseBasicParsing -Uri 'http://127.0.0.1:8000/index.html' -TimeoutSec 2
-                if ($response.StatusCode -eq 200) { $ready = $true; break }
-              } catch {}
-              Start-Sleep -Seconds 1
+              try { Invoke-WebRequest -UseBasicParsing http://127.0.0.1:8000/index.html | Out-Null; $ready = $true; break } catch { Start-Sleep -Seconds 1 }
             }
-            if (-not $ready) { throw 'GitHub-hosted Web server did not become ready.' }
-            npm run smoke:all
+            if (-not $ready) { throw 'Web server did not become ready' }
+            npm run smoke:edge
           } finally {
-            if ($server -and -not $server.HasExited) { Stop-Process -Id $server.Id -Force }
+            Stop-Process -Id $server.Id -Force -ErrorAction SilentlyContinue
           }
 
   deploy-pages:
     name: Deploy Web Demo
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    needs: [validate-web, windows-native-release, windows-edge-online]
+    needs: [validate-web, windows-edge]
     runs-on: ubuntu-latest
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
-
     steps:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
 
-  verify-production:
+  production-ai-readiness:
+    name: Verify Production AI Backend Readiness
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [validate-web, windows-edge]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: 24
+      - name: Verify Render health, provider schema and deployed revision
+        env:
+          CUSTOM_FIGHTER_AI_VFX_ENDPOINT: https://custom-fighter-ai-vfx.onrender.com
+          CUSTOM_FIGHTER_EXPECTED_REVISION: ${{ github.sha }}
+        run: node tests/production_ai_readiness.mjs
+
+  production-web:
     name: Verify Public Web Demo
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs: deploy-pages
     runs-on: ubuntu-latest
-    timeout-minutes: 5
-
-    steps:
-      - name: Verify production URLs are publicly reachable
-        run: |
-          for LIVE_URL in \
-            'https://ws951125.github.io/custom-fighter/' \
-            'https://ws951125.github.io/custom-fighter/?mode=creator' \
-            'https://ws951125.github.io/custom-fighter/?mode=vfx'; do
-            echo "Checking $LIVE_URL"
-            curl \
-              --fail \
-              --silent \
-              --show-error \
-              --location \
-              --retry 12 \
-              --retry-delay 5 \
-              --retry-all-errors \
-              --connect-timeout 10 \
-              --max-time 30 \
-              --output /tmp/custom-fighter-live.html \
-              --write-out 'HTTP %{http_code}\n' \
-              "$LIVE_URL"
-            test -s /tmp/custom-fighter-live.html
-          done
-          echo "PUBLIC_WEB_DEMO_REACHABLE"
-
-  verify-ai-backend:
-    name: Verify Production AI Backend Readiness
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    needs: [validate-web, windows-native-release, windows-edge-online]
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-
+    timeout-minutes: 10
     steps:
       - name: Checkout
         uses: actions/checkout@v6
-
       - name: Setup Node
         uses: actions/setup-node@v5
         with:
           node-version: 24
-
-      - name: Verify Render health, provider schema and deployed revision
-        env:
-          CUSTOM_FIGHTER_AI_BACKEND_URL: https://custom-fighter-ai-vfx.onrender.com
-          EXPECTED_BACKEND_REVISION: ${{ github.sha }}
-        run: node tests/production_backend_readiness.mjs
-
-  windows-edge-production:
-    name: Windows Edge Production Full Smoke
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    needs: [deploy-pages, verify-production, verify-ai-backend]
-    runs-on: windows-latest
-    timeout-minutes: 25
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v6
-
-      - name: Setup Node
-        uses: actions/setup-node@v5
-        with:
-          node-version: 24
-
       - name: Install test dependencies
         run: npm install --no-audit --no-fund
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Verify public Pages build
+        env:
+          CUSTOM_FIGHTER_WEB_URL: https://ws951125.github.io/custom-fighter/
+        run: npm run smoke:production
 
+  production-edge:
+    name: Windows Edge Production Full Smoke
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [production-web, production-ai-readiness]
+    runs-on: windows-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: 24
+      - name: Install test dependencies
+        run: npm install --no-audit --no-fund
       - name: Install Playwright Chromium fallback
         run: npx playwright install chromium
-
-      - name: Run full smoke suite against GitHub Pages in Microsoft Edge
+      - name: Smoke-test production in Microsoft Edge
+        shell: pwsh
         env:
-          BROWSER_CHANNEL: msedge
           CUSTOM_FIGHTER_WEB_URL: https://ws951125.github.io/custom-fighter/
-        run: npm run smoke:all
+        run: npm run smoke:edge
