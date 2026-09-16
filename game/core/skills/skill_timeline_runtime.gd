@@ -57,7 +57,7 @@ func consume_transitions() -> Array[Dictionary]:
 func is_event_active(event_id: String) -> bool:
 	return _active_events.has(event_id)
 
-func active_events(event_type := "") -> Array[Dictionary]:
+func active_events(event_type: String = "") -> Array[Dictionary]:
 	var events: Array[Dictionary] = []
 	if definition == null:
 		return events
@@ -118,7 +118,8 @@ func _emit_due_boundaries(target_time: float) -> void:
 		_next_boundary_index += 1
 
 func _emit_boundary(boundary: Dictionary) -> void:
-	var event: Dictionary = boundary.get("event", {}).duplicate(true)
+	var raw_event: Variant = boundary.get("event", {})
+	var event: Dictionary = raw_event.duplicate(true) if raw_event is Dictionary else {}
 	var event_id := str(event.get("id", ""))
 	var phase_name := str(boundary.get("phase", ""))
 	var duration := float(event.get("duration", 0.0))
