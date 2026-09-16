@@ -299,6 +299,8 @@ func _set_web_state() -> void:
 	var timeline_hitboxes: Array[Dictionary] = fireball_cast_state.active_timeline_events("hitbox") if preview_active else []
 	var timeline_hurtboxes: Array[Dictionary] = fireball_cast_state.active_timeline_events("hurtbox") if preview_active else []
 	var timeline_vfx_active := not timeline_vfx_events.is_empty() or preview_timeline_vfx_pulse_remaining > 0.0
+	var timeline_hitboxes_json := JSON.stringify(timeline_hitboxes)
+	var timeline_hurtboxes_json := JSON.stringify(timeline_hurtboxes)
 	JavaScriptBridge.eval(
 		"document.documentElement.dataset.playerCharacterAnimationMap=%s;" % JSON.stringify(player_character.animation_map) +
 		"document.documentElement.dataset.playerAnimationMapLoaded='%s';" % _bool_text(player_animation_map.loaded) +
@@ -329,6 +331,6 @@ func _set_web_state() -> void:
 		"document.documentElement.dataset.creatorPreviewTimelineAudioEventCount='%d';" % preview_timeline_audio_event_count +
 		"document.documentElement.dataset.creatorPreviewTimelineHitboxActiveCount='%d';" % timeline_hitboxes.size() +
 		"document.documentElement.dataset.creatorPreviewTimelineHurtboxActiveCount='%d';" % timeline_hurtboxes.size() +
-		"document.documentElement.dataset.creatorPreviewTimelineHitboxes=%s;" % JSON.stringify(timeline_hitboxes) +
-		"document.documentElement.dataset.creatorPreviewTimelineHurtboxes=%s;" % JSON.stringify(timeline_hurtboxes)
+		"document.documentElement.dataset.creatorPreviewTimelineHitboxes=%s;" % JSON.stringify(timeline_hitboxes_json) +
+		"document.documentElement.dataset.creatorPreviewTimelineHurtboxes=%s;" % JSON.stringify(timeline_hurtboxes_json)
 	)
