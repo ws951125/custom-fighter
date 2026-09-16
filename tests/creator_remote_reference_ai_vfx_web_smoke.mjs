@@ -28,7 +28,7 @@ try {
         body: JSON.stringify({
           ok: true,
           service: 'custom-fighter-ai-vfx',
-          ai: { configured: true, provider: 'gemini', model: 'gemini-2.5-flash', billing_mode: 'free-tier-only' },
+          ai: { configured: true, provider: 'gemini', model: 'gemini-3.6-flash', billing_mode: 'free-tier-only' },
         }),
       });
       return;
