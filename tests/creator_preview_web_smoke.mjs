@@ -21,9 +21,12 @@ try {
       document.documentElement.dataset.appMode === 'creator' &&
       document.documentElement.dataset.creatorStudioReady === 'true' &&
       document.documentElement.dataset.creatorPreviewReady === 'true' &&
+      document.documentElement.dataset.creatorTimelineReady === 'true' &&
       typeof window.customFighterCreatorPreview === 'function' &&
       typeof window.customFighterCreatorSetSkillMpCost === 'function' &&
-      typeof window.customFighterCreatorSetSkillCooldown === 'function',
+      typeof window.customFighterCreatorSetSkillCooldown === 'function' &&
+      typeof window.customFighterCreatorTimelineAdd === 'function' &&
+      typeof window.customFighterCreatorTimelineClear === 'function',
     null,
     { timeout: 60_000 },
   );
@@ -52,6 +55,24 @@ try {
     window.customFighterCreatorSetSkillDamage(33);
     window.customFighterCreatorSetSkillMpCost(17);
     window.customFighterCreatorSetSkillCooldown(2.4);
+    window.customFighterCreatorTimelineClear();
+    window.customFighterCreatorTimelineAdd(JSON.stringify({
+      type: 'animation', time: 0.0, duration: 1.2, animation: 'skill_3',
+    }));
+    window.customFighterCreatorTimelineAdd(JSON.stringify({
+      type: 'vfx', time: 0.1, duration: 1.0, visual: 'prototype_impact',
+    }));
+    window.customFighterCreatorTimelineAdd(JSON.stringify({
+      type: 'hitbox', time: 0.2, duration: 0.9,
+      half_width: 40, half_depth: 0.12, offset_x: 24, offset_depth: -0.02,
+    }));
+    window.customFighterCreatorTimelineAdd(JSON.stringify({
+      type: 'audio', time: 0.3, duration: 0.0, cue: 'skill_cast',
+    }));
+    window.customFighterCreatorTimelineAdd(JSON.stringify({
+      type: 'hurtbox', time: 0.4, duration: 0.7,
+      half_width: 22, half_depth: 0.09, offset_x: -6, offset_depth: 0.03,
+    }));
   });
   await page.waitForFunction(
     () =>
@@ -63,6 +84,8 @@ try {
       document.documentElement.dataset.creatorSkillDraftDamage === '33' &&
       document.documentElement.dataset.creatorSkillDraftMpCost === '17' &&
       Math.abs(Number(document.documentElement.dataset.creatorSkillDraftCooldown) - 2.4) < 0.001 &&
+      document.documentElement.dataset.creatorTimelineCount === '5' &&
+      document.documentElement.dataset.creatorTimelineValid === 'true' &&
       document.documentElement.dataset.creatorPreviewCanLaunch === 'true',
     null,
     { timeout: 5_000 },
@@ -94,11 +117,47 @@ try {
     { timeout: 3_000 },
   );
   await page.keyboard.up('u');
+
+  await page.waitForFunction(
+    () =>
+      document.documentElement.dataset.creatorPreviewTimelineRunning === 'true' &&
+      Number(document.documentElement.dataset.creatorPreviewTimelineTransitionCount ?? '0') >= 5 &&
+      document.documentElement.dataset.creatorPreviewTimelineAnimationSemantic === 'skill_3' &&
+      document.documentElement.dataset.playerAnimationSemantic === 'skill_3' &&
+      document.documentElement.dataset.creatorPreviewTimelineLastVfx === 'prototype_impact' &&
+      document.documentElement.dataset.creatorPreviewTimelineVfxActive === 'true' &&
+      document.documentElement.dataset.creatorPreviewTimelineLastAudioCue === 'skill_cast' &&
+      Number(document.documentElement.dataset.creatorPreviewTimelineAudioEventCount ?? '0') >= 1 &&
+      Number(document.documentElement.dataset.creatorPreviewTimelineHitboxActiveCount ?? '0') >= 1 &&
+      Number(document.documentElement.dataset.creatorPreviewTimelineHurtboxActiveCount ?? '0') >= 1,
+    null,
+    { timeout: 5_000 },
+  );
+
+  const runtimeHitboxes = JSON.parse(await page.evaluate(() => document.documentElement.dataset.creatorPreviewTimelineHitboxes ?? '[]'));
+  const runtimeHurtboxes = JSON.parse(await page.evaluate(() => document.documentElement.dataset.creatorPreviewTimelineHurtboxes ?? '[]'));
+  if (Number(runtimeHitboxes[0]?.half_width) !== 40 || Number(runtimeHitboxes[0]?.offset_x) !== 24) {
+    throw new Error(`Training hitbox spatial payload mismatch: ${JSON.stringify(runtimeHitboxes)}`);
+  }
+  if (Number(runtimeHurtboxes[0]?.half_depth) !== 0.09 || Number(runtimeHurtboxes[0]?.offset_depth) !== 0.03) {
+    throw new Error(`Training hurtbox spatial payload mismatch: ${JSON.stringify(runtimeHurtboxes)}`);
+  }
+
   await page.waitForFunction(
     () =>
       Number(document.documentElement.dataset.dummyHp) === 67 &&
       document.documentElement.dataset.lastSkillHit === 'true' &&
       Number(document.documentElement.dataset.skillHitCount) >= 1,
+    null,
+    { timeout: 5_000 },
+  );
+
+  await page.waitForFunction(
+    () =>
+      document.documentElement.dataset.creatorPreviewTimelineRunning === 'false' &&
+      Number(document.documentElement.dataset.creatorPreviewTimelineTransitionCount ?? '0') >= 9 &&
+      Number(document.documentElement.dataset.creatorPreviewTimelineHitboxActiveCount ?? '-1') === 0 &&
+      Number(document.documentElement.dataset.creatorPreviewTimelineHurtboxActiveCount ?? '-1') === 0,
     null,
     { timeout: 5_000 },
   );
@@ -113,12 +172,14 @@ try {
       document.documentElement.dataset.creatorSkillDraftName === 'Nova Bolt' &&
       document.documentElement.dataset.creatorSkillDraftDamage === '33' &&
       document.documentElement.dataset.creatorSkillDraftMpCost === '17' &&
-      Math.abs(Number(document.documentElement.dataset.creatorSkillDraftCooldown) - 2.4) < 0.001,
+      Math.abs(Number(document.documentElement.dataset.creatorSkillDraftCooldown) - 2.4) < 0.001 &&
+      document.documentElement.dataset.creatorTimelineCount === '5' &&
+      document.documentElement.dataset.creatorTimelineValid === 'true',
     null,
     { timeout: 10_000 },
   );
 
-  console.log('WEB_CREATOR_PREVIEW_SMOKE_PASSED invalidBlocked=true authoredHp=180 authoredDamage=33 authoredMpCost=17 authoredCooldown=2.4 cast=true draftsRestored=true');
+  console.log('WEB_CREATOR_PREVIEW_SMOKE_PASSED invalidBlocked=true authoredHp=180 authoredDamage=33 authoredMpCost=17 authoredCooldown=2.4 timelineRoundTrip=true animationTiming=true vfxTiming=true audioTiming=true spatialHitbox=true spatialHurtbox=true cast=true draftsRestored=true');
   await page.close();
 } finally {
   await browser.close();
