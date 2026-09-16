@@ -2,51 +2,38 @@
 
 ## Current phase
 
-**Post-MVP P4 Image → skill → Creator → Training production acceptance is in progress.**
+**All planned roadmap phases are complete.**
 
-Whole-project phase completion is now **92.3% (12/13 roadmap phases fully complete)**.
+Whole-project phase completion is now **100% (13/13 roadmap phases fully complete)**.
 
 Roadmap:
 - M0–M8 MVP: 9/9 complete.
 - P1 Safe real-provider boundary: complete.
 - P2 Async remote AI transport: complete.
-- P3 Production AI provider/backend integration: **complete**.
-- P4 Image → skill proposal → Creator → Training production flow: in progress.
+- P3 Production AI provider/backend integration: complete.
+- P4 Image → skill proposal → Creator → Training production flow: **complete**.
 
 ## P3 — Production provider/backend integration — 100%
 
-P3 is accepted on 2026-09-16. Production Free Gemini E2E Run #4 (`35061328085`) passed real text and reference-PNG requests on exact revision `c5d36b7c9d6f7befa506d70798b0d00fef526e4e`, with Gemini 3.6 Flash, Free Tier guards, trusted Render credential isolation, structured VFX/skill output and deterministic Sharp PNG rendering. P3 has no remaining acceptance items.
+P3 was accepted on 2026-09-16. Production Free Gemini E2E Run #4 (`35061328085`) passed real text and reference-PNG requests on exact revision `c5d36b7c9d6f7befa506d70798b0d00fef526e4e`, with Gemini 3.6 Flash, Free Tier guards, trusted Render credential isolation, structured VFX/skill output and deterministic Sharp PNG rendering. P3 has no remaining acceptance items.
 
-## P4 — Image → skill → Creator → Training — IN PROGRESS
+## P4 — Image → skill → Creator → Training — 100%
 
-Already implemented and cloud-tested:
-- validated `AiSkillProposal` model and typed gameplay fields,
-- prompt/reference PNG request contract with strict PNG/size/dimension validation,
-- production backend returns generated VFX plus `skill_proposal`,
-- real Gemini reference-image production request accepted by Run #4,
-- proposal is never auto-applied,
-- explicit Review / Confirm & Apply / Discard,
-- Confirm & Preview validates and enters Training,
-- proposal handoff through `CreatorPreviewSession`,
-- deterministic AI proposal → Training parameter handoff regression,
-- deterministic AI proposal → actual Training skill-cast regression,
-- Restart and Return Creator match-result paths.
+P4 is accepted on 2026-09-16. Production Free Gemini E2E Run #5 (`35075099182`) completed successfully on exact `main` revision `a572b0a3e60e377ae9152592c6d8c62e574a8554` after PR #130 and Main CI #281 deployed and validated that revision on GitHub Pages and Render.
 
-P4 final acceptance implementation added on branch `test/p4-production-creator-e2e`:
-- `tests/production_creator_gemini_e2e.mjs` drives the deployed GitHub Pages VFX Creator in Chromium,
-- imports a real in-memory PNG reference and prompt,
-- calls the real trusted Render/Gemini provider through the browser application,
-- requires generated VFX validity and a staged, unconfirmed `skill_proposal`,
-- returns to Creator and performs explicit Confirm & Preview,
-- enters Training and casts Skill 1, requiring MP consumption, dummy HP reduction and a registered skill hit,
-- emits `PRODUCTION_CREATOR_GEMINI_E2E_PASSED` only after the complete chain succeeds,
-- `.github/workflows/production-ai-e2e.yml` now runs this browser acceptance after the existing real-provider checks, still behind explicit Free Tier quota confirmation.
+Accepted production path:
+- deployed GitHub Pages VFX Creator opened in Chromium,
+- real in-memory PNG reference imported with a prompt,
+- trusted Render backend reported Gemini 3.6 Flash, Free Tier only, and exact revision `a572b0a3e60e377ae9152592c6d8c62e574a8554`,
+- real Gemini text-only generation passed,
+- real Gemini reference-image generation passed,
+- browser generation produced valid VFX plus a staged, unconfirmed `skill_proposal`,
+- Creator required explicit Confirm & Preview,
+- Training opened with the generated proposal applied,
+- Skill 1 was actually cast, consumed MP, hit the dummy and reduced dummy HP,
+- final marker: `PRODUCTION_CREATOR_GEMINI_E2E_PASSED provider=gemini revision=a572b0a3e60e377ae9152592c6d8c62e574a8554 reference=true proposal=true confirmPreview=true cast=true damage=18`.
 
-Remaining P4 acceptance:
-1. merge the P4 production-browser acceptance implementation after normal PR CI passes,
-2. wait for the exact merged `main` revision to deploy to GitHub Pages and Render,
-3. manually dispatch the quota-gated Production Free Gemini E2E once for that exact revision,
-4. require `PRODUCTION_CREATOR_GEMINI_E2E_PASSED` and record the run evidence before declaring P4 complete.
+Run #5 also emitted `PRODUCTION_AI_PROVIDER_E2E_PASSED` for the same exact revision. P4 has no remaining acceptance items.
 
 ## Validation policy
 
@@ -72,6 +59,4 @@ AI VFX backend: `https://custom-fighter-ai-vfx.onrender.com`
 
 ## Remaining roadmap
 
-To reach 13/13, pass and record the exact-revision production browser path:
-
-`reference PNG + prompt → Gemini/Render → generated VFX + skill proposal → explicit Creator confirmation → Training → actual generated-skill cast`.
+No planned roadmap phases remain. **13/13 phases are complete.** Future work is maintenance, regression hardening, UX/content expansion, or a newly defined roadmap rather than completion of the current roadmap.
