@@ -1,0 +1,72 @@
+name: Creator Preview Diagnostic
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: creator-preview-diagnostic-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  creator-preview-diagnostic:
+    name: Creator Preview Timeline Diagnostic
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Godot 4.7.2
+        uses: chickensoft-games/setup-godot@v2
+        with:
+          version: 4.7.2
+          use-dotnet: false
+          include-templates: true
+
+      - name: Import project headlessly
+        run: godot --headless --path . --import
+
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: 24
+
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Export Web build
+        run: |
+          mkdir -p build/web
+          godot --headless --path . --export-release "Web" build/web/index.html
+          test -f build/web/index.html
+
+      - name: Run Creator preview diagnostic
+        env:
+          CUSTOM_FIGHTER_WEB_URL: http://127.0.0.1:8002
+        run: |
+          python3 -m http.server 8002 --directory build/web >/tmp/custom-fighter-diagnostic-http.log 2>&1 &
+          SERVER_PID=$!
+          trap 'kill $SERVER_PID || true' EXIT
+          READY=0
+          for i in {1..30}; do
+            if curl -fsS -o /dev/null http://127.0.0.1:8002/index.html; then READY=1; break; fi
+            sleep 1
+          done
+          if [ "$READY" -ne 1 ]; then cat /tmp/custom-fighter-diagnostic-http.log; exit 1; fi
+          node tests/creator_preview_diagnostic_wrapper.mjs
+
+      - name: Upload Creator preview diagnostic
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: creator-preview-diagnostic
+          path: test-results/creator-preview-diagnostic.json
+          if-no-files-found: warn
