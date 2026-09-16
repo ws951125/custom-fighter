@@ -254,7 +254,7 @@ Production 預設：
 ## 18. Production AI cost policy — free Gemini only
 
 - Production AI must use Google Gemini's API free tier only; do not connect OpenAI or any other paid AI provider unless the user explicitly reverses this policy.
-- The default production model is `gemini-2.5-flash`; only models explicitly verified to have a Gemini Developer API free tier may enter the allow-list.
+- The default production model is `gemini-3.6-flash`; only models explicitly verified to have a Gemini Developer API free tier and current API availability may enter the allow-list.
 - Production must also require `GEMINI_FREE_TIER_ONLY=true`, and the configured `GEMINI_API_KEY` must belong to an AI Studio project that has not enabled paid billing. The flag is an assertion/guard, not proof of Google account billing state.
 - Gemini native image-generation models are not valid fallbacks when their API pricing has no free tier.
 - The AI path should use free Gemini for prompt/reference understanding and structured design output, then use project-owned deterministic rendering/processing for final VFX assets.
@@ -283,5 +283,5 @@ Production 預設：
 - 若本次回覆期間產生新的程式／測試／文件修改，回覆前必須確認 GitHub branch head 已包含這些變更；若尚未同步，必須明確標示 `尚未同步到 GitHub`、列出原因與 blocker，且不得把該變更列入已完成進度或 Done 百分比。
 - 每次進度回覆前都必須重新查 GitHub 真實狀態，至少核對目前 branch、head SHA、相關 PR 狀態；回覆中的 branch / commit / PR 資訊必須與 GitHub 當下狀態一致，不得依聊天記憶推測。
 - 每個可辨識 work unit 完成時，除了 source/test/config 變更要同步 GitHub，也必須依本文件規則同步 `docs/STATUS.md`；若有錯誤經驗則同步 `docs/LESSONS_LEARNED.md`。
-- 若 work unit 已通過 merge gate 並合併，回覆前必須重新確認 `main` 的實際 merge SHA；若 production / deployment 適用，也要明確區分「GitHub 已同步」與「production 已部署／已驗證」，不得將兩者混為一談。
+- 若 work unit 已通過 merge gate並合併，回覆前必須重新確認 `main` 的實際 merge SHA；若 production / deployment 適用，也要明確區分「GitHub 已同步」與「production 已部署／已驗證」，不得將兩者混為一談。
 - 此規則適用於每一次回覆，而不是只在階段結束、PR merge 或使用者特別詢問時才執行。
