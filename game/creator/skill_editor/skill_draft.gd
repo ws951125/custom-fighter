@@ -20,6 +20,8 @@ var hitbox_half_width := 28.0
 var hitbox_half_depth := 0.08
 var visual := "prototype_fireball"
 var impact_visual := "prototype_impact"
+var timeline_schema_version := SkillDefinition.TIMELINE_SCHEMA_VERSION
+var timeline_events: Array[Dictionary] = []
 
 func reset() -> void:
 	skill_id = "my_projectile_001"
@@ -39,6 +41,8 @@ func reset() -> void:
 	hitbox_half_depth = 0.08
 	visual = "prototype_fireball"
 	impact_visual = "prototype_impact"
+	timeline_schema_version = SkillDefinition.TIMELINE_SCHEMA_VERSION
+	timeline_events.clear()
 
 func load_from_dictionary(data: Dictionary) -> PackedStringArray:
 	var definition := SkillDefinition.new()
@@ -66,10 +70,12 @@ func load_from_dictionary(data: Dictionary) -> PackedStringArray:
 	hitbox_half_depth = definition.hitbox_half_depth
 	visual = definition.visual
 	impact_visual = definition.impact_visual
+	timeline_schema_version = definition.timeline_schema_version
+	timeline_events = _copy_events(definition.timeline_events)
 	return PackedStringArray()
 
 func to_dictionary() -> Dictionary:
-	return {
+	var data := {
 		"schema_version": SkillDefinition.CURRENT_SCHEMA_VERSION,
 		"id": skill_id.strip_edges().to_lower(),
 		"name": skill_name.strip_edges(),
@@ -89,6 +95,12 @@ func to_dictionary() -> Dictionary:
 		"visual": visual,
 		"impact_visual": impact_visual
 	}
+	if not timeline_events.is_empty():
+		data["timeline"] = {
+			"schema_version": timeline_schema_version,
+			"events": _copy_events(timeline_events)
+		}
+	return data
 
 func validate() -> PackedStringArray:
 	var definition := SkillDefinition.new()
@@ -101,6 +113,23 @@ func validate() -> PackedStringArray:
 
 func is_valid() -> bool:
 	return validate().is_empty()
+
+func has_timeline() -> bool:
+	return not timeline_events.is_empty()
+
+func set_timeline_events(events: Array[Dictionary]) -> void:
+	timeline_schema_version = SkillDefinition.TIMELINE_SCHEMA_VERSION
+	timeline_events = _copy_events(events)
+
+func clear_timeline() -> void:
+	timeline_schema_version = SkillDefinition.TIMELINE_SCHEMA_VERSION
+	timeline_events.clear()
+
+func _copy_events(events: Array[Dictionary]) -> Array[Dictionary]:
+	var copied: Array[Dictionary] = []
+	for event in events:
+		copied.append(event.duplicate(true))
+	return copied
 
 func _is_safe_token(value: String) -> bool:
 	if value.is_empty():

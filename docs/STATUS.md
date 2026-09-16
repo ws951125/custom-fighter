@@ -30,18 +30,24 @@ V2 roadmap is defined in `docs/V2_ROADMAP.md` and captures previously discussed/
 
 V2-1 includes visual event timeline authoring, startup/active/recovery timing, animation/VFX/audio events, hitbox/hurtbox timing and spatial editing, safe multi-event compositions, validation, and Creator → Training preview.
 
-### V2-1 implementation checkpoint
+### V2-1 implementation checkpoints
 
-The first V2-1 work unit is synchronized on branch `feat/v2-1-timeline-schema`:
+Work unit 1 was merged by PR #133 to `main` at `bb6d1c68a697958748e4dd9e6d2aac3c03bca414`:
 - `SkillDefinition` accepts an optional backwards-compatible `timeline` object while existing V1 skill JSON remains valid without one.
 - Timeline schema version 1 supports safe declarative `animation`, `vfx`, `audio`, `hitbox`, and `hurtbox` event types.
 - Events have stable IDs, non-negative time/duration, deterministic non-decreasing order, duplicate-ID rejection, a 64-event limit, and a 30-second safety limit.
 - Arbitrary event types/code are rejected.
-- `has_timeline()` and `total_timeline_duration()` expose the parsed timeline without changing the existing V1 cast-state timing path yet.
-- `tests/skill_timeline_test_runner.gd` covers V1 compatibility, valid multi-event timelines, ordering, duplicate IDs, unsupported event types and timeline schema versions.
-- The existing CI domain-test stage now runs the timeline test runner.
+- `has_timeline()` and `total_timeline_duration()` expose parsed timeline data without changing the V1 cast-state timing path.
+- Dedicated timeline domain tests are wired into CI.
 
-Formal GitHub CI validation for this branch is the next gate; this checkpoint is not yet a completed V2-1 phase.
+Work unit 2 is synchronized on branch `feat/v2-1-creator-timeline-draft`:
+- `SkillDraft` now owns optional timeline schema/event data and deep-copies authored events.
+- Existing Creator drafts remain V1-compatible and omit the timeline object until events are actually authored.
+- Creator draft serialization, loading and validation round-trip timeline data through the authoritative `SkillDefinition` contract.
+- Reset/clear operations remove authored timeline state without affecting existing projectile defaults.
+- Creator draft tests cover valid animation/VFX/hitbox/audio event round-trip, deterministic order, deep-copy isolation, reset compatibility, unsorted-event rejection and arbitrary event-type rejection.
+
+V2-1 is not complete yet: visual timeline editor controls, spatial hitbox/hurtbox authoring, runtime event execution and Creator → Training timeline acceptance remain.
 
 ## V1 production acceptance checkpoint
 
@@ -79,4 +85,4 @@ AI VFX backend: `https://custom-fighter-ai-vfx.onrender.com`
 
 ## Next implementation target
 
-Open and validate the first V2-1 timeline-schema PR. After that schema is stable, connect timeline data to Creator Skill Draft/Editor authoring and then to runtime event execution while preserving the V1 fallback path.
+Validate the Creator timeline-draft checkpoint in GitHub CI. Then expose safe timeline event authoring in the Creator Skill Editor, beginning with deterministic add/remove/reorder/time/duration/type controls while preserving the V1 fallback path.
