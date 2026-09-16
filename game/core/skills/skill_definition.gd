@@ -6,8 +6,13 @@ const CURRENT_SCHEMA_VERSION := 1
 const TIMELINE_SCHEMA_VERSION := 1
 const SUPPORTED_TIMELINE_EVENT_TYPES := ["animation", "vfx", "audio", "hitbox", "hurtbox"]
 const TIMELINE_SPATIAL_EVENT_TYPES := ["hitbox", "hurtbox"]
+const TIMELINE_MEDIA_EVENT_TYPES := ["animation", "vfx", "audio"]
+const TIMELINE_MEDIA_FIELDS := ["animation", "visual", "cue"]
 const MAX_TIMELINE_EVENTS := 64
 const MAX_TIMELINE_SECONDS := 30.0
+const DEFAULT_TIMELINE_ANIMATION := "skill_1"
+const DEFAULT_TIMELINE_VFX := "projectile"
+const DEFAULT_TIMELINE_AUDIO_CUE := "skill_cast"
 const DEFAULT_TIMELINE_SPATIAL_HALF_WIDTH := 24.0
 const DEFAULT_TIMELINE_SPATIAL_HALF_DEPTH := 0.08
 const MAX_TIMELINE_SPATIAL_HALF_WIDTH := 4096.0
@@ -196,11 +201,39 @@ func _load_timeline(data: Dictionary, errors: PackedStringArray) -> void:
 		event["type"] = event_type
 		event["time"] = event_time
 		event["duration"] = event_duration
+		_normalize_timeline_media_payload(event, event_id, event_type, errors)
 		_normalize_timeline_spatial_payload(event, event_id, event_type, errors)
 		timeline_events.append(event)
 
+func _normalize_timeline_media_payload(event: Dictionary, event_id: String, event_type: String, errors: PackedStringArray) -> void:
+	var active_field := ""
+	var fallback := ""
+	if event_type == "animation":
+		active_field = "animation"
+		fallback = DEFAULT_TIMELINE_ANIMATION
+	elif event_type == "vfx":
+		active_field = "visual"
+		fallback = visual if not visual.is_empty() else DEFAULT_TIMELINE_VFX
+	elif event_type == "audio":
+		active_field = "cue"
+		fallback = DEFAULT_TIMELINE_AUDIO_CUE
+	else:
+		for key in TIMELINE_MEDIA_FIELDS:
+			event.erase(key)
+		return
+
+	for key in TIMELINE_MEDIA_FIELDS:
+		if key != active_field:
+			event.erase(key)
+	var token := str(event.get(active_field, fallback)).strip_edges().to_lower()
+	if not _is_safe_timeline_token(token):
+		errors.append("timeline event %s %s must be a safe lowercase token" % [event_id, active_field])
+	event[active_field] = token
+
 func _normalize_timeline_spatial_payload(event: Dictionary, event_id: String, event_type: String, errors: PackedStringArray) -> void:
 	if not TIMELINE_SPATIAL_EVENT_TYPES.has(event_type):
+		for key in ["half_width", "half_depth", "offset_x", "offset_depth"]:
+			event.erase(key)
 		return
 	var half_width := float(event.get("half_width", DEFAULT_TIMELINE_SPATIAL_HALF_WIDTH))
 	var half_depth := float(event.get("half_depth", DEFAULT_TIMELINE_SPATIAL_HALF_DEPTH))
@@ -218,6 +251,13 @@ func _normalize_timeline_spatial_payload(event: Dictionary, event_id: String, ev
 	event["half_depth"] = half_depth
 	event["offset_x"] = offset_x
 	event["offset_depth"] = offset_depth
+
+func _is_safe_timeline_token(value: String) -> bool:
+	if value.is_empty():
+		return false
+	var regex := RegEx.new()
+	regex.compile("^[a-z0-9][a-z0-9_-]*$")
+	return regex.search(value) != null
 
 func _validate_melee_skill(errors: PackedStringArray) -> void:
 	if range <= 0.0:

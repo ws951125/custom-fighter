@@ -54,14 +54,25 @@ Work unit 3 was merged by PR #135 to `main` at `1f4c167c02a11f390234cf8c4c589a53
 - `tests/creator_timeline_editor_web_smoke.mjs` covers empty V1-compatible startup, valid event authoring, invalid ordering detection/recovery, removal and clear.
 - The timeline browser regression is wired into `npm run smoke:all` so normal GitHub Chromium/Edge validation exercises it.
 
-Work unit 4 was merged by PR #139 to `main` at `c84e26f6967883a30fbf1ff0c3f548d2321bda55`:
+Work unit 4 was merged by PR #139 to `main` at `c84e26f6967883a30fbf1ff0c3f548d2321bda55`; PR CI #306 (`35118913560`) completed successfully:
 - `hitbox` and `hurtbox` timeline events normalize safe spatial payloads: `half_width`, `half_depth`, `offset_x`, and normalized-arena `offset_depth`.
 - Spatial dimensions/offsets are bounded and fail closed when zero/negative or outside safe limits; older V2 spatial events that omitted these payload fields remain backwards compatible through safe defaults.
 - Creator Timeline exposes type-specific spatial controls only for hitbox/hurtbox events and removes stale spatial fields when an event changes back to a non-spatial type.
 - Creator draft/domain tests cover spatial round-trip, deep-copy isolation, backwards-compatible defaults, invalid dimensions and oversized offsets.
 - Browser regression covers hitbox/hurtbox authoring, invalid-dimension fail-closed recovery, stale-payload cleanup, deterministic ordering, removal and clear.
+- Merge Main CI #307 (`35120183809`) passed Windows Native plus Godot/backend/Web/Chromium, but its hosted Windows Edge job timed out in unchanged `character_animation_web_smoke.mjs` while waiting for a short-lived animation observation; downstream production gates were skipped. No unrelated runtime code was changed solely for that isolated timeout, consistent with `docs/LESSONS_LEARNED.md` L-007.
+- Current `main` at `bb42d0aad815ebe41911f2cad82b779ae3748b25` subsequently completed Main CI #309 (`35122183786`) successfully across Godot/backend/Web/Chromium, Windows Native, hosted Microsoft Edge, GitHub Pages deployment/public reachability, Render production-backend readiness, and production Microsoft Edge full smoke. This is the current production validation checkpoint for the merged spatial timeline code.
 
-V2-1 is not complete yet: type-specific animation/VFX/audio payload controls, runtime timeline event execution and Creator → Training timeline acceptance remain.
+Work unit 5 is synchronized on branch `feat/v2-1-media-event-payload-authoring` and is awaiting PR CI:
+- `animation`, `vfx`, and `audio` timeline events now have type-specific declarative payloads: `animation`, `visual`, and `cue`.
+- Media payload values are normalized as safe lowercase reference tokens; path/URL/code-like values such as `../evil.gd`, remote URLs, and filesystem audio paths fail closed instead of becoming runtime references.
+- Older V2 media events that omit the new payload remain backwards compatible through safe defaults: `skill_1` for animation, the skill's validated root `visual` (or `projectile`) for VFX, and `skill_cast` for audio.
+- Cross-type payload cleanup is explicit: switching an event type removes stale media or spatial fields that no longer belong to that type.
+- Creator Timeline exposes a type-specific media payload editor for Animation, VFX, and Audio Cue while keeping the existing spatial controls for hitbox/hurtbox.
+- Creator draft/domain regressions cover media serialization, reload, deep-copy isolation, defaults, unsafe-value rejection, and stale-field cleanup.
+- Browser regression covers animation/VFX/audio authoring, unsafe media fail-closed recovery, media type switching, spatial-to-media cleanup, deterministic ordering, removal, and clear.
+
+V2-1 is not complete yet: work unit 5 still requires GitHub PR/main validation and merge; after that, runtime timeline event execution and Creator → Training timeline acceptance remain.
 
 ## V1 production acceptance checkpoint
 
@@ -75,11 +86,11 @@ V2 roadmap activation PR #132 was merged to `main` at `41c047029175e4b1409fcd2f4
 
 ## Agent policy source-of-truth migration
 
-2026-09-17 policy-maintenance work is synchronized on branch `chore/unify-agents-source-of-truth`:
-- root `AGENTS.md` is now the single active Agent instruction source of truth;
+2026-09-17 policy-maintenance PR #140 was merged to `main` at `bb42d0aad815ebe41911f2cad82b779ae3748b25`; Main CI #309 (`35122183786`) completed successfully across the complete production validation chain:
+- root `AGENTS.md` is the single active Agent instruction source of truth;
 - all still-valid rules from legacy `Agent.md` were consolidated without intentionally weakening the stricter online-only, GitHub truth, CI monitoring, reporting, synchronization, safety, Gemini-free-tier, connector-retry, and documentation rules;
 - the roughly-70%-conversation handoff rule is explicitly captured in `AGENTS.md`, including repository checkpoint synchronization and a copyable continuation Prompt with actual GitHub state;
-- active V2 roadmap policy references now point to `AGENTS.md`;
+- active V2 roadmap policy references point to `AGENTS.md`;
 - legacy root `Agent.md` is removed and must not be recreated;
 - historical incident text may retain the old filename only where required to accurately describe the incident and is explicitly non-normative.
 
@@ -109,4 +120,4 @@ AI VFX backend: `https://custom-fighter-ai-vfx.onrender.com`
 
 ## Next implementation target
 
-Complete validation/merge of the `AGENTS.md` source-of-truth migration. Then resume V2-1 with type-specific animation/VFX/audio timeline payload controls before runtime event execution and Creator → Training timeline acceptance.
+Validate and merge work unit 5 on `feat/v2-1-media-event-payload-authoring`. After its PR and production-main gates are green, implement safe runtime timeline event execution, then complete Creator → Training timeline round-trip acceptance for V2-1.

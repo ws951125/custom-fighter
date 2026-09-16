@@ -78,6 +78,9 @@ func _test_timeline_round_trip(draft: SkillDraft) -> void:
 	_check(int(timeline.get("schema_version", 0)) == SkillDefinition.TIMELINE_SCHEMA_VERSION, "Creator draft emits supported timeline schema")
 	var serialized_events: Array = timeline.get("events", [])
 	_check(serialized_events.size() == 4, "Creator draft serializes all timeline events")
+	_check(str(serialized_events[0].get("animation", "")) == "skill_1", "Creator draft serializes animation payload")
+	_check(str(serialized_events[1].get("visual", "")) == "prototype_fireball", "Creator draft serializes VFX payload")
+	_check(str(serialized_events[3].get("cue", "")) == "skill_cast", "Creator draft serializes audio cue payload")
 	_check(is_equal_approx(float(serialized_events[2].get("half_width", 0.0)), 34.0), "Creator draft serializes spatial half width")
 	_check(is_equal_approx(float(serialized_events[2].get("offset_x", 0.0)), 14.0), "Creator draft serializes spatial horizontal offset")
 	_check(is_equal_approx(float(serialized_events[2].get("offset_depth", 0.0)), -0.02), "Creator draft serializes spatial depth offset")
@@ -86,14 +89,21 @@ func _test_timeline_round_trip(draft: SkillDraft) -> void:
 	var errors := loaded.load_from_dictionary(serialized)
 	_check(errors.is_empty(), "serialized Creator timeline reloads: %s" % ", ".join(errors))
 	_check(loaded.has_timeline() and loaded.timeline_events.size() == 4, "Creator timeline survives draft round-trip")
-	_check(str(loaded.timeline_events[2].get("id", "")) == "hit_window", "Creator timeline preserves deterministic event order")
+	_check(str(loaded.timeline_events[0].get("id", "")) == "cast_anim", "Creator timeline preserves deterministic event order")
+	_check(str(loaded.timeline_events[0].get("animation", "")) == "skill_1", "Creator timeline preserves animation payload")
+	_check(str(loaded.timeline_events[1].get("visual", "")) == "prototype_fireball", "Creator timeline preserves VFX payload")
+	_check(str(loaded.timeline_events[3].get("cue", "")) == "skill_cast", "Creator timeline preserves audio cue payload")
 	_check(is_equal_approx(float(loaded.timeline_events[2].get("half_width", 0.0)), 34.0), "Creator timeline preserves spatial dimensions")
 	_check(is_equal_approx(float(loaded.timeline_events[2].get("offset_depth", 0.0)), -0.02), "Creator timeline preserves spatial offsets")
 
 	# Ensure the draft owns a deep copy rather than sharing caller-owned dictionaries.
 	events[0]["id"] = "mutated_outside"
+	events[0]["animation"] = "attack_1"
+	events[1]["visual"] = "mutated_visual"
 	events[2]["offset_x"] = 999.0
 	_check(str(loaded.timeline_events[0].get("id", "")) == "cast_anim", "Creator timeline round-trip is isolated from caller mutation")
+	_check(str(loaded.timeline_events[0].get("animation", "")) == "skill_1", "Creator animation payload deep copy is isolated from caller mutation")
+	_check(str(loaded.timeline_events[1].get("visual", "")) == "prototype_fireball", "Creator VFX payload deep copy is isolated from caller mutation")
 	_check(is_equal_approx(float(loaded.timeline_events[2].get("offset_x", 0.0)), 14.0), "Creator spatial timeline deep copy is isolated from caller mutation")
 
 func _test_invalid_timeline_fails_closed(draft: SkillDraft) -> void:
@@ -107,6 +117,18 @@ func _test_invalid_timeline_fails_closed(draft: SkillDraft) -> void:
 		{"id": "unsafe", "type": "script", "time": 0.0, "duration": 0.0}
 	])
 	_check(_contains_error(draft.validate(), "unsupported timeline event type: script"), "Creator draft rejects arbitrary executable event types")
+	draft.set_timeline_events([
+		{"id": "bad_animation", "type": "animation", "time": 0.0, "duration": 0.1, "animation": "../evil.gd"}
+	])
+	_check(_contains_error_fragment(draft.validate(), "animation must be a safe lowercase token"), "Creator draft rejects unsafe animation payload")
+	draft.set_timeline_events([
+		{"id": "bad_vfx", "type": "vfx", "time": 0.0, "duration": 0.1, "visual": "https://example.com/vfx"}
+	])
+	_check(_contains_error_fragment(draft.validate(), "visual must be a safe lowercase token"), "Creator draft rejects unsafe VFX payload")
+	draft.set_timeline_events([
+		{"id": "bad_audio", "type": "audio", "time": 0.0, "duration": 0.1, "cue": "../../sound.wav"}
+	])
+	_check(_contains_error_fragment(draft.validate(), "cue must be a safe lowercase token"), "Creator draft rejects unsafe audio cue payload")
 	draft.set_timeline_events([
 		{"id": "bad_spatial", "type": "hitbox", "time": 0.0, "duration": 0.1, "half_width": -1.0, "half_depth": 0.08}
 	])
