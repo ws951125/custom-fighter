@@ -79,7 +79,11 @@ func _set_web_state() -> void:
 		"document.documentElement.dataset.creatorPreviewRuntimeSkillSlot=%s;" % JSON.stringify(preview_slot) +
 		"document.documentElement.dataset.creatorPreviewRuntimeSkillDamage='%d';" % int(skill_data.get("damage", 0)) +
 		"document.documentElement.dataset.creatorPreviewRuntimeSkillMpCost='%d';" % int(skill_data.get("mp_cost", 0)) +
-		"document.documentElement.dataset.creatorPreviewRuntimeSkillCooldown='%.3f';" % float(skill_data.get("cooldown", 0.0))
+		"document.documentElement.dataset.creatorPreviewRuntimeSkillCooldown='%.3f';" % float(skill_data.get("cooldown", 0.0)) +
+		"document.documentElement.dataset.playerCharacterSkill7=%s;" % JSON.stringify(player_character.skill_id_for_slot("skill_7")) +
+		"document.documentElement.dataset.playerRuntimeSkill7=%s;" % JSON.stringify(str(player_runtime_skill_ids.get("skill_7", ""))) +
+		"document.documentElement.dataset.playerRuntimeSkill7Type=%s;" % JSON.stringify(str(player_runtime_skill_types.get("skill_7", ""))) +
+		"document.documentElement.dataset.playerRuntimeSkill7Source=%s;" % JSON.stringify(str(player_runtime_skill_sources.get("skill_7", "")))
 	)
 
 func _creator_preview_session() -> Variant:
