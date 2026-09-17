@@ -309,3 +309,26 @@
 - **Prevention Rule:** When a test depends on a transient numeric/state value, return/capture that value from the same predicate evaluation that proves the condition. Do not prove a short-lived condition and then make a second browser round-trip to re-read it.
 - **Validation:** Fix commit `f90d38701ff1f7c58a9bf2b4fd6dd2483a92d797`; PR #145 latest-head CI #339 (`35186404303`) passed the full Chromium suite and GitHub-hosted Microsoft Edge `smoke:all`, in addition to all non-browser gates.
 - **Status:** Verified on PR #145 CI #339
+
+## L-029 — Family-specific skill fields must stay synchronized across Creator, package schema, normalization and canonical comparisons
+
+- **Date:** 2026-09-18
+- **Area:** V2 skill families / Creator package schema / deterministic serialization
+- **Symptom:** PR #148 reached browser validation with the eight-family Creator Preview flow passing, but both Creator package and Creator package VFX smoke timed out. The first failure occurred before export telemetry advanced; after adding `trap_duration` to the package schema, export advanced but package re-import still failed.
+- **Root Cause:** Trap added a new family-specific `SkillDraft` / `SkillDefinition` field, but the strict Character Package allowlist and normalizer were not updated as one contract. The first correction accepted and serialized `trap_duration` for every skill, which then changed the canonical shape of existing non-Trap skills and caused exact production-definition comparisons during import to fail.
+- **Fix:** Allow `trap_duration` at the validated package boundary, preserve it only when the serialized skill type is `trap`, and keep every non-Trap package skill in its historical canonical shape. Add direct domain regression proving Trap duration round-trip and absence of the field on non-Trap serialized skills.
+- **Prevention Rule:** Adding any family-specific skill field requires one audit of every strict shape boundary: `SkillDefinition`, `SkillDraft`, Creator validation/serialization, package allowlists, package normalization, self-contained package wrappers, exact canonical comparisons, browser export/import smoke and domain round-trip tests. Family-specific data must be serialized conditionally unless the canonical schema explicitly defines the field for all families.
+- **Validation:** Targeted PR148 Browser Diagnostic #3 (`35254414363`) passed Creator Preview family, Creator package, Creator package VFX and mobile smoke after commits `8e14face377ffa7421f54e782e22f723a5ed3ea7` and `f31a54bb735eeeb166fa9709768d120e65095066`. PR CI #360 (`35283860574`) then passed the full Chromium and hosted Microsoft Edge suites on implementation head `8e4a2fabd08da51e413f90f5607b00c9c89354d1`.
+- **Status:** Browser regression verified; direct package domain regression added in the final PR checkpoint and awaiting its fresh latest-head CI
+
+## L-030 — Windows npm `.cmd` wrappers should be launched through the Windows command processor
+
+- **Date:** 2026-09-18
+- **Area:** Node.js / GitHub Actions / Windows Microsoft Edge / smoke orchestration
+- **Symptom:** PR #148 CI #359 passed Windows Native and the complete Linux Godot/backend/Web/Chromium chain, but the hosted Windows Edge job failed immediately at the first smoke stage with `spawnSync npm.cmd EINVAL`. No game/browser assertion had executed.
+- **Root Cause:** The cross-platform smoke orchestrator directly passed `npm.cmd` to Node 24 `spawnSync()` on Windows. A `.cmd` shim is a Windows command-processor script rather than a native executable and is not a stable direct-spawn boundary across Node/Windows runner versions.
+- **Fix:** On Windows, execute the static allow-listed smoke command through `process.env.ComSpec || process.env.COMSPEC || 'cmd.exe'` using `/d /s /c "npm run <script>"`; retain direct `spawnSync('npm', ...)` on non-Windows platforms. The temporary PR148 diagnostic workflow was removed once targeted diagnosis was complete.
+- **Prevention Rule:** Cross-platform Node orchestration must not assume Windows `.cmd` wrappers behave like native executables. Use the Windows command processor (or another explicitly supported shell boundary) for trusted static `.cmd` commands, while keeping user-controlled text out of the command string.
+- **Validation:** PR CI #360 (`35283860574`) passed Windows Native, Godot/backend/Web/Chromium and the complete GitHub-hosted Microsoft Edge `smoke:all` job on commit `8e4a2fabd08da51e413f90f5607b00c9c89354d1`; the Edge job progressed through all smoke scripts instead of failing at process launch.
+- **Status:** Verified on hosted Microsoft Edge
+
