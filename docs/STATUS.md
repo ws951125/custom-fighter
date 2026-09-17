@@ -52,7 +52,7 @@ Work unit 2 — **Creator Preview family dispatch — accepted and production-va
 - Implementation head PR CI #343 (`35197783830`) passed Windows Native, Godot import/boot/domain/backend, Web export/size budget, Chromium `smoke:all`, and hosted Microsoft Edge.
 - Main CI #345 (`35200223070`) passed the complete production chain on the merge revision: Windows Native, Godot import/boot/domain/backend tests, Web export/size budget, Chromium `smoke:all`, hosted Microsoft Edge, GitHub Pages deployment/public reachability, Render exact-revision readiness, and production Microsoft Edge full smoke.
 
-Work unit 3 — **first genuinely new family: `beam` — implementation-head validation complete, final latest-head validation pending** on PR #147 / branch `feat/v2-2-beam-family-wu3`:
+Work unit 3 — **first genuinely new family: `beam` — accepted and production-validated**:
 - `SkillDefinition.SUPPORTED_TYPES` now includes `beam` with fail-closed bounds for range, active duration and spatial width/depth; `training_beam_001` is registered through the authoritative skill registry.
 - `SkillDraft` reuses the shared family selector and safe default path for Beam; no family-specific executable Creator code or arbitrary callbacks are introduced.
 - `BeamAttackState` defines deterministic origin→endpoint geometry, bounded collision volume, active lifetime and a single-hit-per-activation policy.
@@ -64,7 +64,20 @@ Work unit 3 — **first genuinely new family: `beam` — implementation-head val
 - `beam_test_runner.gd` covers Beam schema bounds, exact registry type checking, shared cast activation, deterministic geometry, out-of-range misses, one-hit consumption, optional-character-slot backwards compatibility, and Creator Preview routing/isolation.
 - `creator_preview_family_web_smoke.mjs` now covers seven families. For Beam it authors the family plus MP/cooldown/audio timeline event, launches Preview, verifies `skill_7` source/type, presses Y, verifies MP consumption and timeline execution, verifies exact dummy damage and `beamSkillHitCount == 1`, then round-trips to Creator.
 - Implementation head `4fa2215d840fdbb43e8e3eed1269237ff4e51eec` passed PR CI #346 (`35207985135`): Windows Native Release, Godot import/boot/domain/AI contracts including Beam, backend tests, Web export/size budget, Chromium `smoke:all`, and GitHub-hosted Microsoft Edge `smoke:all` all passed.
-- Production-only jobs were correctly skipped on the pull-request event. Final PR acceptance requires a fresh latest-head CI after this documentation checkpoint; after merge, the exact squash-merge revision must pass the complete main production chain before Work Unit 3 is production-validated.
+- PR #147 was merged to `main` at `ed35ff4685173826ec015ac86a48480704a77d7b`.
+- Main CI #349 (`35210660845`) passed the complete production chain on that exact revision: Windows Native, Godot import/boot/domain/backend tests, Web export/size budget, Chromium `smoke:all`, hosted Microsoft Edge, GitHub Pages deployment/public reachability, Render exact-revision readiness, and production Microsoft Edge full smoke.
+
+Work unit 4 — **second genuinely new family: `trap` — implementation-head validation complete; final latest-head documentation/regression gate pending** on PR #148 / branch `feat/v2-2-trap-family-wu4`:
+- `SkillDefinition.SUPPORTED_TYPES` includes `trap` with bounded placement range, trigger volume and lifetime; `training_trap_001` is registered through the authoritative skill registry.
+- `TrapAttackState` implements deterministic place → armed → single trigger/expire behavior, while cast timing/MP/cooldown/coordinator ownership stays on the shared `SkillCastState` / `SkillCoordinator` path.
+- `CharacterDefinition` accepts `skill_8` as an optional backwards-compatible slot; legacy six-slot characters and optional Beam `skill_7` remain valid. Runtime binds Trap to `skill_8` / T.
+- Creator Preview maps `trap`→`skill_8`, injects it only into the temporary preview character, dispatches authored timeline data through the existing cast state, and exposes deterministic Trap loaded/phase/armed/active/hit-count telemetry.
+- `creator_preview_family_web_smoke.mjs` covers all eight families and verifies Trap authored MP/cooldown/timeline data, T cast routing, one-trigger/one-damage semantics and Creator round-trip.
+- Trap initially exposed two package-contract regressions. `SkillDraft.to_dictionary()` began emitting `trap_duration`, while the strict Character Package allowlist did not accept it; commit `8e14face377ffa7421f54e782e22f723a5ed3ea7` added the field to the package schema and preserved it through package normalization. That first fix then exposed canonical-shape pollution because non-Trap skills were also serialized with `trap_duration`; commit `f31a54bb735eeeb166fa9709768d120e65095066` scopes serialized `trap_duration` to Trap skills only.
+- Targeted PR148 Browser Diagnostic #3 (`35254414363`) passed Creator Preview family, Creator package, Creator package VFX and mobile smoke on `f31a54bb735eeeb166fa9709768d120e65095066`.
+- Formal PR CI #359 exposed an independent Windows runner defect before the first Edge smoke: Node 24 returned `spawnSync npm.cmd EINVAL`. Commit `8e4a2fabd08da51e413f90f5607b00c9c89354d1` routes Windows npm script execution through `ComSpec /d /s /c`, keeps direct `npm` execution on non-Windows platforms, and removes the now-completed temporary diagnostic workflow.
+- PR CI #360 (`35283860574`) passed Windows Native Release, Godot import/boot/domain/backend tests, Web export/size budget, Chromium `smoke:all`, and GitHub-hosted Microsoft Edge `smoke:all` on implementation head `8e4a2fabd08da51e413f90f5607b00c9c89354d1`.
+- The final checkpoint adds direct Character Package regression coverage proving Trap `trap_duration` survives deterministic round-trip while non-Trap package skill shapes remain free of that family-specific field. A fresh latest-head PR CI is required before PR #148 is merge-ready.
 
 ### V2-1 implementation checkpoints
 

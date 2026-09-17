@@ -14,7 +14,7 @@ const ALLOWED_SKILL_FIELDS := [
 	"startup", "active", "recovery", "speed", "range", "hitstun", "knockback",
 	"hitbox_half_width", "hitbox_half_depth", "formation_count", "formation_spacing",
 	"formation_interval", "formation_offset", "buff_duration", "move_speed_multiplier",
-	"basic_attack_damage_multiplier", "visual", "impact_visual"
+	"basic_attack_damage_multiplier", "trap_duration", "visual", "impact_visual"
 ]
 
 var schema_version := CURRENT_SCHEMA_VERSION
@@ -180,7 +180,7 @@ func _character_to_dictionary(character: Variant) -> Dictionary:
 	}
 
 func _skill_to_dictionary(skill: Variant) -> Dictionary:
-	return {
+	var data := {
 		"schema_version": skill.schema_version,
 		"id": skill.skill_id,
 		"name": skill.skill_name,
@@ -207,6 +207,9 @@ func _skill_to_dictionary(skill: Variant) -> Dictionary:
 		"visual": skill.visual,
 		"impact_visual": skill.impact_visual
 	}
+	if skill.skill_type == "trap":
+		data["trap_duration"] = skill.trap_duration
+	return data
 
 func _validate_allowed_fields(data: Dictionary, allowed_fields: Array, scope: String, errors: PackedStringArray) -> void:
 	for raw_key in data.keys():

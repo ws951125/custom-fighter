@@ -1,4 +1,4 @@
-[gd_scene load_steps=8 format=3]
+[gd_scene load_steps=9 format=3]
 
 [ext_resource type="Script" path="res://game/runtime/match_flow_main.gd" id="1_main"]
 [ext_resource type="Script" path="res://game/runtime/coordinated_area_skill_controller.gd" id="2_area"]
@@ -6,7 +6,8 @@
 [ext_resource type="Script" path="res://game/runtime/coordinated_buff_skill_controller.gd" id="4_buff"]
 [ext_resource type="Script" path="res://game/runtime/coordinated_melee_skill_controller.gd" id="5_melee"]
 [ext_resource type="Script" path="res://game/runtime/coordinated_beam_skill_controller.gd" id="6_beam"]
-[ext_resource type="Script" path="res://game/runtime/mobile_controls.gd" id="7_mobile"]
+[ext_resource type="Script" path="res://game/runtime/coordinated_trap_skill_controller.gd" id="7_trap"]
+[ext_resource type="Script" path="res://game/runtime/mobile_controls.gd" id="8_mobile"]
 
 [node name="Main" type="Control"]
 layout_mode = 3
@@ -67,6 +68,16 @@ grow_vertical = 2
 mouse_filter = 2
 script = ExtResource("6_beam")
 
+[node name="TrapSkillController" type="Control" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("7_trap")
+
 [node name="MobileControls" type="Control" parent="."]
 layout_mode = 1
 anchors_preset = 15
@@ -75,4 +86,4 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-script = ExtResource("7_mobile")
+script = ExtResource("8_mobile")

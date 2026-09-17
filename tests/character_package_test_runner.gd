@@ -5,6 +5,7 @@ const CharacterPackageDefinition = preload("res://game/core/package/character_pa
 func _init() -> void:
 	var failures := PackedStringArray()
 	_test_valid_round_trip(failures)
+	_test_trap_duration_round_trip_shape(failures)
 	_test_rejects_schema_mismatch(failures)
 	_test_rejects_package_character_id_mismatch(failures)
 	_test_rejects_duplicate_skill_ids(failures)
@@ -38,6 +39,41 @@ func _test_valid_round_trip(failures: PackedStringArray) -> void:
 	var reload_errors: PackedStringArray = reloaded.load_from_dictionary(serialized)
 	_expect(reload_errors.is_empty(), "serialized package should load again", failures)
 	_expect(JSON.stringify(serialized) == JSON.stringify(reloaded.to_dictionary()), "package round trip should be deterministic", failures)
+
+func _test_trap_duration_round_trip_shape(failures: PackedStringArray) -> void:
+	var data: Dictionary = _valid_package()
+	var skills: Array = data.get("skills", [])
+	var trap_input: Dictionary = skills[0]
+	trap_input["type"] = "trap"
+	trap_input["speed"] = 0.0
+	trap_input["range"] = 180.0
+	trap_input["active"] = 0.12
+	trap_input["hitbox_half_width"] = 62.0
+	trap_input["hitbox_half_depth"] = 0.14
+	trap_input["trap_duration"] = 6.5
+
+	var package := CharacterPackageDefinition.new()
+	var errors: PackedStringArray = package.load_from_dictionary(data)
+	_expect(errors.is_empty(), "trap package should load with trap_duration", failures)
+
+	var serialized: Dictionary = package.to_dictionary()
+	var serialized_skills: Array = serialized.get("skills", [])
+	var serialized_trap: Dictionary = {}
+	for skill_value in serialized_skills:
+		if skill_value is Dictionary:
+			var skill_data: Dictionary = skill_value
+			if str(skill_data.get("id", "")) == "pkg_projectile":
+				serialized_trap = skill_data
+			if str(skill_data.get("type", "")) != "trap":
+				_expect(not skill_data.has("trap_duration"), "non-trap package skills should not serialize trap_duration", failures)
+
+	_expect(not serialized_trap.is_empty(), "serialized package should retain the authored trap skill", failures)
+	_expect(abs(float(serialized_trap.get("trap_duration", 0.0)) - 6.5) < 0.001, "serialized trap should retain trap_duration", failures)
+
+	var reloaded := CharacterPackageDefinition.new()
+	var reload_errors: PackedStringArray = reloaded.load_from_dictionary(serialized)
+	_expect(reload_errors.is_empty(), "serialized trap package should load again", failures)
+	_expect(JSON.stringify(serialized) == JSON.stringify(reloaded.to_dictionary()), "trap package round trip should be deterministic", failures)
 
 func _test_rejects_schema_mismatch(failures: PackedStringArray) -> void:
 	var data: Dictionary = _valid_package()

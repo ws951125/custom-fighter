@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "id": "training_trap_001",
+  "name": "Training Trap",
+  "type": "trap",
+  "damage": 14,
+  "mp_cost": 12,
+  "cooldown": 2.6,
+  "startup": 0.20,
+  "active": 0.12,
+  "recovery": 0.25,
+  "speed": 0.0,
+  "range": 180.0,
+  "hitstun": 0.20,
+  "knockback": 180.0,
+  "hitbox_half_width": 62.0,
+  "hitbox_half_depth": 0.14,
+  "trap_duration": 6.0,
+  "visual": "prototype_trap",
+  "impact_visual": "prototype_impact"
+}

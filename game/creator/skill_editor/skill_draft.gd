@@ -25,6 +25,7 @@ var formation_offset := 40.0
 var buff_duration := 5.0
 var move_speed_multiplier := 1.15
 var basic_attack_damage_multiplier := 1.20
+var trap_duration := 6.0
 var visual := "prototype_fireball"
 var impact_visual := "prototype_impact"
 var timeline_schema_version := SkillDefinition.TIMELINE_SCHEMA_VERSION
@@ -53,6 +54,7 @@ func reset() -> void:
 	buff_duration = 5.0
 	move_speed_multiplier = 1.15
 	basic_attack_damage_multiplier = 1.20
+	trap_duration = 6.0
 	visual = "prototype_fireball"
 	impact_visual = "prototype_impact"
 	timeline_schema_version = SkillDefinition.TIMELINE_SCHEMA_VERSION
@@ -116,6 +118,13 @@ func _apply_family_defaults(family: String) -> void:
 			active = 0.32
 			hitbox_half_width = 24.0
 			hitbox_half_depth = 0.10
+		"trap":
+			speed = 0.0
+			range = 180.0
+			active = 0.12
+			hitbox_half_width = 62.0
+			hitbox_half_depth = 0.14
+			trap_duration = 6.0
 
 func load_from_dictionary(data: Dictionary) -> PackedStringArray:
 	var definition := SkillDefinition.new()
@@ -146,6 +155,7 @@ func load_from_dictionary(data: Dictionary) -> PackedStringArray:
 	buff_duration = definition.buff_duration
 	move_speed_multiplier = definition.move_speed_multiplier
 	basic_attack_damage_multiplier = definition.basic_attack_damage_multiplier
+	trap_duration = definition.trap_duration
 	visual = definition.visual
 	impact_visual = definition.impact_visual
 	timeline_schema_version = definition.timeline_schema_version
@@ -177,6 +187,7 @@ func to_dictionary() -> Dictionary:
 		"buff_duration": buff_duration,
 		"move_speed_multiplier": move_speed_multiplier,
 		"basic_attack_damage_multiplier": basic_attack_damage_multiplier,
+		"trap_duration": trap_duration,
 		"visual": visual,
 		"impact_visual": impact_visual
 	}
