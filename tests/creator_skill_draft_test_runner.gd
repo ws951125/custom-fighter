@@ -27,9 +27,11 @@ func _run() -> void:
 	_check(definition_errors.is_empty() and definition.loaded, "draft feeds runtime SkillDefinition contract")
 	_check(definition.skill_type == "projectile", "runtime contract sees projectile type")
 
+	_test_supported_family_round_trips()
 	_test_timeline_round_trip(draft)
 	_test_invalid_timeline_fails_closed(draft)
 
+	draft.reset()
 	draft.skill_name = ""
 	_check(_contains_error(draft.validate(), "name must not be empty"), "blank skill name fails closed")
 
@@ -46,8 +48,13 @@ func _run() -> void:
 	_check(_contains_error(draft.validate(), "id must be a safe lowercase reference token"), "unsafe creator skill id is rejected")
 
 	draft.skill_id = "nova_bolt_001"
-	draft.skill_type = "melee"
-	_check(_contains_error(draft.validate(), "creator projectile draft type must remain projectile"), "creator template type cannot be switched outside projectile slice")
+	draft.skill_type = "arbitrary_code"
+	_check(_contains_error(draft.validate(), "unsupported skill type: arbitrary_code"), "unsupported Creator family fails closed through SkillDefinition")
+
+	draft.reset()
+	var previous_type := draft.skill_type
+	_check(not draft.set_skill_type("../summon.gd"), "family selector rejects unsafe/unsupported type")
+	_check(draft.skill_type == previous_type, "rejected family selector does not mutate the draft")
 
 	draft.reset()
 	_check(draft.is_valid(), "reset restores valid starter projectile")
@@ -60,6 +67,39 @@ func _run() -> void:
 		return
 	printerr("CREATOR_SKILL_DRAFT_TEST_FAILURES=%d" % failures)
 	quit(1)
+
+func _test_supported_family_round_trips() -> void:
+	for family in SkillDefinition.SUPPORTED_TYPES:
+		var draft := SkillDraft.new()
+		_check(draft.set_skill_type(family), "Creator accepts supported family %s" % family)
+		_check(draft.skill_type == family, "Creator stores selected family %s" % family)
+		var errors := draft.validate()
+		_check(errors.is_empty(), "safe defaults validate for family %s: %s" % [family, " | ".join(errors)])
+		var serialized := draft.to_dictionary()
+		_check(str(serialized.get("type", "")) == family, "Creator serializes selected family %s" % family)
+		var runtime_definition := SkillDefinition.new()
+		var runtime_errors := runtime_definition.load_from_dictionary(serialized)
+		_check(runtime_errors.is_empty() and runtime_definition.loaded, "runtime accepts Creator family %s: %s" % [family, " | ".join(runtime_errors)])
+		_check(runtime_definition.skill_type == family, "runtime preserves Creator family %s" % family)
+		var reloaded := SkillDraft.new()
+		var reload_errors := reloaded.load_from_dictionary(serialized)
+		_check(reload_errors.is_empty(), "Creator reloads family %s: %s" % [family, " | ".join(reload_errors)])
+		_check(reloaded.skill_type == family and reloaded.is_valid(), "Creator family %s survives round-trip" % family)
+
+	var formation := SkillDraft.new()
+	formation.set_skill_type("formation")
+	_check(formation.formation_count == 4, "formation defaults include safe strike count")
+	_check(is_equal_approx(formation.formation_spacing, 80.0), "formation defaults include safe spacing")
+	_check(is_equal_approx(formation.formation_interval, 0.15), "formation defaults include safe interval")
+	formation.formation_count = 0
+	_check(_contains_error(formation.validate(), "formation_count must be positive"), "invalid formation family parameter fails closed")
+
+	var buff := SkillDraft.new()
+	buff.set_skill_type("buff")
+	_check(is_equal_approx(buff.buff_duration, 5.0), "buff defaults include safe duration")
+	_check(buff.move_speed_multiplier >= 1.0 and buff.basic_attack_damage_multiplier >= 1.0, "buff defaults include safe multipliers")
+	buff.buff_duration = 0.0
+	_check(_contains_error(buff.validate(), "buff_duration must be positive"), "invalid buff family parameter fails closed")
 
 func _test_timeline_round_trip(draft: SkillDraft) -> void:
 	draft.reset()
@@ -96,7 +136,6 @@ func _test_timeline_round_trip(draft: SkillDraft) -> void:
 	_check(is_equal_approx(float(loaded.timeline_events[2].get("half_width", 0.0)), 34.0), "Creator timeline preserves spatial dimensions")
 	_check(is_equal_approx(float(loaded.timeline_events[2].get("offset_depth", 0.0)), -0.02), "Creator timeline preserves spatial offsets")
 
-	# Ensure the draft owns a deep copy rather than sharing caller-owned dictionaries.
 	events[0]["id"] = "mutated_outside"
 	events[0]["animation"] = "attack_1"
 	events[1]["visual"] = "mutated_visual"
