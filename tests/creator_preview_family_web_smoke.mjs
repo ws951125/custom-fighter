@@ -16,6 +16,7 @@ const families = [
   { type: 'buff', slot: 'skill_5', key: 'b', index: 5 },
   { type: 'melee', slot: 'skill_6', key: 'h', index: 6 },
   { type: 'beam', slot: 'skill_7', key: 'y', index: 7 },
+  { type: 'trap', slot: 'skill_8', key: 't', index: 8 },
 ];
 
 function creatorUrl() {
@@ -40,6 +41,7 @@ async function waitForCreator(page) {
       typeof window.customFighterCreatorSetSkillDamage === 'function' &&
       typeof window.customFighterCreatorSetSkillMpCost === 'function' &&
       typeof window.customFighterCreatorSetSkillCooldown === 'function' &&
+      typeof window.customFighterCreatorSetSkillRange === 'function' &&
       typeof window.customFighterCreatorTimelineClear === 'function' &&
       typeof window.customFighterCreatorTimelineAdd === 'function' &&
       typeof window.customFighterCreatorPreview === 'function',
@@ -67,6 +69,7 @@ try {
       window.customFighterCreatorSetSkillDamage(12);
       window.customFighterCreatorSetSkillMpCost(11);
       window.customFighterCreatorSetSkillCooldown(0.6);
+      if (type === 'trap') window.customFighterCreatorSetSkillRange(580);
       window.customFighterCreatorTimelineClear();
       window.customFighterCreatorTimelineAdd(JSON.stringify({
         type: 'audio', time: 0.0, duration: 0.0, cue: 'skill_cast',
@@ -78,6 +81,7 @@ try {
         document.documentElement.dataset.creatorSkillDraftValid === 'true' &&
         document.documentElement.dataset.creatorSkillDraftType === type &&
         document.documentElement.dataset.creatorSkillDraftMpCost === '11' &&
+        (type !== 'trap' || Math.abs(Number(document.documentElement.dataset.creatorSkillDraftRange) - 580) < 0.01) &&
         document.documentElement.dataset.creatorTimelineCount === '1' &&
         document.documentElement.dataset.creatorTimelineValid === 'true' &&
         document.documentElement.dataset.creatorPreviewCanLaunch === 'true',
@@ -101,6 +105,7 @@ try {
           d[`playerRuntimeSkill${index}`] === d.creatorPreviewRuntimeSkillId &&
           Number(d.creatorPreviewRuntimeSkillMpCost) === 11 &&
           (type !== 'beam' || (d.beamSkillLoaded === 'true' && d.beamSkillId === d.creatorPreviewRuntimeSkillId)) &&
+          (type !== 'trap' || (d.trapSkillLoaded === 'true' && d.trapSkillId === d.creatorPreviewRuntimeSkillId)) &&
           d.creatorPreviewReturnReady === 'true' &&
           typeof window.customFighterPreviewReturnToCreator === 'function'
         );
@@ -153,6 +158,28 @@ try {
       }
     }
 
+    if (family.type === 'trap') {
+      stage = 'trap-hit';
+      await page.waitForFunction(
+        (expectedHp) => {
+          const d = document.documentElement.dataset;
+          return (
+            d.lastTrapSkillHit === 'true' &&
+            d.trapSkillTriggered === 'true' &&
+            d.trapSkillActive === 'false' &&
+            Number(d.trapSkillHitCount ?? '0') === 1 &&
+            Number(d.dummyHp) === expectedHp
+          );
+        },
+        beforeDummyHp - 12,
+        { timeout: 5_000 },
+      );
+      await page.waitForTimeout(120);
+      if (Number(await dataset(page, 'trapSkillHitCount')) !== 1) {
+        throw new Error('Trap damaged more than once after one trigger');
+      }
+    }
+
     stage = `return-${family.type}`;
     await page.evaluate(() => window.customFighterPreviewReturnToCreator());
     await waitForCreator(page);
@@ -166,7 +193,7 @@ try {
     );
   }
 
-  console.log('WEB_CREATOR_PREVIEW_FAMILY_SMOKE_PASSED families=7 slotRouting=true authoredCast=true beamHitPolicy=single timelineDispatch=true roundTrip=true');
+  console.log('WEB_CREATOR_PREVIEW_FAMILY_SMOKE_PASSED families=8 slotRouting=true authoredCast=true beamHitPolicy=single trapTriggerPolicy=single timelineDispatch=true roundTrip=true');
 } catch (error) {
   let snapshot = {};
   if (page) {
