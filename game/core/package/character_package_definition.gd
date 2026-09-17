@@ -180,7 +180,7 @@ func _character_to_dictionary(character: Variant) -> Dictionary:
 	}
 
 func _skill_to_dictionary(skill: Variant) -> Dictionary:
-	return {
+	var data := {
 		"schema_version": skill.schema_version,
 		"id": skill.skill_id,
 		"name": skill.skill_name,
@@ -204,10 +204,12 @@ func _skill_to_dictionary(skill: Variant) -> Dictionary:
 		"buff_duration": skill.buff_duration,
 		"move_speed_multiplier": skill.move_speed_multiplier,
 		"basic_attack_damage_multiplier": skill.basic_attack_damage_multiplier,
-		"trap_duration": skill.trap_duration,
 		"visual": skill.visual,
 		"impact_visual": skill.impact_visual
 	}
+	if skill.skill_type == "trap":
+		data["trap_duration"] = skill.trap_duration
+	return data
 
 func _validate_allowed_fields(data: Dictionary, allowed_fields: Array, scope: String, errors: PackedStringArray) -> void:
 	for raw_key in data.keys():
