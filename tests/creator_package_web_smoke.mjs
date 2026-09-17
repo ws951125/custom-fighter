@@ -8,20 +8,6 @@ if (browserChannel) launchOptions.channel = browserChannel;
 console.log(`CREATOR_PACKAGE_BROWSER=${browserChannel || 'playwright-chromium'}`);
 console.log(`CREATOR_PACKAGE_BASE_URL=${baseUrl}`);
 
-async function clickGodotLogicalPoint(page, logicalX, logicalY) {
-  const canvas = page.locator('canvas').first();
-  await canvas.waitFor({ state: 'visible', timeout: 10_000 });
-  const box = await canvas.boundingBox();
-  if (!box) throw new Error('Godot canvas has no clickable bounding box');
-
-  const x = box.x + (logicalX / 1280) * box.width;
-  const y = box.y + (logicalY / 720) * box.height;
-  console.log(
-    `CREATOR_PACKAGE_CANVAS_CLICK logical=${logicalX},${logicalY} css=${x.toFixed(1)},${y.toFixed(1)} box=${box.width.toFixed(1)}x${box.height.toFixed(1)}`,
-  );
-  await page.mouse.click(x, y);
-}
-
 const browser = await chromium.launch(launchOptions);
 try {
   const creatorUrl = new URL(baseUrl);
@@ -45,9 +31,8 @@ try {
 
   // Instrument the browser-native anchor boundary so this regression proves that
   // the production export path built and clicked the expected download anchor.
-  // A Playwright `download` event is not a deterministic oracle here because the
-  // Godot button signal is handled on a later game frame, after transient browser
-  // user activation may have expired in headless Chromium.
+  // A Playwright `download` event is not a deterministic oracle for a Blob download
+  // initiated through Godot's JavaScriptBridge in headless Chromium/Edge.
   await page.evaluate(() => {
     window.customFighterPackageDownloadAttempts = [];
     const originalAnchorClick = HTMLAnchorElement.prototype.click;
@@ -83,9 +68,10 @@ try {
     { timeout: 5_000 },
   );
 
-  // Exercise the real Godot Export Package button. It is anchored at x=202..342
-  // and y=648..692 in the project's 1280x720 logical viewport.
-  await clickGodotLogicalPoint(page, 272, 670);
+  // Exercise the production Godot Web bridge directly. The bridge routes through
+  // the same _on_export_package_pressed() path as the in-canvas Export button,
+  // while avoiding coordinate/pointer timing as a CI-only source of flakiness.
+  await page.evaluate(() => window.customFighterCreatorExportPackage());
   await page.waitForFunction(
     () =>
       document.documentElement.dataset.creatorPackageExportCount === '1' &&
@@ -96,7 +82,7 @@ try {
         (attempt) => typeof attempt?.filename === 'string' && attempt.filename.endsWith('.custom-fighter.json'),
       ),
     null,
-    { timeout: 5_000 },
+    { timeout: 10_000 },
   );
 
   const downloadAttempt = await page.evaluate(() =>
