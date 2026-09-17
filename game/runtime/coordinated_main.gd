@@ -8,6 +8,7 @@ const SKILL_4_OWNER := &"skill_4"
 const SKILL_5_OWNER := &"skill_5"
 const SKILL_6_OWNER := &"skill_6"
 const SKILL_7_OWNER := &"skill_7"
+const SKILL_8_OWNER := &"skill_8"
 
 var skill_coordinator := SkillCoordinator.new()
 
@@ -102,6 +103,13 @@ func _sync_skill_claims() -> void:
 		)
 	):
 		skill_coordinator.release(SKILL_7_OWNER)
+
+	var trap_controller = get_node_or_null("TrapSkillController")
+	if (
+		skill_coordinator.is_owned_by(SKILL_8_OWNER)
+		and (trap_controller == null or not trap_controller.cast_state.is_casting())
+	):
+		skill_coordinator.release(SKILL_8_OWNER)
 
 func _any_skill_casting() -> bool:
 	return skill_coordinator.is_busy()
