@@ -15,6 +15,7 @@ const families = [
   { type: 'formation', slot: 'skill_4', key: 'p', index: 4 },
   { type: 'buff', slot: 'skill_5', key: 'b', index: 5 },
   { type: 'melee', slot: 'skill_6', key: 'h', index: 6 },
+  { type: 'beam', slot: 'skill_7', key: 'y', index: 7 },
 ];
 
 function creatorUrl() {
@@ -99,6 +100,7 @@ try {
           d[`playerRuntimeSkill${index}Source`] === 'creator_preview_session' &&
           d[`playerRuntimeSkill${index}`] === d.creatorPreviewRuntimeSkillId &&
           Number(d.creatorPreviewRuntimeSkillMpCost) === 11 &&
+          (type !== 'beam' || (d.beamSkillLoaded === 'true' && d.beamSkillId === d.creatorPreviewRuntimeSkillId)) &&
           d.creatorPreviewReturnReady === 'true' &&
           typeof window.customFighterPreviewReturnToCreator === 'function'
         );
@@ -112,6 +114,7 @@ try {
 
     stage = `cast-${family.type}`;
     const beforeMp = Number(await dataset(page, 'playerMp'));
+    const beforeDummyHp = Number(await dataset(page, 'dummyHp'));
     await page.keyboard.down(family.key);
     await page.waitForFunction(
       (expected) => Number(document.documentElement.dataset.playerMp) === expected,
@@ -130,6 +133,26 @@ try {
       { timeout: 5_000 },
     );
 
+    if (family.type === 'beam') {
+      stage = 'beam-hit';
+      await page.waitForFunction(
+        (expectedHp) => {
+          const d = document.documentElement.dataset;
+          return (
+            d.lastBeamSkillHit === 'true' &&
+            Number(d.beamSkillHitCount ?? '0') === 1 &&
+            Number(d.dummyHp) === expectedHp
+          );
+        },
+        beforeDummyHp - 12,
+        { timeout: 5_000 },
+      );
+      await page.waitForTimeout(120);
+      if (Number(await dataset(page, 'beamSkillHitCount')) !== 1) {
+        throw new Error('Beam damaged more than once during one activation');
+      }
+    }
+
     stage = `return-${family.type}`;
     await page.evaluate(() => window.customFighterPreviewReturnToCreator());
     await waitForCreator(page);
@@ -143,7 +166,7 @@ try {
     );
   }
 
-  console.log('WEB_CREATOR_PREVIEW_FAMILY_SMOKE_PASSED families=6 slotRouting=true authoredCast=true timelineDispatch=true roundTrip=true');
+  console.log('WEB_CREATOR_PREVIEW_FAMILY_SMOKE_PASSED families=7 slotRouting=true authoredCast=true beamHitPolicy=single timelineDispatch=true roundTrip=true');
 } catch (error) {
   let snapshot = {};
   if (page) {
