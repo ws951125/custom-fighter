@@ -203,7 +203,13 @@ try {
       snapshot = {};
     }
   }
-  console.error(`CREATOR_PREVIEW_FAMILY_FAILURE stage=${stage} error=${String(error)} snapshot=${JSON.stringify(snapshot)}`);
+  const failureDetail = `stage=${stage} error=${String(error)} snapshot=${JSON.stringify(snapshot)}`;
+  console.error(`CREATOR_PREVIEW_FAMILY_FAILURE ${failureDetail}`);
+  const annotationDetail = failureDetail
+    .replaceAll('%', '%25')
+    .replaceAll('\r', '%0D')
+    .replaceAll('\n', '%0A');
+  console.error(`::error title=Creator Preview family smoke::${annotationDetail}`);
   throw error;
 } finally {
   await browser.close();
