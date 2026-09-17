@@ -14,23 +14,8 @@ function characterUrl(characterId) {
   return url.toString();
 }
 
-async function animationReadinessSnapshot(page) {
-  return page.evaluate(() => ({
-    godotReady: document.documentElement.dataset.godotReady ?? '',
-    selected: document.documentElement.dataset.playerSelectedCharacterId ?? '',
-    characterMap: document.documentElement.dataset.playerCharacterAnimationMap ?? '',
-    mapLoaded: document.documentElement.dataset.playerAnimationMapLoaded ?? '',
-    mapId: document.documentElement.dataset.playerAnimationMapId ?? '',
-    semantic: document.documentElement.dataset.playerAnimationSemantic ?? '',
-    animationId: document.documentElement.dataset.playerAnimationId ?? '',
-    loadError: document.documentElement.dataset.playerAnimationLoadError ?? '',
-  }));
-}
-
 async function openCharacter(browser, characterId) {
   const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
-  page.on('console', (message) => console.log(`[animation browser ${message.type()}] ${message.text()}`));
-  page.on('pageerror', (error) => console.error(`[animation pageerror] ${error?.stack || error}`));
   const url = characterUrl(characterId);
   const response = await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 60_000 });
   if (!response?.ok()) throw new Error(`Animation character URL returned HTTP ${response?.status() ?? 'unknown'}: ${url}`);
@@ -39,17 +24,11 @@ async function openCharacter(browser, characterId) {
     null,
     { timeout: 60_000 },
   );
-  try {
-    await page.waitForFunction(
-      () => document.documentElement.dataset.playerAnimationMapLoaded === 'true',
-      null,
-      { timeout: 5_000 },
-    );
-  } catch (error) {
-    const snapshot = await animationReadinessSnapshot(page);
-    console.error(`CHARACTER_ANIMATION_READINESS_TIMEOUT snapshot=${JSON.stringify(snapshot)}`);
-    throw error;
-  }
+  await page.waitForFunction(
+    () => document.documentElement.dataset.playerAnimationMapLoaded === 'true',
+    null,
+    { timeout: 5_000 },
+  );
   return page;
 }
 
