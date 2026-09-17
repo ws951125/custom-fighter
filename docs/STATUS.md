@@ -31,6 +31,19 @@ V2 roadmap is defined in `docs/V2_ROADMAP.md` and captures previously discussed/
 
 V2-1 delivered visual event timeline authoring, startup/active/recovery timing, animation/VFX/audio events, hitbox/hurtbox timing and spatial editing, safe multi-event compositions, validation, and Creator → Training preview round trip. V2-2 now extends the data-driven skill engine beyond the six V1 families while preserving safe declarative event boundaries and no arbitrary user code.
 
+### V2-2 implementation checkpoints
+
+Work unit 1 — **skill-family authoring foundation — implementation synchronized, cloud validation pending** on branch `feat/v2-2-skill-family-authoring-foundation`:
+- `docs/V2_2_SKILL_FAMILY_INVENTORY.md` inventories the six V1 families, fixed slot/type routing, Creator projectile-only bottleneck, reusable V2 timeline primitives and existing online regression boundaries.
+- `SkillDraft` is no longer hard-locked to projectile. It accepts every family currently declared by `SkillDefinition.SUPPORTED_TYPES`, serializes/reloads family-specific formation and buff fields, and applies deterministic safe defaults on explicit family changes.
+- Projectile remains the reset/default family so existing Creator Preview, package, VFX and AI-proposal flows remain backwards compatible.
+- Creator Skill Editor now exposes one safe Skill Family selector instead of a fixed PROJECTILE label. Unsupported family values are not accepted by the selector path and direct invalid draft values still fail closed through `SkillDefinition`.
+- Creator Web telemetry includes formation/buff family defaults so browser regressions can assert the validated data contract.
+- `creator_skill_draft_test_runner.gd` now covers all six V1 family round-trips, family-specific invalid formation/buff parameters, unsafe/unsupported family rejection and the existing timeline fail-closed contract.
+- `creator_skill_editor_web_smoke.mjs` now switches through melee/projectile/area/dash/formation/buff in the real Creator UI bridge and verifies each draft remains valid before re-running the existing projectile invalid/valid/reset regression.
+- This work unit deliberately does **not** claim non-projectile Creator Preview support yet; preview/runtime family dispatch is the next architecture step.
+- The first planned genuinely new V2 family is `beam`, selected because it can reuse declarative range/active/spatial/timeline primitives without introducing autonomous actors, target grabs, reactive code or player relocation.
+
 ### V2-1 implementation checkpoints
 
 Work unit 1 was merged by PR #133 to `main` at `bb6d1c68a697958748e4dd9e6d2aac3c03bca414`:
@@ -147,4 +160,4 @@ AI VFX backend: `https://custom-fighter-ai-vfx.onrender.com`
 
 ## Next implementation target
 
-Begin V2-2 Extended Skill Families by inventorying the existing six V1 skill families, their Creator authoring paths, runtime/controller boundaries, shared timeline/event primitives, and current test coverage. Use that inventory to select the first safe declarative V2-2 family slice and define its acceptance criteria before implementation.
+Finish V2-2 work unit 1 by validating the generalized Creator family selector and six-family draft round-trip through GitHub PR CI (Godot domain/import/boot, Web export, Chromium and hosted Microsoft Edge). After that foundation is merged and production-validated, implement data-driven runtime/Creator Preview family dispatch and the first new V2 family, `beam`, without weakening exact registry/type validation or allowing arbitrary user code.
