@@ -14,7 +14,7 @@ const ALLOWED_SKILL_FIELDS := [
 	"startup", "active", "recovery", "speed", "range", "hitstun", "knockback",
 	"hitbox_half_width", "hitbox_half_depth", "formation_count", "formation_spacing",
 	"formation_interval", "formation_offset", "buff_duration", "move_speed_multiplier",
-	"basic_attack_damage_multiplier", "visual", "impact_visual"
+	"basic_attack_damage_multiplier", "trap_duration", "visual", "impact_visual"
 ]
 
 var schema_version := CURRENT_SCHEMA_VERSION
@@ -204,6 +204,7 @@ func _skill_to_dictionary(skill: Variant) -> Dictionary:
 		"buff_duration": skill.buff_duration,
 		"move_speed_multiplier": skill.move_speed_multiplier,
 		"basic_attack_damage_multiplier": skill.basic_attack_damage_multiplier,
+		"trap_duration": skill.trap_duration,
 		"visual": skill.visual,
 		"impact_visual": skill.impact_visual
 	}
