@@ -1,4 +1,4 @@
-﻿import { spawnSync } from 'node:child_process';
+import { spawnSync } from 'node:child_process';
 
 const smokeScripts = [
   'smoke:web',
@@ -27,14 +27,24 @@ const smokeScripts = [
   'smoke:mobile',
 ];
 
-const npmCommand = process.platform === 'win32' ? 'npm.cmd' : 'npm';
+function runNpmScript(scriptName) {
+  if (process.platform === 'win32') {
+    const commandProcessor = process.env.ComSpec || process.env.COMSPEC || 'cmd.exe';
+    return spawnSync(commandProcessor, ['/d', '/s', '/c', `npm run ${scriptName}`], {
+      stdio: 'inherit',
+      env: process.env,
+    });
+  }
 
-for (const scriptName of smokeScripts) {
-  console.log(`SMOKE_SUITE_STAGE_START script=${scriptName}`);
-  const result = spawnSync(npmCommand, ['run', scriptName], {
+  return spawnSync('npm', ['run', scriptName], {
     stdio: 'inherit',
     env: process.env,
   });
+}
+
+for (const scriptName of smokeScripts) {
+  console.log(`SMOKE_SUITE_STAGE_START script=${scriptName}`);
+  const result = runNpmScript(scriptName);
   if (result.error || result.status !== 0) {
     const detail = result.error ? String(result.error) : `exit=${result.status ?? 'unknown'} signal=${result.signal ?? ''}`;
     const annotation = `script=${scriptName} ${detail}`
