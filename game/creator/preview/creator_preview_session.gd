@@ -14,7 +14,8 @@ const PREVIEW_SLOT_BY_TYPE := {
 	"formation": "skill_4",
 	"buff": "skill_5",
 	"melee": "skill_6",
-	"beam": "skill_7"
+	"beam": "skill_7",
+	"trap": "skill_8"
 }
 const APPROVED_PREVIEW_VISUAL := "prototype_fireball"
 const APPROVED_PREVIEW_IMPACT_VISUAL := "prototype_impact"
