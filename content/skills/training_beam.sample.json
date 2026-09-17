@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "id": "training_beam_001",
+  "name": "Training Beam",
+  "type": "beam",
+  "damage": 20,
+  "mp_cost": 28,
+  "cooldown": 2.4,
+  "startup": 0.28,
+  "active": 0.32,
+  "recovery": 0.38,
+  "speed": 0.0,
+  "range": 720.0,
+  "hitstun": 0.26,
+  "knockback": 300.0,
+  "hitbox_half_width": 24.0,
+  "hitbox_half_depth": 0.10,
+  "visual": "prototype_beam",
+  "impact_visual": "prototype_impact"
+}

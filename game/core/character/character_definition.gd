@@ -3,6 +3,8 @@ extends RefCounted
 
 const CURRENT_SCHEMA_VERSION := 1
 const REQUIRED_SKILL_SLOTS := ["skill_1", "skill_2", "skill_3", "skill_4", "skill_5", "skill_6"]
+const OPTIONAL_SKILL_SLOTS := ["skill_7"]
+const SUPPORTED_SKILL_SLOTS := ["skill_1", "skill_2", "skill_3", "skill_4", "skill_5", "skill_6", "skill_7"]
 const ALLOWED_TOP_LEVEL_FIELDS := [
 	"schema_version", "id", "name", "archetype", "stats", "skill_slots", "visual_profile", "animation_map"
 ]
@@ -63,7 +65,7 @@ func load_from_dictionary(data: Dictionary) -> PackedStringArray:
 	var stats: Dictionary = data.get("stats", {})
 	var slots: Dictionary = data.get("skill_slots", {})
 	_validate_allowed_fields(stats, ALLOWED_STAT_FIELDS, "stats", errors)
-	_validate_allowed_fields(slots, REQUIRED_SKILL_SLOTS, "skill_slots", errors)
+	_validate_allowed_fields(slots, SUPPORTED_SKILL_SLOTS, "skill_slots", errors)
 
 	for field in ALLOWED_STAT_FIELDS:
 		if not stats.has(field):
@@ -90,6 +92,9 @@ func load_from_dictionary(data: Dictionary) -> PackedStringArray:
 	skill_slots.clear()
 	for slot in REQUIRED_SKILL_SLOTS:
 		skill_slots[slot] = str(slots.get(slot, "")).strip_edges()
+	for slot in OPTIONAL_SKILL_SLOTS:
+		if slots.has(slot):
+			skill_slots[slot] = str(slots.get(slot, "")).strip_edges()
 
 	if schema_version != CURRENT_SCHEMA_VERSION:
 		errors.append("unsupported schema_version: %d" % schema_version)
@@ -117,7 +122,7 @@ func load_from_dictionary(data: Dictionary) -> PackedStringArray:
 	if guard_move_multiplier < 0.0 or guard_move_multiplier > 1.0:
 		errors.append("guard_move_multiplier must be between 0.0 and 1.0")
 
-	for slot in REQUIRED_SKILL_SLOTS:
+	for slot in skill_slots.keys():
 		var skill_id := str(skill_slots.get(slot, ""))
 		if not _is_safe_token(skill_id):
 			errors.append("%s must contain a safe skill id token" % slot)

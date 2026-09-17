@@ -110,6 +110,12 @@ func _apply_family_defaults(family: String) -> void:
 			buff_duration = 5.0
 			move_speed_multiplier = 1.15
 			basic_attack_damage_multiplier = 1.20
+		"beam":
+			speed = 0.0
+			range = 720.0
+			active = 0.32
+			hitbox_half_width = 24.0
+			hitbox_half_depth = 0.10
 
 func load_from_dictionary(data: Dictionary) -> PackedStringArray:
 	var definition := SkillDefinition.new()
