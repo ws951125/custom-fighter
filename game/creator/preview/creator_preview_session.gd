@@ -7,7 +7,14 @@ const SkillDefinition = preload("res://game/core/skills/skill_definition.gd")
 const VfxDraft = preload("res://game/creator/vfx_editor/vfx_draft.gd")
 const AiSkillProposal = preload("res://game/ai/skill/ai_skill_proposal.gd")
 
-const PREVIEW_SKILL_TYPE := "projectile"
+const PREVIEW_SLOT_BY_TYPE := {
+	"projectile": "skill_1",
+	"dash": "skill_2",
+	"area": "skill_3",
+	"formation": "skill_4",
+	"buff": "skill_5",
+	"melee": "skill_6"
+}
 const APPROVED_PREVIEW_VISUAL := "prototype_fireball"
 const APPROVED_PREVIEW_IMPACT_VISUAL := "prototype_impact"
 const MAX_VFX_PNG_BYTES := 5 * 1024 * 1024
@@ -19,6 +26,7 @@ var _stored_vfx_png_bytes := PackedByteArray()
 var _pending_ai_skill_proposal: Dictionary = {}
 var _preview_character_data: Dictionary = {}
 var _preview_skill_data: Dictionary = {}
+var _preview_skill_slot := ""
 var _preview_vfx_data: Dictionary = {}
 var _preview_vfx_png_bytes := PackedByteArray()
 var _preview_active := false
@@ -34,39 +42,44 @@ func store_drafts(character_data: Dictionary, skill_data: Dictionary) -> PackedS
 	return PackedStringArray()
 
 func stage_preview(character_data: Dictionary, skill_data: Dictionary) -> PackedStringArray:
-	var errors := _validate_drafts(character_data, skill_data)
+	var errors: PackedStringArray = _validate_drafts(character_data, skill_data)
 	if not errors.is_empty():
-		_preview_active = false
-		_clear_preview_vfx()
+		_deactivate_failed_preview()
 		return errors
 
 	var preview_character: Dictionary = character_data.duplicate(true)
 	var preview_skill: Dictionary = skill_data.duplicate(true)
+	var preview_type := str(preview_skill.get("type", "")).strip_edges().to_lower()
+	var preview_slot := preview_slot_for_type(preview_type)
+	if preview_slot.is_empty():
+		errors.append("skill: creator preview has no runtime slot for type: %s" % preview_type)
+		_deactivate_failed_preview()
+		return errors
+
 	var preview_slots: Dictionary = preview_character.get("skill_slots", {}).duplicate(true)
-	preview_slots["skill_1"] = str(preview_skill.get("id", "")).strip_edges().to_lower()
+	preview_slots[preview_slot] = str(preview_skill.get("id", "")).strip_edges().to_lower()
 	preview_character["skill_slots"] = preview_slots
 
 	var preview_definition := CharacterDefinition.new()
 	var preview_errors: PackedStringArray = preview_definition.load_from_dictionary(preview_character)
 	if not preview_errors.is_empty():
-		_preview_active = false
-		_clear_preview_vfx()
+		_deactivate_failed_preview()
 		return preview_errors
 
-	if has_stored_vfx():
+	if preview_type == "projectile" and has_stored_vfx():
 		var vfx_errors: PackedStringArray = _validate_vfx_payload(_stored_vfx_data, _stored_vfx_png_bytes)
 		for error in vfx_errors:
 			errors.append("vfx: %s" % error)
 		if not errors.is_empty():
-			_preview_active = false
-			_clear_preview_vfx()
+			_deactivate_failed_preview()
 			return errors
 
 	_draft_character_data = character_data.duplicate(true)
 	_draft_skill_data = skill_data.duplicate(true)
 	_preview_character_data = preview_character
 	_preview_skill_data = preview_skill
-	if has_stored_vfx():
+	_preview_skill_slot = preview_slot
+	if preview_type == "projectile" and has_stored_vfx():
 		_preview_vfx_data = _stored_vfx_data.duplicate(true)
 		_preview_vfx_png_bytes = _stored_vfx_png_bytes.duplicate()
 	else:
@@ -103,7 +116,8 @@ func has_pending_ai_skill_proposal() -> bool:
 func take_pending_ai_skill_proposal() -> Dictionary:
 	var proposal := _pending_ai_skill_proposal.duplicate(true)
 	_pending_ai_skill_proposal.clear()
-	if not proposal.is_empty(): revision += 1
+	if not proposal.is_empty():
+		revision += 1
 	return proposal
 
 func clear_vfx_draft() -> void:
@@ -111,6 +125,9 @@ func clear_vfx_draft() -> void:
 	_stored_vfx_png_bytes.clear()
 	_clear_preview_vfx()
 	revision += 1
+
+func preview_slot_for_type(skill_type: String) -> String:
+	return str(PREVIEW_SLOT_BY_TYPE.get(skill_type.strip_edges().to_lower(), ""))
 
 func _validate_drafts(character_data: Dictionary, skill_data: Dictionary) -> PackedStringArray:
 	var errors := PackedStringArray()
@@ -128,8 +145,8 @@ func _validate_drafts(character_data: Dictionary, skill_data: Dictionary) -> Pac
 		return errors
 	if not _is_safe_token(skill_definition.skill_id):
 		errors.append("skill: id must be a safe lowercase reference token")
-	if skill_definition.skill_type != PREVIEW_SKILL_TYPE:
-		errors.append("skill: creator preview currently supports projectile only")
+	if preview_slot_for_type(skill_definition.skill_type).is_empty():
+		errors.append("skill: creator preview has no runtime slot for type: %s" % skill_definition.skill_type)
 	if skill_definition.visual != APPROVED_PREVIEW_VISUAL:
 		errors.append("skill: unsupported preview visual")
 	if skill_definition.impact_visual != APPROVED_PREVIEW_IMPACT_VISUAL:
@@ -169,7 +186,12 @@ func _validate_vfx_payload(vfx_data: Dictionary, png_bytes: PackedByteArray) -> 
 	return errors
 
 func has_active_preview() -> bool:
-	return _preview_active and not _preview_character_data.is_empty() and not _preview_skill_data.is_empty()
+	return (
+		_preview_active
+		and not _preview_character_data.is_empty()
+		and not _preview_skill_data.is_empty()
+		and not _preview_skill_slot.is_empty()
+	)
 
 func has_stored_drafts() -> bool:
 	return not _draft_character_data.is_empty() and not _draft_skill_data.is_empty()
@@ -185,6 +207,14 @@ func preview_character_data() -> Dictionary:
 
 func preview_skill_data() -> Dictionary:
 	return _preview_skill_data.duplicate(true)
+
+func preview_skill_type() -> String:
+	if not has_active_preview():
+		return ""
+	return str(_preview_skill_data.get("type", "")).strip_edges().to_lower()
+
+func preview_skill_slot() -> String:
+	return _preview_skill_slot if has_active_preview() else ""
 
 func preview_vfx_data() -> Dictionary:
 	return _preview_vfx_data.duplicate(true)
@@ -206,6 +236,7 @@ func stored_vfx_png_bytes() -> PackedByteArray:
 
 func deactivate_preview() -> void:
 	_preview_active = false
+	_preview_skill_slot = ""
 	_clear_preview_vfx()
 
 func clear() -> void:
@@ -216,9 +247,15 @@ func clear() -> void:
 	_pending_ai_skill_proposal.clear()
 	_preview_character_data.clear()
 	_preview_skill_data.clear()
+	_preview_skill_slot = ""
 	_clear_preview_vfx()
 	_preview_active = false
 	revision += 1
+
+func _deactivate_failed_preview() -> void:
+	_preview_active = false
+	_preview_skill_slot = ""
+	_clear_preview_vfx()
 
 func _clear_preview_vfx() -> void:
 	_preview_vfx_data.clear()
