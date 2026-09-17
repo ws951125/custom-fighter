@@ -51,6 +51,18 @@ If chat/checkpoint information conflicts with GitHub, GitHub/repository state wi
 - If a work unit has merged, re-check actual `main` merge SHA before reporting it.
 - Distinguish “synchronized to GitHub” from “deployed/production-validated”.
 
+### Response Gate — mandatory GitHub synchronization before reporting
+
+Before every reply that reports project progress, completed work, fixes, test results, or a checkpoint, perform a Response Gate. This gate strengthens the synchronization rules above and applies equally to code, tests, configuration, documentation, and `AGENTS.md` changes.
+
+1. Determine whether the current work round contains project changes that should be committed. Never commit disposable temp files, build caches, dependencies, browser profiles, test output, generated caches, or other ignored/non-source artifacts merely to satisfy this gate.
+2. If there are project changes, complete the minimum necessary applicable validation first, then commit them to the active formal feature branch and push them to the repository's authoritative GitHub remote before reporting them as complete.
+3. After the push, re-read the authoritative GitHub branch ref and, when a PR exists, its head SHA. The branch head must equal the commit being reported, and the PR head must equal that same latest pushed branch head.
+4. Because this repository's GitHub-only hard rule prohibits access to the user's local computer, local `git status`, local `HEAD`, `HEAD...origin/<current-branch>`, PowerShell, and local working-tree checks must not be executed for this repository. Their Response Gate purpose is satisfied here by authoritative GitHub branch/commit/PR verification. If an authorized cloud workspace with an actual Git checkout is used in the future without weakening section 4, also require clean intended changes, `Local HEAD = origin/<current-branch>`, and `git rev-list --left-right --count HEAD...origin/<current-branch>` = `0 0`; on Windows PowerShell prefer explicit `origin/<current-branch>` rather than `@{upstream}`.
+5. Do not report a work round as complete if the authoritative GitHub branch/PR does not contain its intended changes. First repair synchronization, or explicitly report `尚未同步 GitHub` with the blocker.
+6. If the user explicitly instructs the Agent not to commit or not to push for that round, obey that instruction and explicitly report that the work is not synchronized to GitHub; do not label local-only/unpushed work complete.
+7. This Response Gate does not replace or weaken testing, Playwright/browser validation, cleanup, PR, merge, deployment, authorization, security, or any other existing rule. Required final validation gates remain required.
+
 ## 4. GitHub-only / online-only hard rule
 
 All engineering validation and project Git synchronization for `custom-fighter` are online-only. Do not connect to, execute commands on, inspect, modify, build, test, debug, or synchronize this project through the user's local computer.
@@ -286,3 +298,15 @@ When the conversation reaches roughly 70% of its usable length:
 ## 20. Legacy filename migration rule
 
 `AGENTS.md` is the only active root Agent instruction file. `Agent.md` must not be recreated or maintained. Active documentation, scripts, workflow comments, and configuration must reference `AGENTS.md` instead. Historical text inside immutable/preserved engineering incident narratives may mention the old filename only when necessary to accurately describe what happened at that time; such a historical mention is not an active instruction source.
+
+## 21. Test efficiency and targeted revalidation
+
+These rules supplement, and do not replace, the existing Playwright, regression, GitHub-online validation, Definition of Done, and PR/merge requirements above.
+
+- Follow a fast-to-slow validation order. Prefer the cheapest applicable checks first: lint/static checks where available, type/parse checks where available, affected unit/domain tests, then affected integration tests.
+- Run targeted Playwright/browser automation only when the change affects Web UI, browser interaction, or an actual user-operation flow that requires browser-level evidence. Do not use Playwright as a substitute for validation that can be completed adequately by lighter deterministic tests.
+- When Playwright or another test fails, analyze the failure and correct the proven cause before rerunning. After a fix, first rerun only the failed test, affected test group, or directly affected user flow needed to verify that correction.
+- Do not rerun the complete E2E/full regression suite after every individual fix merely because one test failed. Do not blindly rerun unrelated tests that already passed.
+- After targeted tests pass, a full Playwright/E2E/regression run is not automatically required after every small correction. Run the broader applicable regression at the appropriate existing gate, such as completion of the coherent work unit, an important milestone, a substantial cross-module change, release-candidate validation, or before PR merge when required by the repository's existing merge/Definition-of-Done policy.
+- Preserve autonomous AI validation behavior: the Agent should still discover failures, diagnose them, fix them, and revalidate without unnecessary stop-and-wait. The efficiency rule changes test scope/order, not the requirement to obtain actual online evidence for required checks.
+- Minimize unnecessary browser launches, repeated full E2E runs, duplicate checks, and resource consumption while retaining all existing required final validation gates. If an existing rule explicitly requires a broader test at a particular milestone or merge gate, that requirement remains authoritative and is not weakened by this section.

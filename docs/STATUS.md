@@ -73,16 +73,28 @@ Work unit 5 was merged by PR #141 to `main` at `dfa9232a7746fce940a828b60826d3bf
 - Browser regression covers animation/VFX/audio authoring, unsafe media fail-closed recovery, media type switching, spatial-to-media cleanup, deterministic ordering, removal, and clear.
 - Main CI #311 validated the merged revision across Windows Native, Godot import/boot/domain/backend tests, Web export/size budget, Chromium, hosted Microsoft Edge, GitHub Pages deployment/public reachability, Render exact-revision readiness, and production Microsoft Edge full smoke.
 
-Work unit 6 is synchronized on branch `feat/v2-1-runtime-timeline-execution` and is awaiting PR CI:
+Work unit 6 was merged by PR #142 to `main` at `fab821926e73ef3ec1df2de2138d3df5916a6c93`; Main CI #313 (`35128794735`) completed successfully across the full production chain:
 - `SkillTimelineRuntime` converts validated declarative timeline events into deterministic runtime start/end boundaries without evaluating code or loading arbitrary paths.
 - Time-zero events are emitted immediately when a cast starts; duration events track active windows and emit explicit end transitions; zero-duration events remain one-shot starts.
 - Boundary ordering is deterministic across frame hitches and large deltas. If one event ends exactly when another starts, the end transition is emitted first, then starts follow source order.
-- `SkillCastState` now owns the timeline scheduler. Legacy startup/active/recovery semantics remain intact, while a timeline that extends beyond those phases keeps the skill busy and blocks recast/coordinator release until its final boundary executes.
-- Runtime transition consumption is one-shot and deep-copied; active-event queries are read-only data views for future Training consumers.
+- `SkillCastState` owns the timeline scheduler. Legacy startup/active/recovery semantics remain intact, while a timeline that extends beyond those phases keeps the skill busy and blocks recast/coordinator release until its final boundary executes.
+- Runtime transition consumption is one-shot and deep-copied; active-event queries are read-only data views for Training consumers.
 - Dedicated `skill_timeline_runtime_test_runner.gd` regression covers time-zero start, negative-delta safety, large-delta multi-boundary execution, same-time ordering, active windows, late events beyond legacy recovery, recast blocking, and no-timeline backwards compatibility.
-- CI is wired to run the dedicated runtime regression before browser/export gates.
+- Main CI #313 passed Windows Native, Godot import/boot/domain/backend tests, Web export/size budget, Chromium, hosted Microsoft Edge, GitHub Pages deployment/public reachability, Render exact-revision readiness, and production Microsoft Edge full smoke.
 
-V2-1 is not complete yet: work unit 6 still requires PR/main online validation and merge. After that, Creator → Training must consume the runtime transitions for authored animation/VFX/audio/hitbox/hurtbox behavior and complete the deployed round-trip acceptance.
+Work unit 7 is in progress on branch `feat/v2-1-training-timeline-consumers` in PR #143:
+- Creator Preview Training consumes validated timeline transitions for `animation`, `vfx`, `audio`, `hitbox`, and `hurtbox` without creating a second unsafe data path.
+- Animation events can temporarily override the runtime animation semantic; VFX events have a timed Training overlay; audio cues are consumed as deterministic runtime telemetry; hitbox/hurtbox windows use the authored safe spatial payload and are rendered in Training.
+- Runtime Web telemetry exposes transition count, elapsed time, last event/type/phase, media state, audio event count, and active spatial payloads for repeatable browser validation.
+- `tests/creator_preview_web_smoke.mjs` now authors all five event types, launches Training, casts Skill 1, verifies timing/media/spatial behavior, confirms the legacy projectile hit, waits for timeline cleanup, and returns to Creator with the five authored events preserved.
+- Initial Chromium regression exposed a Web telemetry serialization defect: assigning a JavaScript array/object directly to `dataset` coerced the spatial payload to `[object Object]`. Commit `eae4c7847e5c250dd1f6e57dfdcbe47e7b517ddc` fixes this by assigning JSON text to the DOM dataset boundary; targeted Creator Preview Diagnostic Run #4 (`35138056651`) passed the complete directly affected Creator → Training → Creator flow.
+- Full regression then exposed a second, separate non-Creator-Preview failure in unchanged `character_animation_web_smoke.mjs`: ordinary Training published the parent `godotReady`/selected-character telemetry but all animation-map telemetry remained empty. A targeted character-animation diagnostic reproduced the same condition.
+- Root cause was the false branch of three typed `Array[Dictionary]` ternaries in `_set_web_state()`: Creator Preview used the typed runtime arrays and worked, but normal Training took the bare untyped `[]` branch and failed the typed assignment before `JavaScriptBridge.eval()` could publish animation telemetry. Commit `2d27374103327ed44c6d54df1b2f531c8084c1bf` initializes typed empty arrays first and only queries active timeline events when preview is active.
+- Targeted PR Chromium Smoke Diagnostic Run #5 (`35164358167`) passed `smoke:character-animation` after the typed-array fix. Full PR CI #331 (`35164358190`) then passed Windows Native Release, Godot import/boot/domain tests, backend tests, Web export/size budget, Chromium `smoke:all`, and GitHub-hosted Microsoft Edge `smoke:all` on the product-fix head.
+- Temporary diagnostic workflow and character-animation smoke instrumentation were removed in cleanup commit `277d3537bb413f260a85d0e3b41dc6c417d366e1`; the PR returned to five intended changed files.
+- The remaining PR step is the required latest-head merge gate after this documentation synchronization. PR #143 must not merge until that final head is green.
+
+V2-1 is not complete yet: work unit 7 must pass the required final latest-head PR gates, merge, and pass the production-main deployment/Edge chain. After that evidence is green, evaluate the V2-1 acceptance criteria and close the phase only if the complete Creator → Training timeline round trip is production-validated.
 
 ## V1 production acceptance checkpoint
 
@@ -130,4 +142,4 @@ AI VFX backend: `https://custom-fighter-ai-vfx.onrender.com`
 
 ## Next implementation target
 
-Validate and merge work unit 6 on `feat/v2-1-runtime-timeline-execution`. After its PR and production-main gates are green, connect Creator-authored runtime timeline transitions to Training animation/VFX/audio/hitbox/hurtbox behavior and complete Creator → Training deployed acceptance for V2-1.
+Run the required latest-head PR #143 merge gate after this documentation synchronization. If all GitHub-hosted gates are green, verify the PR head/mergeability and merge #143; then follow the exact merged `main` revision through GitHub Pages/public-Web, Render exact-revision readiness, and production Microsoft Edge full smoke. If those production gates pass, evaluate and close V2-1 acceptance before starting V2-2.
