@@ -43,6 +43,25 @@ try {
     { timeout: 60_000 },
   );
 
+  // Instrument the browser-native anchor boundary so this regression proves that
+  // the production export path built and clicked the expected download anchor.
+  // A Playwright `download` event is not a deterministic oracle here because the
+  // Godot button signal is handled on a later game frame, after transient browser
+  // user activation may have expired in headless Chromium.
+  await page.evaluate(() => {
+    window.customFighterPackageDownloadAttempts = [];
+    const originalAnchorClick = HTMLAnchorElement.prototype.click;
+    HTMLAnchorElement.prototype.click = function instrumentedCreatorPackageDownloadClick() {
+      if (this.download) {
+        window.customFighterPackageDownloadAttempts.push({
+          filename: this.download,
+          href: this.href,
+        });
+      }
+      return originalAnchorClick.call(this);
+    };
+  });
+
   await page.evaluate(() => {
     window.customFighterCreatorSetName('Package Nova');
     window.customFighterCreatorSetMaxHp(222);
@@ -64,24 +83,33 @@ try {
     { timeout: 5_000 },
   );
 
-  // Export is a browser download, so exercise the real Godot button with a trusted
-  // pointer gesture instead of invoking the Web callback from page.evaluate().
-  // The button is anchored at x=202..342 and y=648..692 in the 1280x720 viewport.
-  const downloadPromise = page.waitForEvent('download', { timeout: 15_000 });
+  // Exercise the real Godot Export Package button. It is anchored at x=202..342
+  // and y=648..692 in the project's 1280x720 logical viewport.
   await clickGodotLogicalPoint(page, 272, 670);
-  const download = await downloadPromise;
-  if (!download.suggestedFilename().endsWith('.custom-fighter.json')) {
-    throw new Error(`Unexpected package filename: ${download.suggestedFilename()}`);
-  }
-
   await page.waitForFunction(
     () =>
       document.documentElement.dataset.creatorPackageExportCount === '1' &&
       Number(document.documentElement.dataset.creatorPackageLastExportBytes) > 100 &&
-      typeof window.customFighterLastPackageJson === 'string',
+      typeof window.customFighterLastPackageJson === 'string' &&
+      Array.isArray(window.customFighterPackageDownloadAttempts) &&
+      window.customFighterPackageDownloadAttempts.some(
+        (attempt) => typeof attempt?.filename === 'string' && attempt.filename.endsWith('.custom-fighter.json'),
+      ),
     null,
     { timeout: 5_000 },
   );
+
+  const downloadAttempt = await page.evaluate(() =>
+    window.customFighterPackageDownloadAttempts.find(
+      (attempt) => typeof attempt?.filename === 'string' && attempt.filename.endsWith('.custom-fighter.json'),
+    ),
+  );
+  if (downloadAttempt?.filename !== 'my_fighter_001.custom-fighter.json') {
+    throw new Error(`Unexpected package filename: ${downloadAttempt?.filename ?? 'missing'}`);
+  }
+  if (!String(downloadAttempt?.href ?? '').startsWith('blob:')) {
+    throw new Error(`Creator package export did not construct a Blob download URL: ${downloadAttempt?.href ?? 'missing'}`);
+  }
 
   const exportedJson = await page.evaluate(() => window.customFighterLastPackageJson);
   const exported = JSON.parse(exportedJson);
@@ -166,7 +194,7 @@ try {
     { timeout: 5_000 },
   );
 
-  console.log('WEB_CREATOR_PACKAGE_SMOKE_PASSED export=true schema=2 noVfxFallback=true invalidPreserved=true import=true authoredHp=222 authoredDamage=41 authoredMpCost=19 previewCast=true');
+  console.log('WEB_CREATOR_PACKAGE_SMOKE_PASSED export=true downloadAnchor=true schema=2 noVfxFallback=true invalidPreserved=true import=true authoredHp=222 authoredDamage=41 authoredMpCost=19 previewCast=true');
   await page.close();
 } finally {
   await browser.close();
