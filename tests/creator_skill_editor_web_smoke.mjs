@@ -37,6 +37,7 @@ try {
       document.documentElement.dataset.creatorStudioReady === 'true' &&
       typeof window.customFighterCreatorSelectEditor === 'function' &&
       typeof window.customFighterCreatorSetSkillName === 'function' &&
+      typeof window.customFighterCreatorSetSkillType === 'function' &&
       typeof window.customFighterCreatorSetSkillSpeed === 'function' &&
       typeof window.customFighterCreatorSetSkillRange === 'function' &&
       typeof window.customFighterCreatorResetSkillDraft === 'function',
@@ -74,7 +75,38 @@ try {
     throw new Error(`Starter projectile draft mismatch: ${JSON.stringify(starter)}`);
   }
 
+  for (const family of ['melee', 'projectile', 'area', 'dash', 'formation', 'buff']) {
+    const before = Number(await dataset(page, 'creatorSkillDraftRevision'));
+    await page.evaluate((value) => window.customFighterCreatorSetSkillType(value), family);
+    await waitForRevision(page, 'creatorSkillDraftRevision', before);
+    const actualType = await dataset(page, 'creatorSkillDraftType');
+    const valid = await dataset(page, 'creatorSkillDraftValid');
+    if (actualType !== family || valid !== 'true') {
+      throw new Error(`Creator family ${family} did not validate: type=${actualType} valid=${valid} error=${await dataset(page, 'creatorSkillDraftError')}`);
+    }
+    if (family === 'formation') {
+      const count = Number(await dataset(page, 'creatorSkillDraftFormationCount'));
+      const spacing = Number(await dataset(page, 'creatorSkillDraftFormationSpacing'));
+      const interval = Number(await dataset(page, 'creatorSkillDraftFormationInterval'));
+      if (count !== 4 || Math.abs(spacing - 80) > 0.01 || Math.abs(interval - 0.15) > 0.001) {
+        throw new Error(`Formation safe defaults missing: count=${count} spacing=${spacing} interval=${interval}`);
+      }
+    }
+    if (family === 'buff') {
+      const duration = Number(await dataset(page, 'creatorSkillDraftBuffDuration'));
+      const moveMultiplier = Number(await dataset(page, 'creatorSkillDraftMoveSpeedMultiplier'));
+      const damageMultiplier = Number(await dataset(page, 'creatorSkillDraftBasicDamageMultiplier'));
+      if (Math.abs(duration - 5) > 0.01 || moveMultiplier < 1 || damageMultiplier < 1) {
+        throw new Error(`Buff safe defaults missing: duration=${duration} move=${moveMultiplier} damage=${damageMultiplier}`);
+      }
+    }
+  }
+
   let revision = Number(await dataset(page, 'creatorSkillDraftRevision'));
+  await page.evaluate(() => window.customFighterCreatorSetSkillType('projectile'));
+  await waitForRevision(page, 'creatorSkillDraftRevision', revision);
+
+  revision = Number(await dataset(page, 'creatorSkillDraftRevision'));
   await page.evaluate(() => window.customFighterCreatorSetSkillName(''));
   await waitForRevision(page, 'creatorSkillDraftRevision', revision);
   if ((await dataset(page, 'creatorSkillDraftValid')) !== 'false') {
@@ -135,6 +167,7 @@ try {
   const reset = {
     valid: await dataset(page, 'creatorSkillDraftValid'),
     name: await dataset(page, 'creatorSkillDraftName'),
+    type: await dataset(page, 'creatorSkillDraftType'),
     damage: Number(await dataset(page, 'creatorSkillDraftDamage')),
     speed: Number(await dataset(page, 'creatorSkillDraftSpeed')),
     range: Number(await dataset(page, 'creatorSkillDraftRange')),
@@ -142,6 +175,7 @@ try {
   if (
     reset.valid !== 'true' ||
     reset.name !== 'My Projectile' ||
+    reset.type !== 'projectile' ||
     reset.damage !== 18 ||
     Math.abs(reset.speed - 560) > 0.01 ||
     Math.abs(reset.range - 900) > 0.01
@@ -155,7 +189,7 @@ try {
     throw new Error('Character Editor regression: character starter draft should remain valid');
   }
 
-  console.log('WEB_CREATOR_SKILL_EDITOR_SMOKE_PASSED template=projectile validInvalidValid=true reset=true');
+  console.log('WEB_CREATOR_SKILL_EDITOR_SMOKE_PASSED families=6 projectileRegression=true validInvalidValid=true reset=true');
 } finally {
   await browser.close();
 }
