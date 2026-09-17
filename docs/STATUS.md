@@ -33,19 +33,25 @@ V2-1 delivered visual event timeline authoring, startup/active/recovery timing, 
 
 ### V2-2 implementation checkpoints
 
-Work unit 1 — **skill-family authoring foundation — PR validation complete, merge pending** on PR #145 / branch `feat/v2-2-skill-family-authoring-foundation`:
-- `docs/V2_2_SKILL_FAMILY_INVENTORY.md` inventories the six V1 families, fixed slot/type routing, Creator projectile-only bottleneck, reusable V2 timeline primitives and existing online regression boundaries.
-- `SkillDraft` is no longer hard-locked to projectile. It accepts every family currently declared by `SkillDefinition.SUPPORTED_TYPES`, serializes/reloads family-specific formation and buff fields, and applies deterministic safe defaults on explicit family changes.
-- Projectile remains the reset/default family so existing Creator Preview, package, VFX and AI-proposal flows remain backwards compatible.
-- Creator Skill Editor now exposes one safe Skill Family selector instead of a fixed PROJECTILE label. Unsupported family values are not accepted by the selector path and direct invalid draft values still fail closed through `SkillDefinition`.
-- Creator Web telemetry includes formation/buff family defaults so browser regressions can assert the validated data contract.
-- `creator_skill_draft_test_runner.gd` covers all six V1 family round-trips, family-specific invalid formation/buff parameters, unsafe/unsupported family rejection and the existing timeline fail-closed contract.
-- `creator_skill_editor_web_smoke.mjs` switches through melee/projectile/area/dash/formation/buff in the real Creator UI bridge and verifies each draft remains valid before re-running the existing projectile invalid/valid/reset regression.
-- Initial PR CI #337 exposed a Creator inheritance member collision: adding `SkillDefinition` to the base `creator_studio.gd` conflicted with the descendant `timeline_creator_studio.gd`. Commit `31973ef2f1d51ad66a2f5f4b7a7dee748dad4a7f` removed the redundant base preload and retained the globally registered class reference. This recurrence is recorded as L-027.
-- A later hosted Edge observation exposed a transient Heavy Strike cooldown sampling race. Commit `f90d38701ff1f7c58a9bf2b4fd6dd2483a92d797` captures positive cooldown and READY+cooldown evidence atomically from the successful browser predicate instead of re-reading after the transient condition. This recurrence is recorded as L-028; gameplay behavior did not change.
-- PR #145 latest-head CI #339 (`35186404303`) passed Windows Native Release, Godot import/boot/domain/backend tests, Web export/size budget, Chromium `smoke:all`, and GitHub-hosted Windows Microsoft Edge `smoke:all` on head `f90d38701ff1f7c58a9bf2b4fd6dd2483a92d797` before the final documentation-only synchronization commits.
-- This work unit deliberately does **not** claim non-projectile Creator Preview support yet; preview/runtime family dispatch is the next architecture step.
-- The first planned genuinely new V2 family is `beam`, selected because it can reuse declarative range/active/spatial/timeline primitives without introducing autonomous actors, target grabs, reactive code or player relocation.
+Work unit 1 — **skill-family authoring foundation — accepted and production-validated**:
+- PR #145 was squash-merged to `main` at `7c6eb8aebe1797f1c0a14176f7a7721e07f52771`.
+- `SkillDraft` and Creator Skill Editor support all six existing V1 families through one validated family selector while preserving projectile as the backwards-compatible reset/default family.
+- Family-specific safe defaults, serialization/reload, unsupported-family fail-closed behavior, and Chromium/hosted Edge Creator regression coverage are synchronized.
+- Main CI #342 (`35190460843`) passed the complete production chain on the merge revision: Windows Native, Godot import/boot/domain/backend tests, Web export/size budget, Chromium `smoke:all`, hosted Microsoft Edge, GitHub Pages deployment/public reachability, Render exact-revision readiness, and production Microsoft Edge full smoke.
+- Initial PR CI #337 exposed a Creator inheritance member collision; commit `31973ef2f1d51ad66a2f5f4b7a7dee748dad4a7f` fixed it and the recurrence is recorded as L-027.
+- A hosted Edge Heavy Strike cooldown observation race was hardened by `f90d38701ff1f7c58a9bf2b4fd6dd2483a92d797`; gameplay behavior did not change and the recurrence is recorded as L-028.
+
+Work unit 2 — **Creator Preview family dispatch — implementation-head validation complete, final latest-head validation pending** on PR #146 / branch `feat/v2-2-preview-family-dispatch`:
+- `CreatorPreviewSession` maps each validated existing family to its existing runtime slot: projectile→`skill_1`, dash→`skill_2`, area→`skill_3`, formation→`skill_4`, buff→`skill_5`, melee→`skill_6`.
+- Preview staging rewrites only the mapped temporary preview slot; the stored editable CharacterDraft and all unrelated skill slots remain unchanged.
+- `preview_selectable_main.gd` injects the authored skill only for the mapped slot and still requires exact expected-type and skill-ID matching, so mismatches fail closed.
+- `preview_family_animation_main.gd` adapts V2 timeline transition/event reads to the selected family's existing `SkillCastState`; no second executable timeline path was introduced.
+- Projectile-only imported VFX remains active only for projectile preview. Non-projectile preview keeps the stored VFX draft but does not mis-bind it to another family.
+- `creator_preview_session_test_runner.gd` covers all six family→slot mappings, slot/draft isolation, VFX family isolation and unsupported-family rejection.
+- `creator_preview_family_web_smoke.mjs` is part of `smoke:all` and, for all six families, authors the family plus MP/cooldown and a declarative audio timeline event, launches Preview, verifies runtime slot/type/source, casts through U/I/O/P/B/H, verifies authored MP consumption and timeline execution, then returns to Creator and verifies round-trip preservation.
+- Implementation head `e860e0fa90763972c4a5e94e5f6548b95e1c3746` passed PR CI #343 (`35197783830`): Windows Native Release, Godot import/boot/domain/AI contracts, backend tests, Web export/size budget, Chromium `smoke:all`, and GitHub-hosted Microsoft Edge `smoke:all` all passed.
+- Production-only jobs were correctly skipped on the pull-request event. Final PR acceptance remains governed by a fresh latest-head CI after this documentation checkpoint is synchronized; only that latest green head may be merged.
+- After work unit 2 is merged and production-validated, the first genuinely new V2 family remains `beam`, selected because it can reuse declarative range/active/spatial/timeline primitives without introducing autonomous actors, target grabs, reactive code or player relocation.
 
 ### V2-1 implementation checkpoints
 
@@ -163,4 +169,4 @@ AI VFX backend: `https://custom-fighter-ai-vfx.onrender.com`
 
 ## Next implementation target
 
-Merge PR #145 only after the final documentation-only latest-head CI is green, then monitor the resulting `main` production chain through GitHub Pages/public reachability/Render readiness/production Edge. After production validation, begin V2-2 work unit 2: data-driven Creator Preview/runtime family dispatch and the first new family, `beam`, without weakening exact registry/type validation or allowing arbitrary user code.
+Merge PR #146 only after this documentation checkpoint's fresh latest-head CI passes the full PR validation matrix. Then monitor the exact squash-merge revision through the complete main production chain. After work unit 2 is production-validated, begin V2-2 work unit 3: implement the first genuinely new family, `beam`, across SkillDefinition/registry/runtime/Creator/Preview and Godot + Chromium + hosted Edge validation without weakening exact type checks or allowing arbitrary user code.

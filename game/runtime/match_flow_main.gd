@@ -1,4 +1,4 @@
-extends "res://game/runtime/animation_main.gd"
+extends "res://game/runtime/preview_family_animation_main.gd"
 
 var match_over := false
 var match_result := ""
