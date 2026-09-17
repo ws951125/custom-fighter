@@ -41,17 +41,30 @@ Work unit 1 — **skill-family authoring foundation — accepted and production-
 - Initial PR CI #337 exposed a Creator inheritance member collision; commit `31973ef2f1d51ad66a2f5f4b7a7dee748dad4a7f` fixed it and the recurrence is recorded as L-027.
 - A hosted Edge Heavy Strike cooldown observation race was hardened by `f90d38701ff1f7c58a9bf2b4fd6dd2483a92d797`; gameplay behavior did not change and the recurrence is recorded as L-028.
 
-Work unit 2 — **Creator Preview family dispatch — implementation-head validation complete, final latest-head validation pending** on PR #146 / branch `feat/v2-2-preview-family-dispatch`:
-- `CreatorPreviewSession` maps each validated existing family to its existing runtime slot: projectile→`skill_1`, dash→`skill_2`, area→`skill_3`, formation→`skill_4`, buff→`skill_5`, melee→`skill_6`.
+Work unit 2 — **Creator Preview family dispatch — accepted and production-validated**:
+- PR #146 was squash-merged to `main` at `6b235408bef84783e588e9addeebb57b1b37f7a3`.
+- `CreatorPreviewSession` maps each validated original family to its existing runtime slot: projectile→`skill_1`, dash→`skill_2`, area→`skill_3`, formation→`skill_4`, buff→`skill_5`, melee→`skill_6`.
 - Preview staging rewrites only the mapped temporary preview slot; the stored editable CharacterDraft and all unrelated skill slots remain unchanged.
 - `preview_selectable_main.gd` injects the authored skill only for the mapped slot and still requires exact expected-type and skill-ID matching, so mismatches fail closed.
-- `preview_family_animation_main.gd` adapts V2 timeline transition/event reads to the selected family's existing `SkillCastState`; no second executable timeline path was introduced.
+- `preview_family_animation_main.gd` routes V2 timeline transition/event reads through the selected family's existing `SkillCastState`; no second executable timeline path was introduced.
 - Projectile-only imported VFX remains active only for projectile preview. Non-projectile preview keeps the stored VFX draft but does not mis-bind it to another family.
-- `creator_preview_session_test_runner.gd` covers all six family→slot mappings, slot/draft isolation, VFX family isolation and unsupported-family rejection.
-- `creator_preview_family_web_smoke.mjs` is part of `smoke:all` and, for all six families, authors the family plus MP/cooldown and a declarative audio timeline event, launches Preview, verifies runtime slot/type/source, casts through U/I/O/P/B/H, verifies authored MP consumption and timeline execution, then returns to Creator and verifies round-trip preservation.
-- Implementation head `e860e0fa90763972c4a5e94e5f6548b95e1c3746` passed PR CI #343 (`35197783830`): Windows Native Release, Godot import/boot/domain/AI contracts, backend tests, Web export/size budget, Chromium `smoke:all`, and GitHub-hosted Microsoft Edge `smoke:all` all passed.
-- Production-only jobs were correctly skipped on the pull-request event. Final PR acceptance remains governed by a fresh latest-head CI after this documentation checkpoint is synchronized; only that latest green head may be merged.
-- After work unit 2 is merged and production-validated, the first genuinely new V2 family remains `beam`, selected because it can reuse declarative range/active/spatial/timeline primitives without introducing autonomous actors, target grabs, reactive code or player relocation.
+- The six-family Creator Preview smoke authors family/MP/cooldown/audio timeline data, launches Preview, verifies runtime slot/type/source, casts through U/I/O/P/B/H, verifies authored MP consumption and timeline execution, then round-trips back to Creator.
+- Implementation head PR CI #343 (`35197783830`) passed Windows Native, Godot import/boot/domain/backend, Web export/size budget, Chromium `smoke:all`, and hosted Microsoft Edge.
+- Main CI #345 (`35200223070`) passed the complete production chain on the merge revision: Windows Native, Godot import/boot/domain/backend tests, Web export/size budget, Chromium `smoke:all`, hosted Microsoft Edge, GitHub Pages deployment/public reachability, Render exact-revision readiness, and production Microsoft Edge full smoke.
+
+Work unit 3 — **first genuinely new family: `beam` — implementation-head validation complete, final latest-head validation pending** on PR #147 / branch `feat/v2-2-beam-family-wu3`:
+- `SkillDefinition.SUPPORTED_TYPES` now includes `beam` with fail-closed bounds for range, active duration and spatial width/depth; `training_beam_001` is registered through the authoritative skill registry.
+- `SkillDraft` reuses the shared family selector and safe default path for Beam; no family-specific executable Creator code or arbitrary callbacks are introduced.
+- `BeamAttackState` defines deterministic origin→endpoint geometry, bounded collision volume, active lifetime and a single-hit-per-activation policy.
+- `BeamSkillController` + `coordinated_beam_skill_controller.gd` run Beam through the shared `SkillCastState`, MP/cooldown rules and `SkillCoordinator` ownership as `skill_7` / Y.
+- `CharacterDefinition` accepts `skill_7` as an optional backwards-compatible extension while `skill_1`–`skill_6` remain required; legacy six-slot characters remain valid without migration.
+- Ordinary six-slot Training keeps Beam unloaded. Creator Preview injects Beam only into the temporary preview character's `skill_7`; the stored editable CharacterDraft remains unchanged.
+- `CreatorPreviewSession` maps `beam`→`skill_7`, and `preview_family_animation_main.gd` consumes Beam timeline transitions from the Beam controller's existing `SkillCastState`.
+- Browser telemetry exposes Preview `skill_7` identity/type/source plus Beam loaded/phase/cooldown/active/hit-count/endpoint state for deterministic regression checks.
+- `beam_test_runner.gd` covers Beam schema bounds, exact registry type checking, shared cast activation, deterministic geometry, out-of-range misses, one-hit consumption, optional-character-slot backwards compatibility, and Creator Preview routing/isolation.
+- `creator_preview_family_web_smoke.mjs` now covers seven families. For Beam it authors the family plus MP/cooldown/audio timeline event, launches Preview, verifies `skill_7` source/type, presses Y, verifies MP consumption and timeline execution, verifies exact dummy damage and `beamSkillHitCount == 1`, then round-trips to Creator.
+- Implementation head `4fa2215d840fdbb43e8e3eed1269237ff4e51eec` passed PR CI #346 (`35207985135`): Windows Native Release, Godot import/boot/domain/AI contracts including Beam, backend tests, Web export/size budget, Chromium `smoke:all`, and GitHub-hosted Microsoft Edge `smoke:all` all passed.
+- Production-only jobs were correctly skipped on the pull-request event. Final PR acceptance requires a fresh latest-head CI after this documentation checkpoint; after merge, the exact squash-merge revision must pass the complete main production chain before Work Unit 3 is production-validated.
 
 ### V2-1 implementation checkpoints
 
@@ -169,4 +182,4 @@ AI VFX backend: `https://custom-fighter-ai-vfx.onrender.com`
 
 ## Next implementation target
 
-Merge PR #146 only after this documentation checkpoint's fresh latest-head CI passes the full PR validation matrix. Then monitor the exact squash-merge revision through the complete main production chain. After work unit 2 is production-validated, begin V2-2 work unit 3: implement the first genuinely new family, `beam`, across SkillDefinition/registry/runtime/Creator/Preview and Godot + Chromium + hosted Edge validation without weakening exact type checks or allowing arbitrary user code.
+Finish PR #147 latest-head validation after this documentation checkpoint, then squash-merge only when the latest PR head is green. Monitor the exact merge revision through the complete main production chain. After Beam is production-validated, continue V2-2 with the next safe declarative family work unit while preserving the exact-type registry boundary and no-arbitrary-code rule.

@@ -42,6 +42,34 @@ func _enter_tree() -> void:
 
 	player_state = CombatantStateClass.new(player_character.max_hp, player_character.max_mp)
 
+func load_character_skill_for_slot(slot_name: String, expected_type: String, target_skill) -> PackedStringArray:
+	if not CharacterDefinitionClass.OPTIONAL_SKILL_SLOTS.has(slot_name):
+		return super(slot_name, expected_type, target_skill)
+
+	var errors := PackedStringArray()
+	if not player_character.loaded:
+		errors.append("player character is not loaded")
+	elif not player_skill_registry.loaded:
+		errors.append("player skill registry is not loaded")
+	else:
+		var requested_id := player_character.skill_id_for_slot(slot_name)
+		if requested_id.is_empty():
+			errors.append("optional character skill slot is not configured: %s" % slot_name)
+		else:
+			errors = player_skill_registry.load_skill(requested_id, expected_type, target_skill)
+
+	if errors.is_empty():
+		player_runtime_skill_ids[slot_name] = target_skill.skill_id
+		player_runtime_skill_sources[slot_name] = player_skill_registry.source_path_for_id(target_skill.skill_id)
+		player_runtime_skill_types[slot_name] = target_skill.skill_type
+		player_runtime_skill_errors.erase(slot_name)
+	else:
+		player_runtime_skill_ids.erase(slot_name)
+		player_runtime_skill_sources.erase(slot_name)
+		player_runtime_skill_types.erase(slot_name)
+		player_runtime_skill_errors[slot_name] = " | ".join(errors)
+	return errors
+
 func _requested_character_id() -> String:
 	if not OS.has_feature("web"):
 		return ""

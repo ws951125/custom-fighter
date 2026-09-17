@@ -4,7 +4,7 @@ Date: 2026-09-17
 
 ## Purpose
 
-This inventory is the implementation baseline for V2-2. It records the current V1 family boundaries, Creator/runtime bottlenecks, reusable V2 timeline primitives, existing regression coverage, and the first safe new-family slice. The goal is to extend the engine without introducing arbitrary code execution or duplicating one editor/controller stack per family.
+This inventory is the implementation baseline for V2-2. It records the current V1 family boundaries, Creator/runtime bottlenecks, reusable V2 timeline primitives, existing regression coverage, and safe new-family slices. The goal is to extend the engine without introducing arbitrary code execution or duplicating one editor/controller stack per family.
 
 ## Existing V1 skill families
 
@@ -17,7 +17,7 @@ This inventory is the implementation baseline for V2-2. It records the current V
 | `buff` | buff state/controller | duration, movement multiplier, basic-attack multiplier | `skill_5` / B |
 | `melee` | melee state/controller | range, active spatial hitbox | `skill_6` / H |
 
-All six are declared in `SkillDefinition.SUPPORTED_TYPES`. `SkillRegistry` validates the registry type and then requires an exact expected-type match when loading a character slot.
+The original six remain required character slots. `SkillRegistry` validates registry type and requires an exact expected-type match when loading a slot.
 
 ## Creator inventory
 
@@ -32,7 +32,7 @@ Work unit 1 removed the authoring restriction while preserving projectile as the
 
 ## Runtime routing inventory
 
-The current playable character binds each of its six slots to a fixed family:
+The original playable character binds its six required slots to fixed V1 families:
 
 - slot 1 loads `projectile`,
 - slot 2 loads `dash`,
@@ -41,7 +41,9 @@ The current playable character binds each of its six slots to a fixed family:
 - slot 5 loads `buff`,
 - slot 6 loads `melee`.
 
-`SkillRegistry.load_skill()` also requires callers to provide the expected family. This is safe and fail-closed. V2-2 preserves that exact type check and adds a preview-only mapping from validated family → existing validated slot/controller instead of pretending every authored skill is a projectile.
+`SkillRegistry.load_skill()` requires callers to provide the expected family. This remains fail-closed. Work unit 2 added a preview-only family→existing-slot mapping for the six original families and was squash-merged by PR #146 as `6b235408bef84783e588e9addeebb57b1b37f7a3`; Main CI #345 (`35200223070`) passed the complete production chain.
+
+Work unit 3 introduces the first new slot extension without breaking existing characters: `skill_7` is optional in `CharacterDefinition`, while slots 1–6 remain required. Beam uses `skill_7` / Y only when present; legacy six-slot characters remain valid and ordinary Training leaves the Beam controller unloaded.
 
 ## Reusable V2 timeline primitives
 
@@ -53,7 +55,7 @@ V2-1 already provides safe declarative event composition:
 - `hitbox`,
 - `hurtbox`.
 
-The timeline contract enforces deterministic ordering, stable IDs, event-count/duration limits, safe media tokens and bounded spatial payloads. V2-2 reuses those same `SkillCastState` timeline schedulers for every previewed family rather than creating family-specific executable event paths.
+The timeline contract enforces deterministic ordering, stable IDs, event-count/duration limits, safe media tokens and bounded spatial payloads. V2-2 reuses those same `SkillCastState` timeline schedulers rather than creating family-specific executable event paths.
 
 ## Existing validation coverage
 
@@ -82,9 +84,9 @@ Acceptance:
 
 Evidence: PR #145 → main `7c6eb8aebe1797f1c0a14176f7a7721e07f52771`; Main CI #342 (`35190460843`) complete production chain PASS.
 
-## Work unit 2 — Creator Preview family dispatch — implementation target
+## Work unit 2 — Creator Preview family dispatch — accepted
 
-The preview session maps validated V1 family types onto the existing runtime slots/controllers:
+The preview session maps validated original family types onto the existing runtime slots/controllers:
 
 | Family | Preview slot | Input |
 | --- | --- | --- |
@@ -95,41 +97,36 @@ The preview session maps validated V1 family types onto the existing runtime slo
 | `buff` | `skill_5` | B |
 | `melee` | `skill_6` | H |
 
-Acceptance for this work unit:
+Acceptance is satisfied: Preview validates each family, rewrites only the mapped temporary slot, preserves editable drafts/unrelated slots, enforces exact runtime type/ID, isolates projectile-only imported VFX, consumes V2 timelines from the active family's existing cast state, and is covered in Chromium/hosted Edge.
 
-1. Creator Preview accepts all six currently supported V1 families after normal `SkillDefinition` validation.
-2. only the mapped preview slot is replaced with the authored skill ID; the stored editable `CharacterDraft` and all other slots remain unchanged.
-3. the selected slot loads the authored definition through the existing exact expected-type contract; mismatches fail closed.
-4. projectile retains the existing custom VFX runtime binding; non-projectile preview does not mis-bind projectile-only VFX and does not delete the stored VFX draft.
-5. V2 timeline transitions/events are consumed from the active family's `SkillCastState`, so animation/VFX/audio/hitbox/hurtbox composition does not remain projectile-only.
-6. Godot domain regression covers all family→slot mappings and failure boundaries.
-7. Chromium and hosted Edge smoke each author, preview, cast and round-trip all six families, including a declarative timeline event.
-8. ordinary Training remains on the same six existing runtime controllers with no alternate executable path and no arbitrary user code.
+Evidence: PR #146 → main `6b235408bef84783e588e9addeebb57b1b37f7a3`; Main CI #345 (`35200223070`) complete production chain PASS.
 
-## First new V2 family selection: `beam`
+## Work unit 3 — first new family: `beam` — PR validation in progress
 
-`beam` remains the first planned genuinely new family after the shared authoring and preview-routing foundation.
+Beam is the first genuinely new family and intentionally reuses existing safe primitives rather than adding an executable scripting surface.
 
-Reasons:
+Implementation:
 
-- it can reuse existing declarative `range`, `active`, damage/hitstun/knockback and bounded spatial hitbox parameters;
-- it can reuse V2 timeline animation/VFX/audio/hitbox events without a new executable event surface;
-- it does not require spawning an autonomous actor (`summon`), moving the target (`grab`), reactive interception (`counter`) or relocating the player (`teleport`) in the first expansion slice;
-- it provides a clean test of data-driven family dispatch beyond the original six before more stateful families are added.
+- `SkillDefinition` recognizes `beam` and fail-closes unsafe range, active duration and hitbox dimensions.
+- official `training_beam_001` is registered with exact family type `beam`.
+- `SkillDraft` supplies deterministic Beam defaults through the same family selector used by the existing families.
+- `BeamAttackState` models a fixed directional origin→endpoint volume and allows at most one hit per activation.
+- the coordinated Beam controller uses the shared `SkillCastState`, MP/cooldown rules and `SkillCoordinator` as `skill_7` / Y.
+- `skill_7` is an optional character-schema extension; the six original slots remain required and legacy characters require no migration.
+- Creator Preview maps Beam to temporary `skill_7`; the stored CharacterDraft remains unchanged.
+- V2 timeline transitions for Beam are consumed from the Beam controller's shared `SkillCastState`.
+- no autonomous actor, arbitrary path, user script, executable callback or new timeline event type is introduced.
 
-Planned beam acceptance:
+Validation:
 
-- `SkillDefinition` recognizes `beam` and validates its declarative parameters fail-closed;
-- registry/package paths preserve exact family validation;
-- runtime beam state/controller executes deterministically and damages at most according to the defined hit policy;
-- Creator can author a beam through the shared family editor;
-- Creator Preview can route the authored beam without pretending it is a projectile;
-- Godot domain tests plus Chromium and hosted Edge smoke validate the full path;
-- no arbitrary user code, path or executable callback is introduced.
+- `beam_test_runner.gd` covers definition bounds, registry exact-type mismatch rejection, cast activation, deterministic geometry, range miss, one-hit policy, optional-slot backwards compatibility and Creator Preview routing/isolation.
+- `creator_preview_family_web_smoke.mjs` now covers seven families and directly verifies Beam Y input, authored MP cost, audio timeline execution, exact dummy damage, one-hit count and Creator round-trip.
+- implementation head `4fa2215d840fdbb43e8e3eed1269237ff4e51eec` passed PR CI #346 (`35207985135`) across Windows Native, Godot/domain/backend, Web export/size budget, Chromium `smoke:all`, and hosted Microsoft Edge `smoke:all`.
+- this documentation checkpoint must receive a fresh latest-head CI before PR #147 is considered merge-ready; production acceptance still requires the exact post-merge main revision to pass Pages/public/Render/production-Edge gates.
 
 ## Remaining V2-2 families
 
-After beam, the phase still requires:
+After Beam production validation, the phase still requires:
 
 - summon,
 - grab,
@@ -139,4 +136,4 @@ After beam, the phase still requires:
 - aura,
 - safe scripted event compositions.
 
-The exact implementation order may change if a later repository constraint makes another family a better dependency, but all eight V2-2 scope items remain required for phase completion.
+The exact implementation order may change if repository constraints make one family a better dependency, but all remaining V2-2 scope items remain required for phase completion.

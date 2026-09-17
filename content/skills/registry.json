@@ -28,6 +28,10 @@
     "training_bolt_001": {
       "file": "training_bolt.sample.json",
       "type": "projectile"
+    },
+    "training_beam_001": {
+      "file": "training_beam.sample.json",
+      "type": "beam"
     }
   }
 }

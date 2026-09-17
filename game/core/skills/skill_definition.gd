@@ -1,7 +1,7 @@
 class_name SkillDefinition
 extends RefCounted
 
-const SUPPORTED_TYPES = ["melee", "projectile", "area", "dash", "formation", "buff"]
+const SUPPORTED_TYPES = ["melee", "projectile", "area", "dash", "formation", "buff", "beam"]
 const CURRENT_SCHEMA_VERSION := 1
 const TIMELINE_SCHEMA_VERSION := 1
 const SUPPORTED_TIMELINE_EVENT_TYPES := ["animation", "vfx", "audio", "hitbox", "hurtbox"]
@@ -19,6 +19,7 @@ const MAX_TIMELINE_SPATIAL_HALF_WIDTH := 4096.0
 const MAX_TIMELINE_SPATIAL_HALF_DEPTH := 1.0
 const MAX_TIMELINE_SPATIAL_OFFSET_X := 4096.0
 const MAX_TIMELINE_SPATIAL_OFFSET_DEPTH := 1.0
+const MAX_BEAM_RANGE := 4096.0
 
 var schema_version := CURRENT_SCHEMA_VERSION
 var skill_id := ""
@@ -136,6 +137,8 @@ func load_from_dictionary(data: Dictionary) -> PackedStringArray:
 		_validate_formation_skill(errors)
 	elif skill_type == "buff":
 		_validate_buff_skill(errors)
+	elif skill_type == "beam":
+		_validate_beam_skill(errors)
 
 	_load_timeline(data, errors)
 	loaded = errors.is_empty()
@@ -308,3 +311,13 @@ func _validate_buff_skill(errors: PackedStringArray) -> void:
 		errors.append("move_speed_multiplier must be at least 1.0")
 	if basic_attack_damage_multiplier < 1.0:
 		errors.append("basic_attack_damage_multiplier must be at least 1.0")
+
+func _validate_beam_skill(errors: PackedStringArray) -> void:
+	if range <= 0.0 or range > MAX_BEAM_RANGE:
+		errors.append("beam range must be > 0 and <= %.0f" % MAX_BEAM_RANGE)
+	if active <= 0.0:
+		errors.append("beam active duration must be positive")
+	if hitbox_half_width <= 0.0 or hitbox_half_width > MAX_TIMELINE_SPATIAL_HALF_WIDTH:
+		errors.append("beam hitbox_half_width must be > 0 and <= %.0f" % MAX_TIMELINE_SPATIAL_HALF_WIDTH)
+	if hitbox_half_depth <= 0.0 or hitbox_half_depth > MAX_TIMELINE_SPATIAL_HALF_DEPTH:
+		errors.append("beam hitbox_half_depth must be > 0 and <= %.2f" % MAX_TIMELINE_SPATIAL_HALF_DEPTH)
