@@ -8,9 +8,9 @@ V2 captures previously discussed or explicitly deferred product capabilities tha
 
 ## V2 progress
 
-**0% (0/8 phases complete)** at roadmap creation.
+**12.5% (1/8 phases complete)** as of 2026-09-17.
 
-## V2-1 — Advanced Creator Timeline
+## V2-1 — Advanced Creator Timeline — complete
 
 Goal: turn Creator Studio from basic parameter authoring into a complete no-code combat-content authoring tool.
 
@@ -26,6 +26,12 @@ Scope:
 - Creator → Training preview round trip.
 
 Acceptance: a non-programmer can build and preview a multi-stage skill with animation, hitbox, VFX and audio timing without editing code.
+
+Acceptance evidence:
+- Work units 1–7 were merged through PRs #133, #134, #135, #139, #141, #142, and #143.
+- PR #143 merged to `main` as `383c5969697c323c368ca80d13c61b4595ed3978` after latest-head PR CI #333 (`35170327643`) passed Godot import/boot/domain/backend tests, Web export/size budget, Chromium `smoke:all`, Windows Native Release, and GitHub-hosted Microsoft Edge `smoke:all`.
+- Main CI #334 (`35171731664`) then passed the complete production chain on that exact revision: Windows Native, Godot/domain/backend/Web/Chromium, hosted Microsoft Edge, GitHub Pages deployment, public-Web reachability, Render exact-revision readiness, and production Microsoft Edge full smoke.
+- The Creator browser regression authors animation, VFX, audio, hitbox, and hurtbox timeline events without code, launches Training, validates timed runtime/media/spatial behavior and legacy projectile damage, waits for timeline cleanup, and round-trips back to Creator with the authored events preserved.
 
 ## V2-2 — Extended Skill Families
 
@@ -147,6 +153,6 @@ The architecture previously allowed a future local/open-model AI provider such a
 - Errors and durable fixes continue to be recorded in `docs/LESSONS_LEARNED.md`.
 - `docs/STATUS.md` must identify the active V2 phase while preserving the V1 completion checkpoint.
 
-## First implementation target
+## Next implementation target
 
-Start with **V2-1 Advanced Creator Timeline** because it closes the largest remaining Creator-product gap and supplies reusable event/timing infrastructure for several V2-2 skill families.
+Start **V2-2 Extended Skill Families**. Begin with a repository/architecture inventory of the existing six V1 skill families and the shared V2 timeline/event primitives, then define the first safe declarative family slice and its acceptance tests before implementation.
