@@ -5,8 +5,9 @@
 **V1/MVP is complete; V2 roadmap is now active.**
 
 - V1 completion remains **100% (13/13 phases complete)**.
-- V2 completion remains **0% (0/8 phases complete)** until an entire V2 phase meets acceptance.
-- Active V2 phase: **V2-1 Advanced Creator Timeline**.
+- V2 completion is **12.5% (1/8 phases complete)**.
+- Completed V2 phase: **V2-1 Advanced Creator Timeline**.
+- Active V2 phase: **V2-2 Extended Skill Families**.
 
 V1 roadmap:
 - M0–M8 MVP: 9/9 complete.
@@ -19,8 +20,8 @@ V2 roadmap is defined in `docs/V2_ROADMAP.md` and captures previously discussed/
 
 ## V2 roadmap
 
-1. V2-1 Advanced Creator Timeline — **in progress**.
-2. V2-2 Extended Skill Families — pending.
+1. V2-1 Advanced Creator Timeline — **complete**.
+2. V2-2 Extended Skill Families — **in progress**.
 3. V2-3 Character Animation & Audio Authoring — pending.
 4. V2-4 AI Opponents & Single-player Gameplay — pending.
 5. V2-5 Game Modes, Balance & Competitive Foundation — pending.
@@ -28,7 +29,7 @@ V2 roadmap is defined in `docs/V2_ROADMAP.md` and captures previously discussed/
 7. V2-7 Creator Sharing Ecosystem — pending.
 8. V2-8 Mobile Targets — pending.
 
-V2-1 includes visual event timeline authoring, startup/active/recovery timing, animation/VFX/audio events, hitbox/hurtbox timing and spatial editing, safe multi-event compositions, validation, and Creator → Training preview.
+V2-1 delivered visual event timeline authoring, startup/active/recovery timing, animation/VFX/audio events, hitbox/hurtbox timing and spatial editing, safe multi-event compositions, validation, and Creator → Training preview round trip. V2-2 now extends the data-driven skill engine beyond the six V1 families while preserving safe declarative event boundaries and no arbitrary user code.
 
 ### V2-1 implementation checkpoints
 
@@ -70,7 +71,7 @@ Work unit 5 was merged by PR #141 to `main` at `dfa9232a7746fce940a828b60826d3bf
 - Cross-type payload cleanup is explicit: switching an event type removes stale media or spatial fields that no longer belong to that type.
 - Creator Timeline exposes a type-specific media payload editor for Animation, VFX, and Audio Cue while keeping the existing spatial controls for hitbox/hurtbox.
 - Creator draft/domain regressions cover media serialization, reload, deep-copy isolation, defaults, unsafe-value rejection, and stale-field cleanup.
-- Browser regression covers animation/VFX/audio authoring, unsafe media fail-closed recovery, media type switching, spatial-to-media cleanup, deterministic ordering, removal, and clear.
+- Browser regression covers animation/VFX/audio authoring, unsafe media fail-closed recovery, media type switching, spatial-to-media cleanup, deterministic ordering, removal and clear.
 - Main CI #311 validated the merged revision across Windows Native, Godot import/boot/domain/backend tests, Web export/size budget, Chromium, hosted Microsoft Edge, GitHub Pages deployment/public reachability, Render exact-revision readiness, and production Microsoft Edge full smoke.
 
 Work unit 6 was merged by PR #142 to `main` at `fab821926e73ef3ec1df2de2138d3df5916a6c93`; Main CI #313 (`35128794735`) completed successfully across the full production chain:
@@ -82,19 +83,23 @@ Work unit 6 was merged by PR #142 to `main` at `fab821926e73ef3ec1df2de2138d3df5
 - Dedicated `skill_timeline_runtime_test_runner.gd` regression covers time-zero start, negative-delta safety, large-delta multi-boundary execution, same-time ordering, active windows, late events beyond legacy recovery, recast blocking, and no-timeline backwards compatibility.
 - Main CI #313 passed Windows Native, Godot import/boot/domain/backend tests, Web export/size budget, Chromium, hosted Microsoft Edge, GitHub Pages deployment/public reachability, Render exact-revision readiness, and production Microsoft Edge full smoke.
 
-Work unit 7 is in progress on branch `feat/v2-1-training-timeline-consumers` in PR #143:
+Work unit 7 was merged by PR #143 to `main` at `383c5969697c323c368ca80d13c61b4595ed3978`:
 - Creator Preview Training consumes validated timeline transitions for `animation`, `vfx`, `audio`, `hitbox`, and `hurtbox` without creating a second unsafe data path.
 - Animation events can temporarily override the runtime animation semantic; VFX events have a timed Training overlay; audio cues are consumed as deterministic runtime telemetry; hitbox/hurtbox windows use the authored safe spatial payload and are rendered in Training.
 - Runtime Web telemetry exposes transition count, elapsed time, last event/type/phase, media state, audio event count, and active spatial payloads for repeatable browser validation.
-- `tests/creator_preview_web_smoke.mjs` now authors all five event types, launches Training, casts Skill 1, verifies timing/media/spatial behavior, confirms the legacy projectile hit, waits for timeline cleanup, and returns to Creator with the five authored events preserved.
+- `tests/creator_preview_web_smoke.mjs` authors all five event types, launches Training, casts Skill 1, verifies timing/media/spatial behavior, confirms the legacy projectile hit, waits for timeline cleanup, and returns to Creator with the five authored events preserved.
 - Initial Chromium regression exposed a Web telemetry serialization defect: assigning a JavaScript array/object directly to `dataset` coerced the spatial payload to `[object Object]`. Commit `eae4c7847e5c250dd1f6e57dfdcbe47e7b517ddc` fixes this by assigning JSON text to the DOM dataset boundary; targeted Creator Preview Diagnostic Run #4 (`35138056651`) passed the complete directly affected Creator → Training → Creator flow.
 - Full regression then exposed a second, separate non-Creator-Preview failure in unchanged `character_animation_web_smoke.mjs`: ordinary Training published the parent `godotReady`/selected-character telemetry but all animation-map telemetry remained empty. A targeted character-animation diagnostic reproduced the same condition.
 - Root cause was the false branch of three typed `Array[Dictionary]` ternaries in `_set_web_state()`: Creator Preview used the typed runtime arrays and worked, but normal Training took the bare untyped `[]` branch and failed the typed assignment before `JavaScriptBridge.eval()` could publish animation telemetry. Commit `2d27374103327ed44c6d54df1b2f531c8084c1bf` initializes typed empty arrays first and only queries active timeline events when preview is active.
 - Targeted PR Chromium Smoke Diagnostic Run #5 (`35164358167`) passed `smoke:character-animation` after the typed-array fix. Full PR CI #331 (`35164358190`) then passed Windows Native Release, Godot import/boot/domain tests, backend tests, Web export/size budget, Chromium `smoke:all`, and GitHub-hosted Microsoft Edge `smoke:all` on the product-fix head.
 - Temporary diagnostic workflow and character-animation smoke instrumentation were removed in cleanup commit `277d3537bb413f260a85d0e3b41dc6c417d366e1`; the PR returned to five intended changed files.
-- The remaining PR step is the required latest-head merge gate after this documentation synchronization. PR #143 must not merge until that final head is green.
+- Final latest-head PR CI #333 (`35170327643`) passed Windows Native Release, Godot import/boot/domain/backend tests, Web export/size budget, Chromium `smoke:all`, and GitHub-hosted Microsoft Edge `smoke:all` on head `5b053424bbb1a30c8e9c9f596fb0c0f8009f1c8e`.
+- PR #143 was squash-merged as `383c5969697c323c368ca80d13c61b4595ed3978`.
+- Main CI #334 (`35171731664`) passed the complete production chain on that exact revision: Windows Native, Godot import/boot/domain/backend tests, Web export/size budget, Chromium `smoke:all`, hosted Microsoft Edge, GitHub Pages deployment, public-Web reachability, Render exact-revision readiness, and production Microsoft Edge full smoke.
 
-V2-1 is not complete yet: work unit 7 must pass the required final latest-head PR gates, merge, and pass the production-main deployment/Edge chain. After that evidence is green, evaluate the V2-1 acceptance criteria and close the phase only if the complete Creator → Training timeline round trip is production-validated.
+### V2-1 acceptance
+
+V2-1 Advanced Creator Timeline is **accepted complete** on 2026-09-17. The roadmap acceptance criterion is satisfied: a creator can author a multi-stage skill without editing code, including animation, VFX, audio, hitbox and hurtbox timing/spatial events, validate it, launch Training, observe the timed result, and round-trip back to Creator with the authored timeline preserved. Production evidence is main revision `383c5969697c323c368ca80d13c61b4595ed3978` and Main CI #334 (`35171731664`).
 
 ## V1 production acceptance checkpoint
 
@@ -142,4 +147,4 @@ AI VFX backend: `https://custom-fighter-ai-vfx.onrender.com`
 
 ## Next implementation target
 
-Run the required latest-head PR #143 merge gate after this documentation synchronization. If all GitHub-hosted gates are green, verify the PR head/mergeability and merge #143; then follow the exact merged `main` revision through GitHub Pages/public-Web, Render exact-revision readiness, and production Microsoft Edge full smoke. If those production gates pass, evaluate and close V2-1 acceptance before starting V2-2.
+Begin V2-2 Extended Skill Families by inventorying the existing six V1 skill families, their Creator authoring paths, runtime/controller boundaries, shared timeline/event primitives, and current test coverage. Use that inventory to select the first safe declarative V2-2 family slice and define its acceptance criteria before implementation.
