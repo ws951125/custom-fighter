@@ -2,7 +2,6 @@ extends Control
 
 const CharacterDraft = preload("res://game/creator/character_editor/character_draft.gd")
 const SkillDraft = preload("res://game/creator/skill_editor/skill_draft.gd")
-const SkillDefinition = preload("res://game/core/skills/skill_definition.gd")
 
 var character_draft := CharacterDraft.new()
 var character_draft_revision := 0
