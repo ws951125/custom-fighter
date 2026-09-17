@@ -24,6 +24,8 @@ var character_summary_label: Label
 
 var skill_id_edit: LineEdit
 var skill_name_edit: LineEdit
+var skill_type_select: OptionButton
+var skill_type_note: Label
 var damage_spin: SpinBox
 var skill_mp_spin: SpinBox
 var cooldown_spin: SpinBox
@@ -42,6 +44,7 @@ var _web_set_hp_callback
 var _web_reset_callback
 var _web_select_editor_callback
 var _web_set_skill_name_callback
+var _web_set_skill_type_callback
 var _web_set_skill_damage_callback
 var _web_set_skill_speed_callback
 var _web_set_skill_range_callback
@@ -96,7 +99,7 @@ func _build_ui() -> void:
 	navigation.add_child(character_button)
 
 	var skill_button := Button.new()
-	skill_button.text = "Skill Editor · Projectile"
+	skill_button.text = "Skill Editor"
 	skill_button.pressed.connect(_on_skill_editor_pressed)
 	navigation.add_child(skill_button)
 
@@ -106,7 +109,7 @@ func _build_ui() -> void:
 	navigation.add_child(training_button)
 
 	var nav_note := Label.new()
-	nav_note.text = "In-memory authoring · Save/export arrives in later M4 slices"
+	nav_note.text = "In-memory authoring · safe data-driven skill families"
 	nav_note.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	nav_note.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	nav_note.modulate = Color("8292b3")
@@ -210,18 +213,20 @@ func _build_skill_panel() -> PanelContainer:
 	timing_column.add_theme_constant_override("separation", 5)
 	columns.add_child(timing_column)
 
-	_add_heading(identity_column, "Projectile Identity")
+	_add_heading(identity_column, "Skill Identity")
 	skill_id_edit = _add_text_field(identity_column, "Skill ID", "Safe token, e.g. nova_bolt_001")
 	skill_name_edit = _add_text_field(identity_column, "Display Name", "Shown to players")
-	var type_note := Label.new()
-	type_note.text = "Template: PROJECTILE\nVisual: prototype_fireball\nImpact: prototype_impact"
-	type_note.modulate = Color("8fa1c6")
-	identity_column.add_child(type_note)
+	skill_type_select = _add_option_field(identity_column, "Skill Family", SkillDefinition.SUPPORTED_TYPES)
+	skill_type_select.item_selected.connect(_on_skill_type_changed)
+	skill_type_note = Label.new()
+	skill_type_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	skill_type_note.modulate = Color("8fa1c6")
+	identity_column.add_child(skill_type_note)
 
 	_add_heading(combat_column, "Combat")
 	damage_spin = _add_number_field(combat_column, "Damage", 0.0, 10000.0, 1.0)
 	skill_mp_spin = _add_number_field(combat_column, "MP Cost", 0.0, 10000.0, 1.0)
-	projectile_speed_spin = _add_number_field(combat_column, "Projectile Speed", 0.0, 5000.0, 10.0)
+	projectile_speed_spin = _add_number_field(combat_column, "Speed", 0.0, 5000.0, 10.0)
 	range_spin = _add_number_field(combat_column, "Range", 0.0, 5000.0, 10.0)
 	hitstun_spin = _add_number_field(combat_column, "Hitstun", 0.0, 10.0, 0.01)
 	knockback_spin = _add_number_field(combat_column, "Knockback", 0.0, 5000.0, 10.0)
@@ -257,7 +262,7 @@ func _build_skill_panel() -> PanelContainer:
 	reset_button.pressed.connect(_on_skill_reset_pressed)
 	actions.add_child(reset_button)
 	var note := Label.new()
-	note.text = "SkillDraft → SkillDefinition validation · Projectile template only in Slice 2"
+	note.text = "SkillDraft → SkillDefinition validation · family-specific safe defaults apply when family changes"
 	note.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	note.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	note.modulate = Color("8292b3")
@@ -291,6 +296,20 @@ func _add_text_field(parent: Control, label_text: String, placeholder: String) -
 	edit.custom_minimum_size = Vector2(0, 34)
 	field.add_child(edit)
 	return edit
+
+func _add_option_field(parent: Control, label_text: String, values: Array) -> OptionButton:
+	var field := VBoxContainer.new()
+	field.add_theme_constant_override("separation", 2)
+	parent.add_child(field)
+	var label := Label.new()
+	label.text = label_text
+	field.add_child(label)
+	var option := OptionButton.new()
+	option.custom_minimum_size = Vector2(0, 34)
+	for value in values:
+		option.add_item(str(value))
+	field.add_child(option)
+	return option
 
 func _add_number_field(parent: Control, label_text: String, minimum: float, maximum: float, step_value: float) -> SpinBox:
 	var field := VBoxContainer.new()
@@ -333,6 +352,9 @@ func _sync_character_controls_from_draft() -> void:
 func _sync_skill_controls_from_draft() -> void:
 	skill_id_edit.text = skill_draft.skill_id
 	skill_name_edit.text = skill_draft.skill_name
+	var type_index := SkillDefinition.SUPPORTED_TYPES.find(skill_draft.skill_type)
+	if type_index >= 0:
+		skill_type_select.select(type_index)
 	damage_spin.value = skill_draft.damage
 	skill_mp_spin.value = skill_draft.mp_cost
 	cooldown_spin.value = skill_draft.cooldown
@@ -343,6 +365,24 @@ func _sync_skill_controls_from_draft() -> void:
 	range_spin.value = skill_draft.range
 	hitstun_spin.value = skill_draft.hitstun
 	knockback_spin.value = skill_draft.knockback
+	_refresh_skill_family_note()
+
+func _refresh_skill_family_note() -> void:
+	if skill_type_note == null:
+		return
+	var detail := "Common data fields + timeline"
+	match skill_draft.skill_type:
+		"projectile", "dash":
+			detail = "Motion family · Speed + Range + hitbox defaults"
+		"melee":
+			detail = "Close-range family · Range + active hitbox defaults"
+		"area":
+			detail = "Area family · active spatial hitbox defaults"
+		"formation":
+			detail = "Formation family · Count/Spacing/Interval safe defaults"
+		"buff":
+			detail = "Buff family · Duration/multiplier safe defaults"
+	skill_type_note.text = "Family: %s\n%s\nVisual: %s · Impact: %s" % [skill_draft.skill_type.to_upper(), detail, skill_draft.visual, skill_draft.impact_visual]
 
 func _on_character_editor_pressed() -> void:
 	_show_editor("character")
@@ -355,7 +395,7 @@ func _show_editor(editor_name: String) -> void:
 	character_panel.visible = current_editor == "character"
 	skill_panel.visible = current_editor == "skill"
 	subtitle_label.text = (
-		"M4 · Projectile Skill Editor — data-only draft + live SkillDefinition validation"
+		"V2 · Skill Editor — safe data-only family authoring + live SkillDefinition validation"
 		if current_editor == "skill"
 		else "M4 · Character Editor — data-only draft + live CharacterDefinition validation"
 	)
@@ -397,6 +437,15 @@ func _on_skill_id_changed(value: String) -> void:
 
 func _on_skill_name_changed(value: String) -> void:
 	skill_draft.skill_name = value
+	_refresh_skill_validation()
+
+func _on_skill_type_changed(index: int) -> void:
+	if index < 0 or index >= skill_type_select.item_count:
+		return
+	var requested_type := skill_type_select.get_item_text(index)
+	if not skill_draft.set_skill_type(requested_type):
+		return
+	_sync_skill_controls_from_draft()
 	_refresh_skill_validation()
 
 func _on_skill_damage_changed(value: float) -> void:
@@ -472,9 +521,10 @@ func _refresh_skill_validation(increment_revision: bool = true) -> void:
 		skill_draft_revision += 1
 	var errors := skill_draft.validate()
 	var valid := errors.is_empty()
-	skill_validation_label.text = "VALID · Projectile draft passes runtime schema" if valid else "INVALID · %s" % " | ".join(errors)
+	skill_validation_label.text = "VALID · %s draft passes runtime schema" % skill_draft.skill_type.capitalize() if valid else "INVALID · %s" % " | ".join(errors)
 	skill_validation_label.modulate = Color("7ff0b1") if valid else Color("ff7b86")
-	skill_summary_label.text = "Projectile: %s · %s · DMG %d · MP %d · Speed %.0f · Range %.0f" % [
+	skill_summary_label.text = "%s: %s · %s · DMG %d · MP %d · Speed %.0f · Range %.0f" % [
+		skill_draft.skill_type.capitalize(),
 		skill_draft.skill_id,
 		skill_draft.skill_name,
 		skill_draft.damage,
@@ -482,6 +532,7 @@ func _refresh_skill_validation(increment_revision: bool = true) -> void:
 		skill_draft.speed,
 		skill_draft.range
 	]
+	_refresh_skill_family_note()
 	_set_web_state(PackedStringArray(), errors)
 
 func _install_web_bridge() -> void:
@@ -492,6 +543,7 @@ func _install_web_bridge() -> void:
 	_web_reset_callback = JavaScriptBridge.create_callback(_web_reset)
 	_web_select_editor_callback = JavaScriptBridge.create_callback(_web_select_editor)
 	_web_set_skill_name_callback = JavaScriptBridge.create_callback(_web_set_skill_name)
+	_web_set_skill_type_callback = JavaScriptBridge.create_callback(_web_set_skill_type)
 	_web_set_skill_damage_callback = JavaScriptBridge.create_callback(_web_set_skill_damage)
 	_web_set_skill_speed_callback = JavaScriptBridge.create_callback(_web_set_skill_speed)
 	_web_set_skill_range_callback = JavaScriptBridge.create_callback(_web_set_skill_range)
@@ -502,6 +554,7 @@ func _install_web_bridge() -> void:
 	window.customFighterCreatorResetDraft = _web_reset_callback
 	window.customFighterCreatorSelectEditor = _web_select_editor_callback
 	window.customFighterCreatorSetSkillName = _web_set_skill_name_callback
+	window.customFighterCreatorSetSkillType = _web_set_skill_type_callback
 	window.customFighterCreatorSetSkillDamage = _web_set_skill_damage_callback
 	window.customFighterCreatorSetSkillSpeed = _web_set_skill_speed_callback
 	window.customFighterCreatorSetSkillRange = _web_set_skill_range_callback
@@ -535,6 +588,16 @@ func _web_set_skill_name(args: Array) -> void:
 		return
 	skill_name_edit.text = str(args[0])
 	_on_skill_name_changed(skill_name_edit.text)
+
+func _web_set_skill_type(args: Array) -> void:
+	if args.is_empty():
+		return
+	var requested_type := str(args[0]).strip_edges().to_lower()
+	var index := SkillDefinition.SUPPORTED_TYPES.find(requested_type)
+	if index < 0:
+		return
+	skill_type_select.select(index)
+	_on_skill_type_changed(index)
 
 func _web_set_skill_damage(args: Array) -> void:
 	if args.is_empty():
@@ -602,5 +665,12 @@ func _set_web_state(character_errors: PackedStringArray = PackedStringArray(), s
 		"document.documentElement.dataset.creatorSkillDraftRange='%.3f';" % skill_draft.range +
 		"document.documentElement.dataset.creatorSkillDraftHitstun='%.3f';" % skill_draft.hitstun +
 		"document.documentElement.dataset.creatorSkillDraftKnockback='%.3f';" % skill_draft.knockback +
+		"document.documentElement.dataset.creatorSkillDraftFormationCount='%d';" % skill_draft.formation_count +
+		"document.documentElement.dataset.creatorSkillDraftFormationSpacing='%.3f';" % skill_draft.formation_spacing +
+		"document.documentElement.dataset.creatorSkillDraftFormationInterval='%.3f';" % skill_draft.formation_interval +
+		"document.documentElement.dataset.creatorSkillDraftFormationOffset='%.3f';" % skill_draft.formation_offset +
+		"document.documentElement.dataset.creatorSkillDraftBuffDuration='%.3f';" % skill_draft.buff_duration +
+		"document.documentElement.dataset.creatorSkillDraftMoveSpeedMultiplier='%.3f';" % skill_draft.move_speed_multiplier +
+		"document.documentElement.dataset.creatorSkillDraftBasicDamageMultiplier='%.3f';" % skill_draft.basic_attack_damage_multiplier +
 		"document.documentElement.dataset.creatorSkillDraftError=%s;" % JSON.stringify(" | ".join(current_skill_errors))
 	)
