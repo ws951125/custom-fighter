@@ -37,7 +37,8 @@ func _enter_tree() -> void:
 
 func load_character_skill_for_slot(slot_name: String, expected_type: String, target_skill) -> PackedStringArray:
 	var session: Variant = _creator_preview_session()
-	if not _preview_session_active(session) or slot_name != "skill_1":
+	var preview_slot := _preview_skill_slot(session)
+	if not _preview_session_active(session) or preview_slot.is_empty() or slot_name != preview_slot:
 		return super(slot_name, expected_type, target_skill)
 
 	var errors: PackedStringArray = PackedStringArray()
@@ -49,7 +50,7 @@ func load_character_skill_for_slot(slot_name: String, expected_type: String, tar
 		if errors.is_empty() and target_skill.skill_type != expected_type:
 			errors.append("creator preview skill type mismatch: expected %s, got %s" % [expected_type, target_skill.skill_type])
 		if errors.is_empty() and target_skill.skill_id != player_character.skill_id_for_slot(slot_name):
-			errors.append("creator preview skill id does not match character skill_1")
+			errors.append("creator preview skill id does not match character %s" % slot_name)
 
 	if errors.is_empty():
 		player_runtime_skill_ids[slot_name] = target_skill.skill_id
@@ -70,9 +71,12 @@ func _set_web_state() -> void:
 	var session: Variant = _creator_preview_session()
 	var active: bool = _preview_session_active(session)
 	var skill_data: Dictionary = _preview_skill_data(session) if active else {}
+	var preview_slot := _preview_skill_slot(session) if active else ""
 	JavaScriptBridge.eval(
 		"document.documentElement.dataset.creatorPreviewActive='%s';" % ("true" if active else "false") +
 		"document.documentElement.dataset.creatorPreviewRuntimeSkillId=%s;" % JSON.stringify(str(skill_data.get("id", ""))) +
+		"document.documentElement.dataset.creatorPreviewRuntimeSkillType=%s;" % JSON.stringify(str(skill_data.get("type", "")).strip_edges().to_lower()) +
+		"document.documentElement.dataset.creatorPreviewRuntimeSkillSlot=%s;" % JSON.stringify(preview_slot) +
 		"document.documentElement.dataset.creatorPreviewRuntimeSkillDamage='%d';" % int(skill_data.get("damage", 0)) +
 		"document.documentElement.dataset.creatorPreviewRuntimeSkillMpCost='%d';" % int(skill_data.get("mp_cost", 0)) +
 		"document.documentElement.dataset.creatorPreviewRuntimeSkillCooldown='%.3f';" % float(skill_data.get("cooldown", 0.0))
@@ -95,6 +99,11 @@ func _preview_skill_data(session: Variant) -> Dictionary:
 		return {}
 	var value: Variant = session.call("preview_skill_data")
 	return value if typeof(value) == TYPE_DICTIONARY else {}
+
+func _preview_skill_slot(session: Variant) -> String:
+	if session == null or not session.has_method("preview_skill_slot"):
+		return ""
+	return str(session.call("preview_skill_slot"))
 
 func _deactivate_preview_session(session: Variant) -> void:
 	if session != null and session.has_method("deactivate_preview"):
