@@ -1,0 +1,50 @@
+﻿import { spawnSync } from 'node:child_process';
+
+const smokeScripts = [
+  'smoke:web',
+  'smoke:match-restart',
+  'smoke:area',
+  'smoke:formation',
+  'smoke:buff',
+  'smoke:melee',
+  'smoke:coordination',
+  'smoke:character',
+  'smoke:character-selection',
+  'smoke:character-animation',
+  'smoke:creator',
+  'smoke:creator-skill',
+  'smoke:creator-timeline',
+  'smoke:creator-preview',
+  'smoke:creator-preview-family',
+  'smoke:creator-vfx',
+  'smoke:creator-vfx-runtime',
+  'smoke:creator-ai-vfx',
+  'smoke:creator-remote-ai-vfx',
+  'smoke:creator-remote-reference-ai-vfx',
+  'smoke:creator-ai-skill-proposal',
+  'smoke:creator-package',
+  'smoke:creator-package-vfx',
+  'smoke:mobile',
+];
+
+const npmCommand = process.platform === 'win32' ? 'npm.cmd' : 'npm';
+
+for (const scriptName of smokeScripts) {
+  console.log(`SMOKE_SUITE_STAGE_START script=${scriptName}`);
+  const result = spawnSync(npmCommand, ['run', scriptName], {
+    stdio: 'inherit',
+    env: process.env,
+  });
+  if (result.error || result.status !== 0) {
+    const detail = result.error ? String(result.error) : `exit=${result.status ?? 'unknown'} signal=${result.signal ?? ''}`;
+    const annotation = `script=${scriptName} ${detail}`
+      .replaceAll('%', '%25')
+      .replaceAll('\r', '%0D')
+      .replaceAll('\n', '%0A');
+    console.error(`::error title=Smoke suite failure::${annotation}`);
+    process.exit(result.status || 1);
+  }
+  console.log(`SMOKE_SUITE_STAGE_PASS script=${scriptName}`);
+}
+
+console.log(`SMOKE_SUITE_PASSED count=${smokeScripts.length}`);
