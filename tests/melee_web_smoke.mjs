@@ -68,13 +68,39 @@ async function castMeleeExpectMp(beforeMp, afterMp) {
 }
 
 async function waitForPositiveCooldown(label) {
-  await page.waitForFunction(
-    () => Number(document.documentElement.dataset.meleeSkillCooldown) > 0,
+  // Capture the value that satisfies the predicate in the same browser evaluation. Hosted
+  // Edge can pause between a successful waitForFunction() and a second read, allowing a
+  // short-lived cooldown value to expire before that second round-trip observes it.
+  const handle = await page.waitForFunction(
+    () => {
+      const cooldown = Number(document.documentElement.dataset.meleeSkillCooldown);
+      return cooldown > 0 ? cooldown : false;
+    },
     null,
     { timeout: 2_500 },
   );
-  const cooldown = await readNumber('meleeSkillCooldown');
+  const cooldown = Number(await handle.jsonValue());
+  await handle.dispose();
   if (!(cooldown > 0)) throw new Error(`Expected melee cooldown after ${label}; got ${cooldown}`);
+  return cooldown;
+}
+
+async function waitForReadyCooldownWindow(label) {
+  // The cast itself lasts 0.60s while Heavy Strike's authored cooldown is 2.20s. Observe
+  // the post-recovery READY + cooldown window atomically so the rejection check proves the
+  // cooldown gate rather than merely proving that an overlapping cast was blocked.
+  const handle = await page.waitForFunction(
+    () => {
+      const phase = document.documentElement.dataset.meleeSkillPhase ?? '';
+      const cooldown = Number(document.documentElement.dataset.meleeSkillCooldown);
+      return phase === 'READY' && cooldown > 0 ? cooldown : false;
+    },
+    null,
+    { timeout: 2_500 },
+  );
+  const cooldown = Number(await handle.jsonValue());
+  await handle.dispose();
+  if (!(cooldown > 0)) throw new Error(`Expected READY cooldown window after ${label}; got ${cooldown}`);
   return cooldown;
 }
 
@@ -165,7 +191,18 @@ try {
   if (!(initialGap > 200)) throw new Error(`Expected initial out-of-range gap; got ${initialGap}`);
   await castMeleeExpectMp(100, 82);
   const firstCooldown = await waitForPositiveCooldown('whiff');
-  await page.waitForTimeout(700);
+
+  // Wait until the cast has fully recovered while cooldown remains positive, then send a
+  // real held H input. This proves the post-recovery cooldown gate rejects a sampled recast
+  // without spending another 18 MP; it is stronger and more deterministic than sampling
+  // cooldown only after a later hit on a slow hosted runner.
+  const cooldownGateCooldown = await waitForReadyCooldownWindow('whiff');
+  await nudge('h', 120);
+  await page.waitForTimeout(180);
+  if ((await readNumber('playerMp')) !== 82) {
+    throw new Error(`Melee cooldown recast spent MP: ${await readNumber('playerMp')}`);
+  }
+
   if ((await readNumber('dummyHp')) !== 100 || (await readNumber('meleeSkillHitCount')) !== 0) {
     throw new Error(
       `Out-of-range Heavy Strike unexpectedly hit: hp=${await readNumber('dummyHp')} hits=${await readNumber('meleeSkillHitCount')}`,
@@ -182,6 +219,9 @@ try {
 
   // Cast in range: one JSON-authored melee hit must deal 24 damage and spend 18 MP.
   await castMeleeExpectMp(82, 64);
+  // Capture the second cooldown immediately after the accepted cast, before waiting on the
+  // hit observation. This avoids making cooldown evidence depend on hosted Edge scheduling.
+  const secondCooldown = await waitForPositiveCooldown('hit cast');
   await page.waitForFunction(
     () =>
       Number(document.documentElement.dataset.meleeSkillHitCount) === 1 &&
@@ -191,18 +231,11 @@ try {
     { timeout: 5_000 },
   );
 
-  const secondCooldown = await waitForPositiveCooldown('hit');
   const centerX = await readNumber('meleeSkillCenterX');
   if (!(centerX > rangeState.playerX)) {
     throw new Error(`Expected right-facing melee hitbox in front: playerX=${rangeState.playerX} centerX=${centerX}`);
   }
 
-  // A sampled recast during cooldown must be rejected without another MP spend or hit.
-  await nudge('h', 120);
-  await page.waitForTimeout(180);
-  if ((await readNumber('playerMp')) !== 64) {
-    throw new Error(`Melee cooldown recast spent MP: ${await readNumber('playerMp')}`);
-  }
   await page.waitForTimeout(350);
   if ((await readNumber('dummyHp')) !== 76 || (await readNumber('meleeSkillHitCount')) !== 1) {
     throw new Error(
@@ -217,7 +250,7 @@ try {
   }
 
   console.log(
-    `WEB_MELEE_SKILL_SMOKE_PASSED damage=24 mpAfterTwoCasts=64 firstCooldown=${firstCooldown} secondCooldown=${secondCooldown} initialGap=${initialGap} hitGap=${rangeState.gap} finalHp=76 hitCount=1 centerX=${centerX}`,
+    `WEB_MELEE_SKILL_SMOKE_PASSED damage=24 mpAfterTwoCasts=64 firstCooldown=${firstCooldown} cooldownGateCooldown=${cooldownGateCooldown} secondCooldown=${secondCooldown} initialGap=${initialGap} hitGap=${rangeState.gap} finalHp=76 hitCount=1 centerX=${centerX}`,
   );
 } finally {
   await browser.close();
