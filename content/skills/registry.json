@@ -32,6 +32,10 @@
     "training_beam_001": {
       "file": "training_beam.sample.json",
       "type": "beam"
+    },
+    "training_trap_001": {
+      "file": "training_trap.sample.json",
+      "type": "trap"
     }
   }
 }
