@@ -18,6 +18,13 @@ var hitstun := 0.22
 var knockback := 260.0
 var hitbox_half_width := 28.0
 var hitbox_half_depth := 0.08
+var formation_count := 4
+var formation_spacing := 80.0
+var formation_interval := 0.15
+var formation_offset := 40.0
+var buff_duration := 5.0
+var move_speed_multiplier := 1.15
+var basic_attack_damage_multiplier := 1.20
 var visual := "prototype_fireball"
 var impact_visual := "prototype_impact"
 var timeline_schema_version := SkillDefinition.TIMELINE_SCHEMA_VERSION
@@ -39,18 +46,76 @@ func reset() -> void:
 	knockback = 260.0
 	hitbox_half_width = 28.0
 	hitbox_half_depth = 0.08
+	formation_count = 4
+	formation_spacing = 80.0
+	formation_interval = 0.15
+	formation_offset = 40.0
+	buff_duration = 5.0
+	move_speed_multiplier = 1.15
+	basic_attack_damage_multiplier = 1.20
 	visual = "prototype_fireball"
 	impact_visual = "prototype_impact"
 	timeline_schema_version = SkillDefinition.TIMELINE_SCHEMA_VERSION
 	timeline_events.clear()
+
+func set_skill_type(value: String, apply_defaults: bool = true) -> bool:
+	var normalized := value.strip_edges().to_lower()
+	if not SkillDefinition.SUPPORTED_TYPES.has(normalized):
+		return false
+	skill_type = normalized
+	if apply_defaults:
+		_apply_family_defaults(normalized)
+	return true
+
+func _apply_family_defaults(family: String) -> void:
+	match family:
+		"projectile":
+			speed = 560.0
+			range = 900.0
+			active = 0.08
+			hitbox_half_width = 28.0
+			hitbox_half_depth = 0.08
+		"dash":
+			speed = 780.0
+			range = 320.0
+			active = 0.18
+			hitbox_half_width = 52.0
+			hitbox_half_depth = 0.10
+		"melee":
+			speed = 0.0
+			range = 120.0
+			active = 0.12
+			hitbox_half_width = 48.0
+			hitbox_half_depth = 0.10
+		"area":
+			speed = 0.0
+			range = 0.0
+			active = 0.25
+			hitbox_half_width = 96.0
+			hitbox_half_depth = 0.18
+		"formation":
+			speed = 0.0
+			range = 0.0
+			active = 0.60
+			hitbox_half_width = 44.0
+			hitbox_half_depth = 0.10
+			formation_count = 4
+			formation_spacing = 80.0
+			formation_interval = 0.15
+			formation_offset = 40.0
+		"buff":
+			speed = 0.0
+			range = 0.0
+			active = 0.0
+			buff_duration = 5.0
+			move_speed_multiplier = 1.15
+			basic_attack_damage_multiplier = 1.20
 
 func load_from_dictionary(data: Dictionary) -> PackedStringArray:
 	var definition := SkillDefinition.new()
 	var errors: PackedStringArray = definition.load_from_dictionary(data)
 	if not _is_safe_token(definition.skill_id):
 		errors.append("id must be a safe lowercase reference token")
-	if definition.skill_type != "projectile":
-		errors.append("creator projectile draft type must remain projectile")
 	if not errors.is_empty():
 		return errors
 	skill_id = definition.skill_id
@@ -68,6 +133,13 @@ func load_from_dictionary(data: Dictionary) -> PackedStringArray:
 	knockback = definition.knockback
 	hitbox_half_width = definition.hitbox_half_width
 	hitbox_half_depth = definition.hitbox_half_depth
+	formation_count = definition.formation_count
+	formation_spacing = definition.formation_spacing
+	formation_interval = definition.formation_interval
+	formation_offset = definition.formation_offset
+	buff_duration = definition.buff_duration
+	move_speed_multiplier = definition.move_speed_multiplier
+	basic_attack_damage_multiplier = definition.basic_attack_damage_multiplier
 	visual = definition.visual
 	impact_visual = definition.impact_visual
 	timeline_schema_version = definition.timeline_schema_version
@@ -79,7 +151,7 @@ func to_dictionary() -> Dictionary:
 		"schema_version": SkillDefinition.CURRENT_SCHEMA_VERSION,
 		"id": skill_id.strip_edges().to_lower(),
 		"name": skill_name.strip_edges(),
-		"type": skill_type,
+		"type": skill_type.strip_edges().to_lower(),
 		"damage": damage,
 		"mp_cost": mp_cost,
 		"cooldown": cooldown,
@@ -92,6 +164,13 @@ func to_dictionary() -> Dictionary:
 		"knockback": knockback,
 		"hitbox_half_width": hitbox_half_width,
 		"hitbox_half_depth": hitbox_half_depth,
+		"formation_count": formation_count,
+		"formation_spacing": formation_spacing,
+		"formation_interval": formation_interval,
+		"formation_offset": formation_offset,
+		"buff_duration": buff_duration,
+		"move_speed_multiplier": move_speed_multiplier,
+		"basic_attack_damage_multiplier": basic_attack_damage_multiplier,
 		"visual": visual,
 		"impact_visual": impact_visual
 	}
@@ -107,8 +186,6 @@ func validate() -> PackedStringArray:
 	var errors: PackedStringArray = definition.load_from_dictionary(to_dictionary())
 	if not _is_safe_token(skill_id.strip_edges().to_lower()):
 		errors.append("id must be a safe lowercase reference token")
-	if skill_type != "projectile":
-		errors.append("creator projectile draft type must remain projectile")
 	return errors
 
 func is_valid() -> bool:
