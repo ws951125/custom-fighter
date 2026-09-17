@@ -8,6 +8,20 @@ if (browserChannel) launchOptions.channel = browserChannel;
 console.log(`CREATOR_PACKAGE_BROWSER=${browserChannel || 'playwright-chromium'}`);
 console.log(`CREATOR_PACKAGE_BASE_URL=${baseUrl}`);
 
+async function clickGodotLogicalPoint(page, logicalX, logicalY) {
+  const canvas = page.locator('canvas').first();
+  await canvas.waitFor({ state: 'visible', timeout: 10_000 });
+  const box = await canvas.boundingBox();
+  if (!box) throw new Error('Godot canvas has no clickable bounding box');
+
+  const x = box.x + (logicalX / 1280) * box.width;
+  const y = box.y + (logicalY / 720) * box.height;
+  console.log(
+    `CREATOR_PACKAGE_CANVAS_CLICK logical=${logicalX},${logicalY} css=${x.toFixed(1)},${y.toFixed(1)} box=${box.width.toFixed(1)}x${box.height.toFixed(1)}`,
+  );
+  await page.mouse.click(x, y);
+}
+
 const browser = await chromium.launch(launchOptions);
 try {
   const creatorUrl = new URL(baseUrl);
@@ -50,10 +64,12 @@ try {
     { timeout: 5_000 },
   );
 
-  const [download] = await Promise.all([
-    page.waitForEvent('download', { timeout: 10_000 }),
-    page.evaluate(() => window.customFighterCreatorExportPackage()),
-  ]);
+  // Export is a browser download, so exercise the real Godot button with a trusted
+  // pointer gesture instead of invoking the Web callback from page.evaluate().
+  // The button is anchored at x=202..342 and y=648..692 in the 1280x720 viewport.
+  const downloadPromise = page.waitForEvent('download', { timeout: 15_000 });
+  await clickGodotLogicalPoint(page, 272, 670);
+  const download = await downloadPromise;
   if (!download.suggestedFilename().endsWith('.custom-fighter.json')) {
     throw new Error(`Unexpected package filename: ${download.suggestedFilename()}`);
   }
