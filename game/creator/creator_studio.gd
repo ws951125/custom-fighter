@@ -382,6 +382,14 @@ func _refresh_skill_family_note() -> void:
 			detail = "Formation family · Count/Spacing/Interval safe defaults"
 		"buff":
 			detail = "Buff family · Duration/multiplier safe defaults"
+		"beam":
+			detail = "Beam family · Bounded range + one-hit active volume"
+		"trap":
+			detail = "Trap family · Bounded placement + finite trigger lifetime"
+		"aura":
+			detail = "Aura family · Caster-following bounded finite volume"
+		"teleport":
+			detail = "Teleport family · Bounded displacement clamped to arena safety"
 	skill_type_note.text = "Family: %s\n%s\nVisual: %s · Impact: %s" % [skill_draft.skill_type.to_upper(), detail, skill_draft.visual, skill_draft.impact_visual]
 
 func _on_character_editor_pressed() -> void:

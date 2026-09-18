@@ -10,6 +10,7 @@ const SKILL_6_OWNER := &"skill_6"
 const SKILL_7_OWNER := &"skill_7"
 const SKILL_8_OWNER := &"skill_8"
 const SKILL_9_OWNER := &"skill_9"
+const SKILL_10_OWNER := &"skill_10"
 
 var skill_coordinator := SkillCoordinator.new()
 
@@ -118,6 +119,13 @@ func _sync_skill_claims() -> void:
 		and (aura_controller == null or not aura_controller.cast_state.is_casting())
 	):
 		skill_coordinator.release(SKILL_9_OWNER)
+
+	var teleport_controller = get_node_or_null("TeleportSkillController")
+	if (
+		skill_coordinator.is_owned_by(SKILL_10_OWNER)
+		and (teleport_controller == null or not teleport_controller.cast_state.is_casting())
+	):
+		skill_coordinator.release(SKILL_10_OWNER)
 
 func _any_skill_casting() -> bool:
 	return skill_coordinator.is_busy()

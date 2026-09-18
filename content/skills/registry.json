@@ -40,6 +40,10 @@
     "training_aura_001": {
       "file": "training_aura.sample.json",
       "type": "aura"
+    },
+    "training_teleport_001": {
+      "file": "training_teleport.sample.json",
+      "type": "teleport"
     }
   }
 }
