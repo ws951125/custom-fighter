@@ -100,6 +100,17 @@ Work unit 5 — **third genuinely new family: `aura` — accepted and production
 - Aura Work Unit 5 is therefore accepted and production-validated. V2 remains **12.5% (1/8 phases complete)** because V2-2 still requires summon, grab, counter, teleport and safe scripted event compositions.
 
 
+
+Work unit 6 — **fourth genuinely new family: `teleport` — implementation in progress**:
+- `SkillDefinition.SUPPORTED_TYPES` includes `teleport` with a bounded positive `range`; no executable callback/path or arbitrary destination payload is introduced.
+- `TeleportState` deterministically resolves current X + facing × authored range and clamps the destination to the arena safety margins; it records actual traveled distance for validation/telemetry.
+- `CharacterDefinition` adds optional `skill_10`; legacy six-slot characters plus optional Beam/Trap/Aura slots remain valid. Runtime binds Teleport to `skill_10` / R.
+- `TeleportSkillController` and its coordinated wrapper reuse `SkillCastState`, MP/cooldown and `SkillCoordinator`. Teleport itself does not apply target damage; authored declarative timeline events still run through the shared preview timeline scheduler.
+- Creator family selection exposes Teleport safe defaults with bounded displacement, and Creator Preview maps `teleport`→`skill_10` without mutating the stored CharacterDraft.
+- Deterministic Teleport definition/registry/state/optional-slot/Creator routing tests are wired into CI. The ten-family Creator Preview browser smoke verifies authored range, R input, MP/timeline execution, bounded displacement and unchanged Dummy HP.
+- Formal PR/CI acceptance is pending. V2 remains **12.5% (1/8 phases complete)** until the entire V2-2 phase satisfies acceptance.
+
+
 ### V2-1 implementation checkpoints
 
 Work unit 1 was merged by PR #133 to `main` at `bb6d1c68a697958748e4dd9e6d2aac3c03bca414`:
@@ -216,4 +227,4 @@ AI VFX backend: `https://custom-fighter-ai-vfx.onrender.com`
 
 ## Next implementation target
 
-Begin V2-2 Work Unit 6 with the next safe deterministic family. Prefer `teleport` as the next slice because it can reuse the existing movement, cast-state, exact-type registry, optional-slot and Creator Preview boundaries without introducing autonomous actors or arbitrary executable behavior. Keep displacement/range bounded, fail closed on unsafe destinations, preserve legacy slots, and carry the same domain + Chromium/Edge + production validation gates. Remaining V2-2 scope after that still includes summon, grab, counter and safe scripted event compositions.
+Complete V2-2 Work Unit 6 Teleport on branch `feat/v2-2-teleport-family-wu6`: run the full GitHub PR validation chain, diagnose/fix any domain or Chromium/Edge regression on the same branch, and merge only after explicit user approval. Production acceptance then requires the exact post-merge main revision to pass Pages/public reachability, Render exact-revision readiness and production Microsoft Edge full smoke. Remaining V2-2 scope after Teleport is summon, grab, counter and safe scripted event compositions.
