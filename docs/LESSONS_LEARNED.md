@@ -101,16 +101,16 @@
 - **Validation:** M7 Slice 2 branch 建立後所有 commit 均正確落在該 branch，PR #75 最終 merge 且 production Run #151 全綠；P3 follow-up 後續正式 commits 均由 GitHub connector 正確建立；PR #125 的 422 沒有建立第二個 branch，也沒有改變既有 branch head。
 - **Status:** Verified
 
-## L-010 — Inherited GDScript constants must not be redeclared when a child becomes a direct dependency
+## L-010 — GDScript inheritance and Variant-derived inference must be explicit at new direct-load boundaries
 
-- **Date:** 2026-09-13
-- **Area:** Godot / GDScript inheritance / AI provider preload boundary
-- **Symptom:** M6 Slice 2 PR #71 CI Run #141 在 `Import project headlessly` 失敗。新增的 Creator AI studio 首次直接 preload `MockAiVfxProvider`，Godot 回報 child script 重新宣告 parent `AiVfxProvider` 已有的 `AiVfxResult` member；同一個 mock script 另有 `radius := max(...)` 的 Variant inference warning-as-error。
-- **Root Cause:** Slice 1 的 mock provider 雖存在且由 domain flow 使用，但沒有被 Creator scene 直接 preload，因此這個 child/parent member collision 沒有在先前一般 scene import 路徑曝光。GDScript 繼承 member 會包含 parent constant，child 不可再以相同名稱宣告；同時 generic `max()` 搭配除法讓 `:=` 推斷落入 Variant warning。
-- **Fix:** 移除 child 的重複 `AiVfxResult` preload，直接使用 parent inherited constant；將 radius 改為明確 `int` 並使用 `maxi()`，避免 Variant inference。
-- **Prevention Rule:** 新增 inheritance-based adapter/provider 時，parent 已提供的 preload/constants 不在 child 重宣告。任何首次被 scene 直接 preload 的 provider 都必須經完整 Godot import gate；數值 helper 在 warning-as-error 專案中優先使用 typed `maxi`/`maxf` 並明確宣告結果型別。
-- **Validation:** PR #71 修正後 latest-head CI Run #143 通過 Godot import/boot/domain、Web export/size budget、Chromium 與 hosted Windows Edge；merge 後 main Run #144 與後續 Run #145 均通過 production gates。
-- **Status:** Verified
+- **Date:** 2026-09-13; recurrence 2026-09-19 during Summon WU10
+- **Area:** Godot / GDScript inheritance / dynamic-host type inference / direct-load boundaries
+- **Symptom:** M6 Slice 2 PR #71 CI Run #141 failed `Import project headlessly` when a newly direct-loaded Creator AI studio exposed both a child/parent preload collision and `radius := max(...)` Variant inference. Summon PR #160 CI #403/#404 later failed before domain tests because `summon_skill_controller.gd` used `var target_eligible := ...` where the expression traversed dynamic `host` members; Godot 4.7 reported `Cannot infer the type of "target_eligible"`.
+- **Root Cause:** GDScript static analysis becomes stricter when a script enters a direct scene/preload/export path. Parent members must not be redeclared in children, and `:=` cannot safely infer a concrete type from expressions whose inputs originate from dynamic/Variant-typed objects even when the runtime value is conceptually boolean or numeric.
+- **Fix:** For PR #71, remove the duplicate inherited constant and use typed numeric helpers/results. For Summon, a temporary GitHub-only `--check-only` diagnostic located `summon_skill_controller.gd:104`; commit `88b671bd85437ff8fa354d95c2d340ffb0302fb1` changed the declaration to `var target_eligible: bool = ...`, and cleanup commit `12930f7ac5cbe903e206358e2cca4d774ab7783c` removed the temporary diagnostic step.
+- **Prevention Rule:** At any new direct-load boundary, do not redeclare inherited preload/constants and do not use `:=` for values derived through dynamic `host`, `Variant`, reflection, dictionary, or loosely typed node access when the intended type is known. Declare the concrete type explicitly; use typed numeric helpers such as `maxi`/`maxf` where applicable. Required validation remains the normal Godot import/export gate; temporary syntax diagnostics must be removed after root cause is identified.
+- **Validation:** PR #71's corrected head passed its full PR/main validation chain. Summon product-fix head `12930f7ac5cbe903e206358e2cca4d774ab7783c` passed CI #406 (`35369838845`) across Windows Native, Godot import/boot/domain/backend, Web export/size budget, Chromium and hosted Microsoft Edge, including `SUMMON_TESTS_PASSED`, thirteen-family Creator Preview coverage and 24-stage browser suites.
+- **Status:** Verified; recurrence covered by explicit-type rule
 
 ## L-011 — Browser regressions must evolve with intentional package schema changes
 
