@@ -182,7 +182,7 @@ The target must be eligible and its real hurtbox must overlap that source volume
 Runtime routing is optional `skill_12` / E. Creator Preview injects only the preview copy of `skill_12`; the stored editable CharacterDraft remains unchanged. No arbitrary target selector, callback, path, script, user code or autonomous actor is introduced.
 
 PR #158 latest head `42eeddf2f8c9ca542194734052bb2ac2121a1cf8` passed CI #399 (`35348193780`) across Windows Native, Godot/domain/backend, Web export/size budget, Chromium and Microsoft Edge, then squash-merged to `main` at `d0b4dc9529a81466e03afe74511819efe14152d7`. Main CI #400 (`35349720100`) passed the full production chain on that exact revision after one isolated production Edge retry: attempt #1 had already passed the twelve-family Grab flow and failed later in unchanged Creator VFX revision observation; attempt #2 passed all 24 production Edge smoke stages. Render readiness reported the exact merge revision with Gemini free-tier-only configuration.
-## Work unit 10 — final new family: `summon` — implementation synchronized; PR validation pending
+## Work unit 10 — final new family: `summon` — implementation complete; PR validation passed on product-fix head
 
 Summon reuses the existing common validated field vocabulary instead of introducing an actor-script schema. `range` is a bounded forward spawn offset, `speed` is bounded deterministic horizontal travel speed, `active` is the finite actor lifetime, and `hitbox_half_width` / `hitbox_half_depth` define the actor collision volume.
 
@@ -192,4 +192,6 @@ Runtime routing is optional `skill_13` / Q. Creator Preview injects only the pre
 
 WU10 regression scope includes schema bounds, exact registry type, deterministic actor spawn/travel/single-hit/lifetime semantics, optional-slot compatibility, Creator routing/isolation, common-field Character Package round trip and thirteen-family Chromium/Edge Creator Preview smoke.
 
-After Summon passes PR and exact-`main` production validation, V2-2 can be evaluated against its full phase acceptance criteria.
+PR #160 initially failed CI #403/#404 during Godot parse because `target_eligible := ...` attempted to infer from dynamic `host` members. A temporary `--check-only` diagnostic located `summon_skill_controller.gd:104`; the runtime now declares `target_eligible: bool` explicitly and the temporary diagnostic was removed. Product-fix head `12930f7ac5cbe903e206358e2cca4d774ab7783c` then passed CI #406 (`35369838845`) across Windows Native, Godot/domain/backend, Web export/size budget, Chromium and hosted Microsoft Edge. Both browser suites passed all 24 stages and emitted `families=13 ... summonPolicy=bounded-actor-single-hit ... timelineDispatch=true roundTrip=true`; domain evidence emitted `SUMMON_TESTS_PASSED`.
+
+A final latest-head PR gate is still required after these documentation updates. After Summon is explicitly approved, merged, and passes exact-`main` production validation, V2-2 can be evaluated against its full phase acceptance criteria.
