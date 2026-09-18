@@ -1,4 +1,4 @@
-[gd_scene load_steps=10 format=3]
+[gd_scene load_steps=11 format=3]
 
 [ext_resource type="Script" path="res://game/runtime/match_flow_main.gd" id="1_main"]
 [ext_resource type="Script" path="res://game/runtime/coordinated_area_skill_controller.gd" id="2_area"]
@@ -9,6 +9,7 @@
 [ext_resource type="Script" path="res://game/runtime/coordinated_trap_skill_controller.gd" id="7_trap"]
 [ext_resource type="Script" path="res://game/runtime/mobile_controls.gd" id="8_mobile"]
 [ext_resource type="Script" path="res://game/runtime/coordinated_aura_skill_controller.gd" id="9_aura"]
+[ext_resource type="Script" path="res://game/runtime/coordinated_teleport_skill_controller.gd" id="10_teleport"]
 
 [node name="Main" type="Control"]
 layout_mode = 3
@@ -88,6 +89,16 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 script = ExtResource("9_aura")
+
+[node name="TeleportSkillController" type="Control" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("10_teleport")
 
 [node name="MobileControls" type="Control" parent="."]
 layout_mode = 1
