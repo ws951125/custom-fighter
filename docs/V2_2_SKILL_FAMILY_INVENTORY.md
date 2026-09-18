@@ -158,11 +158,20 @@ Implementation head `e9606b473c8150fc9eba27fe598bd7fb86414def` passed PR #154 CI
 Latest PR head `5841591c10fc60bd5cf815e6d8a96fcc7548924a` then passed PR CI #379 (`35310681623`) across the full PR gate. PR #154 was squash-merged as `aad1e3f2787d32d4b09bec96a8509471fb0b574e`. Main CI #380 (`35311711648`) attempt #1 reached production Edge and passed the Counter flow, then an unchanged AI-skill-proposal smoke missed its second proposal-valid 5-second observation window. Without any code change, attempt #2 on the exact same SHA passed the complete production chain including Pages deployment/public reachability, Render exact-revision readiness and production Microsoft Edge full smoke.
 
 
+
+## Work unit 8 — safe scripted event compositions — implementation in progress
+
+Safe scripted compositions are Creator-side, allow-listed **recipes**, not a new executable event type or scripting language. `SkillTimelineComposition` currently exposes `cast_burst` and `guarded_impact`; each expands deterministically into only the existing validated `animation`, `vfx`, `audio`, `hitbox` and `hurtbox` timeline events. Recipe IDs, generated event IDs and asset tokens are bounded/safe; composition may only append chronologically, and existing 64-event / 30-second timeline ceilings remain authoritative.
+
+The runtime architecture is intentionally unchanged: expanded events are validated by `SkillDefinition` and executed by the existing `SkillTimelineRuntime` through each family's shared `SkillCastState`. Creator exposes one safe recipe selector/start-time action and a constrained Web bridge; unknown recipes, unsafe tokens, duplicate IDs, backwards insertion, event overflow or time overflow fail without mutating the valid timeline.
+
+WU8 also closes the package round-trip boundary for timeline-authored skills. Character Package now allows an optional validated `timeline` field and serializes it only when a skill actually has events; legacy package skills without timelines retain their old canonical shape. The recipe itself is not persisted—only the already-approved expanded timeline events cross export/import. Direct package tests and Creator browser coverage verify safe timeline round-trip and continued rejection of executable event types.
+
+
 ## Remaining V2-2 families
 
-After Counter production validation, the phase still requires:
+After Safe Scripted Event Compositions production validation, the phase will still require:
 
-- safe scripted event compositions,
 - grab,
 - summon.
 
