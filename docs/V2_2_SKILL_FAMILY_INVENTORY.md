@@ -136,14 +136,21 @@ Implementation head `da9808d46eadadcb79bd0356b45953365236940a` passed PR #150 CI
 
 Latest PR head `8d1f801ff13053473fc8412a914703bd5d46335f` then passed PR CI #367 (`35296370356`) across the full PR gate. PR #150 was squash-merged as `f2ce5d0efe99d807be09190fa02e26b95d2325d5`, and Main CI #368 (`35298311326`) passed the complete production chain on that exact revision, including Pages deployment/public reachability, Render exact-revision readiness and production Microsoft Edge full smoke.
 
+
+## Work unit 6 — fourth new family: `teleport` — implementation in progress
+
+Teleport uses optional `skill_10` / R and reuses the established exact-type registry, `SkillCastState`, `SkillCoordinator`, Creator family selector, Creator Preview routing and declarative timeline scheduler. Its authored `range` is the maximum horizontal displacement. `TeleportState` computes a destination only from the current position, facing and validated range, then clamps that destination to the arena safety margins. There is no arbitrary path, destination callback, user code or autonomous actor, and the runtime does not apply damage as part of the teleport itself.
+
+Planned acceptance evidence is deterministic definition/registry/state/optional-slot/Creator routing coverage plus the ten-family Chromium/hosted-Edge Creator Preview smoke verifying authored range, R input, MP/timeline execution, bounded displacement and unchanged target HP.
+
+
 ## Remaining V2-2 families
 
-After Aura production validation, the phase still requires:
+After Teleport production validation, the phase still requires:
 
 - summon,
 - grab,
 - counter,
-- teleport,
 - safe scripted event compositions.
 
 The exact implementation order may change if repository constraints make one family a better dependency, but all remaining V2-2 scope items remain required for phase completion.
