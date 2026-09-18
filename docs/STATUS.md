@@ -175,13 +175,16 @@ Work unit 9 — **sixth genuinely new family: `grab` — accepted and production
 - Production evidence includes `WEB_CREATOR_PREVIEW_FAMILY_SMOKE_PASSED families=12 ... grabPolicy=overlap-hold-once ... timelineDispatch=true roundTrip=true`. Grab Work Unit 9 is therefore accepted and production-validated.
 - V2 remains **12.5% (1/8 phases complete)** because V2-2 still requires its final family, **Summon**.
 
-Work unit 10 — **final V2-2 family: `summon` — implementation synchronized; PR validation pending**:
+Work unit 10 — **final V2-2 family: `summon` — implementation complete; PR validation passed on product-fix head; latest-head docs gate pending**:
 - Summon reuses existing common fields only: `range` is bounded forward spawn offset, `speed` is deterministic horizontal actor speed, `active` is finite actor lifetime, and the existing hitbox dimensions bound collision volume. No package schema field was added.
 - `SummonState` owns exactly one actor instance per activation. Spawn and arena geometry fail closed, movement is deterministic toward only the runtime-provided designated target, lifetime is finite, and one actor can consume at most one eligible overlap hit before deterministic cleanup.
 - Runtime routing is optional `skill_13` / Q. The coordinated controller reuses `SkillCastState`, MP/cooldown, `SkillCoordinator`, exact-type registry loading and the existing declarative timeline scheduler.
-- Creator authoring, Creator Preview temporary slot injection, Character Package common-field round trip, deterministic domain coverage and thirteen-family Chromium/Edge smoke coverage are synchronized on the WU10 branch.
+- Creator authoring, Creator Preview temporary slot injection, Character Package common-field round trip, deterministic domain coverage and thirteen-family Chromium/Edge smoke coverage are synchronized on PR #160.
+- CI #403 (`35368837252`) and diagnostic CI #404 (`35369547182`) exposed one GDScript parse defect before domain/browser execution: `target_eligible := ...` depended on dynamic `host` members, so Godot 4.7 could not infer a static type. A temporary `--check-only` diagnostic identified `summon_skill_controller.gd:104`; commit `88b671bd85437ff8fa354d95c2d340ffb0302fb1` changed it to explicit `bool`, and the diagnostic step was removed in `12930f7ac5cbe903e206358e2cca4d774ab7783c`.
+- CI #406 (`35369838845`) on product-fix head `12930f7ac5cbe903e206358e2cca4d774ab7783c` passed Windows Native, Godot import/boot/domain/backend, Web export/size budget, Chromium `smoke:all`, and hosted Microsoft Edge `smoke:all`.
+- Explicit evidence includes `SUMMON_TESTS_PASSED`, Character Package/Creator Preview PASS, and both browsers emitting `WEB_CREATOR_PREVIEW_FAMILY_SMOKE_PASSED families=13 ... summonPolicy=bounded-actor-single-hit ... timelineDispatch=true roundTrip=true` plus `SMOKE_SUITE_PASSED count=24`.
 - Summon data contains no arbitrary scene/resource path, callback, script, target selector, user code or unbounded actor list.
-- V2 remains **12.5% (1/8 phases complete)** until WU10 passes PR validation, explicit merge approval, exact-`main` production validation and full V2-2 phase acceptance.
+- V2 remains **12.5% (1/8 phases complete)** until the documentation-updated latest PR head passes CI, PR #160 receives explicit merge approval, exact-`main` production validation passes, and full V2-2 phase acceptance is recorded.
 
 ### V2-1 implementation checkpoints
 
@@ -299,4 +302,4 @@ AI VFX backend: `https://custom-fighter-ai-vfx.onrender.com`
 
 ## Next implementation target
 
-Complete WU10 Summon PR validation on the latest branch head. If Windows Native, Godot/domain/backend, Web/Chromium and hosted Microsoft Edge all pass, request explicit merge approval. After merge, require the exact `main` revision to pass GitHub Pages deployment/public reachability, Render exact-revision readiness and production Microsoft Edge full smoke before formally accepting V2-2.
+Run the documentation-updated latest-head PR gate for #160. If Windows Native, Godot/domain/backend, Web/Chromium and hosted Microsoft Edge remain green, request explicit merge approval. After merge, require the exact `main` revision to pass GitHub Pages deployment/public reachability, Render exact-revision readiness and production Microsoft Edge full smoke before formally accepting V2-2.
