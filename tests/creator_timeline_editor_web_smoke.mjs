@@ -31,11 +31,76 @@ try {
     typeof window.customFighterCreatorTimelineRemove === 'function' &&
     typeof window.customFighterCreatorTimelineMove === 'function' &&
     typeof window.customFighterCreatorTimelineUpdate === 'function' &&
-    typeof window.customFighterCreatorTimelineClear === 'function', null, { timeout: 60_000 });
+    typeof window.customFighterCreatorTimelineClear === 'function' &&
+    typeof window.customFighterCreatorTimelineApplyComposition === 'function' &&
+    document.documentElement.dataset.creatorTimelineCompositionReady === 'true', null, { timeout: 60_000 });
 
   if ((await dataset(page, 'creatorTimelineCount')) !== '0' || (await dataset(page, 'creatorTimelineValid')) !== 'true') {
     throw new Error('Starter Creator timeline must remain empty and V1-compatible');
   }
+
+  const recipes = JSON.parse(await dataset(page, 'creatorTimelineCompositionRecipes') || '[]');
+  if (JSON.stringify(recipes) !== JSON.stringify(['cast_burst', 'guarded_impact'])) {
+    throw new Error(`Unexpected safe composition recipes: ${JSON.stringify(recipes)}`);
+  }
+
+  await page.evaluate(() => window.customFighterCreatorTimelineApplyComposition('cast_burst', 0));
+  await waitCount(page, 4);
+  await page.waitForFunction(() =>
+    document.documentElement.dataset.creatorTimelineCompositionLastRecipe === 'cast_burst' &&
+    document.documentElement.dataset.creatorTimelineCompositionLastAddedCount === '4' &&
+    document.documentElement.dataset.creatorTimelineCompositionError === '' &&
+    document.documentElement.dataset.creatorTimelineValid === 'true',
+    null,
+    { timeout: 5_000 },
+  );
+  let compositionEvents = await timelineEvents(page);
+  if (compositionEvents.map((event) => event.type).join(',') !== 'animation,vfx,audio,hitbox') {
+    throw new Error(`cast_burst composition emitted unexpected vocabulary: ${JSON.stringify(compositionEvents)}`);
+  }
+  if (!compositionEvents.every((event) => /^[a-z0-9][a-z0-9_-]*$/.test(event.id ?? ''))) {
+    throw new Error('Composition emitted unsafe event id');
+  }
+
+  await page.evaluate(() => window.customFighterCreatorTimelineApplyComposition('guarded_impact', 0.7));
+  await waitCount(page, 9);
+  await page.waitForFunction(() =>
+    document.documentElement.dataset.creatorTimelineCompositionLastRecipe === 'guarded_impact' &&
+    document.documentElement.dataset.creatorTimelineCompositionLastAddedCount === '5' &&
+    document.documentElement.dataset.creatorTimelineCompositionError === '',
+    null,
+    { timeout: 5_000 },
+  );
+  compositionEvents = await timelineEvents(page);
+  if (compositionEvents.slice(4).map((event) => event.type).join(',') !== 'animation,vfx,hitbox,audio,hurtbox') {
+    throw new Error(`guarded_impact composition emitted unexpected vocabulary: ${JSON.stringify(compositionEvents.slice(4))}`);
+  }
+
+  await page.evaluate(() => window.customFighterCreatorTimelineApplyComposition('script', 2.0));
+  await page.waitForFunction(
+    () => (document.documentElement.dataset.creatorTimelineCompositionError ?? '').includes('unsupported timeline composition recipe'),
+    null,
+    { timeout: 5_000 },
+  );
+  if ((await dataset(page, 'creatorTimelineCount')) !== '9') throw new Error('Unsupported composition mutated timeline');
+
+  await page.evaluate(() => window.customFighterCreatorTimelineApplyComposition('cast_burst', 0.1));
+  await page.waitForFunction(
+    () => (document.documentElement.dataset.creatorTimelineCompositionError ?? '').includes('must not start before the existing timeline tail'),
+    null,
+    { timeout: 5_000 },
+  );
+  if ((await dataset(page, 'creatorTimelineCount')) !== '9') throw new Error('Backwards composition mutated timeline');
+
+  await page.evaluate(() => window.customFighterCreatorTimelineClear());
+  await waitCount(page, 0);
+  await page.waitForFunction(() =>
+    document.documentElement.dataset.creatorTimelineCompositionError === '' &&
+    document.documentElement.dataset.creatorTimelineCompositionLastRecipe === '' &&
+    document.documentElement.dataset.creatorTimelineCompositionLastAddedCount === '0',
+    null,
+    { timeout: 5_000 },
+  );
 
   await page.evaluate(() => window.customFighterCreatorTimelineAdd(JSON.stringify({
     type: 'animation', time: 0.0, duration: 0.1, animation: 'skill_2',
@@ -124,7 +189,7 @@ try {
   await waitCount(page, 0);
   if ((await dataset(page, 'creatorTimelineValid')) !== 'true') throw new Error('Clear timeline must restore V1-compatible valid draft');
 
-  console.log('WEB_CREATOR_TIMELINE_EDITOR_SMOKE_PASSED mediaAnimation=true mediaVfx=true mediaAudio=true mediaFailClosed=true mediaStaleCleanup=true spatialHitbox=true spatialHurtbox=true spatialFailClosed=true stalePayloadCleanup=true reorderFailClosed=true remove=true clear=true');
+  console.log('WEB_CREATOR_TIMELINE_EDITOR_SMOKE_PASSED safeComposition=true allowList=true compositionFailClosed=true mediaAnimation=true mediaVfx=true mediaAudio=true mediaFailClosed=true mediaStaleCleanup=true spatialHitbox=true spatialHurtbox=true spatialFailClosed=true stalePayloadCleanup=true reorderFailClosed=true remove=true clear=true');
 } finally {
   await browser.close();
 }
