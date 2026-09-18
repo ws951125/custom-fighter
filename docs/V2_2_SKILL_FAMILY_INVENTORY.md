@@ -128,11 +128,11 @@ Validation:
 
 Trap extends the same declarative boundary with optional `skill_8` / T, bounded placement/trigger/lifetime state and a single-trigger damage policy. Creator Preview, package compatibility and deterministic domain coverage are synchronized. PR #148 was squash-merged as `f1631eaa3f2828765ab898e7f5ebe55637671422`; Main CI #362 (`35289237781`) ultimately passed the complete production chain on the exact revision.
 
-## Work unit 5 — third new family: `aura` — implementation in progress
+## Work unit 5 — third new family: `aura` — implementation-head validation complete
 
 Aura uses optional `skill_9` / G. Its bounded combat volume follows the caster for a finite lifetime and can damage a target at most once per activation. It reuses `SkillCastState`, `SkillCoordinator`, Creator family selection, Creator Preview routing and the existing declarative timeline scheduler. `aura_duration` is a validated family-specific package field serialized only for Aura. No autonomous actor, arbitrary callback/path, user code or new executable event type is added.
 
-Planned acceptance evidence for this work unit is deterministic Godot domain coverage plus the existing Chromium/hosted-Edge full suite with nine-family Creator Preview coverage.
+Implementation head `da9808d46eadadcb79bd0356b45953365236940a` passed PR #150 CI #365 (`35295253734`) on attempt #2 across Windows Native, Godot/domain/backend, Web export/size budget, Chromium `smoke:all` and hosted Microsoft Edge `smoke:all`. Both browsers exercised the nine-family Creator Preview flow and reported the Aura single-hit policy. Attempt #1 stopped earlier in unchanged K-dash browser sampling at 119.66px versus the existing >120px threshold; the same SHA passed without code changes. A fresh latest-head CI remains required after this documentation checkpoint.
 
 ## Remaining V2-2 families
 
