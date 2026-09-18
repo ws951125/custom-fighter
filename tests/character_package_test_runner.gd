@@ -7,6 +7,8 @@ func _init() -> void:
 	_test_valid_round_trip(failures)
 	_test_trap_duration_round_trip_shape(failures)
 	_test_aura_duration_round_trip_shape(failures)
+	_test_timeline_round_trip_shape(failures)
+	_test_rejects_unsafe_timeline_event(failures)
 	_test_rejects_schema_mismatch(failures)
 	_test_rejects_package_character_id_mismatch(failures)
 	_test_rejects_duplicate_skill_ids(failures)
@@ -110,6 +112,66 @@ func _test_aura_duration_round_trip_shape(failures: PackedStringArray) -> void:
 	var reload_errors: PackedStringArray = reloaded.load_from_dictionary(serialized)
 	_expect(reload_errors.is_empty(), "serialized aura package should load again", failures)
 	_expect(JSON.stringify(serialized) == JSON.stringify(reloaded.to_dictionary()), "aura package round trip should be deterministic", failures)
+
+func _test_timeline_round_trip_shape(failures: PackedStringArray) -> void:
+	var data: Dictionary = _valid_package()
+	var skills: Array = data.get("skills", [])
+	var authored_skill: Dictionary = skills[0]
+	authored_skill["timeline"] = {
+		"schema_version": 1,
+		"events": [
+			{"id": "comp_anim", "type": "animation", "time": 0.0, "duration": 1.2, "animation": "skill_3"},
+			{"id": "comp_vfx", "type": "vfx", "time": 0.1, "duration": 1.0, "visual": "package_impact"},
+			{"id": "comp_hitbox", "type": "hitbox", "time": 0.2, "duration": 0.9, "half_width": 40.0, "half_depth": 0.12, "offset_x": 24.0, "offset_depth": -0.02},
+			{"id": "comp_audio", "type": "audio", "time": 0.3, "duration": 0.0, "cue": "skill_cast"},
+			{"id": "comp_hurtbox", "type": "hurtbox", "time": 0.4, "duration": 0.7, "half_width": 22.0, "half_depth": 0.09, "offset_x": -6.0, "offset_depth": 0.03}
+		]
+	}
+
+	var package := CharacterPackageDefinition.new()
+	var errors: PackedStringArray = package.load_from_dictionary(data)
+	_expect(errors.is_empty(), "package should accept validated optional timeline", failures)
+
+	var serialized: Dictionary = package.to_dictionary()
+	var serialized_skills: Array = serialized.get("skills", [])
+	var timeline_skill: Dictionary = {}
+	var non_timeline_count := 0
+	for skill_value in serialized_skills:
+		if skill_value is Dictionary:
+			var skill_data: Dictionary = skill_value
+			if str(skill_data.get("id", "")) == "pkg_projectile":
+				timeline_skill = skill_data
+			elif not skill_data.has("timeline"):
+				non_timeline_count += 1
+
+	_expect(not timeline_skill.is_empty(), "serialized package should retain timeline skill", failures)
+	_expect(timeline_skill.has("timeline"), "authored timeline should serialize conditionally", failures)
+	var timeline: Dictionary = timeline_skill.get("timeline", {})
+	var events: Array = timeline.get("events", [])
+	_expect(events.size() == 5, "serialized timeline should retain all composed events", failures)
+	if events.size() == 5:
+		_expect(str(events[0].get("type", "")) == "animation", "timeline event order should survive package serialization", failures)
+		_expect(str(events[4].get("type", "")) == "hurtbox", "timeline tail should survive package serialization", failures)
+	_expect(non_timeline_count == 5, "legacy package skills without timeline should keep historical shape", failures)
+
+	var reloaded := CharacterPackageDefinition.new()
+	var reload_errors: PackedStringArray = reloaded.load_from_dictionary(serialized)
+	_expect(reload_errors.is_empty(), "serialized timeline package should load again", failures)
+	_expect(JSON.stringify(serialized) == JSON.stringify(reloaded.to_dictionary()), "timeline package round trip should be deterministic", failures)
+
+func _test_rejects_unsafe_timeline_event(failures: PackedStringArray) -> void:
+	var data: Dictionary = _valid_package()
+	var skills: Array = data.get("skills", [])
+	var authored_skill: Dictionary = skills[0]
+	authored_skill["timeline"] = {
+		"schema_version": 1,
+		"events": [
+			{"id": "unsafe_script", "type": "script", "time": 0.0, "duration": 0.0}
+		]
+	}
+	var package := CharacterPackageDefinition.new()
+	var errors: PackedStringArray = package.load_from_dictionary(data)
+	_expect(_contains(errors, "unsupported timeline event type: script"), "package timeline must reject executable event types", failures)
 
 func _test_rejects_schema_mismatch(failures: PackedStringArray) -> void:
 	var data: Dictionary = _valid_package()
