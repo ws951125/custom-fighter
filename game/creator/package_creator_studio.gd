@@ -300,7 +300,7 @@ func _validate_creator_import_compatibility(package: Variant) -> PackedStringArr
 	return errors
 
 func _skill_definition_to_dictionary(skill: Variant) -> Dictionary:
-	return {
+	var data := {
 		"schema_version": skill.schema_version,
 		"id": skill.skill_id,
 		"name": skill.skill_name,
@@ -327,6 +327,19 @@ func _skill_definition_to_dictionary(skill: Variant) -> Dictionary:
 		"visual": skill.visual,
 		"impact_visual": skill.impact_visual
 	}
+	if skill.skill_type == "trap":
+		data["trap_duration"] = skill.trap_duration
+	if skill.skill_type == "aura":
+		data["aura_duration"] = skill.aura_duration
+	if skill.has_timeline():
+		var timeline_events: Array = []
+		for event in skill.timeline_events:
+			timeline_events.append(event.duplicate(true))
+		data["timeline"] = {
+			"schema_version": skill.timeline_schema_version,
+			"events": timeline_events
+		}
+	return data
 
 func _web_export_package(_args: Array) -> void:
 	_on_export_package_pressed()
