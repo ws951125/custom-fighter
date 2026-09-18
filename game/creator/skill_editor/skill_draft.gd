@@ -140,6 +140,12 @@ func _apply_family_defaults(family: String) -> void:
 			active = 0.0
 			hitbox_half_width = 24.0
 			hitbox_half_depth = 0.08
+		"counter":
+			speed = 0.0
+			range = 180.0
+			active = 0.45
+			hitbox_half_width = 42.0
+			hitbox_half_depth = 0.14
 
 func load_from_dictionary(data: Dictionary) -> PackedStringArray:
 	var definition := SkillDefinition.new()
