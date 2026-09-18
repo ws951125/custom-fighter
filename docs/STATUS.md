@@ -137,6 +137,21 @@ Work unit 7 — **fifth genuinely new family: `counter` — accepted and product
 - Main CI #380 attempt #2 on the exact same merge revision passed the complete production chain: Windows Native, Godot import/boot/domain/AI contracts, trusted backend, Web export/size budget, Chromium `smoke:all`, hosted Microsoft Edge `smoke:all`, GitHub Pages deployment, public-Web reachability, Render health/provider-schema/exact-revision readiness, and production Microsoft Edge full smoke.
 - The same-SHA retry confirms attempt #1 as hosted production-Edge timing/observation instability rather than a deterministic Counter regression. Counter Work Unit 7 is therefore accepted and production-validated.
 - V2 remains **12.5% (1/8 phases complete)** because V2-2 still requires summon, grab and safe scripted event compositions.
+- Counter production-validation docs checkpoint PR #155 was squash-merged to `main` at `069803c8aa295d3d097daa64294660d913ff5325`; Main CI #382 (`35328182117`) passed the complete production chain on that exact docs-only revision.
+
+
+
+
+Work unit 8 — **safe scripted event compositions — implementation in progress**:
+- Composition is deliberately **not** a new executable skill/event language. `SkillTimelineComposition` exposes only the explicit recipes `cast_burst` and `guarded_impact`, and expands them into the existing allow-listed `animation`, `vfx`, `audio`, `hitbox` and `hurtbox` timeline event vocabulary.
+- Recipe expansion validates safe lowercase IDs/asset tokens, may only append at or after the existing timeline tail, rejects duplicate IDs, enforces the existing 64-event/30-second caps, and returns the original timeline unchanged on failure. No arbitrary event JSON, callback, path, script or user code is accepted.
+- Creator Timeline adds a Composition row with recipe selection, start time and `+ Safe Composition`; Web automation exposes only `customFighterCreatorTimelineApplyComposition(recipe, start)` and publishes recipe/error diagnostics. The persisted skill remains ordinary `timeline.events`; composition recipe UI state is not executable package metadata.
+- `guarded_impact` intentionally reproduces the already-validated Creator Preview overlap sequence (skill_3 animation, impact VFX, bounded hitbox, audio cue and bounded hurtbox), so the existing runtime consumes the expanded events through `SkillDefinition`, `SkillCastState` and `SkillTimelineRuntime` with no new runtime dispatcher.
+- Direct domain/runtime coverage checks recipe allow-listing, deterministic expansion/order, safe IDs, unsafe token rejection, append-only chronology, duplicate-ID rejection, event-count and 30-second bounds, runtime transitions/cleanup, and confirms no `script` event can appear.
+- Creator Chromium/Edge regression now authors both safe recipes, verifies unsupported/backwards compositions fail without mutation, then uses `guarded_impact` to drive the existing Creator → Training runtime timeline flow.
+- Character Package previously rejected/omitted the optional `timeline` object, which would have discarded an expanded composition on export. WU8 adds `timeline` to the strict allowed skill shape and serializes it **only when present**, so legacy non-timeline package skills retain their historical canonical shape. Unsafe timeline event types still fail through `SkillDefinition`.
+- Package domain and browser regression verify the five expanded declarative events survive schema-v2 Creator export/import and Preview, while no composition recipe/script metadata is serialized.
+- Formal PR/CI acceptance is pending. V2 remains **12.5% (1/8 phases complete)** until the full V2-2 phase satisfies acceptance.
 
 
 ### V2-1 implementation checkpoints
@@ -255,4 +270,4 @@ AI VFX backend: `https://custom-fighter-ai-vfx.onrender.com`
 
 ## Next implementation target
 
-Begin V2-2 Work Unit 8 with **safe scripted event compositions** before grab/summon. Build on the existing declarative timeline scheduler and approved animation/VFX/audio/hitbox/hurtbox event vocabulary; add deterministic composition authoring/runtime coverage without adding arbitrary executable event types, callbacks, paths or user code. Preserve all existing family behavior and package compatibility. Remaining V2-2 scope after scripted compositions will be grab and summon.
+Complete V2-2 Work Unit 8 Safe Scripted Event Compositions on branch `feat/v2-2-safe-scripted-compositions-wu8`: run the full GitHub PR validation chain, diagnose/fix any Godot/package/Chromium/Edge regression on the same branch, and merge only after explicit user approval. Production acceptance requires the exact post-merge main revision to pass Pages/public reachability, Render exact-revision readiness and production Microsoft Edge full smoke. Remaining V2-2 scope after compositions is grab and summon.
