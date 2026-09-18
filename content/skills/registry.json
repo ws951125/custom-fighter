@@ -44,6 +44,10 @@
     "training_teleport_001": {
       "file": "training_teleport.sample.json",
       "type": "teleport"
+    },
+    "training_counter_001": {
+      "file": "training_counter.sample.json",
+      "type": "counter"
     }
   }
 }
