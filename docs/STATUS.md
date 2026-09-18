@@ -67,7 +67,7 @@ Work unit 3 — **first genuinely new family: `beam` — accepted and production
 - PR #147 was merged to `main` at `ed35ff4685173826ec015ac86a48480704a77d7b`.
 - Main CI #349 (`35210660845`) passed the complete production chain on that exact revision: Windows Native, Godot import/boot/domain/backend tests, Web export/size budget, Chromium `smoke:all`, hosted Microsoft Edge, GitHub Pages deployment/public reachability, Render exact-revision readiness, and production Microsoft Edge full smoke.
 
-Work unit 4 — **second genuinely new family: `trap` — implementation-head validation complete; final latest-head documentation/regression gate pending** on PR #148 / branch `feat/v2-2-trap-family-wu4`:
+Work unit 4 — **second genuinely new family: `trap` — accepted and production-validated**:
 - `SkillDefinition.SUPPORTED_TYPES` includes `trap` with bounded placement range, trigger volume and lifetime; `training_trap_001` is registered through the authoritative skill registry.
 - `TrapAttackState` implements deterministic place → armed → single trigger/expire behavior, while cast timing/MP/cooldown/coordinator ownership stays on the shared `SkillCastState` / `SkillCoordinator` path.
 - `CharacterDefinition` accepts `skill_8` as an optional backwards-compatible slot; legacy six-slot characters and optional Beam `skill_7` remain valid. Runtime binds Trap to `skill_8` / T.
@@ -77,7 +77,10 @@ Work unit 4 — **second genuinely new family: `trap` — implementation-head va
 - Targeted PR148 Browser Diagnostic #3 (`35254414363`) passed Creator Preview family, Creator package, Creator package VFX and mobile smoke on `f31a54bb735eeeb166fa9709768d120e65095066`.
 - Formal PR CI #359 exposed an independent Windows runner defect before the first Edge smoke: Node 24 returned `spawnSync npm.cmd EINVAL`. Commit `8e4a2fabd08da51e413f90f5607b00c9c89354d1` routes Windows npm script execution through `ComSpec /d /s /c`, keeps direct `npm` execution on non-Windows platforms, and removes the now-completed temporary diagnostic workflow.
 - PR CI #360 (`35283860574`) passed Windows Native Release, Godot import/boot/domain/backend tests, Web export/size budget, Chromium `smoke:all`, and GitHub-hosted Microsoft Edge `smoke:all` on implementation head `8e4a2fabd08da51e413f90f5607b00c9c89354d1`.
-- The final checkpoint adds direct Character Package regression coverage proving Trap `trap_duration` survives deterministic round-trip while non-Trap package skill shapes remain free of that family-specific field. A fresh latest-head PR CI is required before PR #148 is merge-ready.
+- Final PR head `4d969054fa06571f2d3f975f89aa65edb0a6c5c5` passed PR CI #361 (`35284784577`): Windows Native, Godot import/boot/domain/AI contracts including the direct Trap package round-trip regression, backend tests, Web export/size budget, Chromium `smoke:all`, and hosted Microsoft Edge `smoke:all`.
+- PR #148 was squash-merged to `main` at `f1631eaa3f2828765ab898e7f5ebe55637671422`.
+- Main CI #362 (`35289237781`) completed successfully on that exact merge revision after hosted Edge timing retries. Attempt #1 timed out in unchanged `smoke:melee` cooldown observation; attempt #2 timed out in unchanged `smoke:match-restart`; no runtime/product code changed between attempts. Attempt #3 passed the complete production chain: Windows Native, Godot import/boot/domain/backend, Web export/size budget, Chromium `smoke:all`, hosted Microsoft Edge `smoke:all`, GitHub Pages deployment/public reachability, Render exact-revision readiness, and production Microsoft Edge full smoke.
+- The varying same-SHA Edge timeout locations plus the successful third attempt confirm runner/observation timing instability rather than a deterministic Trap regression; existing browser-timing lessons remain the governing prevention guidance.
 
 ### V2-1 implementation checkpoints
 
