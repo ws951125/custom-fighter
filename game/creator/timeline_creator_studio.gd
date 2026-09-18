@@ -1,6 +1,7 @@
 extends "res://game/creator/ai_skill_proposal_creator_studio.gd"
 
 const SkillDefinition = preload("res://game/core/skills/skill_definition.gd")
+const SkillTimelineComposition = preload("res://game/core/skills/skill_timeline_composition.gd")
 const SPATIAL_TIMELINE_FIELDS := ["half_width", "half_depth", "offset_x", "offset_depth"]
 const MEDIA_TIMELINE_FIELDS := ["animation", "visual", "cue"]
 const WEB_TIMELINE_EDITABLE_FIELDS := ["type", "time", "duration", "animation", "visual", "cue", "half_width", "half_depth", "offset_x", "offset_depth"]
@@ -19,11 +20,18 @@ var timeline_half_width: SpinBox
 var timeline_half_depth: SpinBox
 var timeline_offset_x: SpinBox
 var timeline_offset_depth: SpinBox
+var timeline_composition_recipe: OptionButton
+var timeline_composition_start: SpinBox
+var timeline_composition_status: Label
+var _timeline_composition_error := ""
+var _timeline_composition_last_recipe := ""
+var _timeline_composition_last_added_count := 0
 var _web_add_timeline_event_callback
 var _web_remove_timeline_event_callback
 var _web_move_timeline_event_callback
 var _web_update_timeline_event_callback
 var _web_clear_timeline_callback
+var _web_apply_timeline_composition_callback
 
 func _ready() -> void:
 	super()
@@ -35,7 +43,7 @@ func _install_timeline_editor() -> void:
 	timeline_panel = PanelContainer.new()
 	timeline_panel.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
 	timeline_panel.offset_left = 42.0
-	timeline_panel.offset_top = -326.0
+	timeline_panel.offset_top = -370.0
 	timeline_panel.offset_right = -42.0
 	timeline_panel.offset_bottom = -178.0
 	add_child(timeline_panel)
@@ -74,6 +82,25 @@ func _install_timeline_editor() -> void:
 	timeline_status.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	timeline_status.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	row.add_child(timeline_status)
+
+	var composition_row := HBoxContainer.new()
+	composition_row.add_theme_constant_override("separation", 8)
+	stack.add_child(composition_row)
+	_add_timeline_label(composition_row, "Composition", 86.0)
+	timeline_composition_recipe = OptionButton.new()
+	for recipe_id in SkillTimelineComposition.SUPPORTED_RECIPES:
+		timeline_composition_recipe.add_item(recipe_id)
+	composition_row.add_child(timeline_composition_recipe)
+	_add_timeline_label(composition_row, "Start")
+	timeline_composition_start = _timeline_spin(0.0, SkillDefinition.MAX_TIMELINE_SECONDS)
+	composition_row.add_child(timeline_composition_start)
+	var composition_add := Button.new()
+	composition_add.text = "+ Safe Composition"
+	composition_add.pressed.connect(_on_timeline_composition_add)
+	composition_row.add_child(composition_add)
+	timeline_composition_status = Label.new()
+	timeline_composition_status.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	composition_row.add_child(timeline_composition_status)
 
 	timeline_media_row = HBoxContainer.new()
 	timeline_media_row.add_theme_constant_override("separation", 8)
@@ -143,6 +170,62 @@ func _next_timeline_id() -> String:
 			return candidate
 		suffix += 1
 	return "event"
+
+func _next_composition_prefix(recipe_id: String) -> String:
+	var suffix := 1
+	while true:
+		var candidate := "%s_%02d" % [recipe_id, suffix]
+		var used := false
+		for event in skill_draft.timeline_events:
+			if str(event.get("id", "")).begins_with(candidate + "_"):
+				used = true
+				break
+		if not used:
+			return candidate
+		suffix += 1
+	return "%s_comp" % recipe_id
+
+func _selected_composition_recipe() -> String:
+	if timeline_composition_recipe == null or timeline_composition_recipe.item_count <= 0:
+		return ""
+	return timeline_composition_recipe.get_item_text(timeline_composition_recipe.selected)
+
+func _apply_timeline_composition(recipe_id: String, start_time: float) -> void:
+	var builder := SkillTimelineComposition.new()
+	var normalized_recipe := recipe_id.strip_edges().to_lower()
+	var result: Dictionary = builder.append_recipe(
+		skill_draft.timeline_events,
+		normalized_recipe,
+		start_time,
+		_next_composition_prefix(normalized_recipe),
+		skill_draft.visual,
+		skill_draft.impact_visual
+	)
+	var result_errors: PackedStringArray = result.get("errors", PackedStringArray())
+	if not result_errors.is_empty():
+		_timeline_composition_error = " | ".join(result_errors)
+		_timeline_composition_last_recipe = ""
+		_timeline_composition_last_added_count = 0
+		_refresh_timeline_editor()
+		return
+
+	var result_events: Array[Dictionary] = []
+	var raw_events: Variant = result.get("events", [])
+	if raw_events is Array:
+		for raw_event in raw_events:
+			if raw_event is Dictionary:
+				result_events.append(raw_event.duplicate(true))
+	_store_timeline_events(result_events)
+	_timeline_composition_error = ""
+	_timeline_composition_last_recipe = normalized_recipe
+	_timeline_composition_last_added_count = int(result.get("added_count", 0))
+	if timeline_composition_start != null:
+		timeline_composition_start.set_value_no_signal(float(result.get("end_time", start_time)))
+	_refresh_skill_validation()
+	_refresh_timeline_editor(result_events.size() - 1)
+
+func _on_timeline_composition_add() -> void:
+	_apply_timeline_composition(_selected_composition_recipe(), timeline_composition_start.value)
 
 func _is_spatial_timeline_type(event_type: String) -> bool:
 	return SkillDefinition.TIMELINE_SPATIAL_EVENT_TYPES.has(event_type)
@@ -260,6 +343,11 @@ func _on_timeline_down() -> void:
 
 func _on_timeline_clear() -> void:
 	skill_draft.clear_timeline()
+	_timeline_composition_error = ""
+	_timeline_composition_last_recipe = ""
+	_timeline_composition_last_added_count = 0
+	if timeline_composition_start != null:
+		timeline_composition_start.set_value_no_signal(0.0)
 	_refresh_skill_validation()
 	_refresh_timeline_editor()
 
@@ -349,6 +437,16 @@ func _refresh_timeline_editor(select_index: int = -1) -> void:
 	var errors := skill_draft.validate()
 	timeline_status.text = "%d/%d events · %s" % [skill_draft.timeline_events.size(), SkillDefinition.MAX_TIMELINE_EVENTS, "VALID" if errors.is_empty() else "INVALID"]
 	timeline_status.modulate = Color("7ff0b1") if errors.is_empty() else Color("ff7b86")
+	if timeline_composition_status != null:
+		if not _timeline_composition_error.is_empty():
+			timeline_composition_status.text = "Composition: INVALID · %s" % _timeline_composition_error
+			timeline_composition_status.modulate = Color("ff7b86")
+		elif not _timeline_composition_last_recipe.is_empty():
+			timeline_composition_status.text = "Composition: %s · +%d events" % [_timeline_composition_last_recipe, _timeline_composition_last_added_count]
+			timeline_composition_status.modulate = Color("7ff0b1")
+		else:
+			timeline_composition_status.text = "Safe recipes expand to allow-listed timeline events"
+			timeline_composition_status.modulate = Color("b7c6e8")
 	_set_timeline_web_state(errors)
 
 func _install_timeline_web_bridge() -> void:
@@ -359,12 +457,14 @@ func _install_timeline_web_bridge() -> void:
 	_web_move_timeline_event_callback = JavaScriptBridge.create_callback(_web_move_timeline_event)
 	_web_update_timeline_event_callback = JavaScriptBridge.create_callback(_web_update_timeline_event)
 	_web_clear_timeline_callback = JavaScriptBridge.create_callback(_web_clear_timeline)
+	_web_apply_timeline_composition_callback = JavaScriptBridge.create_callback(_web_apply_timeline_composition)
 	var window = JavaScriptBridge.get_interface("window")
 	window.customFighterCreatorTimelineAdd = _web_add_timeline_event_callback
 	window.customFighterCreatorTimelineRemove = _web_remove_timeline_event_callback
 	window.customFighterCreatorTimelineMove = _web_move_timeline_event_callback
 	window.customFighterCreatorTimelineUpdate = _web_update_timeline_event_callback
 	window.customFighterCreatorTimelineClear = _web_clear_timeline_callback
+	window.customFighterCreatorTimelineApplyComposition = _web_apply_timeline_composition_callback
 
 func _apply_web_timeline_patch(event: Dictionary, patch: Dictionary) -> Dictionary:
 	var updated: Dictionary = event.duplicate(true)
@@ -419,6 +519,15 @@ func _web_update_timeline_event(args: Array) -> void:
 func _web_clear_timeline(_args: Array) -> void:
 	_on_timeline_clear()
 
+func _web_apply_timeline_composition(args: Array) -> void:
+	if args.is_empty():
+		return
+	var recipe_id := str(args[0])
+	var start_time := 0.0
+	if args.size() >= 2:
+		start_time = float(args[1])
+	_apply_timeline_composition(recipe_id, start_time)
+
 func _set_timeline_web_state(errors: PackedStringArray = PackedStringArray()) -> void:
 	if not OS.has_feature("web"):
 		return
@@ -430,5 +539,10 @@ func _set_timeline_web_state(errors: PackedStringArray = PackedStringArray()) ->
 		"document.documentElement.dataset.creatorTimelineCount='%d';" % skill_draft.timeline_events.size() +
 		"document.documentElement.dataset.creatorTimelineValid='%s';" % ("true" if current_errors.is_empty() else "false") +
 		"document.documentElement.dataset.creatorTimelineEvents=%s;" % JSON.stringify(JSON.stringify(skill_draft.timeline_events)) +
-		"document.documentElement.dataset.creatorTimelineError=%s;" % JSON.stringify(" | ".join(current_errors))
+		"document.documentElement.dataset.creatorTimelineError=%s;" % JSON.stringify(" | ".join(current_errors)) +
+		"document.documentElement.dataset.creatorTimelineCompositionReady='true';" +
+		"document.documentElement.dataset.creatorTimelineCompositionRecipes=%s;" % JSON.stringify(JSON.stringify(SkillTimelineComposition.SUPPORTED_RECIPES)) +
+		"document.documentElement.dataset.creatorTimelineCompositionLastRecipe=%s;" % JSON.stringify(_timeline_composition_last_recipe) +
+		"document.documentElement.dataset.creatorTimelineCompositionLastAddedCount='%d';" % _timeline_composition_last_added_count +
+		"document.documentElement.dataset.creatorTimelineCompositionError=%s;" % JSON.stringify(_timeline_composition_error)
 	)
