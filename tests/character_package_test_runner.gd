@@ -6,6 +6,7 @@ func _init() -> void:
 	var failures := PackedStringArray()
 	_test_valid_round_trip(failures)
 	_test_trap_duration_round_trip_shape(failures)
+	_test_aura_duration_round_trip_shape(failures)
 	_test_rejects_schema_mismatch(failures)
 	_test_rejects_package_character_id_mismatch(failures)
 	_test_rejects_duplicate_skill_ids(failures)
@@ -74,6 +75,41 @@ func _test_trap_duration_round_trip_shape(failures: PackedStringArray) -> void:
 	var reload_errors: PackedStringArray = reloaded.load_from_dictionary(serialized)
 	_expect(reload_errors.is_empty(), "serialized trap package should load again", failures)
 	_expect(JSON.stringify(serialized) == JSON.stringify(reloaded.to_dictionary()), "trap package round trip should be deterministic", failures)
+
+func _test_aura_duration_round_trip_shape(failures: PackedStringArray) -> void:
+	var data: Dictionary = _valid_package()
+	var skills: Array = data.get("skills", [])
+	var aura_input: Dictionary = skills[0]
+	aura_input["type"] = "aura"
+	aura_input["speed"] = 0.0
+	aura_input["range"] = 0.0
+	aura_input["active"] = 0.12
+	aura_input["hitbox_half_width"] = 120.0
+	aura_input["hitbox_half_depth"] = 0.18
+	aura_input["aura_duration"] = 4.5
+
+	var package := CharacterPackageDefinition.new()
+	var errors: PackedStringArray = package.load_from_dictionary(data)
+	_expect(errors.is_empty(), "aura package should load with aura_duration", failures)
+
+	var serialized: Dictionary = package.to_dictionary()
+	var serialized_skills: Array = serialized.get("skills", [])
+	var serialized_aura: Dictionary = {}
+	for skill_value in serialized_skills:
+		if skill_value is Dictionary:
+			var skill_data: Dictionary = skill_value
+			if str(skill_data.get("id", "")) == "pkg_projectile":
+				serialized_aura = skill_data
+			if str(skill_data.get("type", "")) != "aura":
+				_expect(not skill_data.has("aura_duration"), "non-aura package skills should not serialize aura_duration", failures)
+
+	_expect(not serialized_aura.is_empty(), "serialized package should retain the authored aura skill", failures)
+	_expect(abs(float(serialized_aura.get("aura_duration", 0.0)) - 4.5) < 0.001, "serialized aura should retain aura_duration", failures)
+
+	var reloaded := CharacterPackageDefinition.new()
+	var reload_errors: PackedStringArray = reloaded.load_from_dictionary(serialized)
+	_expect(reload_errors.is_empty(), "serialized aura package should load again", failures)
+	_expect(JSON.stringify(serialized) == JSON.stringify(reloaded.to_dictionary()), "aura package round trip should be deterministic", failures)
 
 func _test_rejects_schema_mismatch(failures: PackedStringArray) -> void:
 	var data: Dictionary = _valid_package()
