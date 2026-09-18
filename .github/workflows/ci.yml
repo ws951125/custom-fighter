@@ -36,6 +36,9 @@ jobs:
       - name: Verify Godot
         run: godot --version
 
+      - name: Diagnose Summon controller syntax
+        run: godot --headless --path . --script res://game/runtime/summon_skill_controller.gd --check-only
+
       - name: Import project headlessly
         run: |
           set -o pipefail
