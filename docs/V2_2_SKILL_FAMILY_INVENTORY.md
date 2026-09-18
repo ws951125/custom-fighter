@@ -101,7 +101,7 @@ Acceptance is satisfied: Preview validates each family, rewrites only the mapped
 
 Evidence: PR #146 → main `6b235408bef84783e588e9addeebb57b1b37f7a3`; Main CI #345 (`35200223070`) complete production chain PASS.
 
-## Work unit 3 — first new family: `beam` — PR validation in progress
+## Work unit 3 — first new family: `beam` — accepted and production-validated
 
 Beam is the first genuinely new family and intentionally reuses existing safe primitives rather than adding an executable scripting surface.
 
@@ -122,18 +122,26 @@ Validation:
 - `beam_test_runner.gd` covers definition bounds, registry exact-type mismatch rejection, cast activation, deterministic geometry, range miss, one-hit policy, optional-slot backwards compatibility and Creator Preview routing/isolation.
 - `creator_preview_family_web_smoke.mjs` now covers seven families and directly verifies Beam Y input, authored MP cost, audio timeline execution, exact dummy damage, one-hit count and Creator round-trip.
 - implementation head `4fa2215d840fdbb43e8e3eed1269237ff4e51eec` passed PR CI #346 (`35207985135`) across Windows Native, Godot/domain/backend, Web export/size budget, Chromium `smoke:all`, and hosted Microsoft Edge `smoke:all`.
-- this documentation checkpoint must receive a fresh latest-head CI before PR #147 is considered merge-ready; production acceptance still requires the exact post-merge main revision to pass Pages/public/Render/production-Edge gates.
+- PR #147 was squash-merged as `ed35ff4685173826ec015ac86a48480704a77d7b`; Main CI #349 (`35210660845`) passed the complete production chain on that exact revision.
+
+## Work unit 4 — second new family: `trap` — accepted and production-validated
+
+Trap extends the same declarative boundary with optional `skill_8` / T, bounded placement/trigger/lifetime state and a single-trigger damage policy. Creator Preview, package compatibility and deterministic domain coverage are synchronized. PR #148 was squash-merged as `f1631eaa3f2828765ab898e7f5ebe55637671422`; Main CI #362 (`35289237781`) ultimately passed the complete production chain on the exact revision.
+
+## Work unit 5 — third new family: `aura` — implementation-head validation complete
+
+Aura uses optional `skill_9` / G. Its bounded combat volume follows the caster for a finite lifetime and can damage a target at most once per activation. It reuses `SkillCastState`, `SkillCoordinator`, Creator family selection, Creator Preview routing and the existing declarative timeline scheduler. `aura_duration` is a validated family-specific package field serialized only for Aura. No autonomous actor, arbitrary callback/path, user code or new executable event type is added.
+
+Implementation head `da9808d46eadadcb79bd0356b45953365236940a` passed PR #150 CI #365 (`35295253734`) on attempt #2 across Windows Native, Godot/domain/backend, Web export/size budget, Chromium `smoke:all` and hosted Microsoft Edge `smoke:all`. Both browsers exercised the nine-family Creator Preview flow and reported the Aura single-hit policy. Attempt #1 stopped earlier in unchanged K-dash browser sampling at 119.66px versus the existing >120px threshold; the same SHA passed without code changes. A fresh latest-head CI remains required after this documentation checkpoint.
 
 ## Remaining V2-2 families
 
-After Beam production validation, the phase still requires:
+After Aura production validation, the phase still requires:
 
 - summon,
 - grab,
 - counter,
 - teleport,
-- trap,
-- aura,
 - safe scripted event compositions.
 
 The exact implementation order may change if repository constraints make one family a better dependency, but all remaining V2-2 scope items remain required for phase completion.

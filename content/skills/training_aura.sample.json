@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "id": "training_aura_001",
+  "name": "Training Aura",
+  "type": "aura",
+  "damage": 12,
+  "mp_cost": 16,
+  "cooldown": 2.4,
+  "startup": 0.16,
+  "active": 0.12,
+  "recovery": 0.24,
+  "speed": 0.0,
+  "range": 0.0,
+  "hitstun": 0.18,
+  "knockback": 150.0,
+  "hitbox_half_width": 120.0,
+  "hitbox_half_depth": 0.18,
+  "aura_duration": 4.0,
+  "visual": "prototype_aura",
+  "impact_visual": "prototype_impact"
+}

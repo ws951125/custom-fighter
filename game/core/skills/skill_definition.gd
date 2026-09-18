@@ -1,7 +1,7 @@
 class_name SkillDefinition
 extends RefCounted
 
-const SUPPORTED_TYPES = ["melee", "projectile", "area", "dash", "formation", "buff", "beam", "trap"]
+const SUPPORTED_TYPES = ["melee", "projectile", "area", "dash", "formation", "buff", "beam", "trap", "aura"]
 const CURRENT_SCHEMA_VERSION := 1
 const TIMELINE_SCHEMA_VERSION := 1
 const SUPPORTED_TIMELINE_EVENT_TYPES := ["animation", "vfx", "audio", "hitbox", "hurtbox"]
@@ -22,6 +22,7 @@ const MAX_TIMELINE_SPATIAL_OFFSET_DEPTH := 1.0
 const MAX_BEAM_RANGE := 4096.0
 const MAX_TRAP_RANGE := 2048.0
 const MAX_TRAP_DURATION := 30.0
+const MAX_AURA_DURATION := 30.0
 
 var schema_version := CURRENT_SCHEMA_VERSION
 var skill_id := ""
@@ -47,6 +48,7 @@ var buff_duration := 0.0
 var move_speed_multiplier := 1.0
 var basic_attack_damage_multiplier := 1.0
 var trap_duration := 0.0
+var aura_duration := 0.0
 var visual := ""
 var impact_visual := ""
 var timeline_schema_version := TIMELINE_SCHEMA_VERSION
@@ -107,6 +109,7 @@ func load_from_dictionary(data: Dictionary) -> PackedStringArray:
 	move_speed_multiplier = float(data.get("move_speed_multiplier", 1.0))
 	basic_attack_damage_multiplier = float(data.get("basic_attack_damage_multiplier", 1.0))
 	trap_duration = float(data.get("trap_duration", 0.0))
+	aura_duration = float(data.get("aura_duration", 0.0))
 	visual = str(data.get("visual", "")).strip_edges()
 	impact_visual = str(data.get("impact_visual", "")).strip_edges()
 
@@ -145,6 +148,8 @@ func load_from_dictionary(data: Dictionary) -> PackedStringArray:
 		_validate_beam_skill(errors)
 	elif skill_type == "trap":
 		_validate_trap_skill(errors)
+	elif skill_type == "aura":
+		_validate_aura_skill(errors)
 
 	_load_timeline(data, errors)
 	loaded = errors.is_empty()
@@ -339,3 +344,14 @@ func _validate_trap_skill(errors: PackedStringArray) -> void:
 		errors.append("trap hitbox_half_width must be > 0 and <= %.0f" % MAX_TIMELINE_SPATIAL_HALF_WIDTH)
 	if hitbox_half_depth <= 0.0 or hitbox_half_depth > MAX_TIMELINE_SPATIAL_HALF_DEPTH:
 		errors.append("trap hitbox_half_depth must be > 0 and <= %.2f" % MAX_TIMELINE_SPATIAL_HALF_DEPTH)
+
+
+func _validate_aura_skill(errors: PackedStringArray) -> void:
+	if active <= 0.0:
+		errors.append("aura active duration must be positive")
+	if aura_duration <= 0.0 or aura_duration > MAX_AURA_DURATION:
+		errors.append("aura_duration must be > 0 and <= %.0f" % MAX_AURA_DURATION)
+	if hitbox_half_width <= 0.0 or hitbox_half_width > MAX_TIMELINE_SPATIAL_HALF_WIDTH:
+		errors.append("aura hitbox_half_width must be > 0 and <= %.0f" % MAX_TIMELINE_SPATIAL_HALF_WIDTH)
+	if hitbox_half_depth <= 0.0 or hitbox_half_depth > MAX_TIMELINE_SPATIAL_HALF_DEPTH:
+		errors.append("aura hitbox_half_depth must be > 0 and <= %.2f" % MAX_TIMELINE_SPATIAL_HALF_DEPTH)

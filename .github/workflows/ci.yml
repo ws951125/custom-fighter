@@ -77,6 +77,7 @@ jobs:
           godot --headless --path . --script res://tests/melee_test_runner.gd
           godot --headless --path . --script res://tests/beam_test_runner.gd
           godot --headless --path . --script res://tests/trap_test_runner.gd
+          godot --headless --path . --script res://tests/aura_test_runner.gd
 
       - name: Setup Node
         uses: actions/setup-node@v5

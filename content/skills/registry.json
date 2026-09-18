@@ -36,6 +36,10 @@
     "training_trap_001": {
       "file": "training_trap.sample.json",
       "type": "trap"
+    },
+    "training_aura_001": {
+      "file": "training_aura.sample.json",
+      "type": "aura"
     }
   }
 }
