@@ -175,6 +175,14 @@ Work unit 9 — **sixth genuinely new family: `grab` — accepted and production
 - Production evidence includes `WEB_CREATOR_PREVIEW_FAMILY_SMOKE_PASSED families=12 ... grabPolicy=overlap-hold-once ... timelineDispatch=true roundTrip=true`. Grab Work Unit 9 is therefore accepted and production-validated.
 - V2 remains **12.5% (1/8 phases complete)** because V2-2 still requires its final family, **Summon**.
 
+Work unit 10 — **final V2-2 family: `summon` — implementation synchronized; PR validation pending**:
+- Summon reuses existing common fields only: `range` is bounded forward spawn offset, `speed` is deterministic horizontal actor speed, `active` is finite actor lifetime, and the existing hitbox dimensions bound collision volume. No package schema field was added.
+- `SummonState` owns exactly one actor instance per activation. Spawn and arena geometry fail closed, movement is deterministic toward only the runtime-provided designated target, lifetime is finite, and one actor can consume at most one eligible overlap hit before deterministic cleanup.
+- Runtime routing is optional `skill_13` / Q. The coordinated controller reuses `SkillCastState`, MP/cooldown, `SkillCoordinator`, exact-type registry loading and the existing declarative timeline scheduler.
+- Creator authoring, Creator Preview temporary slot injection, Character Package common-field round trip, deterministic domain coverage and thirteen-family Chromium/Edge smoke coverage are synchronized on the WU10 branch.
+- Summon data contains no arbitrary scene/resource path, callback, script, target selector, user code or unbounded actor list.
+- V2 remains **12.5% (1/8 phases complete)** until WU10 passes PR validation, explicit merge approval, exact-`main` production validation and full V2-2 phase acceptance.
+
 ### V2-1 implementation checkpoints
 
 Work unit 1 was merged by PR #133 to `main` at `bb6d1c68a697958748e4dd9e6d2aac3c03bca414`:
@@ -291,4 +299,4 @@ AI VFX backend: `https://custom-fighter-ai-vfx.onrender.com`
 
 ## Next implementation target
 
-Begin V2-2 Work Unit 10 with **Summon**, the final V2-2 family. Summon must use a bounded, deterministic actor lifecycle with an explicit finite lifetime, validated spawn location, constrained owner/target relationship, deterministic cleanup, and at-most-bounded active instances. Reuse `SkillCastState`, `SkillCoordinator`, Creator Preview, package round-trip and timeline dispatch; do not permit arbitrary scenes/paths, callbacks, scripts, autonomous user code or unbounded actor spawning. After Summon passes PR and exact-`main` production validation, evaluate and record full V2-2 phase acceptance.
+Complete WU10 Summon PR validation on the latest branch head. If Windows Native, Godot/domain/backend, Web/Chromium and hosted Microsoft Edge all pass, request explicit merge approval. After merge, require the exact `main` revision to pass GitHub Pages deployment/public reachability, Render exact-revision readiness and production Microsoft Edge full smoke before formally accepting V2-2.
