@@ -82,6 +82,18 @@ Work unit 4 — **second genuinely new family: `trap` — accepted and productio
 - Main CI #362 (`35289237781`) completed successfully on that exact merge revision after hosted Edge timing retries. Attempt #1 timed out in unchanged `smoke:melee` cooldown observation; attempt #2 timed out in unchanged `smoke:match-restart`; no runtime/product code changed between attempts. Attempt #3 passed the complete production chain: Windows Native, Godot import/boot/domain/backend, Web export/size budget, Chromium `smoke:all`, hosted Microsoft Edge `smoke:all`, GitHub Pages deployment/public reachability, Render exact-revision readiness, and production Microsoft Edge full smoke.
 - The varying same-SHA Edge timeout locations plus the successful third attempt confirm runner/observation timing instability rather than a deterministic Trap regression; existing browser-timing lessons remain the governing prevention guidance.
 
+
+Work unit 5 — **third genuinely new family: `aura` — implementation in progress**:
+- Aura is a safe declarative/deterministic family: a bounded volume follows the caster for a finite `aura_duration`; one activation can damage the training target at most once.
+- `SkillDefinition` accepts `aura` with bounded active duration, aura lifetime and spatial dimensions; `training_aura_001` is registered through the exact-type skill registry.
+- `CharacterDefinition` extends the backwards-compatible optional slots with `skill_9`; the original six required slots plus optional Beam/Trap slots remain unchanged. Runtime binds Aura to `skill_9` / G.
+- `AuraAttackState` owns deterministic follow/lifetime/single-hit state. `AuraSkillController` and its coordinated wrapper reuse `SkillCastState`, MP/cooldown and `SkillCoordinator`; no autonomous actor, arbitrary path, callback, script or new executable timeline event is introduced.
+- Creator `SkillDraft` supplies safe Aura defaults and conditionally serializes `aura_duration`; Character Package validation allows/preserves that field only for Aura so non-Aura canonical shapes remain unchanged.
+- Creator Preview maps `aura`→`skill_9`, exposes slot/runtime telemetry and dispatches authored V2 timeline events through Aura's existing shared cast state.
+- Deterministic Aura domain tests, optional-slot compatibility, Creator routing, package round-trip shape regression and nine-family Chromium/Edge Creator Preview smoke are synchronized on branch `feat/v2-2-aura-family-wu5`.
+- Formal PR/CI acceptance is still pending; V2 remains **12.5% (1/8 phases complete)** until the entire V2-2 phase satisfies acceptance.
+
+
 ### V2-1 implementation checkpoints
 
 Work unit 1 was merged by PR #133 to `main` at `bb6d1c68a697958748e4dd9e6d2aac3c03bca414`:
@@ -198,4 +210,4 @@ AI VFX backend: `https://custom-fighter-ai-vfx.onrender.com`
 
 ## Next implementation target
 
-Finish PR #147 latest-head validation after this documentation checkpoint, then squash-merge only when the latest PR head is green. Monitor the exact merge revision through the complete main production chain. After Beam is production-validated, continue V2-2 with the next safe declarative family work unit while preserving the exact-type registry boundary and no-arbitrary-code rule.
+Complete V2-2 Work Unit 5 Aura on branch `feat/v2-2-aura-family-wu5`: run the full GitHub PR validation chain, diagnose/fix any domain or Chromium/Edge regressions on the same branch, and merge only after explicit user approval. Production acceptance then requires the exact post-merge main revision to pass Pages/public reachability, Render exact-revision readiness and production Microsoft Edge full smoke. After Aura is production-validated, continue the remaining V2-2 scope: summon, grab, counter, teleport and safe scripted event compositions.
