@@ -14,7 +14,7 @@ const ALLOWED_SKILL_FIELDS := [
 	"startup", "active", "recovery", "speed", "range", "hitstun", "knockback",
 	"hitbox_half_width", "hitbox_half_depth", "formation_count", "formation_spacing",
 	"formation_interval", "formation_offset", "buff_duration", "move_speed_multiplier",
-	"basic_attack_damage_multiplier", "trap_duration", "aura_duration", "visual", "impact_visual"
+	"basic_attack_damage_multiplier", "trap_duration", "aura_duration", "visual", "impact_visual", "timeline"
 ]
 
 var schema_version := CURRENT_SCHEMA_VERSION
@@ -211,6 +211,14 @@ func _skill_to_dictionary(skill: Variant) -> Dictionary:
 		data["trap_duration"] = skill.trap_duration
 	if skill.skill_type == "aura":
 		data["aura_duration"] = skill.aura_duration
+	if skill.has_timeline():
+		var timeline_events: Array = []
+		for event in skill.timeline_events:
+			timeline_events.append(event.duplicate(true))
+		data["timeline"] = {
+			"schema_version": skill.timeline_schema_version,
+			"events": timeline_events
+		}
 	return data
 
 func _validate_allowed_fields(data: Dictionary, allowed_fields: Array, scope: String, errors: PackedStringArray) -> void:

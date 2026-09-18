@@ -24,7 +24,10 @@ try {
       document.documentElement.dataset.creatorPackageReady === 'true' &&
       typeof window.customFighterCreatorExportPackage === 'function' &&
       typeof window.customFighterCreatorImportPackageJson === 'function' &&
-      typeof window.customFighterCreatorPreview === 'function',
+      typeof window.customFighterCreatorPreview === 'function' &&
+      typeof window.customFighterCreatorTimelineApplyComposition === 'function' &&
+      typeof window.customFighterCreatorTimelineClear === 'function' &&
+      document.documentElement.dataset.creatorTimelineCompositionReady === 'true',
     null,
     { timeout: 60_000 },
   );
@@ -36,6 +39,8 @@ try {
     window.customFighterCreatorSetSkillDamage(41);
     window.customFighterCreatorSetSkillMpCost(19);
     window.customFighterCreatorSetSkillCooldown(2.25);
+    window.customFighterCreatorTimelineClear();
+    window.customFighterCreatorTimelineApplyComposition('guarded_impact', 0);
   });
 
   await page.waitForFunction(
@@ -45,7 +50,9 @@ try {
       document.documentElement.dataset.creatorDraftMaxHp === '222' &&
       document.documentElement.dataset.creatorSkillDraftName === 'Package Bolt' &&
       document.documentElement.dataset.creatorSkillDraftDamage === '41' &&
-      document.documentElement.dataset.creatorSkillDraftMpCost === '19',
+      document.documentElement.dataset.creatorSkillDraftMpCost === '19' &&
+      document.documentElement.dataset.creatorTimelineCount === '5' &&
+      document.documentElement.dataset.creatorTimelineValid === 'true',
     null,
     { timeout: 5_000 },
   );
@@ -79,17 +86,33 @@ try {
   if (!exportedSkill1 || exportedSkill1.damage !== 41 || exportedSkill1.mp_cost !== 19) {
     throw new Error('Exported authored projectile data mismatch');
   }
+  if (!exportedSkill1.timeline || exportedSkill1.timeline.schema_version !== 1 || !Array.isArray(exportedSkill1.timeline.events) || exportedSkill1.timeline.events.length !== 5) {
+    throw new Error(`Exported authored timeline mismatch: ${JSON.stringify(exportedSkill1?.timeline)}`);
+  }
+  if (exportedSkill1.timeline.events.map((event) => event.type).join(',') !== 'animation,vfx,hitbox,audio,hurtbox') {
+    throw new Error(`Exported composition vocabulary mismatch: ${JSON.stringify(exportedSkill1.timeline.events)}`);
+  }
+  if ('composition' in exportedSkill1 || 'composition_recipe' in exportedSkill1 || 'script' in exportedSkill1) {
+    throw new Error('Package must persist only expanded declarative timeline events, not executable composition metadata');
+  }
+  for (const skill of exported.skills) {
+    if (skill.id !== 'my_projectile_001' && 'timeline' in skill) {
+      throw new Error(`Legacy non-timeline skill shape changed: ${skill.id}`);
+    }
+  }
 
   await page.evaluate(() => {
     window.customFighterCreatorSetName('Mutated Draft');
     window.customFighterCreatorSetSkillDamage(7);
     window.customFighterCreatorSetSkillMpCost(3);
+    window.customFighterCreatorTimelineClear();
   });
   await page.waitForFunction(
     () =>
       document.documentElement.dataset.creatorDraftName === 'Mutated Draft' &&
       document.documentElement.dataset.creatorSkillDraftDamage === '7' &&
-      document.documentElement.dataset.creatorSkillDraftMpCost === '3',
+      document.documentElement.dataset.creatorSkillDraftMpCost === '3' &&
+      document.documentElement.dataset.creatorTimelineCount === '0',
     null,
     { timeout: 5_000 },
   );
@@ -118,6 +141,8 @@ try {
       document.documentElement.dataset.creatorSkillDraftDamage === '41' &&
       document.documentElement.dataset.creatorSkillDraftMpCost === '19' &&
       Math.abs(Number(document.documentElement.dataset.creatorSkillDraftCooldown) - 2.25) < 0.001 &&
+      document.documentElement.dataset.creatorTimelineCount === '5' &&
+      document.documentElement.dataset.creatorTimelineValid === 'true' &&
       document.documentElement.dataset.creatorPreviewCanLaunch === 'true',
     null,
     { timeout: 10_000 },
@@ -149,7 +174,7 @@ try {
     { timeout: 5_000 },
   );
 
-  console.log('WEB_CREATOR_PACKAGE_SMOKE_PASSED export=true schema=2 noVfxFallback=true invalidPreserved=true import=true authoredHp=222 authoredDamage=41 authoredMpCost=19 previewCast=true');
+  console.log('WEB_CREATOR_PACKAGE_SMOKE_PASSED export=true schema=2 noVfxFallback=true timelineRoundTrip=true compositionExpanded=true invalidPreserved=true import=true authoredHp=222 authoredDamage=41 authoredMpCost=19 previewCast=true');
   await page.close();
 } finally {
   await browser.close();

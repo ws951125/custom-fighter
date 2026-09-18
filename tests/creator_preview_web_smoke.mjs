@@ -82,7 +82,9 @@ try {
       typeof window.customFighterCreatorSetSkillMpCost === 'function' &&
       typeof window.customFighterCreatorSetSkillCooldown === 'function' &&
       typeof window.customFighterCreatorTimelineAdd === 'function' &&
-      typeof window.customFighterCreatorTimelineClear === 'function',
+      typeof window.customFighterCreatorTimelineClear === 'function' &&
+      typeof window.customFighterCreatorTimelineApplyComposition === 'function' &&
+      document.documentElement.dataset.creatorTimelineCompositionReady === 'true',
     null,
     { timeout: 60_000 },
   );
@@ -114,23 +116,7 @@ try {
     window.customFighterCreatorSetSkillMpCost(17);
     window.customFighterCreatorSetSkillCooldown(2.4);
     window.customFighterCreatorTimelineClear();
-    window.customFighterCreatorTimelineAdd(JSON.stringify({
-      type: 'animation', time: 0.0, duration: 1.2, animation: 'skill_3',
-    }));
-    window.customFighterCreatorTimelineAdd(JSON.stringify({
-      type: 'vfx', time: 0.1, duration: 1.0, visual: 'prototype_impact',
-    }));
-    window.customFighterCreatorTimelineAdd(JSON.stringify({
-      type: 'hitbox', time: 0.2, duration: 0.9,
-      half_width: 40, half_depth: 0.12, offset_x: 24, offset_depth: -0.02,
-    }));
-    window.customFighterCreatorTimelineAdd(JSON.stringify({
-      type: 'audio', time: 0.3, duration: 0.0, cue: 'skill_cast',
-    }));
-    window.customFighterCreatorTimelineAdd(JSON.stringify({
-      type: 'hurtbox', time: 0.4, duration: 0.7,
-      half_width: 22, half_depth: 0.09, offset_x: -6, offset_depth: 0.03,
-    }));
+    window.customFighterCreatorTimelineApplyComposition('guarded_impact', 0);
   });
 
   diagnosticStage = 'authored-timeline-valid';
@@ -146,6 +132,9 @@ try {
       Math.abs(Number(document.documentElement.dataset.creatorSkillDraftCooldown) - 2.4) < 0.001 &&
       document.documentElement.dataset.creatorTimelineCount === '5' &&
       document.documentElement.dataset.creatorTimelineValid === 'true' &&
+      document.documentElement.dataset.creatorTimelineCompositionLastRecipe === 'guarded_impact' &&
+      document.documentElement.dataset.creatorTimelineCompositionLastAddedCount === '5' &&
+      document.documentElement.dataset.creatorTimelineCompositionError === '' &&
       document.documentElement.dataset.creatorPreviewCanLaunch === 'true',
     null,
     { timeout: 5_000 },
@@ -247,7 +236,7 @@ try {
   );
 
   diagnosticStage = 'passed';
-  console.log('WEB_CREATOR_PREVIEW_SMOKE_PASSED invalidBlocked=true authoredHp=180 authoredDamage=33 authoredMpCost=17 authoredCooldown=2.4 timelineRoundTrip=true animationTiming=true vfxTiming=true audioTiming=true spatialHitbox=true spatialHurtbox=true cast=true draftsRestored=true');
+  console.log('WEB_CREATOR_PREVIEW_SMOKE_PASSED invalidBlocked=true authoredHp=180 authoredDamage=33 authoredMpCost=17 authoredCooldown=2.4 safeComposition=true timelineRoundTrip=true animationTiming=true vfxTiming=true audioTiming=true spatialHitbox=true spatialHurtbox=true cast=true draftsRestored=true');
   await page.close();
 } catch (error) {
   const snapshot = await diagnosticSnapshot();

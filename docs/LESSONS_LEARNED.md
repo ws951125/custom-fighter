@@ -332,3 +332,15 @@
 - **Validation:** PR CI #360 (`35283860574`) passed Windows Native, Godot/backend/Web/Chromium and the complete GitHub-hosted Microsoft Edge `smoke:all` job on commit `8e4a2fabd08da51e413f90f5607b00c9c89354d1`; the Edge job progressed through all smoke scripts instead of failing at process launch. Final PR CI #361 (`35284784577`) repeated the hosted Edge pass on `4d969054fa06571f2d3f975f89aa65edb0a6c5c5`. After squash merge as `f1631eaa3f2828765ab898e7f5ebe55637671422`, Main CI #362 (`35289237781`) attempt #3 passed hosted Edge and the production Microsoft Edge full smoke against GitHub Pages, confirming the Windows process-launch correction in the deployed production chain.
 - **Status:** Verified on PR, hosted Microsoft Edge, and production Microsoft Edge
 
+
+
+## L-031 — Package import must refresh derived Creator editor telemetry after replacing a full draft
+
+- **Date:** 2026-09-18
+- **Area:** Creator inheritance / package import / timeline editor telemetry
+- **Symptom:** PR #156 CI #383 passed Godot import/boot, WU8 composition domain/runtime/package tests, Windows export, Creator Timeline smoke, Creator Preview smoke and eleven-family Preview smoke, but Chromium `smoke:creator-package` timed out after a valid package re-import while waiting for the restored five-event timeline to appear in Creator telemetry.
+- **Root Cause:** The package import path correctly restored the complete `SkillDraft`, including its validated `timeline.events`, in ancestor `package_creator_studio.gd`. However, the derived `timeline_creator_studio.gd` retained UI/Web state from the previously cleared draft because replacing the whole draft did not invoke the Timeline editor's `_refresh_timeline_editor()`. The data round-trip was correct; derived editor telemetry was stale.
+- **Fix:** Override `_import_package_json(...)` at the Timeline Creator layer, delegate to `super`, and refresh the Timeline editor only after a successful import. The existing Creator Package browser smoke now serves as the regression by requiring `creatorTimelineCount=5`, valid timeline state and Preview readiness after import.
+- **Prevention Rule:** Whenever an ancestor Creator operation replaces a complete draft/object rather than mutating it through the derived editor's normal controls, every derived editor that caches UI/Web telemetry for that draft must refresh after successful replacement. Treat full-draft import/restore/reset as a cross-layer state synchronization boundary.
+- **Validation:** Initial refresh hook commit `80009e350cfa76f29c424b25e918a5b16a6fcb4a` addressed the stale derived state. An overlapping second hook then produced a duplicate-function parse error caught by CI #386 (`35332142038`); reconciliation commit `ad146a380de165002d33212014f25c51cb4ef446` consolidated the hook into one override. PR #156 CI #387 (`35332342095`) passed Godot import/boot/domain/backend, Windows Native, Web export/size budget, Chromium and hosted Microsoft Edge; both browsers passed Creator Package with `timelineRoundTrip=true compositionExpanded=true`.
+- **Status:** Verified on PR #156 CI #387
