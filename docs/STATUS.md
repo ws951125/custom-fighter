@@ -163,12 +163,14 @@ Work unit 8 — **safe scripted event compositions — accepted and production-v
 - V2 remains **12.5% (1/8 phases complete)** because V2-2 still requires Grab and Summon.
 
 
-Work unit 9 — **sixth genuinely new family: `grab` — implementation branch in progress; online validation pending**:
+Work unit 9 — **sixth genuinely new family: `grab` — implementation complete; latest-head PR validation passed; merge approval pending**:
 - Grab reuses the existing bounded common skill fields rather than expanding the package schema: `range` positions the forward capture source volume, `hitbox_half_width` / `hitbox_half_depth` bound overlap, `active` is the finite hold window, and `knockback` is reused as the finite target anchor offset.
 - `GrabState` performs no displacement unless the actual eligible target hurtbox overlaps the authored source volume. Invalid target/source geometry, non-positive hold/offset values, or invalid arena bounds fail closed. A single activation can capture at most once.
 - Runtime uses optional `skill_12` / E and the existing state + controller + coordinated-wrapper pattern. Creator Preview injects only the temporary preview slot; stored CharacterDraft data remains unchanged.
 - The branch includes exact-type registry loading, Creator family authoring, timeline dispatch, deterministic package round-trip, Grab domain tests, and Chromium/Edge Creator Preview coverage. It does not add arbitrary target selectors, callbacks, paths, scripts, user code, or autonomous actors.
-- Formal GitHub-hosted branch validation is pending. V2 remains **12.5% (1/8 phases complete)** until V2-2 is fully accepted.
+- PR #158 latest implementation/docs head `c3b5da271fe70c58bcafaa82be0ede16b3d47888` passed CI #398 (`35346916303`): Windows Native Release, Godot import/boot/domain and AI contracts, trusted backend, Web export/size budget, Chromium `smoke:all`, and GitHub-hosted Microsoft Edge `smoke:all`.
+- Explicit WU9 evidence includes `GRAB_TESTS_PASSED`, Creator Preview/package domain PASS, and both browsers emitting `WEB_CREATOR_PREVIEW_FAMILY_SMOKE_PASSED families=12 ... grabPolicy=overlap-hold-once ... timelineDispatch=true roundTrip=true` plus `SMOKE_SUITE_PASSED count=24`.
+- Grab is therefore implementation-complete and PR-validated, but it is not merged or production-validated yet. Explicit user merge approval is required before PR #158 can enter `main`. V2 remains **12.5% (1/8 phases complete)** until V2-2 is fully accepted.
 
 ### V2-1 implementation checkpoints
 
@@ -286,4 +288,4 @@ AI VFX backend: `https://custom-fighter-ai-vfx.onrender.com`
 
 ## Next implementation target
 
-Complete V2-2 Work Unit 9 **Grab** on branch `feat/v2-2-grab-family-wu9`: run the complete GitHub-hosted domain/Godot/Web/Chromium/Edge validation chain, fix any branch regression, then request explicit merge approval. After merge, require the exact `main` revision to pass Pages/public reachability, Render readiness and production Edge full smoke before marking Grab production-validated. Summon remains the final V2-2 family.
+Request explicit merge approval for PR #158 after the documentation-only latest-head gate remains green. After approval, squash-merge Grab to `main`, require the exact merge revision to pass the complete main production chain (GitHub Pages deploy/public reachability, Render exact-revision readiness, and production Microsoft Edge `smoke:all`), then record Grab as production-validated. **Summon** remains the final V2-2 skill family.

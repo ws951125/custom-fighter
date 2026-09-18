@@ -173,7 +173,7 @@ Latest PR head `c8c582d975627379b5b9eb59eb8085f6347cf728` passed CI #390 (`35333
 
 
 
-## Work unit 9 — sixth new family: `grab` — implementation branch in progress
+## Work unit 9 — sixth new family: `grab` — implementation complete; PR validation passed
 
 Grab deliberately reuses the existing bounded field vocabulary: `range` is the forward source-volume offset, `hitbox_half_width` / `hitbox_half_depth` define overlap, `active` is the finite hold window, and `knockback` is the finite target anchor offset. This avoids expanding the Character Package schema solely for Grab.
 
@@ -181,13 +181,13 @@ The target must be eligible and its real hurtbox must overlap that source volume
 
 Runtime routing is optional `skill_12` / E. Creator Preview injects only the preview copy of `skill_12`; the stored editable CharacterDraft remains unchanged. No arbitrary target selector, callback, path, script, user code or autonomous actor is introduced.
 
-GitHub-hosted implementation validation is pending on `feat/v2-2-grab-family-wu9`.
+PR #158 head `c3b5da271fe70c58bcafaa82be0ede16b3d47888` passed GitHub-hosted CI #398 (`35346916303`) across Windows Native, Godot/domain/backend, Web export/size budget, Chromium and Microsoft Edge. Both browser suites passed all 24 smoke stages and the twelve-family Creator Preview regression with `grabPolicy=overlap-hold-once`. Grab remains unmerged/unaccepted in production until explicit merge approval and exact-`main` production validation complete.
 ## Remaining V2-2 families
 
 After Safe Scripted Event Compositions production validation, the phase still requires:
 
-- grab (Work Unit 9 implementation/validation in progress),
-- summon.
+- grab (Work Unit 9 implementation complete / PR-validated; merge + production validation pending),
+- summon (final V2-2 family).
 
 Grab is the preferred next family because it can reuse existing bounded overlap/displacement primitives without introducing a new autonomous actor lifecycle; Summon remains last.
 
