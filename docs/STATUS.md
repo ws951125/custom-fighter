@@ -101,7 +101,7 @@ Work unit 5 — **third genuinely new family: `aura` — accepted and production
 
 
 
-Work unit 6 — **fourth genuinely new family: `teleport` — implementation-head validation complete; latest-head documentation gate pending**:
+Work unit 6 — **fourth genuinely new family: `teleport` — accepted and production-validated**:
 - `SkillDefinition.SUPPORTED_TYPES` includes `teleport` with a bounded positive `range`; no executable callback/path or arbitrary destination payload is introduced.
 - `TeleportState` deterministically resolves current X + facing × authored range and clamps the destination to the arena safety margins; it records actual traveled distance for validation/telemetry.
 - `CharacterDefinition` adds optional `skill_10`; legacy six-slot characters plus optional Beam/Trap/Aura slots remain valid. Runtime binds Teleport to `skill_10` / R.
@@ -110,7 +110,12 @@ Work unit 6 — **fourth genuinely new family: `teleport` — implementation-hea
 - Deterministic Teleport definition/registry/state/optional-slot/Creator routing tests are wired into CI. The ten-family Creator Preview browser smoke verifies authored range, R input, MP/timeline execution, bounded displacement and unchanged Dummy HP.
 - PR #152 implementation head `b77b5efbe07aea2bb9f5be69bdf8aab00d6a3af7` passed CI #371 (`35302926489`): Windows Native, Godot import/boot/domain/AI contracts including `TELEPORT_TESTS_PASSED`, trusted backend, Web export/size budget, Chromium `smoke:all`, and GitHub-hosted Microsoft Edge `smoke:all`.
 - Chromium and hosted Edge both emitted `WEB_CREATOR_PREVIEW_FAMILY_SMOKE_PASSED families=10 ... teleportPolicy=bounded ... timelineDispatch=true roundTrip=true`; the full smoke suite reported 24/24 stages passed.
-- A fresh latest-head CI is required after this documentation checkpoint before PR #152 is merge-ready. V2 remains **12.5% (1/8 phases complete)** until the entire V2-2 phase satisfies acceptance.
+- Latest PR head `499adee3404bfb39febf0d69878b940676712099` passed PR CI #373 (`35303697245`): Windows Native, Godot import/boot/domain/AI contracts, trusted backend, Web export/size budget, Chromium `smoke:all`, and GitHub-hosted Microsoft Edge `smoke:all`.
+- PR #152 was squash-merged to `main` at `5cc30c274c4a61b5b37b5d4099ac4cf7a0e72d1f`.
+- Main CI #374 (`35304620553`) attempt #1 passed Windows Native, Godot/domain/backend and Chromium but the unchanged hosted Edge `smoke:melee` missed the short positive-cooldown observation window at `tests/melee_web_smoke.mjs:74`; the failure occurred before Teleport coverage and no product/test code changed.
+- Main CI #374 attempt #2 on the exact same merge revision passed the complete production chain: Windows Native, Godot import/boot/domain/AI contracts, trusted backend, Web export/size budget, Chromium `smoke:all`, hosted Microsoft Edge `smoke:all`, GitHub Pages deployment, public-Web reachability, Render health/provider-schema/exact-revision readiness, and production Microsoft Edge full smoke.
+- The same-SHA retry confirms the first hosted-Edge result as runner/observation timing instability rather than a deterministic Teleport regression. Teleport Work Unit 6 is therefore accepted and production-validated.
+- V2 remains **12.5% (1/8 phases complete)** because V2-2 still requires summon, grab, counter and safe scripted event compositions.
 
 
 ### V2-1 implementation checkpoints
@@ -229,4 +234,4 @@ AI VFX backend: `https://custom-fighter-ai-vfx.onrender.com`
 
 ## Next implementation target
 
-Complete V2-2 Work Unit 6 Teleport on branch `feat/v2-2-teleport-family-wu6`: run the full GitHub PR validation chain, diagnose/fix any domain or Chromium/Edge regression on the same branch, and merge only after explicit user approval. Production acceptance then requires the exact post-merge main revision to pass Pages/public reachability, Render exact-revision readiness and production Microsoft Edge full smoke. Remaining V2-2 scope after Teleport is summon, grab, counter and safe scripted event compositions.
+Begin V2-2 Work Unit 7 with the next safe deterministic family. Prefer `counter` before grab/summon because it can extend the existing combat-state/cast-state boundaries without introducing autonomous actors or general target relocation. Keep the counter window finite and declarative, require an actual incoming hit during that window before retaliation, prevent arbitrary callbacks, and preserve the exact-type registry/optional-slot/Creator Preview boundaries. Remaining V2-2 scope after Counter will still include summon, grab and safe scripted event compositions.
