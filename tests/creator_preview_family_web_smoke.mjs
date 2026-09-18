@@ -18,6 +18,7 @@ const families = [
   { type: 'beam', slot: 'skill_7', key: 'y', index: 7 },
   { type: 'trap', slot: 'skill_8', key: 't', index: 8 },
   { type: 'aura', slot: 'skill_9', key: 'g', index: 9 },
+  { type: 'teleport', slot: 'skill_10', key: 'r', index: 10 },
 ];
 
 function creatorUrl() {
@@ -71,6 +72,7 @@ try {
       window.customFighterCreatorSetSkillMpCost(11);
       window.customFighterCreatorSetSkillCooldown(0.6);
       if (type === 'trap') window.customFighterCreatorSetSkillRange(580);
+      if (type === 'teleport') window.customFighterCreatorSetSkillRange(360);
       window.customFighterCreatorTimelineClear();
       window.customFighterCreatorTimelineAdd(JSON.stringify({
         type: 'audio', time: 0.0, duration: 0.0, cue: 'skill_cast',
@@ -83,6 +85,7 @@ try {
         document.documentElement.dataset.creatorSkillDraftType === type &&
         document.documentElement.dataset.creatorSkillDraftMpCost === '11' &&
         (type !== 'trap' || Math.abs(Number(document.documentElement.dataset.creatorSkillDraftRange) - 580) < 0.01) &&
+        (type !== 'teleport' || Math.abs(Number(document.documentElement.dataset.creatorSkillDraftRange) - 360) < 0.01) &&
         document.documentElement.dataset.creatorTimelineCount === '1' &&
         document.documentElement.dataset.creatorTimelineValid === 'true' &&
         document.documentElement.dataset.creatorPreviewCanLaunch === 'true',
@@ -108,6 +111,7 @@ try {
           (type !== 'beam' || (d.beamSkillLoaded === 'true' && d.beamSkillId === d.creatorPreviewRuntimeSkillId)) &&
           (type !== 'trap' || (d.trapSkillLoaded === 'true' && d.trapSkillId === d.creatorPreviewRuntimeSkillId)) &&
           (type !== 'aura' || (d.auraSkillLoaded === 'true' && d.auraSkillId === d.creatorPreviewRuntimeSkillId)) &&
+          (type !== 'teleport' || (d.teleportSkillLoaded === 'true' && d.teleportSkillId === d.creatorPreviewRuntimeSkillId)) &&
           d.creatorPreviewReturnReady === 'true' &&
           typeof window.customFighterPreviewReturnToCreator === 'function'
         );
@@ -144,6 +148,7 @@ try {
     stage = `cast-${family.type}`;
     const beforeMp = Number(await dataset(page, 'playerMp'));
     const beforeDummyHp = Number(await dataset(page, 'dummyHp'));
+    const beforePlayerX = Number(await dataset(page, 'playerX'));
     await page.keyboard.down(family.key);
     await page.waitForFunction(
       (expected) => Number(document.documentElement.dataset.playerMp) === expected,
@@ -226,6 +231,25 @@ try {
       }
     }
 
+    if (family.type === 'teleport') {
+      stage = 'teleport-arrival';
+      await page.waitForFunction(
+        ({ expectedX, expectedHp }) => {
+          const d = document.documentElement.dataset;
+          return (
+            d.teleportSkillLastSuccess === 'true' &&
+            Number(d.teleportSkillActivationCount ?? '0') === 1 &&
+            Math.abs(Number(d.teleportSkillLastDistance ?? '0') - 360) <= 1.0 &&
+            Math.abs(Number(d.teleportSkillDestinationX ?? '0') - expectedX) <= 1.0 &&
+            Math.abs(Number(d.playerX) - expectedX) <= 2.0 &&
+            Number(d.dummyHp) === expectedHp
+          );
+        },
+        { expectedX: beforePlayerX + 360, expectedHp: beforeDummyHp },
+        { timeout: 5_000 },
+      );
+    }
+
     stage = `return-${family.type}`;
     await page.evaluate(() => window.customFighterPreviewReturnToCreator());
     await waitForCreator(page);
@@ -239,7 +263,7 @@ try {
     );
   }
 
-  console.log('WEB_CREATOR_PREVIEW_FAMILY_SMOKE_PASSED families=9 slotRouting=true authoredCast=true beamHitPolicy=single trapTriggerPolicy=single auraHitPolicy=single timelineDispatch=true roundTrip=true');
+  console.log('WEB_CREATOR_PREVIEW_FAMILY_SMOKE_PASSED families=10 slotRouting=true authoredCast=true beamHitPolicy=single trapTriggerPolicy=single auraHitPolicy=single teleportPolicy=bounded timelineDispatch=true roundTrip=true');
 } catch (error) {
   let snapshot = {};
   if (page) {
