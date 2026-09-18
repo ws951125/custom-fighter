@@ -134,6 +134,12 @@ func _apply_family_defaults(family: String) -> void:
 			hitbox_half_width = 120.0
 			hitbox_half_depth = 0.18
 			aura_duration = 4.0
+		"teleport":
+			speed = 0.0
+			range = 360.0
+			active = 0.0
+			hitbox_half_width = 24.0
+			hitbox_half_depth = 0.08
 
 func load_from_dictionary(data: Dictionary) -> PackedStringArray:
 	var definition := SkillDefinition.new()
