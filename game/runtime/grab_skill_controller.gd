@@ -145,7 +145,7 @@ func _draw() -> void:
 	var arena_bottom := canvas_height * 0.86
 	var player_center := Vector2(host.player_x, lerpf(arena_top, arena_bottom, host.player_depth) - 70.0)
 	if cast_state.phase_name() == "STARTUP":
-		var source_x := host.player_x + host.player_facing * skill.range
+		var source_x: float = float(host.player_x) + float(host.player_facing) * skill.range
 		draw_arc(
 			Vector2(source_x, player_center.y),
 			maxf(20.0, skill.hitbox_half_width * 0.55),

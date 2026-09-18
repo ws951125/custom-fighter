@@ -26,6 +26,8 @@ func try_capture(
 	min_x: float,
 	max_x: float
 ) -> bool:
+	if active:
+		return false
 	captured = false
 	if (
 		source_offset <= 0.0
@@ -38,8 +40,14 @@ func try_capture(
 		or min_x >= max_x
 	):
 		return false
+	if player_position.x < min_x or player_position.x > max_x or player_position.y < 0.0 or player_position.y > 1.0:
+		return false
+	if target_position.x < min_x or target_position.x > max_x or target_position.y < 0.0 or target_position.y > 1.0:
+		return false
 	var direction := 1.0 if facing >= 0.0 else -1.0
 	var source_center := Vector2(player_position.x + direction * source_offset, player_position.y)
+	if source_center.x < min_x or source_center.x > max_x:
+		return false
 	var source_box := CombatBox.new(source_center, Vector2(source_half_width, source_half_depth))
 	var target_box := CombatBox.new(target_position, target_half_extents)
 	if not source_box.overlaps(target_box):
