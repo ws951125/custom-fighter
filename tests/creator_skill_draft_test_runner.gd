@@ -101,6 +101,13 @@ func _test_supported_family_round_trips() -> void:
 	buff.buff_duration = 0.0
 	_check(_contains_error(buff.validate(), "buff_duration must be positive"), "invalid buff family parameter fails closed")
 
+	var aura := SkillDraft.new()
+	aura.set_skill_type("aura")
+	_check(is_equal_approx(aura.aura_duration, 4.0), "aura defaults include safe duration")
+	_check(is_equal_approx(aura.hitbox_half_width, 120.0) and is_equal_approx(aura.hitbox_half_depth, 0.18), "aura defaults include safe volume")
+	aura.aura_duration = 0.0
+	_check(_contains_error_fragment(aura.validate(), "aura_duration must be"), "invalid aura duration fails closed")
+
 func _test_timeline_round_trip(draft: SkillDraft) -> void:
 	draft.reset()
 	var events: Array[Dictionary] = [
