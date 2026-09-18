@@ -16,7 +16,8 @@ const PREVIEW_SLOT_BY_TYPE := {
 	"melee": "skill_6",
 	"beam": "skill_7",
 	"trap": "skill_8",
-	"aura": "skill_9"
+	"aura": "skill_9",
+	"teleport": "skill_10"
 }
 const APPROVED_PREVIEW_VISUAL := "prototype_fireball"
 const APPROVED_PREVIEW_IMPACT_VISUAL := "prototype_impact"
