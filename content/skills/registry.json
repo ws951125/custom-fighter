@@ -48,6 +48,10 @@
     "training_counter_001": {
       "file": "training_counter.sample.json",
       "type": "counter"
+    },
+    "training_grab_001": {
+      "file": "training_grab.sample.json",
+      "type": "grab"
     }
   }
 }
