@@ -47,6 +47,11 @@ var fireball_last_hit := false
 var fireball_hit_count := 0
 var dash_slash_last_hit := false
 var dash_slash_hit_count := 0
+var player_incoming_hit_count := 0
+var last_player_incoming_damage := 0
+var last_player_damage_dealt := 0
+var last_player_hit_countered := false
+var _web_training_incoming_hit_callback
 
 var player_state := CombatantState.new(100, 100)
 var dummy_state := CombatantState.new(100, 0)
@@ -68,6 +73,7 @@ func _ready() -> void:
 	_ensure_input_actions()
 	_load_fireball_skill()
 	_load_dash_slash_skill()
+	_install_training_incoming_hit_bridge()
 	_create_label("CUSTOM FIGHTER", Vector2(48, 28), 34)
 	_create_label("Milestone 2 · Data-Driven Multi-Template Skills", Vector2(50, 72), 20)
 	_create_label("Move: WASD / Arrows   Run: Shift   Jump: Space   Attack: J   Dash: K   Guard: L   Skill 1: U   Skill 2: I", Vector2(50, 108), 16)
@@ -245,6 +251,45 @@ func _handle_action_edges() -> void:
 	):
 		_try_cast_dash_slash()
 	skill_2_latched = skill_2_pressed
+
+func receive_player_hit(amount: int, source_x: float, source_depth: float, hitstun: float = 0.0) -> int:
+	var safe_amount := maxi(0, amount)
+	if safe_amount <= 0 or player_state.is_defeated():
+		return 0
+
+	player_incoming_hit_count += 1
+	last_player_incoming_damage = safe_amount
+	var counter_controller: Variant = get_node_or_null("CounterSkillController")
+	if (
+		counter_controller != null
+		and counter_controller.has_method("try_counter_incoming_hit")
+		and bool(counter_controller.call("try_counter_incoming_hit", source_x, source_depth))
+	):
+		last_player_hit_countered = true
+		last_player_damage_dealt = 0
+		_set_web_state()
+		return 0
+
+	last_player_hit_countered = false
+	var dealt := player_state.apply_damage(safe_amount, player_guarding)
+	last_player_damage_dealt = dealt
+	if dealt > 0 and hitstun > 0.0:
+		player_state.apply_hitstun(hitstun)
+	_set_web_state()
+	return dealt
+
+func _install_training_incoming_hit_bridge() -> void:
+	if not OS.has_feature("web"):
+		return
+	_web_training_incoming_hit_callback = JavaScriptBridge.create_callback(_web_training_incoming_hit)
+	var window = JavaScriptBridge.get_interface("window")
+	window.customFighterTrainingIncomingHit = _web_training_incoming_hit_callback
+
+func _web_training_incoming_hit(args: Array) -> void:
+	var amount := 9
+	if not args.is_empty():
+		amount = maxi(0, int(args[0]))
+	receive_player_hit(amount, dummy_x, dummy_depth, 0.08)
 
 func _load_fireball_skill() -> void:
 	var errors := fireball_skill.load_from_file(FIREBALL_SKILL_PATH)
@@ -665,6 +710,8 @@ func _player_state_name() -> String:
 		return "SKILL_2_%s" % dash_slash_cast_state.phase_name()
 	if fireball_cast_state.is_casting():
 		return "SKILL_%s" % fireball_cast_state.phase_name()
+	if player_state.hitstun_remaining > 0.0:
+		return "HITSTUN"
 	if player_guarding:
 		return "GUARD"
 	if movement_state.is_dashing():
@@ -691,6 +738,8 @@ func _set_web_state() -> void:
 		"document.documentElement.dataset.dummyInvulnerable='%s';" % _bool_text(dummy_recovery_state.is_invulnerable()) +
 		"document.documentElement.dataset.playerX='%.2f';" % player_x +
 		"document.documentElement.dataset.playerDepth='%.3f';" % player_depth +
+		"document.documentElement.dataset.playerHp='%d';" % player_state.hp +
+		"document.documentElement.dataset.playerMaxHp='%d';" % player_state.max_hp +
 		"document.documentElement.dataset.playerMp='%d';" % player_state.mp +
 		"document.documentElement.dataset.playerMaxMp='%d';" % player_state.max_mp +
 		"document.documentElement.dataset.playerJumping='%s';" % _bool_text(movement_state.jumping) +
@@ -699,6 +748,11 @@ func _set_web_state() -> void:
 		"document.documentElement.dataset.playerRunning='%s';" % _bool_text(player_running) +
 		"document.documentElement.dataset.playerGuarding='%s';" % _bool_text(player_guarding) +
 		"document.documentElement.dataset.playerState='%s';" % _player_state_name() +
+		"document.documentElement.dataset.playerIncomingHitCount='%d';" % player_incoming_hit_count +
+		"document.documentElement.dataset.lastPlayerIncomingDamage='%d';" % last_player_incoming_damage +
+		"document.documentElement.dataset.lastPlayerDamageDealt='%d';" % last_player_damage_dealt +
+		"document.documentElement.dataset.lastPlayerHitCountered='%s';" % _bool_text(last_player_hit_countered) +
+		"document.documentElement.dataset.trainingIncomingHitReady='%s';" % _bool_text(_web_training_incoming_hit_callback != null) +
 		"document.documentElement.dataset.comboStep='%d';" % attack_chain_state.combo_step +
 		"document.documentElement.dataset.lastHitStep='%d';" % (last_attack_step if last_attack_hit else 0) +
 		"document.documentElement.dataset.lastAttackHit='%s';" % _bool_text(last_attack_hit) +

@@ -17,7 +17,8 @@ const PREVIEW_SLOT_BY_TYPE := {
 	"beam": "skill_7",
 	"trap": "skill_8",
 	"aura": "skill_9",
-	"teleport": "skill_10"
+	"teleport": "skill_10",
+	"counter": "skill_11"
 }
 const APPROVED_PREVIEW_VISUAL := "prototype_fireball"
 const APPROVED_PREVIEW_IMPACT_VISUAL := "prototype_impact"

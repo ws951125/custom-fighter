@@ -11,6 +11,7 @@ const SKILL_7_OWNER := &"skill_7"
 const SKILL_8_OWNER := &"skill_8"
 const SKILL_9_OWNER := &"skill_9"
 const SKILL_10_OWNER := &"skill_10"
+const SKILL_11_OWNER := &"skill_11"
 
 var skill_coordinator := SkillCoordinator.new()
 
@@ -126,6 +127,19 @@ func _sync_skill_claims() -> void:
 		and (teleport_controller == null or not teleport_controller.cast_state.is_casting())
 	):
 		skill_coordinator.release(SKILL_10_OWNER)
+
+	var counter_controller = get_node_or_null("CounterSkillController")
+	if (
+		skill_coordinator.is_owned_by(SKILL_11_OWNER)
+		and (
+			counter_controller == null
+			or (
+				not counter_controller.cast_state.is_casting()
+				and not counter_controller.counter_state.active
+			)
+		)
+	):
+		skill_coordinator.release(SKILL_11_OWNER)
 
 func _any_skill_casting() -> bool:
 	return skill_coordinator.is_busy()

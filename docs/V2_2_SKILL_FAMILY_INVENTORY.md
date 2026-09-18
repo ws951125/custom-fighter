@@ -146,13 +146,22 @@ Implementation head `b77b5efbe07aea2bb9f5be69bdf8aab00d6a3af7` passed PR #152 CI
 Latest PR head `499adee3404bfb39febf0d69878b940676712099` then passed PR CI #373 (`35303697245`) across the full PR gate. PR #152 was squash-merged as `5cc30c274c4a61b5b37b5d4099ac4cf7a0e72d1f`. Main CI #374 (`35304620553`) attempt #1 stopped in unchanged hosted-Edge `smoke:melee` at the short positive-cooldown observation window before Teleport coverage; without any code change, attempt #2 on the exact same SHA passed the complete production chain including Pages deployment/public reachability, Render exact-revision readiness and production Microsoft Edge full smoke.
 
 
+
+## Work unit 7 — fifth new family: `counter` — implementation-head validation complete
+
+Counter uses optional `skill_11` / F and reuses the exact-type registry, `SkillCastState`, `SkillCoordinator`, Creator family selection, Creator Preview routing and declarative timeline scheduler. Its `active` field is a finite counter window (hard-capped at 2.0 seconds), `range` bounds the incoming source horizontally, and `hitbox_half_depth` bounds source depth.
+
+Because the Training runtime previously had no formal player incoming-damage path, Work Unit 7 adds a shared `receive_player_hit(...)` boundary. Counter may intercept only when an actual hit arrives during the armed window and its source is within bounds. Otherwise the hit reaches normal player damage. The window is single-consume and expiry never creates retaliation. A constrained browser training probe sends an incoming hit only from the current Dummy coordinates so Chromium/Edge can validate this contract without introducing arbitrary source selection, callbacks, paths, scripts or autonomous actors.
+
+Implementation head `e9606b473c8150fc9eba27fe598bd7fb86414def` passed PR #154 CI #377 (`35309792577`) across Windows Native, Godot/domain/backend, Web export/size budget, Chromium `smoke:all`, and hosted Microsoft Edge `smoke:all`. Counter domain validation emitted `COUNTER_TESTS_PASSED`; both browsers exercised the eleven-family Creator Preview flow and emitted `counterPolicy=actual-hit-once`, with the complete browser suite reporting `SMOKE_SUITE_PASSED count=24`. A fresh latest-head CI remains required after this documentation checkpoint.
+
+
 ## Remaining V2-2 families
 
-After Teleport production validation, the phase still requires:
+After Counter production validation, the phase still requires:
 
 - summon,
 - grab,
-- counter,
 - safe scripted event compositions.
 
 The exact implementation order may change if repository constraints make one family a better dependency, but all remaining V2-2 scope items remain required for phase completion.
