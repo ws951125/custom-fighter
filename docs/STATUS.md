@@ -119,7 +119,7 @@ Work unit 6 — **fourth genuinely new family: `teleport` — accepted and produ
 
 
 
-Work unit 7 — **fifth genuinely new family: `counter` — implementation-head validation complete; latest-head documentation gate pending**:
+Work unit 7 — **fifth genuinely new family: `counter` — accepted and production-validated**:
 - `SkillDefinition.SUPPORTED_TYPES` includes `counter` with a bounded positive source `range`, finite active window (maximum 2.0 seconds), and bounded depth tolerance. Creator/training defaults use a 1.50-second window for stable hosted-browser observation without widening the safety cap.
 - `CharacterDefinition` adds optional `skill_11`; the original six required slots plus optional Beam/Trap/Aura/Teleport slots remain backwards-compatible. Runtime binds Counter to `skill_11` / F.
 - `CounterState` is deterministic and single-trigger: start → finite armed window → actual incoming-hit intercept or expire. Expiration never auto-retaliates, out-of-range/depth sources are rejected, and a consumed window cannot trigger twice.
@@ -130,7 +130,13 @@ Work unit 7 — **fifth genuinely new family: `counter` — implementation-head 
 - The eleven-family Creator Preview smoke validates F input, MP/timeline execution, first real incoming hit countered with one retaliation and no player HP loss, then a second real incoming hit bypassing the consumed counter and dealing exactly 9 player damage.
 - PR #154 implementation head `e9606b473c8150fc9eba27fe598bd7fb86414def` passed CI #377 (`35309792577`): Windows Native, Godot import/boot/domain/AI contracts including `COUNTER_TESTS_PASSED`, trusted backend, Web export/size budget, Chromium `smoke:all`, and GitHub-hosted Microsoft Edge `smoke:all`.
 - Chromium and hosted Edge both emitted `WEB_CREATOR_PREVIEW_FAMILY_SMOKE_PASSED families=11 ... counterPolicy=actual-hit-once ... timelineDispatch=true roundTrip=true`; the full smoke suite reported `SMOKE_SUITE_PASSED count=24`.
-- A fresh latest-head CI is required after this documentation checkpoint before PR #154 is merge-ready. V2 remains **12.5% (1/8 phases complete)** until the full V2-2 phase satisfies acceptance.
+- Latest PR head `5841591c10fc60bd5cf815e6d8a96fcc7548924a` passed PR CI #379 (`35310681623`): Windows Native, Godot import/boot/domain/AI contracts, trusted backend, Web export/size budget, Chromium `smoke:all`, and GitHub-hosted Microsoft Edge `smoke:all`.
+- PR #154 was squash-merged to `main` at `aad1e3f2787d32d4b09bec96a8509471fb0b574e`.
+- Main CI #380 (`35311711648`) attempt #1 passed Windows Native, Godot/domain/backend, Chromium, hosted Edge, Pages deployment/public reachability and Render exact-revision readiness. The production Edge full smoke also passed the eleven-family Counter flow, then the unchanged `smoke:creator-ai-skill-proposal` missed the second proposal-valid 5-second observation window at `tests/creator_ai_skill_proposal_web_smoke.mjs:81`.
+- The same AI-skill-proposal smoke had passed on the exact PR implementation in hosted Edge, and no code changed before Main CI #380 attempt #2.
+- Main CI #380 attempt #2 on the exact same merge revision passed the complete production chain: Windows Native, Godot import/boot/domain/AI contracts, trusted backend, Web export/size budget, Chromium `smoke:all`, hosted Microsoft Edge `smoke:all`, GitHub Pages deployment, public-Web reachability, Render health/provider-schema/exact-revision readiness, and production Microsoft Edge full smoke.
+- The same-SHA retry confirms attempt #1 as hosted production-Edge timing/observation instability rather than a deterministic Counter regression. Counter Work Unit 7 is therefore accepted and production-validated.
+- V2 remains **12.5% (1/8 phases complete)** because V2-2 still requires summon, grab and safe scripted event compositions.
 
 
 ### V2-1 implementation checkpoints
@@ -249,4 +255,4 @@ AI VFX backend: `https://custom-fighter-ai-vfx.onrender.com`
 
 ## Next implementation target
 
-Complete V2-2 Work Unit 7 Counter on branch `feat/v2-2-counter-family-wu7`: run the full GitHub PR validation chain, diagnose/fix any domain or Chromium/Edge regression on the same branch, and merge only after explicit user approval. Production acceptance then requires the exact post-merge main revision to pass Pages/public reachability, Render exact-revision readiness and production Microsoft Edge full smoke. Remaining V2-2 scope after Counter is summon, grab and safe scripted event compositions.
+Begin V2-2 Work Unit 8 with **safe scripted event compositions** before grab/summon. Build on the existing declarative timeline scheduler and approved animation/VFX/audio/hitbox/hurtbox event vocabulary; add deterministic composition authoring/runtime coverage without adding arbitrary executable event types, callbacks, paths or user code. Preserve all existing family behavior and package compatibility. Remaining V2-2 scope after scripted compositions will be grab and summon.
