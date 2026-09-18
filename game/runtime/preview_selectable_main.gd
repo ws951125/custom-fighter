@@ -95,7 +95,11 @@ func _set_web_state() -> void:
 		"document.documentElement.dataset.playerCharacterSkill10=%s;" % JSON.stringify(player_character.skill_id_for_slot("skill_10")) +
 		"document.documentElement.dataset.playerRuntimeSkill10=%s;" % JSON.stringify(str(player_runtime_skill_ids.get("skill_10", ""))) +
 		"document.documentElement.dataset.playerRuntimeSkill10Type=%s;" % JSON.stringify(str(player_runtime_skill_types.get("skill_10", ""))) +
-		"document.documentElement.dataset.playerRuntimeSkill10Source=%s;" % JSON.stringify(str(player_runtime_skill_sources.get("skill_10", "")))
+		"document.documentElement.dataset.playerRuntimeSkill10Source=%s;" % JSON.stringify(str(player_runtime_skill_sources.get("skill_10", ""))) +
+		"document.documentElement.dataset.playerCharacterSkill11=%s;" % JSON.stringify(player_character.skill_id_for_slot("skill_11")) +
+		"document.documentElement.dataset.playerRuntimeSkill11=%s;" % JSON.stringify(str(player_runtime_skill_ids.get("skill_11", ""))) +
+		"document.documentElement.dataset.playerRuntimeSkill11Type=%s;" % JSON.stringify(str(player_runtime_skill_types.get("skill_11", ""))) +
+		"document.documentElement.dataset.playerRuntimeSkill11Source=%s;" % JSON.stringify(str(player_runtime_skill_sources.get("skill_11", "")))
 	)
 
 func _creator_preview_session() -> Variant:
