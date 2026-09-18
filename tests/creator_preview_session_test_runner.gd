@@ -11,7 +11,10 @@ const FAMILY_SLOT_MAP := {
 	"area": "skill_3",
 	"formation": "skill_4",
 	"buff": "skill_5",
-	"melee": "skill_6"
+	"melee": "skill_6",
+	"beam": "skill_7",
+	"trap": "skill_8",
+	"aura": "skill_9"
 }
 
 var failures := 0
