@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "id": "training_teleport_001",
+  "name": "Training Teleport",
+  "type": "teleport",
+  "damage": 0,
+  "mp_cost": 14,
+  "cooldown": 1.8,
+  "startup": 0.14,
+  "active": 0.0,
+  "recovery": 0.20,
+  "speed": 0.0,
+  "range": 360.0,
+  "hitstun": 0.0,
+  "knockback": 0.0,
+  "hitbox_half_width": 24.0,
+  "hitbox_half_depth": 0.08,
+  "visual": "prototype_fireball",
+  "impact_visual": "prototype_impact"
+}
