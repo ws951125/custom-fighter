@@ -143,7 +143,7 @@ func _apply_family_defaults(family: String) -> void:
 		"counter":
 			speed = 0.0
 			range = 180.0
-			active = 0.80
+			active = 1.50
 			hitbox_half_width = 42.0
 			hitbox_half_depth = 0.14
 
