@@ -20,6 +20,7 @@ const families = [
   { type: 'aura', slot: 'skill_9', key: 'g', index: 9 },
   { type: 'teleport', slot: 'skill_10', key: 'r', index: 10 },
   { type: 'counter', slot: 'skill_11', key: 'f', index: 11 },
+  { type: 'grab', slot: 'skill_12', key: 'e', index: 12 },
 ];
 
 function creatorUrl() {
@@ -30,6 +31,73 @@ function creatorUrl() {
 
 async function dataset(page, key) {
   return String(await page.evaluate((name) => document.documentElement.dataset[name] ?? '', key));
+}
+
+async function readNumber(page, key) {
+  return Number(await page.evaluate((name) => document.documentElement.dataset[name] ?? '0', key));
+}
+
+async function movementNudge(page, key, beforeX, holdMs) {
+  await page.keyboard.down(key);
+  await page.waitForTimeout(holdMs);
+  await page.keyboard.up(key);
+
+  try {
+    await page.waitForFunction(
+      (previousX) => Math.abs(Number(document.documentElement.dataset.playerX) - previousX) > 0.5,
+      beforeX,
+      { timeout: 900 },
+    );
+  } catch {
+    // Frame-polled movement can be missed. Re-read runtime state before issuing the next nudge.
+  }
+  await page.waitForTimeout(55);
+}
+
+async function approachDummy(page, minGap = 35, maxGap = 100) {
+  let playerX = await readNumber(page, 'playerX');
+  let dummyX = await readNumber(page, 'dummyX');
+  let gap = dummyX - playerX;
+  const stagingGap = maxGap + 55;
+
+  // Always stage to the target's left and finish with D so directional families retain
+  // deterministic right-facing while hosted Edge telemetry catches up with movement.
+  for (let attempt = 0; attempt < 4; attempt += 1) {
+    for (let step = 0; step < 100 && gap < stagingGap; step += 1) {
+      await movementNudge(page, 'a', playerX, 28);
+      playerX = await readNumber(page, 'playerX');
+      dummyX = await readNumber(page, 'dummyX');
+      gap = dummyX - playerX;
+    }
+
+    if (gap < stagingGap) {
+      throw new Error(`Failed to stage left of dummy: playerX=${playerX} dummyX=${dummyX} gap=${gap}`);
+    }
+
+    for (let step = 0; step < 100 && gap > maxGap; step += 1) {
+      const distanceFromRange = gap - maxGap;
+      const holdMs = distanceFromRange > 220 ? 38 : distanceFromRange > 120 ? 28 : 20;
+      await movementNudge(page, 'd', playerX, holdMs);
+      playerX = await readNumber(page, 'playerX');
+      dummyX = await readNumber(page, 'dummyX');
+      gap = dummyX - playerX;
+    }
+
+    await page.waitForTimeout(90);
+    playerX = await readNumber(page, 'playerX');
+    dummyX = await readNumber(page, 'dummyX');
+    gap = dummyX - playerX;
+
+    if (gap >= minGap && gap <= maxGap) {
+      return { playerX, dummyX, gap };
+    }
+
+    console.log(
+      `CREATOR_PREVIEW_FAMILY_APPROACH_RETRY attempt=${attempt + 1} minGap=${minGap} maxGap=${maxGap} playerX=${playerX} dummyX=${dummyX} gap=${gap}`,
+    );
+  }
+
+  throw new Error(`Failed to stabilize family approach: playerX=${playerX} dummyX=${dummyX} gap=${gap}`);
 }
 
 async function waitForCreator(page) {
@@ -75,6 +143,7 @@ try {
       if (type === 'trap') window.customFighterCreatorSetSkillRange(580);
       if (type === 'teleport') window.customFighterCreatorSetSkillRange(360);
       if (type === 'counter') window.customFighterCreatorSetSkillRange(180);
+      if (type === 'grab') window.customFighterCreatorSetSkillRange(120);
       window.customFighterCreatorTimelineClear();
       window.customFighterCreatorTimelineAdd(JSON.stringify({
         type: 'audio', time: 0.0, duration: 0.0, cue: 'skill_cast',
@@ -89,6 +158,7 @@ try {
         (type !== 'trap' || Math.abs(Number(document.documentElement.dataset.creatorSkillDraftRange) - 580) < 0.01) &&
         (type !== 'teleport' || Math.abs(Number(document.documentElement.dataset.creatorSkillDraftRange) - 360) < 0.01) &&
         (type !== 'counter' || Math.abs(Number(document.documentElement.dataset.creatorSkillDraftRange) - 180) < 0.01) &&
+        (type !== 'grab' || Math.abs(Number(document.documentElement.dataset.creatorSkillDraftRange) - 120) < 0.01) &&
         document.documentElement.dataset.creatorTimelineCount === '1' &&
         document.documentElement.dataset.creatorTimelineValid === 'true' &&
         document.documentElement.dataset.creatorPreviewCanLaunch === 'true',
@@ -116,6 +186,7 @@ try {
           (type !== 'aura' || (d.auraSkillLoaded === 'true' && d.auraSkillId === d.creatorPreviewRuntimeSkillId)) &&
           (type !== 'teleport' || (d.teleportSkillLoaded === 'true' && d.teleportSkillId === d.creatorPreviewRuntimeSkillId)) &&
           (type !== 'counter' || (d.counterSkillLoaded === 'true' && d.counterSkillId === d.creatorPreviewRuntimeSkillId && d.trainingIncomingHitReady === 'true' && typeof window.customFighterTrainingIncomingHit === 'function')) &&
+          (type !== 'grab' || (d.grabSkillLoaded === 'true' && d.grabSkillId === d.creatorPreviewRuntimeSkillId)) &&
           d.creatorPreviewReturnReady === 'true' &&
           typeof window.customFighterPreviewReturnToCreator === 'function'
         );
@@ -127,26 +198,9 @@ try {
     const runtimeId = await dataset(page, 'creatorPreviewRuntimeSkillId');
     if (!runtimeId) throw new Error(`Preview runtime id missing for ${family.type}`);
 
-    if (family.type === 'aura' || family.type === 'counter') {
+    if (family.type === 'aura' || family.type === 'counter' || family.type === 'grab') {
       stage = `${family.type}-approach`;
-      await page.keyboard.down('d');
-      try {
-        await page.waitForFunction(
-          () => {
-            const d = document.documentElement.dataset;
-            return Number(d.dummyX) - Number(d.playerX) <= 85;
-          },
-          null,
-          { timeout: 4_000 },
-        );
-      } finally {
-        await page.keyboard.up('d');
-      }
-      await page.waitForTimeout(120);
-      const gap = Number(await dataset(page, 'dummyX')) - Number(await dataset(page, 'playerX'));
-      if (gap < 0 || gap > 110) {
-        throw new Error(`${family.type} approach ended outside deterministic range: gap=${gap}`);
-      }
+      await approachDummy(page);
     }
 
     stage = `cast-${family.type}`;
@@ -255,6 +309,40 @@ try {
       );
     }
 
+    if (family.type === 'grab') {
+      stage = 'grab-capture';
+      const expectedGrabOffset = Number(await dataset(page, 'creatorSkillDraftKnockback'));
+      const expectedGrabX = beforePlayerX + expectedGrabOffset;
+      await page.waitForFunction(
+        ({ expectedHp, expectedX }) => {
+          const d = document.documentElement.dataset;
+          return (
+            d.lastGrabSkillSuccess === 'true' &&
+            d.lastGrabSkillHit === 'true' &&
+            d.grabSkillCaptured === 'true' &&
+            Number(d.grabSkillActivationCount ?? '0') === 1 &&
+            Number(d.grabSkillCaptureCount ?? '0') === 1 &&
+            Number(d.dummyHp) === expectedHp &&
+            Math.abs(Number(d.grabSkillTargetDestinationX ?? '0') - expectedX) <= 1.0 &&
+            Math.abs(Number(d.dummyX) - expectedX) <= 2.0
+          );
+        },
+        { expectedHp: beforeDummyHp - 12, expectedX: expectedGrabX },
+        { timeout: 5_000 },
+      );
+      await page.waitForFunction(
+        () => document.documentElement.dataset.grabSkillActive === 'false',
+        null,
+        { timeout: 5_000 },
+      );
+      if (Number(await dataset(page, 'grabSkillCaptureCount')) !== 1) {
+        throw new Error('Grab captured more than once during one activation');
+      }
+      if (Number(await dataset(page, 'dummyHp')) !== beforeDummyHp - 12) {
+        throw new Error('Grab damaged more than once during one activation');
+      }
+    }
+
     if (family.type === 'counter') {
       stage = 'counter-window';
       await page.waitForFunction(
@@ -326,7 +414,7 @@ try {
     );
   }
 
-  console.log('WEB_CREATOR_PREVIEW_FAMILY_SMOKE_PASSED families=11 slotRouting=true authoredCast=true beamHitPolicy=single trapTriggerPolicy=single auraHitPolicy=single teleportPolicy=bounded counterPolicy=actual-hit-once timelineDispatch=true roundTrip=true');
+  console.log('WEB_CREATOR_PREVIEW_FAMILY_SMOKE_PASSED families=12 slotRouting=true authoredCast=true beamHitPolicy=single trapTriggerPolicy=single auraHitPolicy=single teleportPolicy=bounded counterPolicy=actual-hit-once grabPolicy=overlap-hold-once timelineDispatch=true roundTrip=true');
 } catch (error) {
   let snapshot = {};
   if (page) {

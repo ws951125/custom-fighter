@@ -123,6 +123,15 @@ func _test_supported_family_round_trips() -> void:
 	counter.active = SkillDefinition.MAX_COUNTER_WINDOW + 0.01
 	_check(_contains_error_fragment(counter.validate(), "counter active window must be"), "invalid counter window fails closed")
 
+	var grab := SkillDraft.new()
+	grab.set_skill_type("grab")
+	_check(is_equal_approx(grab.range, 120.0), "grab defaults include bounded source range")
+	_check(is_equal_approx(grab.active, 0.65), "grab defaults include finite hold window")
+	_check(is_equal_approx(grab.knockback, 56.0), "grab defaults reuse knockback as bounded target offset")
+	_check(is_equal_approx(grab.hitbox_half_width, 54.0) and is_equal_approx(grab.hitbox_half_depth, 0.14), "grab defaults include bounded overlap volume")
+	grab.knockback = SkillDefinition.MAX_GRAB_OFFSET + 0.01
+	_check(_contains_error_fragment(grab.validate(), "grab target offset must be"), "invalid grab target offset fails closed")
+
 func _test_timeline_round_trip(draft: SkillDraft) -> void:
 	draft.reset()
 	var events: Array[Dictionary] = [

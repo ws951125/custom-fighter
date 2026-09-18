@@ -392,6 +392,8 @@ func _refresh_skill_family_note() -> void:
 			detail = "Teleport family · Bounded displacement clamped to arena safety"
 		"counter":
 			detail = "Counter family · Finite incoming-hit window + bounded retaliation source"
+		"grab":
+			detail = "Grab family · Actual target overlap + finite hold; Knockback is safe target offset"
 	skill_type_note.text = "Family: %s\n%s\nVisual: %s · Impact: %s" % [skill_draft.skill_type.to_upper(), detail, skill_draft.visual, skill_draft.impact_visual]
 
 func _on_character_editor_pressed() -> void:

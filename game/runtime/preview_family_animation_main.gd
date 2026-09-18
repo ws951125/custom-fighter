@@ -28,6 +28,8 @@ func _preview_family_cast_state() -> Variant:
 			return _controller_cast_state("TeleportSkillController")
 		"skill_11":
 			return _controller_cast_state("CounterSkillController")
+		"skill_12":
+			return _controller_cast_state("GrabSkillController")
 	return null
 
 func _controller_cast_state(node_name: String) -> Variant:

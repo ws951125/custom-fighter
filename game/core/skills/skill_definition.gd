@@ -1,7 +1,7 @@
 class_name SkillDefinition
 extends RefCounted
 
-const SUPPORTED_TYPES = ["melee", "projectile", "area", "dash", "formation", "buff", "beam", "trap", "aura", "teleport", "counter"]
+const SUPPORTED_TYPES = ["melee", "projectile", "area", "dash", "formation", "buff", "beam", "trap", "aura", "teleport", "counter", "grab"]
 const CURRENT_SCHEMA_VERSION := 1
 const TIMELINE_SCHEMA_VERSION := 1
 const SUPPORTED_TIMELINE_EVENT_TYPES := ["animation", "vfx", "audio", "hitbox", "hurtbox"]
@@ -26,6 +26,9 @@ const MAX_AURA_DURATION := 30.0
 const MAX_TELEPORT_RANGE := 2048.0
 const MAX_COUNTER_RANGE := 1024.0
 const MAX_COUNTER_WINDOW := 2.0
+const MAX_GRAB_RANGE := 1024.0
+const MAX_GRAB_WINDOW := 2.0
+const MAX_GRAB_OFFSET := 256.0
 
 var schema_version := CURRENT_SCHEMA_VERSION
 var skill_id := ""
@@ -157,6 +160,8 @@ func load_from_dictionary(data: Dictionary) -> PackedStringArray:
 		_validate_teleport_skill(errors)
 	elif skill_type == "counter":
 		_validate_counter_skill(errors)
+	elif skill_type == "grab":
+		_validate_grab_skill(errors)
 
 	_load_timeline(data, errors)
 	loaded = errors.is_empty()
@@ -376,3 +381,16 @@ func _validate_counter_skill(errors: PackedStringArray) -> void:
 		errors.append("counter active window must be > 0 and <= %.2f" % MAX_COUNTER_WINDOW)
 	if hitbox_half_depth <= 0.0 or hitbox_half_depth > MAX_TIMELINE_SPATIAL_HALF_DEPTH:
 		errors.append("counter hitbox_half_depth must be > 0 and <= %.2f" % MAX_TIMELINE_SPATIAL_HALF_DEPTH)
+
+
+func _validate_grab_skill(errors: PackedStringArray) -> void:
+	if range <= 0.0 or range > MAX_GRAB_RANGE:
+		errors.append("grab range must be > 0 and <= %.0f" % MAX_GRAB_RANGE)
+	if active <= 0.0 or active > MAX_GRAB_WINDOW:
+		errors.append("grab active window must be > 0 and <= %.2f" % MAX_GRAB_WINDOW)
+	if knockback <= 0.0 or knockback > MAX_GRAB_OFFSET:
+		errors.append("grab target offset must be > 0 and <= %.0f" % MAX_GRAB_OFFSET)
+	if hitbox_half_width <= 0.0 or hitbox_half_width > MAX_TIMELINE_SPATIAL_HALF_WIDTH:
+		errors.append("grab hitbox_half_width must be > 0 and <= %.0f" % MAX_TIMELINE_SPATIAL_HALF_WIDTH)
+	if hitbox_half_depth <= 0.0 or hitbox_half_depth > MAX_TIMELINE_SPATIAL_HALF_DEPTH:
+		errors.append("grab hitbox_half_depth must be > 0 and <= %.2f" % MAX_TIMELINE_SPATIAL_HALF_DEPTH)
