@@ -26,6 +26,7 @@ var buff_duration := 5.0
 var move_speed_multiplier := 1.15
 var basic_attack_damage_multiplier := 1.20
 var trap_duration := 6.0
+var aura_duration := 4.0
 var visual := "prototype_fireball"
 var impact_visual := "prototype_impact"
 var timeline_schema_version := SkillDefinition.TIMELINE_SCHEMA_VERSION
@@ -55,6 +56,7 @@ func reset() -> void:
 	move_speed_multiplier = 1.15
 	basic_attack_damage_multiplier = 1.20
 	trap_duration = 6.0
+	aura_duration = 4.0
 	visual = "prototype_fireball"
 	impact_visual = "prototype_impact"
 	timeline_schema_version = SkillDefinition.TIMELINE_SCHEMA_VERSION
@@ -125,6 +127,13 @@ func _apply_family_defaults(family: String) -> void:
 			hitbox_half_width = 62.0
 			hitbox_half_depth = 0.14
 			trap_duration = 6.0
+		"aura":
+			speed = 0.0
+			range = 0.0
+			active = 0.12
+			hitbox_half_width = 120.0
+			hitbox_half_depth = 0.18
+			aura_duration = 4.0
 
 func load_from_dictionary(data: Dictionary) -> PackedStringArray:
 	var definition := SkillDefinition.new()
@@ -156,6 +165,7 @@ func load_from_dictionary(data: Dictionary) -> PackedStringArray:
 	move_speed_multiplier = definition.move_speed_multiplier
 	basic_attack_damage_multiplier = definition.basic_attack_damage_multiplier
 	trap_duration = definition.trap_duration
+	aura_duration = definition.aura_duration
 	visual = definition.visual
 	impact_visual = definition.impact_visual
 	timeline_schema_version = definition.timeline_schema_version
@@ -191,6 +201,8 @@ func to_dictionary() -> Dictionary:
 		"visual": visual,
 		"impact_visual": impact_visual
 	}
+	if skill_type.strip_edges().to_lower() == "aura":
+		data["aura_duration"] = aura_duration
 	if not timeline_events.is_empty():
 		data["timeline"] = {
 			"schema_version": timeline_schema_version,
