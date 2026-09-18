@@ -142,7 +142,7 @@ Work unit 7 — **fifth genuinely new family: `counter` — accepted and product
 
 
 
-Work unit 8 — **safe scripted event compositions — implementation in progress**:
+Work unit 8 — **safe scripted event compositions — implementation-head validation complete; latest-head documentation gate pending**:
 - Composition is deliberately **not** a new executable skill/event language. `SkillTimelineComposition` exposes only the explicit recipes `cast_burst` and `guarded_impact`, and expands them into the existing allow-listed `animation`, `vfx`, `audio`, `hitbox` and `hurtbox` timeline event vocabulary.
 - Recipe expansion validates safe lowercase IDs/asset tokens, may only append at or after the existing timeline tail, rejects duplicate IDs, enforces the existing 64-event/30-second caps, and returns the original timeline unchanged on failure. No arbitrary event JSON, callback, path, script or user code is accepted.
 - Creator Timeline adds a Composition row with recipe selection, start time and `+ Safe Composition`; Web automation exposes only `customFighterCreatorTimelineApplyComposition(recipe, start)` and publishes recipe/error diagnostics. The persisted skill remains ordinary `timeline.events`; composition recipe UI state is not executable package metadata.
@@ -151,7 +151,11 @@ Work unit 8 — **safe scripted event compositions — implementation in progres
 - Creator Chromium/Edge regression now authors both safe recipes, verifies unsupported/backwards compositions fail without mutation, then uses `guarded_impact` to drive the existing Creator → Training runtime timeline flow.
 - Character Package previously rejected/omitted the optional `timeline` object, which would have discarded an expanded composition on export. WU8 adds `timeline` to the strict allowed skill shape and serializes it **only when present**, so legacy non-timeline package skills retain their historical canonical shape. Unsafe timeline event types still fail through `SkillDefinition`.
 - Package domain and browser regression verify the five expanded declarative events survive schema-v2 Creator export/import and Preview, while no composition recipe/script metadata is serialized.
-- Formal PR/CI acceptance is pending. V2 remains **12.5% (1/8 phases complete)** until the full V2-2 phase satisfies acceptance.
+- PR #156 initial implementation head `da3a0d0299d206fa1d4df05653c7a1aab035a66f` reached CI #383 (`35331218793`): Windows Native, Godot import/boot, composition/domain/package/backend, Web export and all Creator composition/preview-family browser stages before `smoke:creator-package` passed. Creator Package then timed out after a valid package re-import because the ancestor package flow replaced the full `SkillDraft` but the derived Timeline editor Web/UI telemetry still reflected the previously cleared draft.
+- Fix commit `80009e350cfa76f29c424b25e918a5b16a6fcb4a` added a successful package-import refresh hook at the Timeline Creator layer. An overlapping follow-up hook temporarily created a duplicate `_import_package_json` declaration and CI #386 (`35332142038`) correctly failed the Godot import/Windows export parse gates; reconciliation commit `ad146a380de165002d33212014f25c51cb4ef446` consolidated the logic into one override and preserved composition UI-state reset/next-start recalculation.
+- Reconciled head `ad146a380de165002d33212014f25c51cb4ef446` passed CI #387 (`35332342095`): Windows Native, Godot import/boot/domain/AI contracts, trusted backend, Web export/size budget, Chromium `smoke:all`, and GitHub-hosted Microsoft Edge `smoke:all`.
+- Explicit WU8 evidence includes `SKILL_TIMELINE_COMPOSITION_TESTS_PASSED`, Character Package and self-contained package PASS, Chromium/Edge `WEB_CREATOR_TIMELINE_EDITOR_SMOKE_PASSED safeComposition=true allowList=true compositionFailClosed=true`, `WEB_CREATOR_PREVIEW_SMOKE_PASSED ... safeComposition=true timelineRoundTrip=true`, and `WEB_CREATOR_PACKAGE_SMOKE_PASSED ... timelineRoundTrip=true compositionExpanded=true`; both complete browser suites emitted `SMOKE_SUITE_PASSED count=24`.
+- A fresh latest-head CI is required after this documentation checkpoint before PR #156 is merge-ready. V2 remains **12.5% (1/8 phases complete)** until the full V2-2 phase satisfies acceptance.
 
 
 ### V2-1 implementation checkpoints
