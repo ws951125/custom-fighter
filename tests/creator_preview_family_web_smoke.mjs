@@ -20,6 +20,7 @@ const families = [
   { type: 'aura', slot: 'skill_9', key: 'g', index: 9 },
   { type: 'teleport', slot: 'skill_10', key: 'r', index: 10 },
   { type: 'counter', slot: 'skill_11', key: 'f', index: 11 },
+  { type: 'grab', slot: 'skill_12', key: 'e', index: 12 },
 ];
 
 function creatorUrl() {
@@ -75,6 +76,7 @@ try {
       if (type === 'trap') window.customFighterCreatorSetSkillRange(580);
       if (type === 'teleport') window.customFighterCreatorSetSkillRange(360);
       if (type === 'counter') window.customFighterCreatorSetSkillRange(180);
+      if (type === 'grab') window.customFighterCreatorSetSkillRange(120);
       window.customFighterCreatorTimelineClear();
       window.customFighterCreatorTimelineAdd(JSON.stringify({
         type: 'audio', time: 0.0, duration: 0.0, cue: 'skill_cast',
@@ -89,6 +91,7 @@ try {
         (type !== 'trap' || Math.abs(Number(document.documentElement.dataset.creatorSkillDraftRange) - 580) < 0.01) &&
         (type !== 'teleport' || Math.abs(Number(document.documentElement.dataset.creatorSkillDraftRange) - 360) < 0.01) &&
         (type !== 'counter' || Math.abs(Number(document.documentElement.dataset.creatorSkillDraftRange) - 180) < 0.01) &&
+        (type !== 'grab' || Math.abs(Number(document.documentElement.dataset.creatorSkillDraftRange) - 120) < 0.01) &&
         document.documentElement.dataset.creatorTimelineCount === '1' &&
         document.documentElement.dataset.creatorTimelineValid === 'true' &&
         document.documentElement.dataset.creatorPreviewCanLaunch === 'true',
@@ -116,6 +119,7 @@ try {
           (type !== 'aura' || (d.auraSkillLoaded === 'true' && d.auraSkillId === d.creatorPreviewRuntimeSkillId)) &&
           (type !== 'teleport' || (d.teleportSkillLoaded === 'true' && d.teleportSkillId === d.creatorPreviewRuntimeSkillId)) &&
           (type !== 'counter' || (d.counterSkillLoaded === 'true' && d.counterSkillId === d.creatorPreviewRuntimeSkillId && d.trainingIncomingHitReady === 'true' && typeof window.customFighterTrainingIncomingHit === 'function')) &&
+          (type !== 'grab' || (d.grabSkillLoaded === 'true' && d.grabSkillId === d.creatorPreviewRuntimeSkillId)) &&
           d.creatorPreviewReturnReady === 'true' &&
           typeof window.customFighterPreviewReturnToCreator === 'function'
         );
@@ -127,7 +131,7 @@ try {
     const runtimeId = await dataset(page, 'creatorPreviewRuntimeSkillId');
     if (!runtimeId) throw new Error(`Preview runtime id missing for ${family.type}`);
 
-    if (family.type === 'aura' || family.type === 'counter') {
+    if (family.type === 'aura' || family.type === 'counter' || family.type === 'grab') {
       stage = `${family.type}-approach`;
       await page.keyboard.down('d');
       try {
@@ -255,6 +259,39 @@ try {
       );
     }
 
+    if (family.type === 'grab') {
+      stage = 'grab-capture';
+      const expectedGrabX = beforePlayerX + 56;
+      await page.waitForFunction(
+        ({ expectedHp, expectedX }) => {
+          const d = document.documentElement.dataset;
+          return (
+            d.lastGrabSkillSuccess === 'true' &&
+            d.lastGrabSkillHit === 'true' &&
+            d.grabSkillCaptured === 'true' &&
+            Number(d.grabSkillActivationCount ?? '0') === 1 &&
+            Number(d.grabSkillCaptureCount ?? '0') === 1 &&
+            Number(d.dummyHp) === expectedHp &&
+            Math.abs(Number(d.grabSkillTargetDestinationX ?? '0') - expectedX) <= 1.0 &&
+            Math.abs(Number(d.dummyX) - expectedX) <= 2.0
+          );
+        },
+        { expectedHp: beforeDummyHp - 12, expectedX: expectedGrabX },
+        { timeout: 5_000 },
+      );
+      await page.waitForFunction(
+        () => document.documentElement.dataset.grabSkillActive === 'false',
+        null,
+        { timeout: 5_000 },
+      );
+      if (Number(await dataset(page, 'grabSkillCaptureCount')) !== 1) {
+        throw new Error('Grab captured more than once during one activation');
+      }
+      if (Number(await dataset(page, 'dummyHp')) !== beforeDummyHp - 12) {
+        throw new Error('Grab damaged more than once during one activation');
+      }
+    }
+
     if (family.type === 'counter') {
       stage = 'counter-window';
       await page.waitForFunction(
@@ -326,7 +363,7 @@ try {
     );
   }
 
-  console.log('WEB_CREATOR_PREVIEW_FAMILY_SMOKE_PASSED families=11 slotRouting=true authoredCast=true beamHitPolicy=single trapTriggerPolicy=single auraHitPolicy=single teleportPolicy=bounded counterPolicy=actual-hit-once timelineDispatch=true roundTrip=true');
+  console.log('WEB_CREATOR_PREVIEW_FAMILY_SMOKE_PASSED families=12 slotRouting=true authoredCast=true beamHitPolicy=single trapTriggerPolicy=single auraHitPolicy=single teleportPolicy=bounded counterPolicy=actual-hit-once grabPolicy=overlap-hold-once timelineDispatch=true roundTrip=true');
 } catch (error) {
   let snapshot = {};
   if (page) {
