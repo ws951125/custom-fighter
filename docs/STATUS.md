@@ -118,6 +118,19 @@ Work unit 6 — **fourth genuinely new family: `teleport` — accepted and produ
 - V2 remains **12.5% (1/8 phases complete)** because V2-2 still requires summon, grab, counter and safe scripted event compositions.
 
 
+
+Work unit 7 — **fifth genuinely new family: `counter` — implementation in progress**:
+- `SkillDefinition.SUPPORTED_TYPES` includes `counter` with a bounded positive source `range`, finite active window (maximum 2.0 seconds), and bounded depth tolerance. Creator/training defaults use a 1.50-second window for stable hosted-browser observation without widening the safety cap.
+- `CharacterDefinition` adds optional `skill_11`; the original six required slots plus optional Beam/Trap/Aura/Teleport slots remain backwards-compatible. Runtime binds Counter to `skill_11` / F.
+- `CounterState` is deterministic and single-trigger: start → finite armed window → actual incoming-hit intercept or expire. Expiration never auto-retaliates, out-of-range/depth sources are rejected, and a consumed window cannot trigger twice.
+- Training runtime now exposes one formal `receive_player_hit(...)` boundary. Counter gets first chance to intercept an actual incoming hit; otherwise the same hit flows to `player_state.apply_damage(...)`. This is the reusable boundary future AI opponents can call rather than Counter inventing its own fake damage path.
+- Browser-only training probe `customFighterTrainingIncomingHit(amount)` is intentionally constrained to the current Dummy coordinates. It supplies a deterministic real hit event for regression coverage but cannot choose arbitrary source/path/callback behavior.
+- `CounterSkillController` and coordinated wrapper reuse `SkillCastState`, MP/cooldown, `SkillCoordinator`, exact-type registry loading and the existing declarative timeline scheduler. Successful training retaliation is limited to the validated Dummy source and occurs once per armed window.
+- Creator Preview maps `counter`→`skill_11` without mutating stored CharacterDraft data. Domain coverage checks schema bounds, exact registry type, finite-window semantics, source bounds, single-trigger behavior, expiration-without-retaliation, optional-slot compatibility and Creator routing.
+- The eleven-family Creator Preview smoke validates F input, MP/timeline execution, first real incoming hit countered with one retaliation and no player HP loss, then a second real incoming hit bypassing the consumed counter and dealing exactly 9 player damage.
+- Formal PR/CI acceptance is pending. V2 remains **12.5% (1/8 phases complete)** until the full V2-2 phase satisfies acceptance.
+
+
 ### V2-1 implementation checkpoints
 
 Work unit 1 was merged by PR #133 to `main` at `bb6d1c68a697958748e4dd9e6d2aac3c03bca414`:
@@ -234,4 +247,4 @@ AI VFX backend: `https://custom-fighter-ai-vfx.onrender.com`
 
 ## Next implementation target
 
-Begin V2-2 Work Unit 7 with the next safe deterministic family. Prefer `counter` before grab/summon because it can extend the existing combat-state/cast-state boundaries without introducing autonomous actors or general target relocation. Keep the counter window finite and declarative, require an actual incoming hit during that window before retaliation, prevent arbitrary callbacks, and preserve the exact-type registry/optional-slot/Creator Preview boundaries. Remaining V2-2 scope after Counter will still include summon, grab and safe scripted event compositions.
+Complete V2-2 Work Unit 7 Counter on branch `feat/v2-2-counter-family-wu7`: run the full GitHub PR validation chain, diagnose/fix any domain or Chromium/Edge regression on the same branch, and merge only after explicit user approval. Production acceptance then requires the exact post-merge main revision to pass Pages/public reachability, Render exact-revision readiness and production Microsoft Edge full smoke. Remaining V2-2 scope after Counter is summon, grab and safe scripted event compositions.
