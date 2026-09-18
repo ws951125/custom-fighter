@@ -68,16 +68,16 @@
 - **Validation:** 修正後 PR #62 CI Run #115 通過 Godot import、main boot、domain tests、Web export、size budget、Chromium `smoke:all`（含 mobile touch flow）與 GitHub-hosted Windows Microsoft Edge `smoke:all`。
 - **Status:** Verified
 
-## L-007 — An isolated hosted Edge readiness timeout must not trigger unrelated runtime changes without reproducible evidence
+## L-007 — An isolated hosted/production Edge readiness or observation timeout must not trigger unrelated runtime changes without reproducible evidence
 
-- **Date:** 2026-09-12
-- **Area:** GitHub Actions / Windows Edge / Playwright startup readiness
-- **Symptom:** PR #63 CI Run #119 passed Godot import/boot/domain tests, Web export/size budget and Chromium, but the hosted Windows Edge job timed out in unchanged `character_selection_web_smoke.mjs` while waiting for Web/Godot readiness.
-- **Evidence / Diagnosis:** The failing path was outside the M5 VFX changes；the same Character Selection flow was green on production main Run #118 and all prior smoke tests in the failing Edge job had already progressed normally. The failure therefore did not provide reproducible evidence of a Character runtime regression.
-- **Operational Fix:** Treat the single failure as an isolated hosted-browser startup/readiness flake, retry only the failed gate when appropriate, and require a fresh latest-head PR CI after subsequent commits rather than modifying unrelated Character runtime code。
-- **Prevention Rule:** Before changing runtime code for a hosted-browser timeout, compare changed paths, earlier steps in the same job, same-SHA cross-browser evidence and a fresh run. A targeted retry is acceptable for an isolated readiness/observation timeout, but no PR may merge until the final latest head is green on all required gates.
-- **Validation:** PR #63 latest-head CI Run #126 passed Godot import/boot/domain tests, Web export/size budget, Chromium `smoke:all` and GitHub-hosted Windows Microsoft Edge `smoke:all`, including the unchanged Character Selection regression and the new VFX Creator smoke。
-- **Status:** Verified
+- **Date:** 2026-09-12; recurrence 2026-09-18 during Grab production validation
+- **Area:** GitHub Actions / Windows Edge / Playwright readiness and short observation windows
+- **Symptom:** PR #63 CI Run #119 passed Godot import/boot/domain tests, Web export/size budget and Chromium, but hosted Windows Edge timed out in unchanged `character_selection_web_smoke.mjs` while waiting for Web/Godot readiness. During Grab Main CI #400 attempt #1, production Edge passed every stage through the twelve-family Creator Preview flow (including Grab) and then timed out in unchanged `smoke:creator-vfx` at `waitForRevision()`'s 5-second observation window.
+- **Evidence / Diagnosis:** In both cases the failing path was outside the feature changes and same-SHA evidence contradicted a deterministic product regression. For Main #400, PR latest-head Chromium/hosted Edge were green, production Grab coverage itself passed before the failure, Pages/public reachability and Render exact-revision readiness were already green, and the exact same deployed revision passed Creator VFX plus all 24 production Edge stages on targeted retry.
+- **Operational Fix:** Treat a single non-reproducible readiness/observation timeout as an isolated browser/runner timing result only after comparing changed paths and same-SHA evidence. Retry only the failed gate when appropriate; do not modify unrelated runtime code merely to satisfy one isolated timeout.
+- **Prevention Rule:** Before changing runtime code for a hosted/production browser timeout, compare changed paths, earlier steps in the same job, same-SHA cross-browser evidence and a fresh targeted run. A retry must never replace required latest-head PR validation or hide a reproducible failure.
+- **Validation:** PR #63 latest-head CI Run #126 passed the original Character Selection case. Grab Main CI #400 (`35349720100`) targeted production Edge retry on exact revision `d0b4dc9529a81466e03afe74511819efe14152d7` passed `WEB_CREATOR_VFX_EDITOR_SMOKE_PASSED`, `WEB_CREATOR_VFX_RUNTIME_BINDING_SMOKE_PASSED`, the twelve-family Grab flow, and `SMOKE_SUITE_PASSED count=24` without code changes.
+- **Status:** Verified; recurrence handled by same-SHA targeted evidence
 
 ## L-008 — Hosted-browser movement helpers need tolerance for one-frame position overshoot
 
