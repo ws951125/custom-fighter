@@ -16,7 +16,8 @@ const FAMILY_SLOT_MAP := {
 	"trap": "skill_8",
 	"aura": "skill_9",
 	"teleport": "skill_10",
-	"counter": "skill_11"
+	"counter": "skill_11",
+	"grab": "skill_12"
 }
 
 var failures := 0
