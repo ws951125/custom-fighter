@@ -21,6 +21,7 @@ const families = [
   { type: 'teleport', slot: 'skill_10', key: 'r', index: 10 },
   { type: 'counter', slot: 'skill_11', key: 'f', index: 11 },
   { type: 'grab', slot: 'skill_12', key: 'e', index: 12 },
+  { type: 'summon', slot: 'skill_13', key: 'q', index: 13 },
 ];
 
 function creatorUrl() {
@@ -144,6 +145,7 @@ try {
       if (type === 'teleport') window.customFighterCreatorSetSkillRange(360);
       if (type === 'counter') window.customFighterCreatorSetSkillRange(180);
       if (type === 'grab') window.customFighterCreatorSetSkillRange(120);
+      if (type === 'summon') window.customFighterCreatorSetSkillRange(150);
       window.customFighterCreatorTimelineClear();
       window.customFighterCreatorTimelineAdd(JSON.stringify({
         type: 'audio', time: 0.0, duration: 0.0, cue: 'skill_cast',
@@ -159,6 +161,7 @@ try {
         (type !== 'teleport' || Math.abs(Number(document.documentElement.dataset.creatorSkillDraftRange) - 360) < 0.01) &&
         (type !== 'counter' || Math.abs(Number(document.documentElement.dataset.creatorSkillDraftRange) - 180) < 0.01) &&
         (type !== 'grab' || Math.abs(Number(document.documentElement.dataset.creatorSkillDraftRange) - 120) < 0.01) &&
+        (type !== 'summon' || Math.abs(Number(document.documentElement.dataset.creatorSkillDraftRange) - 150) < 0.01) &&
         document.documentElement.dataset.creatorTimelineCount === '1' &&
         document.documentElement.dataset.creatorTimelineValid === 'true' &&
         document.documentElement.dataset.creatorPreviewCanLaunch === 'true',
@@ -187,6 +190,7 @@ try {
           (type !== 'teleport' || (d.teleportSkillLoaded === 'true' && d.teleportSkillId === d.creatorPreviewRuntimeSkillId)) &&
           (type !== 'counter' || (d.counterSkillLoaded === 'true' && d.counterSkillId === d.creatorPreviewRuntimeSkillId && d.trainingIncomingHitReady === 'true' && typeof window.customFighterTrainingIncomingHit === 'function')) &&
           (type !== 'grab' || (d.grabSkillLoaded === 'true' && d.grabSkillId === d.creatorPreviewRuntimeSkillId)) &&
+          (type !== 'summon' || (d.summonSkillLoaded === 'true' && d.summonSkillId === d.creatorPreviewRuntimeSkillId)) &&
           d.creatorPreviewReturnReady === 'true' &&
           typeof window.customFighterPreviewReturnToCreator === 'function'
         );
@@ -197,6 +201,7 @@ try {
 
     const runtimeId = await dataset(page, 'creatorPreviewRuntimeSkillId');
     if (!runtimeId) throw new Error(`Preview runtime id missing for ${family.type}`);
+    const authoredSummonRange = family.type === 'summon' ? await readNumber(page, 'creatorSkillDraftRange') : 0;
 
     if (family.type === 'aura' || family.type === 'counter' || family.type === 'grab') {
       stage = `${family.type}-approach`;
@@ -208,6 +213,7 @@ try {
     const beforeDummyHp = Number(await dataset(page, 'dummyHp'));
     const beforePlayerHp = Number(await dataset(page, 'playerHp'));
     const beforePlayerX = Number(await dataset(page, 'playerX'));
+    const beforeDummyX = Number(await dataset(page, 'dummyX'));
     await page.keyboard.down(family.key);
     await page.waitForFunction(
       (expected) => Number(document.documentElement.dataset.playerMp) === expected,
@@ -343,6 +349,41 @@ try {
       }
     }
 
+    if (family.type === 'summon') {
+      stage = 'summon-hit';
+      const expectedSpawnX = beforePlayerX + authoredSummonRange;
+      await page.waitForFunction(
+        ({ expectedHp, expectedSpawnX, targetX }) => {
+          const d = document.documentElement.dataset;
+          const actorX = Number(d.summonSkillPositionX ?? '0');
+          return (
+            d.lastSummonSkillSuccess === 'true' &&
+            d.lastSummonSkillHit === 'true' &&
+            d.summonSkillHitConsumed === 'true' &&
+            Number(d.summonSkillActivationCount ?? '0') === 1 &&
+            Number(d.summonSkillHitCount ?? '0') === 1 &&
+            Number(d.dummyHp) === expectedHp &&
+            Math.abs(Number(d.summonSkillSpawnX ?? '0') - expectedSpawnX) <= 1.0 &&
+            actorX >= expectedSpawnX - 1.0 &&
+            actorX <= targetX + 2.0
+          );
+        },
+        { expectedHp: beforeDummyHp - 12, expectedSpawnX, targetX: beforeDummyX },
+        { timeout: 5_000 },
+      );
+      await page.waitForFunction(
+        () => document.documentElement.dataset.summonSkillActive === 'false',
+        null,
+        { timeout: 5_000 },
+      );
+      if (Number(await dataset(page, 'summonSkillHitCount')) !== 1) {
+        throw new Error('Summon damaged more than once during one actor lifetime');
+      }
+      if (Number(await dataset(page, 'dummyHp')) !== beforeDummyHp - 12) {
+        throw new Error('Summon damage was not single-hit bounded');
+      }
+    }
+
     if (family.type === 'counter') {
       stage = 'counter-window';
       await page.waitForFunction(
@@ -414,7 +455,7 @@ try {
     );
   }
 
-  console.log('WEB_CREATOR_PREVIEW_FAMILY_SMOKE_PASSED families=12 slotRouting=true authoredCast=true beamHitPolicy=single trapTriggerPolicy=single auraHitPolicy=single teleportPolicy=bounded counterPolicy=actual-hit-once grabPolicy=overlap-hold-once timelineDispatch=true roundTrip=true');
+  console.log('WEB_CREATOR_PREVIEW_FAMILY_SMOKE_PASSED families=13 slotRouting=true authoredCast=true beamHitPolicy=single trapTriggerPolicy=single auraHitPolicy=single teleportPolicy=bounded counterPolicy=actual-hit-once grabPolicy=overlap-hold-once summonPolicy=bounded-actor-single-hit timelineDispatch=true roundTrip=true');
 } catch (error) {
   let snapshot = {};
   if (page) {
