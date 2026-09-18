@@ -147,13 +147,13 @@ Latest PR head `499adee3404bfb39febf0d69878b940676712099` then passed PR CI #373
 
 
 
-## Work unit 7 — fifth new family: `counter` — implementation in progress
+## Work unit 7 — fifth new family: `counter` — implementation-head validation complete
 
 Counter uses optional `skill_11` / F and reuses the exact-type registry, `SkillCastState`, `SkillCoordinator`, Creator family selection, Creator Preview routing and declarative timeline scheduler. Its `active` field is a finite counter window (hard-capped at 2.0 seconds), `range` bounds the incoming source horizontally, and `hitbox_half_depth` bounds source depth.
 
 Because the Training runtime previously had no formal player incoming-damage path, Work Unit 7 adds a shared `receive_player_hit(...)` boundary. Counter may intercept only when an actual hit arrives during the armed window and its source is within bounds. Otherwise the hit reaches normal player damage. The window is single-consume and expiry never creates retaliation. A constrained browser training probe sends an incoming hit only from the current Dummy coordinates so Chromium/Edge can validate this contract without introducing arbitrary source selection, callbacks, paths, scripts or autonomous actors.
 
-Planned acceptance evidence is deterministic Counter definition/registry/state/optional-slot/Creator routing coverage plus the eleven-family Chromium/hosted-Edge Creator Preview flow proving one actual hit is countered/retaliated exactly once, player HP is preserved for that hit, and a second incoming hit after consumption deals normal player damage.
+Implementation head `e9606b473c8150fc9eba27fe598bd7fb86414def` passed PR #154 CI #377 (`35309792577`) across Windows Native, Godot/domain/backend, Web export/size budget, Chromium `smoke:all`, and hosted Microsoft Edge `smoke:all`. Counter domain validation emitted `COUNTER_TESTS_PASSED`; both browsers exercised the eleven-family Creator Preview flow and emitted `counterPolicy=actual-hit-once`, with the complete browser suite reporting `SMOKE_SUITE_PASSED count=24`. A fresh latest-head CI remains required after this documentation checkpoint.
 
 
 ## Remaining V2-2 families
