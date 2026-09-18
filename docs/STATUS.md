@@ -83,7 +83,7 @@ Work unit 4 — **second genuinely new family: `trap` — accepted and productio
 - The varying same-SHA Edge timeout locations plus the successful third attempt confirm runner/observation timing instability rather than a deterministic Trap regression; existing browser-timing lessons remain the governing prevention guidance.
 
 
-Work unit 5 — **third genuinely new family: `aura` — implementation in progress**:
+Work unit 5 — **third genuinely new family: `aura` — implementation-head validation complete; latest-head documentation gate pending**:
 - Aura is a safe declarative/deterministic family: a bounded volume follows the caster for a finite `aura_duration`; one activation can damage the training target at most once.
 - `SkillDefinition` accepts `aura` with bounded active duration, aura lifetime and spatial dimensions; `training_aura_001` is registered through the exact-type skill registry.
 - `CharacterDefinition` extends the backwards-compatible optional slots with `skill_9`; the original six required slots plus optional Beam/Trap slots remain unchanged. Runtime binds Aura to `skill_9` / G.
@@ -91,7 +91,10 @@ Work unit 5 — **third genuinely new family: `aura` — implementation in progr
 - Creator `SkillDraft` supplies safe Aura defaults and conditionally serializes `aura_duration`; Character Package validation allows/preserves that field only for Aura so non-Aura canonical shapes remain unchanged.
 - Creator Preview maps `aura`→`skill_9`, exposes slot/runtime telemetry and dispatches authored V2 timeline events through Aura's existing shared cast state.
 - Deterministic Aura domain tests, optional-slot compatibility, Creator routing, package round-trip shape regression and nine-family Chromium/Edge Creator Preview smoke are synchronized on branch `feat/v2-2-aura-family-wu5`.
-- Formal PR/CI acceptance is still pending; V2 remains **12.5% (1/8 phases complete)** until the entire V2-2 phase satisfies acceptance.
+- PR #150 implementation head `da9808d46eadadcb79bd0356b45953365236940a` passed CI #365 (`35295253734`) on attempt #2: Windows Native, Godot import/boot/domain/AI contracts, trusted backend, Web export/size budget, Chromium `smoke:all` and GitHub-hosted Microsoft Edge `smoke:all`.
+- CI #365 attempt #1 stopped in unchanged `smoke:web` before Aura coverage because the existing K dash sampled 119.66px against a >120px browser threshold; authored dash distance remains 190px and the same SHA passed on attempt #2 without product/test changes. This is treated as existing runner/frame-sampling timing behavior rather than an Aura regression.
+- Chromium and hosted Edge both emitted `WEB_CREATOR_PREVIEW_FAMILY_SMOKE_PASSED families=9 ... auraHitPolicy=single`; Aura domain, Character Package, Creator SkillDraft and Creator Preview session regressions also passed.
+- A fresh latest-head CI is required after this documentation checkpoint before PR #150 is merge-ready. V2 remains **12.5% (1/8 phases complete)** until the entire V2-2 phase satisfies acceptance.
 
 
 ### V2-1 implementation checkpoints
