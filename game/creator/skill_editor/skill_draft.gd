@@ -153,6 +153,13 @@ func _apply_family_defaults(family: String) -> void:
 			knockback = 56.0
 			hitbox_half_width = 54.0
 			hitbox_half_depth = 0.14
+		"summon":
+			speed = 320.0
+			range = 150.0
+			active = 3.0
+			knockback = 0.0
+			hitbox_half_width = 38.0
+			hitbox_half_depth = 0.14
 
 func load_from_dictionary(data: Dictionary) -> PackedStringArray:
 	var definition := SkillDefinition.new()
