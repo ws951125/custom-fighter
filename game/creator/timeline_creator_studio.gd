@@ -41,10 +41,19 @@ func _ready() -> void:
 
 func _import_package_json(json_text: String) -> PackedStringArray:
 	var errors: PackedStringArray = super._import_package_json(json_text)
-	if errors.is_empty():
-		# Package import replaces the complete SkillDraft in an ancestor class.
-		# Refresh this derived Timeline editor so UI/Web telemetry reflects the restored events.
-		_refresh_timeline_editor()
+	if not errors.is_empty():
+		return errors
+	# Package import replaces the complete SkillDraft in an ancestor class.
+	# Refresh derived Timeline state, but do not persist composition recipe UI metadata.
+	_timeline_composition_error = ""
+	_timeline_composition_last_recipe = ""
+	_timeline_composition_last_added_count = 0
+	if timeline_composition_start != null:
+		var next_start := 0.0
+		for event in skill_draft.timeline_events:
+			next_start = maxf(next_start, float(event.get("time", 0.0)) + float(event.get("duration", 0.0)))
+		timeline_composition_start.set_value_no_signal(next_start)
+	_refresh_timeline_editor()
 	return errors
 
 func _install_timeline_editor() -> void:
@@ -526,21 +535,6 @@ func _web_update_timeline_event(args: Array) -> void:
 
 func _web_clear_timeline(_args: Array) -> void:
 	_on_timeline_clear()
-
-func _import_package_json(json_text: String) -> PackedStringArray:
-	var errors: PackedStringArray = super(json_text)
-	if not errors.is_empty():
-		return errors
-	_timeline_composition_error = ""
-	_timeline_composition_last_recipe = ""
-	_timeline_composition_last_added_count = 0
-	if timeline_composition_start != null:
-		var next_start := 0.0
-		for event in skill_draft.timeline_events:
-			next_start = maxf(next_start, float(event.get("time", 0.0)) + float(event.get("duration", 0.0)))
-		timeline_composition_start.set_value_no_signal(next_start)
-	_refresh_timeline_editor()
-	return PackedStringArray()
 
 func _web_apply_timeline_composition(args: Array) -> void:
 	if args.is_empty():
