@@ -39,6 +39,14 @@ func _ready() -> void:
 	_install_timeline_web_bridge()
 	_refresh_timeline_editor()
 
+func _import_package_json(json_text: String) -> PackedStringArray:
+	var errors: PackedStringArray = super._import_package_json(json_text)
+	if errors.is_empty():
+		# Package import replaces the complete SkillDraft in an ancestor class.
+		# Refresh this derived Timeline editor so UI/Web telemetry reflects the restored events.
+		_refresh_timeline_editor()
+	return errors
+
 func _install_timeline_editor() -> void:
 	timeline_panel = PanelContainer.new()
 	timeline_panel.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
