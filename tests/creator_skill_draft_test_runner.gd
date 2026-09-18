@@ -108,6 +108,13 @@ func _test_supported_family_round_trips() -> void:
 	aura.aura_duration = 0.0
 	_check(_contains_error_fragment(aura.validate(), "aura_duration must be"), "invalid aura duration fails closed")
 
+	var teleport := SkillDraft.new()
+	teleport.set_skill_type("teleport")
+	_check(is_equal_approx(teleport.range, 360.0), "teleport defaults include safe displacement")
+	_check(is_zero_approx(teleport.active) and is_zero_approx(teleport.speed), "teleport defaults model instantaneous bounded displacement")
+	teleport.range = 0.0
+	_check(_contains_error_fragment(teleport.validate(), "teleport range must be"), "invalid teleport range fails closed")
+
 func _test_timeline_round_trip(draft: SkillDraft) -> void:
 	draft.reset()
 	var events: Array[Dictionary] = [
