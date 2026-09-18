@@ -115,6 +115,14 @@ func _test_supported_family_round_trips() -> void:
 	teleport.range = 0.0
 	_check(_contains_error_fragment(teleport.validate(), "teleport range must be"), "invalid teleport range fails closed")
 
+	var counter := SkillDraft.new()
+	counter.set_skill_type("counter")
+	_check(is_equal_approx(counter.range, 180.0), "counter defaults include bounded source range")
+	_check(is_equal_approx(counter.active, 1.5), "counter defaults include finite observation-safe window")
+	_check(is_equal_approx(counter.hitbox_half_depth, 0.14), "counter defaults include bounded source depth")
+	counter.active = SkillDefinition.MAX_COUNTER_WINDOW + 0.01
+	_check(_contains_error_fragment(counter.validate(), "counter active window must be"), "invalid counter window fails closed")
+
 func _test_timeline_round_trip(draft: SkillDraft) -> void:
 	draft.reset()
 	var events: Array[Dictionary] = [
