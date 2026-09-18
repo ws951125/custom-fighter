@@ -142,7 +142,7 @@ Work unit 7 — **fifth genuinely new family: `counter` — accepted and product
 
 
 
-Work unit 8 — **safe scripted event compositions — implementation-head validation complete; latest-head documentation gate pending**:
+Work unit 8 — **safe scripted event compositions — accepted and production-validated**:
 - Composition is deliberately **not** a new executable skill/event language. `SkillTimelineComposition` exposes only the explicit recipes `cast_burst` and `guarded_impact`, and expands them into the existing allow-listed `animation`, `vfx`, `audio`, `hitbox` and `hurtbox` timeline event vocabulary.
 - Recipe expansion validates safe lowercase IDs/asset tokens, may only append at or after the existing timeline tail, rejects duplicate IDs, enforces the existing 64-event/30-second caps, and returns the original timeline unchanged on failure. No arbitrary event JSON, callback, path, script or user code is accepted.
 - Creator Timeline adds a Composition row with recipe selection, start time and `+ Safe Composition`; Web automation exposes only `customFighterCreatorTimelineApplyComposition(recipe, start)` and publishes recipe/error diagnostics. The persisted skill remains ordinary `timeline.events`; composition recipe UI state is not executable package metadata.
@@ -155,7 +155,12 @@ Work unit 8 — **safe scripted event compositions — implementation-head valid
 - Fix commit `80009e350cfa76f29c424b25e918a5b16a6fcb4a` added a successful package-import refresh hook at the Timeline Creator layer. An overlapping follow-up hook temporarily created a duplicate `_import_package_json` declaration and CI #386 (`35332142038`) correctly failed the Godot import/Windows export parse gates; reconciliation commit `ad146a380de165002d33212014f25c51cb4ef446` consolidated the logic into one override and preserved composition UI-state reset/next-start recalculation.
 - Reconciled head `ad146a380de165002d33212014f25c51cb4ef446` passed CI #387 (`35332342095`): Windows Native, Godot import/boot/domain/AI contracts, trusted backend, Web export/size budget, Chromium `smoke:all`, and GitHub-hosted Microsoft Edge `smoke:all`.
 - Explicit WU8 evidence includes `SKILL_TIMELINE_COMPOSITION_TESTS_PASSED`, Character Package and self-contained package PASS, Chromium/Edge `WEB_CREATOR_TIMELINE_EDITOR_SMOKE_PASSED safeComposition=true allowList=true compositionFailClosed=true`, `WEB_CREATOR_PREVIEW_SMOKE_PASSED ... safeComposition=true timelineRoundTrip=true`, and `WEB_CREATOR_PACKAGE_SMOKE_PASSED ... timelineRoundTrip=true compositionExpanded=true`; both complete browser suites emitted `SMOKE_SUITE_PASSED count=24`.
-- A fresh latest-head CI is required after this documentation checkpoint before PR #156 is merge-ready. V2 remains **12.5% (1/8 phases complete)** until the full V2-2 phase satisfies acceptance.
+- Latest PR head `c8c582d975627379b5b9eb59eb8085f6347cf728` passed PR CI #390 (`35333626916`): Windows Native, Godot import/boot/domain/AI contracts, trusted backend, Web export/size budget, Chromium `smoke:all`, and GitHub-hosted Microsoft Edge `smoke:all`.
+- PR #156 was squash-merged to `main` at `38d9545ef16f00143e7b2991a8dd608dc85d7156`.
+- Main CI #391 (`35336811313`) attempt #1 passed Windows Native, Godot/domain/backend, Chromium, hosted Edge, Pages deployment/public reachability and Render exact-revision readiness. Production Edge then stopped in unchanged `smoke:melee` at `waitForPositiveCooldown`'s 2.5-second transient cooldown observation window before WU8 composition coverage.
+- No code changed. Main CI #391 attempt #2 on the exact same merge revision passed the complete production chain: Windows Native, Godot import/boot/domain/AI contracts, trusted backend, Web export/size budget, Chromium `smoke:all`, hosted Microsoft Edge `smoke:all`, GitHub Pages deployment, public-Web reachability, Render health/provider-schema/exact-revision readiness, and production Microsoft Edge full smoke.
+- The same-SHA retry confirms attempt #1 as the already-documented hosted Edge transient cooldown observation instability rather than a deterministic WU8 regression. Safe Scripted Event Compositions Work Unit 8 is therefore accepted and production-validated.
+- V2 remains **12.5% (1/8 phases complete)** because V2-2 still requires Grab and Summon.
 
 
 ### V2-1 implementation checkpoints
@@ -274,4 +279,4 @@ AI VFX backend: `https://custom-fighter-ai-vfx.onrender.com`
 
 ## Next implementation target
 
-Complete V2-2 Work Unit 8 Safe Scripted Event Compositions on branch `feat/v2-2-safe-scripted-compositions-wu8`: run the full GitHub PR validation chain, diagnose/fix any Godot/package/Chromium/Edge regression on the same branch, and merge only after explicit user approval. Production acceptance requires the exact post-merge main revision to pass Pages/public reachability, Render exact-revision readiness and production Microsoft Edge full smoke. Remaining V2-2 scope after compositions is grab and summon.
+Begin V2-2 Work Unit 9 with **Grab** before Summon. Reuse the existing deterministic hit/source-volume and bounded-position primitives, require an actual eligible target overlap before any displacement/control effect, keep grab duration/offsets finite, and fail closed on invalid target/arena geometry. Do not add arbitrary callbacks, paths, user code or autonomous actors. Preserve existing package/Creator Preview compatibility. Summon remains the final V2-2 family because it introduces a separate actor lifecycle and therefore carries the larger runtime/state-management surface.
