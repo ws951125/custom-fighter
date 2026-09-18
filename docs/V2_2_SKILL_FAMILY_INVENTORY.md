@@ -173,7 +173,7 @@ Latest PR head `c8c582d975627379b5b9eb59eb8085f6347cf728` passed CI #390 (`35333
 
 
 
-## Work unit 9 — sixth new family: `grab` — implementation complete; PR validation passed
+## Work unit 9 — sixth new family: `grab` — accepted and production-validated
 
 Grab deliberately reuses the existing bounded field vocabulary: `range` is the forward source-volume offset, `hitbox_half_width` / `hitbox_half_depth` define overlap, `active` is the finite hold window, and `knockback` is the finite target anchor offset. This avoids expanding the Character Package schema solely for Grab.
 
@@ -181,14 +181,13 @@ The target must be eligible and its real hurtbox must overlap that source volume
 
 Runtime routing is optional `skill_12` / E. Creator Preview injects only the preview copy of `skill_12`; the stored editable CharacterDraft remains unchanged. No arbitrary target selector, callback, path, script, user code or autonomous actor is introduced.
 
-PR #158 head `c3b5da271fe70c58bcafaa82be0ede16b3d47888` passed GitHub-hosted CI #398 (`35346916303`) across Windows Native, Godot/domain/backend, Web export/size budget, Chromium and Microsoft Edge. Both browser suites passed all 24 smoke stages and the twelve-family Creator Preview regression with `grabPolicy=overlap-hold-once`. Grab remains unmerged/unaccepted in production until explicit merge approval and exact-`main` production validation complete.
+PR #158 latest head `42eeddf2f8c9ca542194734052bb2ac2121a1cf8` passed CI #399 (`35348193780`) across Windows Native, Godot/domain/backend, Web export/size budget, Chromium and Microsoft Edge, then squash-merged to `main` at `d0b4dc9529a81466e03afe74511819efe14152d7`. Main CI #400 (`35349720100`) passed the full production chain on that exact revision after one isolated production Edge retry: attempt #1 had already passed the twelve-family Grab flow and failed later in unchanged Creator VFX revision observation; attempt #2 passed all 24 production Edge smoke stages. Render readiness reported the exact merge revision with Gemini free-tier-only configuration.
 ## Remaining V2-2 families
 
-After Safe Scripted Event Compositions production validation, the phase still requires:
+After Grab production validation, V2-2 has one remaining family:
 
-- grab (Work Unit 9 implementation complete / PR-validated; merge + production validation pending),
-- summon (final V2-2 family).
+- summon (Work Unit 10; final V2-2 family).
 
-Grab is the preferred next family because it can reuse existing bounded overlap/displacement primitives without introducing a new autonomous actor lifecycle; Summon remains last.
+Summon is intentionally last because it introduces a separate actor lifecycle and therefore the largest remaining runtime/state-management surface. Its design must keep spawning bounded, deterministic and declarative: finite lifetime, validated spawn geometry, constrained owner/target semantics, explicit cleanup, bounded active-instance count, no arbitrary resource paths/scenes/callbacks/scripts, and no user-supplied autonomous code.
 
-The exact implementation order may change if repository constraints make one family a better dependency, but all remaining V2-2 scope items remain required for phase completion.
+After Summon passes PR and exact-`main` production validation, V2-2 can be evaluated against its full phase acceptance criteria.
