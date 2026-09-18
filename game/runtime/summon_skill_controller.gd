@@ -101,7 +101,7 @@ func _spawn_summon() -> void:
 func _tick_summon(delta: float) -> void:
 	var arena_right := maxf(host.size.x, 1280.0) - ARENA_MARGIN_X
 	var hurtbox = host._dummy_hurtbox()
-	var target_eligible := not host.dummy_state.is_defeated() and host.dummy_recovery_state.can_be_hit()
+	var target_eligible: bool = not host.dummy_state.is_defeated() and host.dummy_recovery_state.can_be_hit()
 	var hit := summon_state.tick(
 		delta,
 		Vector2(host.dummy_x, host.dummy_depth),
