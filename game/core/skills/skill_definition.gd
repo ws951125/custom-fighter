@@ -1,7 +1,7 @@
 class_name SkillDefinition
 extends RefCounted
 
-const SUPPORTED_TYPES = ["melee", "projectile", "area", "dash", "formation", "buff", "beam", "trap", "aura"]
+const SUPPORTED_TYPES = ["melee", "projectile", "area", "dash", "formation", "buff", "beam", "trap", "aura", "teleport"]
 const CURRENT_SCHEMA_VERSION := 1
 const TIMELINE_SCHEMA_VERSION := 1
 const SUPPORTED_TIMELINE_EVENT_TYPES := ["animation", "vfx", "audio", "hitbox", "hurtbox"]
@@ -23,6 +23,7 @@ const MAX_BEAM_RANGE := 4096.0
 const MAX_TRAP_RANGE := 2048.0
 const MAX_TRAP_DURATION := 30.0
 const MAX_AURA_DURATION := 30.0
+const MAX_TELEPORT_RANGE := 2048.0
 
 var schema_version := CURRENT_SCHEMA_VERSION
 var skill_id := ""
@@ -150,6 +151,8 @@ func load_from_dictionary(data: Dictionary) -> PackedStringArray:
 		_validate_trap_skill(errors)
 	elif skill_type == "aura":
 		_validate_aura_skill(errors)
+	elif skill_type == "teleport":
+		_validate_teleport_skill(errors)
 
 	_load_timeline(data, errors)
 	loaded = errors.is_empty()
@@ -355,3 +358,8 @@ func _validate_aura_skill(errors: PackedStringArray) -> void:
 		errors.append("aura hitbox_half_width must be > 0 and <= %.0f" % MAX_TIMELINE_SPATIAL_HALF_WIDTH)
 	if hitbox_half_depth <= 0.0 or hitbox_half_depth > MAX_TIMELINE_SPATIAL_HALF_DEPTH:
 		errors.append("aura hitbox_half_depth must be > 0 and <= %.2f" % MAX_TIMELINE_SPATIAL_HALF_DEPTH)
+
+
+func _validate_teleport_skill(errors: PackedStringArray) -> void:
+	if range <= 0.0 or range > MAX_TELEPORT_RANGE:
+		errors.append("teleport range must be > 0 and <= %.0f" % MAX_TELEPORT_RANGE)
