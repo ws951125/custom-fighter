@@ -52,6 +52,10 @@
     "training_grab_001": {
       "file": "training_grab.sample.json",
       "type": "grab"
+    },
+    "training_summon_001": {
+      "file": "training_summon.sample.json",
+      "type": "summon"
     }
   }
 }
