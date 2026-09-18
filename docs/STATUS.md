@@ -83,7 +83,7 @@ Work unit 4 — **second genuinely new family: `trap` — accepted and productio
 - The varying same-SHA Edge timeout locations plus the successful third attempt confirm runner/observation timing instability rather than a deterministic Trap regression; existing browser-timing lessons remain the governing prevention guidance.
 
 
-Work unit 5 — **third genuinely new family: `aura` — implementation-head validation complete; latest-head documentation gate pending**:
+Work unit 5 — **third genuinely new family: `aura` — accepted and production-validated**:
 - Aura is a safe declarative/deterministic family: a bounded volume follows the caster for a finite `aura_duration`; one activation can damage the training target at most once.
 - `SkillDefinition` accepts `aura` with bounded active duration, aura lifetime and spatial dimensions; `training_aura_001` is registered through the exact-type skill registry.
 - `CharacterDefinition` extends the backwards-compatible optional slots with `skill_9`; the original six required slots plus optional Beam/Trap slots remain unchanged. Runtime binds Aura to `skill_9` / G.
@@ -94,7 +94,10 @@ Work unit 5 — **third genuinely new family: `aura` — implementation-head val
 - PR #150 implementation head `da9808d46eadadcb79bd0356b45953365236940a` passed CI #365 (`35295253734`) on attempt #2: Windows Native, Godot import/boot/domain/AI contracts, trusted backend, Web export/size budget, Chromium `smoke:all` and GitHub-hosted Microsoft Edge `smoke:all`.
 - CI #365 attempt #1 stopped in unchanged `smoke:web` before Aura coverage because the existing K dash sampled 119.66px against a >120px browser threshold; authored dash distance remains 190px and the same SHA passed on attempt #2 without product/test changes. This is treated as existing runner/frame-sampling timing behavior rather than an Aura regression.
 - Chromium and hosted Edge both emitted `WEB_CREATOR_PREVIEW_FAMILY_SMOKE_PASSED families=9 ... auraHitPolicy=single`; Aura domain, Character Package, Creator SkillDraft and Creator Preview session regressions also passed.
-- A fresh latest-head CI is required after this documentation checkpoint before PR #150 is merge-ready. V2 remains **12.5% (1/8 phases complete)** until the entire V2-2 phase satisfies acceptance.
+- Latest PR head `8d1f801ff13053473fc8412a914703bd5d46335f` passed PR CI #367 (`35296370356`): Windows Native, Godot import/boot/domain/AI contracts, trusted backend, Web export/size budget, Chromium `smoke:all`, and GitHub-hosted Microsoft Edge `smoke:all`.
+- PR #150 was squash-merged to `main` at `f2ce5d0efe99d807be09190fa02e26b95d2325d5`.
+- Main CI #368 (`35298311326`) passed the complete production chain on that exact merge revision: Windows Native, Godot import/boot/domain/AI contracts, trusted backend, Web export/size budget, Chromium `smoke:all`, hosted Microsoft Edge `smoke:all`, GitHub Pages deployment, public-Web reachability, Render health/provider-schema/exact-revision readiness, and production Microsoft Edge full smoke.
+- Aura Work Unit 5 is therefore accepted and production-validated. V2 remains **12.5% (1/8 phases complete)** because V2-2 still requires summon, grab, counter, teleport and safe scripted event compositions.
 
 
 ### V2-1 implementation checkpoints
@@ -213,4 +216,4 @@ AI VFX backend: `https://custom-fighter-ai-vfx.onrender.com`
 
 ## Next implementation target
 
-Complete V2-2 Work Unit 5 Aura on branch `feat/v2-2-aura-family-wu5`: run the full GitHub PR validation chain, diagnose/fix any domain or Chromium/Edge regressions on the same branch, and merge only after explicit user approval. Production acceptance then requires the exact post-merge main revision to pass Pages/public reachability, Render exact-revision readiness and production Microsoft Edge full smoke. After Aura is production-validated, continue the remaining V2-2 scope: summon, grab, counter, teleport and safe scripted event compositions.
+Begin V2-2 Work Unit 6 with the next safe deterministic family. Prefer `teleport` as the next slice because it can reuse the existing movement, cast-state, exact-type registry, optional-slot and Creator Preview boundaries without introducing autonomous actors or arbitrary executable behavior. Keep displacement/range bounded, fail closed on unsafe destinations, preserve legacy slots, and carry the same domain + Chromium/Edge + production validation gates. Remaining V2-2 scope after that still includes summon, grab, counter and safe scripted event compositions.

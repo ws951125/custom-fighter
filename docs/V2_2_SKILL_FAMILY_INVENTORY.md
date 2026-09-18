@@ -128,11 +128,13 @@ Validation:
 
 Trap extends the same declarative boundary with optional `skill_8` / T, bounded placement/trigger/lifetime state and a single-trigger damage policy. Creator Preview, package compatibility and deterministic domain coverage are synchronized. PR #148 was squash-merged as `f1631eaa3f2828765ab898e7f5ebe55637671422`; Main CI #362 (`35289237781`) ultimately passed the complete production chain on the exact revision.
 
-## Work unit 5 — third new family: `aura` — implementation-head validation complete
+## Work unit 5 — third new family: `aura` — accepted and production-validated
 
 Aura uses optional `skill_9` / G. Its bounded combat volume follows the caster for a finite lifetime and can damage a target at most once per activation. It reuses `SkillCastState`, `SkillCoordinator`, Creator family selection, Creator Preview routing and the existing declarative timeline scheduler. `aura_duration` is a validated family-specific package field serialized only for Aura. No autonomous actor, arbitrary callback/path, user code or new executable event type is added.
 
-Implementation head `da9808d46eadadcb79bd0356b45953365236940a` passed PR #150 CI #365 (`35295253734`) on attempt #2 across Windows Native, Godot/domain/backend, Web export/size budget, Chromium `smoke:all` and hosted Microsoft Edge `smoke:all`. Both browsers exercised the nine-family Creator Preview flow and reported the Aura single-hit policy. Attempt #1 stopped earlier in unchanged K-dash browser sampling at 119.66px versus the existing >120px threshold; the same SHA passed without code changes. A fresh latest-head CI remains required after this documentation checkpoint.
+Implementation head `da9808d46eadadcb79bd0356b45953365236940a` passed PR #150 CI #365 (`35295253734`) on attempt #2 across Windows Native, Godot/domain/backend, Web export/size budget, Chromium `smoke:all` and hosted Microsoft Edge `smoke:all`. Both browsers exercised the nine-family Creator Preview flow and reported the Aura single-hit policy. Attempt #1 stopped earlier in unchanged K-dash browser sampling at 119.66px versus the existing >120px threshold; the same SHA passed without code changes.
+
+Latest PR head `8d1f801ff13053473fc8412a914703bd5d46335f` then passed PR CI #367 (`35296370356`) across the full PR gate. PR #150 was squash-merged as `f2ce5d0efe99d807be09190fa02e26b95d2325d5`, and Main CI #368 (`35298311326`) passed the complete production chain on that exact revision, including Pages deployment/public reachability, Render exact-revision readiness and production Microsoft Edge full smoke.
 
 ## Remaining V2-2 families
 
