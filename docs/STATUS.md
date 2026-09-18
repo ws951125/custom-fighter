@@ -119,7 +119,7 @@ Work unit 6 — **fourth genuinely new family: `teleport` — accepted and produ
 
 
 
-Work unit 7 — **fifth genuinely new family: `counter` — implementation in progress**:
+Work unit 7 — **fifth genuinely new family: `counter` — implementation-head validation complete; latest-head documentation gate pending**:
 - `SkillDefinition.SUPPORTED_TYPES` includes `counter` with a bounded positive source `range`, finite active window (maximum 2.0 seconds), and bounded depth tolerance. Creator/training defaults use a 1.50-second window for stable hosted-browser observation without widening the safety cap.
 - `CharacterDefinition` adds optional `skill_11`; the original six required slots plus optional Beam/Trap/Aura/Teleport slots remain backwards-compatible. Runtime binds Counter to `skill_11` / F.
 - `CounterState` is deterministic and single-trigger: start → finite armed window → actual incoming-hit intercept or expire. Expiration never auto-retaliates, out-of-range/depth sources are rejected, and a consumed window cannot trigger twice.
@@ -128,7 +128,9 @@ Work unit 7 — **fifth genuinely new family: `counter` — implementation in pr
 - `CounterSkillController` and coordinated wrapper reuse `SkillCastState`, MP/cooldown, `SkillCoordinator`, exact-type registry loading and the existing declarative timeline scheduler. Successful training retaliation is limited to the validated Dummy source and occurs once per armed window.
 - Creator Preview maps `counter`→`skill_11` without mutating stored CharacterDraft data. Domain coverage checks schema bounds, exact registry type, finite-window semantics, source bounds, single-trigger behavior, expiration-without-retaliation, optional-slot compatibility and Creator routing.
 - The eleven-family Creator Preview smoke validates F input, MP/timeline execution, first real incoming hit countered with one retaliation and no player HP loss, then a second real incoming hit bypassing the consumed counter and dealing exactly 9 player damage.
-- Formal PR/CI acceptance is pending. V2 remains **12.5% (1/8 phases complete)** until the full V2-2 phase satisfies acceptance.
+- PR #154 implementation head `e9606b473c8150fc9eba27fe598bd7fb86414def` passed CI #377 (`35309792577`): Windows Native, Godot import/boot/domain/AI contracts including `COUNTER_TESTS_PASSED`, trusted backend, Web export/size budget, Chromium `smoke:all`, and GitHub-hosted Microsoft Edge `smoke:all`.
+- Chromium and hosted Edge both emitted `WEB_CREATOR_PREVIEW_FAMILY_SMOKE_PASSED families=11 ... counterPolicy=actual-hit-once ... timelineDispatch=true roundTrip=true`; the full smoke suite reported `SMOKE_SUITE_PASSED count=24`.
+- A fresh latest-head CI is required after this documentation checkpoint before PR #154 is merge-ready. V2 remains **12.5% (1/8 phases complete)** until the full V2-2 phase satisfies acceptance.
 
 
 ### V2-1 implementation checkpoints
