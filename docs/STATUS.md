@@ -163,6 +163,13 @@ Work unit 8 — **safe scripted event compositions — accepted and production-v
 - V2 remains **12.5% (1/8 phases complete)** because V2-2 still requires Grab and Summon.
 
 
+Work unit 9 — **sixth genuinely new family: `grab` — implementation branch in progress; online validation pending**:
+- Grab reuses the existing bounded common skill fields rather than expanding the package schema: `range` positions the forward capture source volume, `hitbox_half_width` / `hitbox_half_depth` bound overlap, `active` is the finite hold window, and `knockback` is reused as the finite target anchor offset.
+- `GrabState` performs no displacement unless the actual eligible target hurtbox overlaps the authored source volume. Invalid target/source geometry, non-positive hold/offset values, or invalid arena bounds fail closed. A single activation can capture at most once.
+- Runtime uses optional `skill_12` / E and the existing state + controller + coordinated-wrapper pattern. Creator Preview injects only the temporary preview slot; stored CharacterDraft data remains unchanged.
+- The branch includes exact-type registry loading, Creator family authoring, timeline dispatch, deterministic package round-trip, Grab domain tests, and Chromium/Edge Creator Preview coverage. It does not add arbitrary target selectors, callbacks, paths, scripts, user code, or autonomous actors.
+- Formal GitHub-hosted branch validation is pending. V2 remains **12.5% (1/8 phases complete)** until V2-2 is fully accepted.
+
 ### V2-1 implementation checkpoints
 
 Work unit 1 was merged by PR #133 to `main` at `bb6d1c68a697958748e4dd9e6d2aac3c03bca414`:
@@ -279,4 +286,4 @@ AI VFX backend: `https://custom-fighter-ai-vfx.onrender.com`
 
 ## Next implementation target
 
-Begin V2-2 Work Unit 9 with **Grab** before Summon. Reuse the existing deterministic hit/source-volume and bounded-position primitives, require an actual eligible target overlap before any displacement/control effect, keep grab duration/offsets finite, and fail closed on invalid target/arena geometry. Do not add arbitrary callbacks, paths, user code or autonomous actors. Preserve existing package/Creator Preview compatibility. Summon remains the final V2-2 family because it introduces a separate actor lifecycle and therefore carries the larger runtime/state-management surface.
+Complete V2-2 Work Unit 9 **Grab** on branch `feat/v2-2-grab-family-wu9`: run the complete GitHub-hosted domain/Godot/Web/Chromium/Edge validation chain, fix any branch regression, then request explicit merge approval. After merge, require the exact `main` revision to pass Pages/public reachability, Render readiness and production Edge full smoke before marking Grab production-validated. Summon remains the final V2-2 family.
