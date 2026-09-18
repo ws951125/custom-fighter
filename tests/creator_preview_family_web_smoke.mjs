@@ -19,6 +19,7 @@ const families = [
   { type: 'trap', slot: 'skill_8', key: 't', index: 8 },
   { type: 'aura', slot: 'skill_9', key: 'g', index: 9 },
   { type: 'teleport', slot: 'skill_10', key: 'r', index: 10 },
+  { type: 'counter', slot: 'skill_11', key: 'f', index: 11 },
 ];
 
 function creatorUrl() {
@@ -73,6 +74,7 @@ try {
       window.customFighterCreatorSetSkillCooldown(0.6);
       if (type === 'trap') window.customFighterCreatorSetSkillRange(580);
       if (type === 'teleport') window.customFighterCreatorSetSkillRange(360);
+      if (type === 'counter') window.customFighterCreatorSetSkillRange(180);
       window.customFighterCreatorTimelineClear();
       window.customFighterCreatorTimelineAdd(JSON.stringify({
         type: 'audio', time: 0.0, duration: 0.0, cue: 'skill_cast',
@@ -86,6 +88,7 @@ try {
         document.documentElement.dataset.creatorSkillDraftMpCost === '11' &&
         (type !== 'trap' || Math.abs(Number(document.documentElement.dataset.creatorSkillDraftRange) - 580) < 0.01) &&
         (type !== 'teleport' || Math.abs(Number(document.documentElement.dataset.creatorSkillDraftRange) - 360) < 0.01) &&
+        (type !== 'counter' || Math.abs(Number(document.documentElement.dataset.creatorSkillDraftRange) - 180) < 0.01) &&
         document.documentElement.dataset.creatorTimelineCount === '1' &&
         document.documentElement.dataset.creatorTimelineValid === 'true' &&
         document.documentElement.dataset.creatorPreviewCanLaunch === 'true',
@@ -112,6 +115,7 @@ try {
           (type !== 'trap' || (d.trapSkillLoaded === 'true' && d.trapSkillId === d.creatorPreviewRuntimeSkillId)) &&
           (type !== 'aura' || (d.auraSkillLoaded === 'true' && d.auraSkillId === d.creatorPreviewRuntimeSkillId)) &&
           (type !== 'teleport' || (d.teleportSkillLoaded === 'true' && d.teleportSkillId === d.creatorPreviewRuntimeSkillId)) &&
+          (type !== 'counter' || (d.counterSkillLoaded === 'true' && d.counterSkillId === d.creatorPreviewRuntimeSkillId && d.trainingIncomingHitReady === 'true' && typeof window.customFighterTrainingIncomingHit === 'function')) &&
           d.creatorPreviewReturnReady === 'true' &&
           typeof window.customFighterPreviewReturnToCreator === 'function'
         );
@@ -123,8 +127,8 @@ try {
     const runtimeId = await dataset(page, 'creatorPreviewRuntimeSkillId');
     if (!runtimeId) throw new Error(`Preview runtime id missing for ${family.type}`);
 
-    if (family.type === 'aura') {
-      stage = 'aura-approach';
+    if (family.type === 'aura' || family.type === 'counter') {
+      stage = `${family.type}-approach`;
       await page.keyboard.down('d');
       try {
         await page.waitForFunction(
@@ -139,15 +143,16 @@ try {
         await page.keyboard.up('d');
       }
       await page.waitForTimeout(120);
-      const auraGap = Number(await dataset(page, 'dummyX')) - Number(await dataset(page, 'playerX'));
-      if (auraGap < 0 || auraGap > 110) {
-        throw new Error(`Aura approach ended outside deterministic range: gap=${auraGap}`);
+      const gap = Number(await dataset(page, 'dummyX')) - Number(await dataset(page, 'playerX'));
+      if (gap < 0 || gap > 110) {
+        throw new Error(`${family.type} approach ended outside deterministic range: gap=${gap}`);
       }
     }
 
     stage = `cast-${family.type}`;
     const beforeMp = Number(await dataset(page, 'playerMp'));
     const beforeDummyHp = Number(await dataset(page, 'dummyHp'));
+    const beforePlayerHp = Number(await dataset(page, 'playerHp'));
     const beforePlayerX = Number(await dataset(page, 'playerX'));
     await page.keyboard.down(family.key);
     await page.waitForFunction(
@@ -250,6 +255,64 @@ try {
       );
     }
 
+    if (family.type === 'counter') {
+      stage = 'counter-window';
+      await page.waitForFunction(
+        () => {
+          const d = document.documentElement.dataset;
+          return (
+            d.counterSkillWindowActive === 'true' &&
+            Number(d.counterSkillActivationCount ?? '0') === 1 &&
+            d.trainingIncomingHitReady === 'true' &&
+            typeof window.customFighterTrainingIncomingHit === 'function'
+          );
+        },
+        null,
+        { timeout: 5_000 },
+      );
+
+      stage = 'counter-first-incoming-hit';
+      await page.evaluate(() => window.customFighterTrainingIncomingHit(9));
+      await page.waitForFunction(
+        ({ expectedDummyHp, expectedPlayerHp }) => {
+          const d = document.documentElement.dataset;
+          return (
+            d.counterSkillTriggered === 'true' &&
+            d.lastCounterSkillSuccess === 'true' &&
+            d.lastCounterSkillHit === 'true' &&
+            Number(d.counterSkillTriggerCount ?? '0') === 1 &&
+            Number(d.counterSkillRetaliationHitCount ?? '0') === 1 &&
+            d.lastPlayerHitCountered === 'true' &&
+            Number(d.playerIncomingHitCount ?? '0') === 1 &&
+            Number(d.lastPlayerDamageDealt ?? '-1') === 0 &&
+            Number(d.playerHp) === expectedPlayerHp &&
+            Number(d.dummyHp) === expectedDummyHp
+          );
+        },
+        { expectedDummyHp: beforeDummyHp - 12, expectedPlayerHp: beforePlayerHp },
+        { timeout: 5_000 },
+      );
+
+      stage = 'counter-second-incoming-hit';
+      await page.evaluate(() => window.customFighterTrainingIncomingHit(9));
+      await page.waitForFunction(
+        ({ expectedDummyHp, expectedPlayerHp }) => {
+          const d = document.documentElement.dataset;
+          return (
+            Number(d.counterSkillTriggerCount ?? '0') === 1 &&
+            Number(d.counterSkillRetaliationHitCount ?? '0') === 1 &&
+            d.lastPlayerHitCountered === 'false' &&
+            Number(d.playerIncomingHitCount ?? '0') === 2 &&
+            Number(d.lastPlayerDamageDealt ?? '0') === 9 &&
+            Number(d.playerHp) === expectedPlayerHp &&
+            Number(d.dummyHp) === expectedDummyHp
+          );
+        },
+        { expectedDummyHp: beforeDummyHp - 12, expectedPlayerHp: beforePlayerHp - 9 },
+        { timeout: 5_000 },
+      );
+    }
+
     stage = `return-${family.type}`;
     await page.evaluate(() => window.customFighterPreviewReturnToCreator());
     await waitForCreator(page);
@@ -263,7 +326,7 @@ try {
     );
   }
 
-  console.log('WEB_CREATOR_PREVIEW_FAMILY_SMOKE_PASSED families=10 slotRouting=true authoredCast=true beamHitPolicy=single trapTriggerPolicy=single auraHitPolicy=single teleportPolicy=bounded timelineDispatch=true roundTrip=true');
+  console.log('WEB_CREATOR_PREVIEW_FAMILY_SMOKE_PASSED families=11 slotRouting=true authoredCast=true beamHitPolicy=single trapTriggerPolicy=single auraHitPolicy=single teleportPolicy=bounded counterPolicy=actual-hit-once timelineDispatch=true roundTrip=true');
 } catch (error) {
   let snapshot = {};
   if (page) {
