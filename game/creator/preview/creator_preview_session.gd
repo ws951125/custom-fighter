@@ -19,7 +19,8 @@ const PREVIEW_SLOT_BY_TYPE := {
 	"aura": "skill_9",
 	"teleport": "skill_10",
 	"counter": "skill_11",
-	"grab": "skill_12"
+	"grab": "skill_12",
+	"summon": "skill_13"
 }
 const APPROVED_PREVIEW_VISUAL := "prototype_fireball"
 const APPROVED_PREVIEW_IMPACT_VISUAL := "prototype_impact"
