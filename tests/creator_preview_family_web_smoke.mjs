@@ -261,7 +261,8 @@ try {
 
     if (family.type === 'grab') {
       stage = 'grab-capture';
-      const expectedGrabX = beforePlayerX + 56;
+      const expectedGrabOffset = Number(await dataset(page, 'creatorSkillDraftKnockback'));
+      const expectedGrabX = beforePlayerX + expectedGrabOffset;
       await page.waitForFunction(
         ({ expectedHp, expectedX }) => {
           const d = document.documentElement.dataset;
