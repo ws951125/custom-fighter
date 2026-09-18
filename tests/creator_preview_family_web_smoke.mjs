@@ -33,6 +33,73 @@ async function dataset(page, key) {
   return String(await page.evaluate((name) => document.documentElement.dataset[name] ?? '', key));
 }
 
+async function readNumber(page, key) {
+  return Number(await page.evaluate((name) => document.documentElement.dataset[name] ?? '0', key));
+}
+
+async function movementNudge(page, key, beforeX, holdMs) {
+  await page.keyboard.down(key);
+  await page.waitForTimeout(holdMs);
+  await page.keyboard.up(key);
+
+  try {
+    await page.waitForFunction(
+      (previousX) => Math.abs(Number(document.documentElement.dataset.playerX) - previousX) > 0.5,
+      beforeX,
+      { timeout: 900 },
+    );
+  } catch {
+    // Frame-polled movement can be missed. Re-read runtime state before issuing the next nudge.
+  }
+  await page.waitForTimeout(55);
+}
+
+async function approachDummy(page, minGap = 35, maxGap = 100) {
+  let playerX = await readNumber(page, 'playerX');
+  let dummyX = await readNumber(page, 'dummyX');
+  let gap = dummyX - playerX;
+  const stagingGap = maxGap + 55;
+
+  // Always stage to the target's left and finish with D so directional families retain
+  // deterministic right-facing while hosted Edge telemetry catches up with movement.
+  for (let attempt = 0; attempt < 4; attempt += 1) {
+    for (let step = 0; step < 100 && gap < stagingGap; step += 1) {
+      await movementNudge(page, 'a', playerX, 28);
+      playerX = await readNumber(page, 'playerX');
+      dummyX = await readNumber(page, 'dummyX');
+      gap = dummyX - playerX;
+    }
+
+    if (gap < stagingGap) {
+      throw new Error(`Failed to stage left of dummy: playerX=${playerX} dummyX=${dummyX} gap=${gap}`);
+    }
+
+    for (let step = 0; step < 100 && gap > maxGap; step += 1) {
+      const distanceFromRange = gap - maxGap;
+      const holdMs = distanceFromRange > 220 ? 38 : distanceFromRange > 120 ? 28 : 20;
+      await movementNudge(page, 'd', playerX, holdMs);
+      playerX = await readNumber(page, 'playerX');
+      dummyX = await readNumber(page, 'dummyX');
+      gap = dummyX - playerX;
+    }
+
+    await page.waitForTimeout(90);
+    playerX = await readNumber(page, 'playerX');
+    dummyX = await readNumber(page, 'dummyX');
+    gap = dummyX - playerX;
+
+    if (gap >= minGap && gap <= maxGap) {
+      return { playerX, dummyX, gap };
+    }
+
+    console.log(
+      `CREATOR_PREVIEW_FAMILY_APPROACH_RETRY attempt=${attempt + 1} minGap=${minGap} maxGap=${maxGap} playerX=${playerX} dummyX=${dummyX} gap=${gap}`,
+    );
+  }
+
+  throw new Error(`Failed to stabilize family approach: playerX=${playerX} dummyX=${dummyX} gap=${gap}`);
+}
+
 async function waitForCreator(page) {
   await page.waitForFunction(
     () =>
@@ -133,24 +200,7 @@ try {
 
     if (family.type === 'aura' || family.type === 'counter' || family.type === 'grab') {
       stage = `${family.type}-approach`;
-      await page.keyboard.down('d');
-      try {
-        await page.waitForFunction(
-          () => {
-            const d = document.documentElement.dataset;
-            return Number(d.dummyX) - Number(d.playerX) <= 85;
-          },
-          null,
-          { timeout: 4_000 },
-        );
-      } finally {
-        await page.keyboard.up('d');
-      }
-      await page.waitForTimeout(120);
-      const gap = Number(await dataset(page, 'dummyX')) - Number(await dataset(page, 'playerX'));
-      if (gap < 0 || gap > 110) {
-        throw new Error(`${family.type} approach ended outside deterministic range: gap=${gap}`);
-      }
+      await approachDummy(page);
     }
 
     stage = `cast-${family.type}`;
