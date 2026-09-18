@@ -17,6 +17,7 @@ const families = [
   { type: 'melee', slot: 'skill_6', key: 'h', index: 6 },
   { type: 'beam', slot: 'skill_7', key: 'y', index: 7 },
   { type: 'trap', slot: 'skill_8', key: 't', index: 8 },
+  { type: 'aura', slot: 'skill_9', key: 'g', index: 9 },
 ];
 
 function creatorUrl() {
@@ -106,6 +107,7 @@ try {
           Number(d.creatorPreviewRuntimeSkillMpCost) === 11 &&
           (type !== 'beam' || (d.beamSkillLoaded === 'true' && d.beamSkillId === d.creatorPreviewRuntimeSkillId)) &&
           (type !== 'trap' || (d.trapSkillLoaded === 'true' && d.trapSkillId === d.creatorPreviewRuntimeSkillId)) &&
+          (type !== 'aura' || (d.auraSkillLoaded === 'true' && d.auraSkillId === d.creatorPreviewRuntimeSkillId)) &&
           d.creatorPreviewReturnReady === 'true' &&
           typeof window.customFighterPreviewReturnToCreator === 'function'
         );
@@ -116,6 +118,28 @@ try {
 
     const runtimeId = await dataset(page, 'creatorPreviewRuntimeSkillId');
     if (!runtimeId) throw new Error(`Preview runtime id missing for ${family.type}`);
+
+    if (family.type === 'aura') {
+      stage = 'aura-approach';
+      await page.keyboard.down('d');
+      try {
+        await page.waitForFunction(
+          () => {
+            const d = document.documentElement.dataset;
+            return Number(d.dummyX) - Number(d.playerX) <= 85;
+          },
+          null,
+          { timeout: 4_000 },
+        );
+      } finally {
+        await page.keyboard.up('d');
+      }
+      await page.waitForTimeout(120);
+      const auraGap = Number(await dataset(page, 'dummyX')) - Number(await dataset(page, 'playerX'));
+      if (auraGap < 0 || auraGap > 110) {
+        throw new Error(`Aura approach ended outside deterministic range: gap=${auraGap}`);
+      }
+    }
 
     stage = `cast-${family.type}`;
     const beforeMp = Number(await dataset(page, 'playerMp'));
@@ -180,6 +204,28 @@ try {
       }
     }
 
+    if (family.type === 'aura') {
+      stage = 'aura-hit';
+      await page.waitForFunction(
+        (expectedHp) => {
+          const d = document.documentElement.dataset;
+          return (
+            d.lastAuraSkillHit === 'true' &&
+            d.auraSkillActive === 'true' &&
+            d.auraSkillHitConsumed === 'true' &&
+            Number(d.auraSkillHitCount ?? '0') === 1 &&
+            Number(d.dummyHp) === expectedHp
+          );
+        },
+        beforeDummyHp - 12,
+        { timeout: 5_000 },
+      );
+      await page.waitForTimeout(180);
+      if (Number(await dataset(page, 'auraSkillHitCount')) !== 1) {
+        throw new Error('Aura damaged more than once during one activation');
+      }
+    }
+
     stage = `return-${family.type}`;
     await page.evaluate(() => window.customFighterPreviewReturnToCreator());
     await waitForCreator(page);
@@ -193,7 +239,7 @@ try {
     );
   }
 
-  console.log('WEB_CREATOR_PREVIEW_FAMILY_SMOKE_PASSED families=8 slotRouting=true authoredCast=true beamHitPolicy=single trapTriggerPolicy=single timelineDispatch=true roundTrip=true');
+  console.log('WEB_CREATOR_PREVIEW_FAMILY_SMOKE_PASSED families=9 slotRouting=true authoredCast=true beamHitPolicy=single trapTriggerPolicy=single auraHitPolicy=single timelineDispatch=true roundTrip=true');
 } catch (error) {
   let snapshot = {};
   if (page) {
