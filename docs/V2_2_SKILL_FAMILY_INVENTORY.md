@@ -172,11 +172,21 @@ PR #156 reconciled head `ad146a380de165002d33212014f25c51cb4ef446` passed CI #38
 Latest PR head `c8c582d975627379b5b9eb59eb8085f6347cf728` passed CI #390 (`35333626916`) and PR #156 squash-merged as `38d9545ef16f00143e7b2991a8dd608dc85d7156`. Main CI #391 (`35336811313`) attempt #1 reached production Edge but an unchanged melee transient-cooldown observation window timed out before WU8-specific coverage; without any code change, attempt #2 on the exact same SHA passed the complete production chain including Pages deployment/public reachability, Render exact-revision readiness and production Microsoft Edge full smoke.
 
 
+
+## Work unit 9 — sixth new family: `grab` — implementation branch in progress
+
+Grab deliberately reuses the existing bounded field vocabulary: `range` is the forward source-volume offset, `hitbox_half_width` / `hitbox_half_depth` define overlap, `active` is the finite hold window, and `knockback` is the finite target anchor offset. This avoids expanding the Character Package schema solely for Grab.
+
+The target must be eligible and its real hurtbox must overlap that source volume before any target displacement/control occurs. Invalid geometry or arena bounds fail closed, one activation can capture at most once, and the held target anchor stays arena-clamped for the finite window.
+
+Runtime routing is optional `skill_12` / E. Creator Preview injects only the preview copy of `skill_12`; the stored editable CharacterDraft remains unchanged. No arbitrary target selector, callback, path, script, user code or autonomous actor is introduced.
+
+GitHub-hosted implementation validation is pending on `feat/v2-2-grab-family-wu9`.
 ## Remaining V2-2 families
 
 After Safe Scripted Event Compositions production validation, the phase still requires:
 
-- grab,
+- grab (Work Unit 9 implementation/validation in progress),
 - summon.
 
 Grab is the preferred next family because it can reuse existing bounded overlap/displacement primitives without introducing a new autonomous actor lifecycle; Summon remains last.
