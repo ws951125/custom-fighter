@@ -67,7 +67,7 @@ func _import_package_json(json_text: String) -> PackedStringArray:
 	if not errors.is_empty():
 		return errors
 
-if package.has_audio_bindings():
+	if package.has_audio_bindings():
 		var audio_errors: PackedStringArray = audio_draft.load_from_dictionary(package.audio_bindings_data)
 		for error in audio_errors:
 			errors.append("packaged audio bindings: %s" % error)
