@@ -82,6 +82,7 @@ jobs:
           godot --headless --path . --script res://tests/teleport_test_runner.gd
           godot --headless --path . --script res://tests/counter_test_runner.gd
           godot --headless --path . --script res://tests/grab_test_runner.gd
+          godot --headless --path . --script res://tests/summon_test_runner.gd
 
       - name: Setup Node
         uses: actions/setup-node@v5

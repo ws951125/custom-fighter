@@ -8,6 +8,7 @@ func _init() -> void:
 	_test_trap_duration_round_trip_shape(failures)
 	_test_aura_duration_round_trip_shape(failures)
 	_test_grab_common_field_round_trip_shape(failures)
+	_test_summon_common_field_round_trip_shape(failures)
 	_test_timeline_round_trip_shape(failures)
 	_test_rejects_unsafe_timeline_event(failures)
 	_test_rejects_schema_mismatch(failures)
@@ -143,6 +144,38 @@ func _test_grab_common_field_round_trip_shape(failures: PackedStringArray) -> vo
 	var reload_errors: PackedStringArray = reloaded.load_from_dictionary(serialized)
 	_expect(reload_errors.is_empty(), "serialized grab package should load again", failures)
 	_expect(JSON.stringify(serialized) == JSON.stringify(reloaded.to_dictionary()), "grab package round trip should be deterministic", failures)
+
+
+func _test_summon_common_field_round_trip_shape(failures: PackedStringArray) -> void:
+	var data: Dictionary = _valid_package()
+	var skills: Array = data.get("skills", [])
+	var summon_input: Dictionary = skills[0]
+	summon_input["type"] = "summon"
+	summon_input["speed"] = 320.0
+	summon_input["range"] = 150.0
+	summon_input["active"] = 3.0
+	summon_input["knockback"] = 0.0
+	summon_input["hitbox_half_width"] = 38.0
+	summon_input["hitbox_half_depth"] = 0.14
+	var package := CharacterPackageDefinition.new()
+	var errors: PackedStringArray = package.load_from_dictionary(data)
+	_expect(errors.is_empty(), "summon package should load using common bounded fields", failures)
+	var serialized: Dictionary = package.to_dictionary()
+	var serialized_summon: Dictionary = {}
+	for skill_value in serialized.get("skills", []):
+		if skill_value is Dictionary:
+			var skill_data: Dictionary = skill_value
+			if str(skill_data.get("type", "")) == "summon":
+				serialized_summon = skill_data
+	_expect(not serialized_summon.is_empty(), "serialized package should retain authored summon skill", failures)
+	_expect(abs(float(serialized_summon.get("range", 0.0)) - 150.0) < 0.001, "serialized summon should retain bounded spawn range", failures)
+	_expect(abs(float(serialized_summon.get("speed", 0.0)) - 320.0) < 0.001, "serialized summon should retain bounded actor speed", failures)
+	_expect(abs(float(serialized_summon.get("active", 0.0)) - 3.0) < 0.001, "serialized summon should retain finite actor lifetime", failures)
+	_expect(not serialized_summon.has("script") and not serialized_summon.has("scene") and not serialized_summon.has("path"), "summon package contains no executable actor metadata", failures)
+	var reloaded := CharacterPackageDefinition.new()
+	var reload_errors: PackedStringArray = reloaded.load_from_dictionary(serialized)
+	_expect(reload_errors.is_empty(), "serialized summon package should load again", failures)
+	_expect(JSON.stringify(serialized) == JSON.stringify(reloaded.to_dictionary()), "summon package round trip should be deterministic", failures)
 
 
 func _test_timeline_round_trip_shape(failures: PackedStringArray) -> void:

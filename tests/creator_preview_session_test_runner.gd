@@ -17,7 +17,8 @@ const FAMILY_SLOT_MAP := {
 	"aura": "skill_9",
 	"teleport": "skill_10",
 	"counter": "skill_11",
-	"grab": "skill_12"
+	"grab": "skill_12",
+	"summon": "skill_13"
 }
 
 var failures := 0
@@ -131,9 +132,9 @@ func _run() -> void:
 	_check(_contains_fragment(visual_errors, "unsupported preview visual"), "unapproved preview visual fails closed")
 
 	var unsupported_type: Dictionary = skill.to_dictionary()
-	unsupported_type["type"] = "summon"
+	unsupported_type["type"] = "scripted_actor"
 	var unsupported_type_errors: PackedStringArray = session.stage_preview(character.to_dictionary(), unsupported_type)
-	_check(_contains_fragment(unsupported_type_errors, "unsupported skill type: summon"), "unsupported future family fails closed before routing")
+	_check(_contains_fragment(unsupported_type_errors, "unsupported skill type: scripted_actor"), "unsupported future family fails closed before routing")
 	_check(not session.has_active_preview(), "unsupported family cannot activate preview")
 
 	if failures == 0:

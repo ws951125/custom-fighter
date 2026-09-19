@@ -132,6 +132,15 @@ func _test_supported_family_round_trips() -> void:
 	grab.knockback = SkillDefinition.MAX_GRAB_OFFSET + 0.01
 	_check(_contains_error_fragment(grab.validate(), "grab target offset must be"), "invalid grab target offset fails closed")
 
+	var summon := SkillDraft.new()
+	summon.set_skill_type("summon")
+	_check(is_equal_approx(summon.range, 150.0), "summon defaults include bounded spawn range")
+	_check(is_equal_approx(summon.speed, 320.0), "summon defaults include bounded actor speed")
+	_check(is_equal_approx(summon.active, 3.0), "summon defaults include finite actor lifetime")
+	_check(is_equal_approx(summon.hitbox_half_width, 38.0) and is_equal_approx(summon.hitbox_half_depth, 0.14), "summon defaults include bounded actor collision volume")
+	summon.active = SkillDefinition.MAX_SUMMON_LIFETIME + 0.01
+	_check(_contains_error_fragment(summon.validate(), "summon lifetime must be"), "invalid summon lifetime fails closed")
+
 func _test_timeline_round_trip(draft: SkillDraft) -> void:
 	draft.reset()
 	var events: Array[Dictionary] = [

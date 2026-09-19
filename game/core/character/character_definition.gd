@@ -3,8 +3,8 @@ extends RefCounted
 
 const CURRENT_SCHEMA_VERSION := 1
 const REQUIRED_SKILL_SLOTS := ["skill_1", "skill_2", "skill_3", "skill_4", "skill_5", "skill_6"]
-const OPTIONAL_SKILL_SLOTS := ["skill_7", "skill_8", "skill_9", "skill_10", "skill_11", "skill_12"]
-const SUPPORTED_SKILL_SLOTS := ["skill_1", "skill_2", "skill_3", "skill_4", "skill_5", "skill_6", "skill_7", "skill_8", "skill_9", "skill_10", "skill_11", "skill_12"]
+const OPTIONAL_SKILL_SLOTS := ["skill_7", "skill_8", "skill_9", "skill_10", "skill_11", "skill_12", "skill_13"]
+const SUPPORTED_SKILL_SLOTS := ["skill_1", "skill_2", "skill_3", "skill_4", "skill_5", "skill_6", "skill_7", "skill_8", "skill_9", "skill_10", "skill_11", "skill_12", "skill_13"]
 const ALLOWED_TOP_LEVEL_FIELDS := [
 	"schema_version", "id", "name", "archetype", "stats", "skill_slots", "visual_profile", "animation_map"
 ]
