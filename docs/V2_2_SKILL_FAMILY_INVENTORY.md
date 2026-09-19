@@ -1,6 +1,6 @@
 # V2-2 Extended Skill Families — Architecture Inventory
 
-Date: 2026-09-17
+Date: 2026-09-17; phase accepted 2026-09-19
 
 ## Purpose
 
@@ -182,7 +182,7 @@ The target must be eligible and its real hurtbox must overlap that source volume
 Runtime routing is optional `skill_12` / E. Creator Preview injects only the preview copy of `skill_12`; the stored editable CharacterDraft remains unchanged. No arbitrary target selector, callback, path, script, user code or autonomous actor is introduced.
 
 PR #158 latest head `42eeddf2f8c9ca542194734052bb2ac2121a1cf8` passed CI #399 (`35348193780`) across Windows Native, Godot/domain/backend, Web export/size budget, Chromium and Microsoft Edge, then squash-merged to `main` at `d0b4dc9529a81466e03afe74511819efe14152d7`. Main CI #400 (`35349720100`) passed the full production chain on that exact revision after one isolated production Edge retry: attempt #1 had already passed the twelve-family Grab flow and failed later in unchanged Creator VFX revision observation; attempt #2 passed all 24 production Edge smoke stages. Render readiness reported the exact merge revision with Gemini free-tier-only configuration.
-## Work unit 10 — final new family: `summon` — implementation complete; PR validation passed on product-fix head
+## Work unit 10 — final new family: `summon` — accepted and production-validated
 
 Summon reuses the existing common validated field vocabulary instead of introducing an actor-script schema. `range` is a bounded forward spawn offset, `speed` is bounded deterministic horizontal travel speed, `active` is the finite actor lifetime, and `hitbox_half_width` / `hitbox_half_depth` define the actor collision volume.
 
@@ -192,6 +192,19 @@ Runtime routing is optional `skill_13` / Q. Creator Preview injects only the pre
 
 WU10 regression scope includes schema bounds, exact registry type, deterministic actor spawn/travel/single-hit/lifetime semantics, optional-slot compatibility, Creator routing/isolation, common-field Character Package round trip and thirteen-family Chromium/Edge Creator Preview smoke.
 
-PR #160 initially failed CI #403/#404 during Godot parse because `target_eligible := ...` attempted to infer from dynamic `host` members. A temporary `--check-only` diagnostic located `summon_skill_controller.gd:104`; the runtime now declares `target_eligible: bool` explicitly and the temporary diagnostic was removed. Product-fix head `12930f7ac5cbe903e206358e2cca4d774ab7783c` then passed CI #406 (`35369838845`) across Windows Native, Godot/domain/backend, Web export/size budget, Chromium and hosted Microsoft Edge. Both browser suites passed all 24 stages and emitted `families=13 ... summonPolicy=bounded-actor-single-hit ... timelineDispatch=true roundTrip=true`; domain evidence emitted `SUMMON_TESTS_PASSED`.
+PR #160 initially failed CI #403/#404 during Godot parse because `target_eligible := ...` attempted to infer from dynamic `host` members. A temporary `--check-only` diagnostic located `summon_skill_controller.gd:104`; the runtime now declares `target_eligible: bool` explicitly and the temporary diagnostic was removed. Product-fix head `12930f7ac5cbe903e206358e2cca4d774ab7783c` then passed CI #406 (`35369838845`) across Windows Native, Godot/domain/backend, Web export/size budget, Chromium and hosted Microsoft Edge.
 
-A final latest-head PR gate is still required after these documentation updates. After Summon is explicitly approved, merged, and passes exact-`main` production validation, V2-2 can be evaluated against its full phase acceptance criteria.
+Latest PR head `23eff68188dca878877209ffe92d3fd3e1e40938` passed CI #409 (`35407714816`). PR #160 squash-merged as `5502bbc9b31725488d34e3614c495fe2ad47d85d`, and Main CI #410 (`35410123320`) passed the complete production chain on that exact revision. Domain evidence emitted `SUMMON_TESTS_PASSED`; Chromium, hosted Edge, and deployed production Edge exercised the thirteen-family flow with `summonPolicy=bounded-actor-single-hit`, timeline dispatch/round-trip success, and 24/24 smoke stages.
+
+## V2-2 phase acceptance
+
+V2-2 Extended Skill Families is **accepted complete** on 2026-09-19.
+
+The roadmap acceptance criterion is satisfied across the full scope:
+- Beam, Trap, Aura, Teleport, Counter, Grab, and Summon each have bounded validated data definitions, runtime implementations, Creator authoring/Preview routing, deterministic tests, and Chromium/Edge coverage.
+- Safe scripted event compositions are allow-listed declarative recipes that expand only into validated animation/VFX/audio/hitbox/hurtbox timeline events.
+- Exact-type registry loading, optional-slot backwards compatibility, Character Package round-trip, shared `SkillCastState`/`SkillCoordinator`, and fail-closed validation remain intact.
+- No arbitrary user code, callback, script, resource path, target selector, or unbounded actor spawning is introduced.
+- Final production revision `5502bbc9b31725488d34e3614c495fe2ad47d85d` passed Main CI #410 across Pages/public reachability, Render exact-revision readiness, and production Microsoft Edge full smoke.
+
+V2-2 is therefore closed and V2 progress advances to **25% (2/8 phases complete)**.
