@@ -239,8 +239,15 @@ func _import_package_json(json_text: String) -> PackedStringArray:
 
 	var apply_character_errors: PackedStringArray = character_draft.load_from_dictionary(character_data)
 	var apply_skill_errors: PackedStringArray = skill_draft.load_from_dictionary(skill_1_data)
-	if not apply_character_errors.is_empty() or not apply_skill_errors.is_empty():
+	var apply_animation_errors: PackedStringArray = animation_draft.load_from_id(character_draft.animation_map) if apply_character_errors.is_empty() else PackedStringArray()
+	if not apply_character_errors.is_empty() or not apply_skill_errors.is_empty() or not apply_animation_errors.is_empty():
 		errors.append("validated package failed to apply to Creator drafts")
+		return errors
+	if session.has_method("store_animation_map_draft"):
+		var animation_store_errors: PackedStringArray = session.call("store_animation_map_draft", animation_draft.to_dictionary())
+		for error in animation_store_errors:
+			errors.append("animation draft: %s" % error)
+	if not errors.is_empty():
 		return errors
 
 	_sync_character_controls_from_draft()
