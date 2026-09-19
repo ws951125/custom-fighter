@@ -3,6 +3,7 @@ extends RefCounted
 
 const CharacterPackageDefinition = preload("res://game/core/package/character_package_definition.gd")
 const CharacterAnimationMap = preload("res://game/core/character/character_animation_map.gd")
+const CharacterAudioBindings = preload("res://game/core/character/character_audio_bindings.gd")
 const VfxDraft = preload("res://game/creator/vfx_editor/vfx_draft.gd")
 
 const CURRENT_SCHEMA_VERSION := 2
@@ -10,7 +11,7 @@ const LEGACY_SCHEMA_VERSION := 1
 const MAX_VFX_PNG_BYTES := 5 * 1024 * 1024
 const MAX_VFX_BASE64_CHARS := 7 * 1024 * 1024
 const ALLOWED_V2_TOP_LEVEL_FIELDS := [
-	"schema_version", "package_id", "package_version", "character", "skills", "animation_map", "vfx_asset"
+	"schema_version", "package_id", "package_version", "character", "skills", "animation_map", "audio_bindings", "vfx_asset"
 ]
 const ALLOWED_VFX_ASSET_FIELDS := [
 	"skill_slot", "skill_id", "mime_type", "metadata", "png_base64"
@@ -22,6 +23,7 @@ var package_version := 1
 var character_data: Dictionary = {}
 var skill_data_by_id: Dictionary = {}
 var animation_map_data: Dictionary = {}
+var audio_bindings_data: Dictionary = {}
 var vfx_data: Dictionary = {}
 var vfx_png_bytes := PackedByteArray()
 var loaded := false
@@ -33,6 +35,7 @@ func reset() -> void:
 	character_data.clear()
 	skill_data_by_id.clear()
 	animation_map_data.clear()
+	audio_bindings_data.clear()
 	vfx_data.clear()
 	vfx_png_bytes.clear()
 	loaded = false
@@ -87,6 +90,11 @@ func _load_v2(data: Dictionary) -> PackedStringArray:
 		if not errors.is_empty():
 			return errors
 
+	if data.has("audio_bindings"):
+		_validate_audio_bindings_payload(data.get("audio_bindings"), errors)
+		if not errors.is_empty():
+			return errors
+
 	if data.has("vfx_asset"):
 		var asset_value: Variant = data.get("vfx_asset")
 		if not asset_value is Dictionary:
@@ -98,6 +106,7 @@ func _load_v2(data: Dictionary) -> PackedStringArray:
 	loaded = errors.is_empty()
 	if not loaded:
 		animation_map_data.clear()
+		audio_bindings_data.clear()
 		vfx_data.clear()
 		vfx_png_bytes.clear()
 	return errors
@@ -124,6 +133,18 @@ func _validate_animation_map_payload(value: Variant, errors: PackedStringArray) 
 		"id": animation_map.map_id,
 		"animations": canonical_animations
 	}
+
+func _validate_audio_bindings_payload(value: Variant, errors: PackedStringArray) -> void:
+	if not value is Dictionary:
+		errors.append("audio_bindings must be an object")
+		return
+	var bindings := CharacterAudioBindings.new()
+	var binding_errors: PackedStringArray = bindings.load_from_dictionary(value)
+	for error in binding_errors:
+		errors.append("audio_bindings: %s" % error)
+	if not binding_errors.is_empty():
+		return
+	audio_bindings_data = bindings.to_dictionary()
 
 func _validate_vfx_asset(asset: Dictionary, errors: PackedStringArray) -> void:
 	_validate_allowed_fields(asset, ALLOWED_VFX_ASSET_FIELDS, "vfx_asset", errors)
@@ -184,6 +205,9 @@ func _validate_vfx_asset(asset: Dictionary, errors: PackedStringArray) -> void:
 func has_animation_map() -> bool:
 	return loaded and not animation_map_data.is_empty()
 
+func has_audio_bindings() -> bool:
+	return loaded and not audio_bindings_data.is_empty()
+
 func has_vfx_asset() -> bool:
 	return loaded and not vfx_data.is_empty() and not vfx_png_bytes.is_empty()
 
@@ -197,6 +221,8 @@ func to_dictionary() -> Dictionary:
 	result["schema_version"] = CURRENT_SCHEMA_VERSION
 	if has_animation_map():
 		result["animation_map"] = animation_map_data.duplicate(true)
+	if has_audio_bindings():
+		result["audio_bindings"] = audio_bindings_data.duplicate(true)
 	if has_vfx_asset():
 		var slots: Dictionary = character_data.get("skill_slots", {})
 		result["vfx_asset"] = {
