@@ -2,6 +2,7 @@ class_name SelfContainedCharacterPackageDefinition
 extends RefCounted
 
 const CharacterPackageDefinition = preload("res://game/core/package/character_package_definition.gd")
+const CharacterAnimationMap = preload("res://game/core/character/character_animation_map.gd")
 const VfxDraft = preload("res://game/creator/vfx_editor/vfx_draft.gd")
 
 const CURRENT_SCHEMA_VERSION := 2
@@ -9,7 +10,7 @@ const LEGACY_SCHEMA_VERSION := 1
 const MAX_VFX_PNG_BYTES := 5 * 1024 * 1024
 const MAX_VFX_BASE64_CHARS := 7 * 1024 * 1024
 const ALLOWED_V2_TOP_LEVEL_FIELDS := [
-	"schema_version", "package_id", "package_version", "character", "skills", "vfx_asset"
+	"schema_version", "package_id", "package_version", "character", "skills", "animation_map", "vfx_asset"
 ]
 const ALLOWED_VFX_ASSET_FIELDS := [
 	"skill_slot", "skill_id", "mime_type", "metadata", "png_base64"
@@ -20,6 +21,7 @@ var package_id := ""
 var package_version := 1
 var character_data: Dictionary = {}
 var skill_data_by_id: Dictionary = {}
+var animation_map_data: Dictionary = {}
 var vfx_data: Dictionary = {}
 var vfx_png_bytes := PackedByteArray()
 var loaded := false
@@ -30,6 +32,7 @@ func reset() -> void:
 	package_version = 1
 	character_data.clear()
 	skill_data_by_id.clear()
+	animation_map_data.clear()
 	vfx_data.clear()
 	vfx_png_bytes.clear()
 	loaded = false
@@ -79,6 +82,11 @@ func _load_v2(data: Dictionary) -> PackedStringArray:
 	_copy_legacy_state(legacy)
 	schema_version = CURRENT_SCHEMA_VERSION
 
+	if data.has("animation_map"):
+		_validate_animation_map_payload(data.get("animation_map"), errors)
+		if not errors.is_empty():
+			return errors
+
 	if data.has("vfx_asset"):
 		var asset_value: Variant = data.get("vfx_asset")
 		if not asset_value is Dictionary:
@@ -89,9 +97,33 @@ func _load_v2(data: Dictionary) -> PackedStringArray:
 
 	loaded = errors.is_empty()
 	if not loaded:
+		animation_map_data.clear()
 		vfx_data.clear()
 		vfx_png_bytes.clear()
 	return errors
+
+func _validate_animation_map_payload(value: Variant, errors: PackedStringArray) -> void:
+	if not value is Dictionary:
+		errors.append("animation_map must be an object")
+		return
+	var animation_map := CharacterAnimationMap.new()
+	var map_errors: PackedStringArray = animation_map.load_from_dictionary(value)
+	for error in map_errors:
+		errors.append("animation_map: %s" % error)
+	if not map_errors.is_empty():
+		return
+	var expected_id: String = str(character_data.get("animation_map", "")).strip_edges().to_lower()
+	if animation_map.map_id != expected_id:
+		errors.append("animation_map id must match character animation_map")
+		return
+	var canonical_animations: Dictionary = {}
+	for semantic in CharacterAnimationMap.REQUIRED_SEMANTICS:
+		canonical_animations[semantic] = str(animation_map.animations.get(semantic, ""))
+	animation_map_data = {
+		"schema_version": animation_map.schema_version,
+		"id": animation_map.map_id,
+		"animations": canonical_animations
+	}
 
 func _validate_vfx_asset(asset: Dictionary, errors: PackedStringArray) -> void:
 	_validate_allowed_fields(asset, ALLOWED_VFX_ASSET_FIELDS, "vfx_asset", errors)
@@ -149,6 +181,9 @@ func _validate_vfx_asset(asset: Dictionary, errors: PackedStringArray) -> void:
 	vfx_data = draft.to_dictionary()
 	vfx_png_bytes = png_bytes.duplicate()
 
+func has_animation_map() -> bool:
+	return loaded and not animation_map_data.is_empty()
+
 func has_vfx_asset() -> bool:
 	return loaded and not vfx_data.is_empty() and not vfx_png_bytes.is_empty()
 
@@ -160,6 +195,8 @@ func to_dictionary() -> Dictionary:
 
 	var result: Dictionary = to_legacy_dictionary()
 	result["schema_version"] = CURRENT_SCHEMA_VERSION
+	if has_animation_map():
+		result["animation_map"] = animation_map_data.duplicate(true)
 	if has_vfx_asset():
 		var slots: Dictionary = character_data.get("skill_slots", {})
 		result["vfx_asset"] = {
