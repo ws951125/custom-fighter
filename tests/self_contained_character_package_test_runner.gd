@@ -7,6 +7,9 @@ func _init() -> void:
 	_test_accepts_legacy_v1(failures)
 	_test_valid_v2_vfx_round_trip(failures)
 	_test_valid_v2_animation_map_round_trip(failures)
+	_test_valid_v2_audio_bindings_round_trip(failures)
+	_test_rejects_unsafe_audio_binding(failures)
+	_test_rejects_unknown_audio_binding(failures)
 	_test_rejects_animation_map_id_mismatch(failures)
 	_test_rejects_unsafe_animation_map_token(failures)
 	_test_rejects_unknown_animation_map_field(failures)
@@ -64,6 +67,42 @@ func _test_valid_v2_animation_map_round_trip(failures: PackedStringArray) -> voi
 	var reload_errors: PackedStringArray = reloaded.load_from_dictionary(serialized)
 	_expect(reload_errors.is_empty(), "serialized animation-map package should reload", failures)
 	_expect(JSON.stringify(serialized) == JSON.stringify(reloaded.to_dictionary()), "animation-map package round trip should be deterministic", failures)
+
+func _test_valid_v2_audio_bindings_round_trip(failures: PackedStringArray) -> void:
+	var data: Dictionary = _legacy_package()
+	data["schema_version"] = 2
+	data["audio_bindings"] = _audio_bindings("package_cast_custom")
+	var package := PackageDefinition.new()
+	var errors: PackedStringArray = package.load_from_dictionary(data)
+	_expect(errors.is_empty(), "schema-v2 package should accept validated audio bindings", failures)
+	_expect(package.has_audio_bindings(), "schema-v2 package should expose audio bindings", failures)
+	var cues: Dictionary = package.audio_bindings_data.get("cues", {})
+	_expect(str(cues.get("skill_cast", "")) == "package_cast_custom", "custom audio cue should survive package validation", failures)
+	var serialized: Dictionary = package.to_dictionary()
+	_expect(serialized.has("audio_bindings"), "schema-v2 serialization should retain audio bindings", failures)
+	var reloaded := PackageDefinition.new()
+	var reload_errors: PackedStringArray = reloaded.load_from_dictionary(serialized)
+	_expect(reload_errors.is_empty(), "serialized audio-binding package should reload", failures)
+	_expect(JSON.stringify(serialized) == JSON.stringify(reloaded.to_dictionary()), "audio-binding package round trip should be deterministic", failures)
+
+func _test_rejects_unsafe_audio_binding(failures: PackedStringArray) -> void:
+	var data: Dictionary = _legacy_package()
+	data["schema_version"] = 2
+	data["audio_bindings"] = _audio_bindings("../payload.wav")
+	var package := PackageDefinition.new()
+	var errors: PackedStringArray = package.load_from_dictionary(data)
+	_expect(_contains(errors, "safe lowercase token"), "unsafe packaged audio cue must fail closed", failures)
+
+func _test_rejects_unknown_audio_binding(failures: PackedStringArray) -> void:
+	var data: Dictionary = _legacy_package()
+	data["schema_version"] = 2
+	var audio_bindings: Dictionary = _audio_bindings("package_cast_custom")
+	var cues: Dictionary = audio_bindings.get("cues", {})
+	cues["script"] = "payload"
+	data["audio_bindings"] = audio_bindings
+	var package := PackageDefinition.new()
+	var errors: PackedStringArray = package.load_from_dictionary(data)
+	_expect(_contains(errors, "unsupported audio_bindings.cues field: script"), "unknown packaged audio binding must fail closed", failures)
 
 func _test_rejects_animation_map_id_mismatch(failures: PackedStringArray) -> void:
 	var data: Dictionary = _legacy_package()
@@ -185,6 +224,18 @@ func _animation_map(ready_id: String) -> Dictionary:
 			"skill_4": "ember_skill_four",
 			"skill_5": "ember_skill_five",
 			"skill_6": "ember_skill_six"
+		}
+	}
+
+func _audio_bindings(skill_cast_cue: String) -> Dictionary:
+	return {
+		"schema_version": 1,
+		"cues": {
+			"ready": "character_ready",
+			"basic_attack": "basic_attack",
+			"hit_received": "character_hit",
+			"skill_cast": skill_cast_cue,
+			"skill_impact": "skill_impact"
 		}
 	}
 
