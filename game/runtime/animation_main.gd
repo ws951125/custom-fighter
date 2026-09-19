@@ -35,7 +35,18 @@ func _enter_tree() -> void:
 	if not player_character.loaded:
 		return
 
-	var animation_errors: PackedStringArray = player_animation_map.load_from_id(player_character.animation_map)
+	var session: Variant = get_node_or_null("/root/CreatorPreviewSession")
+	var animation_errors := PackedStringArray()
+	if (
+		session != null
+		and session.has_method("has_active_animation_preview")
+		and bool(session.call("has_active_animation_preview"))
+		and session.has_method("preview_animation_map_data")
+	):
+		var preview_animation_data: Dictionary = session.call("preview_animation_map_data")
+		animation_errors = player_animation_map.load_from_dictionary(preview_animation_data)
+	else:
+		animation_errors = player_animation_map.load_from_id(player_character.animation_map)
 	if not animation_errors.is_empty():
 		player_animation_load_error = " | ".join(animation_errors)
 		push_error("Failed to load player animation map: %s" % player_animation_load_error)
@@ -312,6 +323,7 @@ func _set_web_state() -> void:
 		"document.documentElement.dataset.playerAnimationSemantic=%s;" % JSON.stringify(_animation_semantic_name()) +
 		"document.documentElement.dataset.playerAnimationId=%s;" % JSON.stringify(_current_animation_id()) +
 		"document.documentElement.dataset.playerAnimationLoadError=%s;" % JSON.stringify(player_animation_load_error) +
+		"document.documentElement.dataset.creatorPreviewAnimationOverrideActive='%s';" % ("true" if preview_active and session != null and session.has_method("has_active_animation_preview") and bool(session.call("has_active_animation_preview")) else "false") +
 		"document.documentElement.dataset.creatorPreviewReturnReady='%s';" % ("true" if preview_active else "false") +
 		"document.documentElement.dataset.creatorPreviewVfxRuntimeLoaded='%s';" % _bool_text(preview_vfx_loaded) +
 		"document.documentElement.dataset.creatorPreviewVfxRuntimeFrameCount='%d';" % (preview_vfx_draft.frame_count if preview_vfx_loaded else 0) +
