@@ -110,6 +110,16 @@ try {
     }
   }
 
+  await page.evaluate(() => window.customFighterCreatorSetAnimationSemantic('ready', '../unsafe.gd'));
+  await page.waitForFunction(
+    () =>
+      document.documentElement.dataset.creatorDraftValid === 'false' &&
+      document.documentElement.dataset.creatorPackageCanExport === 'false' &&
+      (document.documentElement.dataset.creatorDraftError ?? '').includes('safe lowercase token'),
+    null,
+    { timeout: 5_000 },
+  );
+
   await page.evaluate(() => {
     window.customFighterCreatorSetName('Mutated Draft');
     window.customFighterCreatorSetAnimationMap('ember_vanguard');
@@ -121,6 +131,7 @@ try {
   await page.waitForFunction(
     () =>
       document.documentElement.dataset.creatorDraftName === 'Mutated Draft' &&
+      document.documentElement.dataset.creatorPackageCanExport === 'true' &&
       document.documentElement.dataset.creatorDraftAnimationMap === 'ember_vanguard' &&
       document.documentElement.dataset.creatorAnimationDraftValid === 'true' &&
       document.documentElement.dataset.creatorAnimationDraftSemantic === 'ready' &&
@@ -215,7 +226,7 @@ try {
     { timeout: 5_000 },
   );
 
-  console.log('WEB_CREATOR_PACKAGE_SMOKE_PASSED export=true schema=2 noVfxFallback=true animationMapRoundTrip=true animationPreview=true semanticTransientReset=true missingAnimationMapBlocked=true timelineRoundTrip=true compositionExpanded=true invalidPreserved=true import=true authoredHp=222 authoredDamage=41 authoredMpCost=19 previewCast=true');
+  console.log('WEB_CREATOR_PACKAGE_SMOKE_PASSED export=true schema=2 noVfxFallback=true animationMapRoundTrip=true animationPreview=true semanticInvalidExportBlocked=true semanticTransientReset=true missingAnimationMapBlocked=true timelineRoundTrip=true compositionExpanded=true invalidPreserved=true import=true authoredHp=222 authoredDamage=41 authoredMpCost=19 previewCast=true');
   await page.close();
 } finally {
   await browser.close();
