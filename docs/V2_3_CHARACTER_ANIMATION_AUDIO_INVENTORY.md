@@ -136,12 +136,11 @@ Scope:
 7. Prove Creator authoring, Preview runtime resolution, package round-trip and tamper rejection in domain/Chromium/hosted-Edge coverage.
 8. Keep raw audio files, decoders, URLs, filesystem paths and executable callbacks out of WU4.
 
-Validation target:
-- `CHARACTER_AUDIO_BINDINGS_TESTS_PASSED`;
-- Creator Preview session audio-binding safety coverage;
-- `SELF_CONTAINED_CHARACTER_PACKAGE_TESTS_PASSED` with audio-binding cases;
-- Creator Studio / Creator Preview / Creator Package Chromium + hosted-Edge regressions;
-- Godot import/boot/domain, Web export/size budget, full `smoke:all`, and Windows Native export.
+Validation result:
+- PR #166 head `22c41b662a5753d59f47a3cd44bd20e63cfc975c` passed PR CI #425 (`35457465896`).
+- Windows Native, Godot import/boot/domain/backend, Web export/size budget, Chromium `smoke:all`, and GitHub-hosted Microsoft Edge `smoke:all` all passed.
+- Creator Studio proved safe/unsafe audio binding authoring; Creator Preview proved runtime `skill_cast` resolution plus serialized draft round-trip; Creator Package proved schema-v2 export/import, tamper rejection, and Training preservation.
+- CI #422/#424 failures were limited to the browser test treating a transient selector row as persisted model state. The product/runtime state was already correct; L-034 records the correction and CI #425 validates it cross-browser.
 
 ## Deferred after WU4
 
