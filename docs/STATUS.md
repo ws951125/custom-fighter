@@ -234,13 +234,15 @@ Work unit 3 — **self-contained Character Package persistence for semantic anim
 - No arbitrary animation resource/file path, URL, script, callback or executable payload is introduced.
 - V2 remains **25% (2/8 phases complete)** until the full V2-3 phase acceptance criterion is satisfied.
 
-Work unit 4 — **safe character/skill audio cue bindings — implementation synchronized; PR validation pending**:
+Work unit 4 — **safe character/skill audio cue bindings — implementation complete; PR validation passed**:
 - A new `CharacterAudioBindings` contract defines exactly five fixed semantic binding slots: `ready`, `basic_attack`, `hit_received`, `skill_cast`, and `skill_impact`.
 - Each binding resolves only to a safe lowercase cue token. Unknown binding names, missing required bindings, path/URL/code-like values and arbitrary executable metadata fail closed.
 - Creator Character Editor exposes fixed binding selection + Cue ID editing through `CharacterAudioDraft`; combined Character validation blocks Preview/package export while the audio draft is invalid.
 - Creator Preview stages validated audio bindings in memory. Existing timeline `audio` events remain declarative; when their cue is one of the fixed semantic binding names, Preview resolves it through the authored binding map before publishing runtime audio telemetry.
 - Self-contained Character Package schema v2 adds optional structured `audio_bindings` data. Legacy schema v1 and schema-v2 packages without this field remain compatible; imports without authored bindings reset to safe defaults.
 - Browser/domain regressions cover safe/unsafe Creator editing, PreviewSession fail-closed behavior, runtime `skill_cast` resolution, deterministic package round-trip, tampered package rejection and import → Training preservation.
+- PR #166 head `22c41b662a5753d59f47a3cd44bd20e63cfc975c` passed PR CI #425 (`35457465896`) across Windows Native, Godot import/boot/domain/backend, Web export/size budget, Chromium `smoke:all`, and GitHub-hosted Microsoft Edge `smoke:all`.
+- CI #422/#424 exposed only a browser-regression assertion that confused persisted draft data with transient editor selection. No runtime behavior change was required; L-034 records the prevention rule, and the corrected latest head passed both Chromium and hosted Edge.
 - WU4 deliberately does **not** accept or decode audio files yet. Audio bytes, approved MIME/codec import, package asset transport and real playback binding remain later V2-3 slices.
 - V2 remains **25% (2/8 phases complete)** until the full V2-3 phase acceptance criterion is satisfied.
 
