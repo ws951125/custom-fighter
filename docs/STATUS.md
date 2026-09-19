@@ -197,17 +197,30 @@ V2 progress therefore advances to **25% (2/8 phases complete)**, and **V2-3 Char
 
 ### V2-3 implementation checkpoints
 
-Work unit 1 — **trusted animation-map authoring foundation — implementation complete; PR validation passed on product head; latest-head docs gate pending**:
+Work unit 1 — **trusted animation-map authoring foundation — accepted and production-validated**:
 - V2-3 architecture inventory is recorded in `docs/V2_3_CHARACTER_ANIMATION_AUDIO_INVENTORY.md`.
 - Existing runtime `CharacterAnimationMap` remains authoritative and resolves only trusted `res://content/character_animations/<id>.animation.json` data with safe-token animation IDs.
-- Character Editor now exposes an Animation Map field and Web bridge/telemetry.
-- `CharacterDraft` now requires the authored map to actually resolve through `CharacterAnimationMap`; a safe-looking but missing token fails closed rather than reaching Preview with a broken runtime reference.
+- Character Editor exposes an Animation Map field and Web bridge/telemetry.
+- `CharacterDraft` requires the authored map to actually resolve through `CharacterAnimationMap`; a safe-looking but missing token fails closed rather than reaching Preview with a broken runtime reference.
 - Existing Character Package schema is intentionally unchanged because `character.animation_map` already round-trips. Browser regression proves authored `storm_duelist` survives export/import and Preview loads the Storm map; a package referencing a missing map is rejected without mutating the valid draft.
-- PR #162 head `23c673be0fa6a58949849884b3d879b1186174ee` passed CI #413 (`35420773510`) across Windows Native, Godot import/boot/domain/backend, Web export/size budget, Chromium `smoke:all`, and hosted Microsoft Edge `smoke:all`.
-- Explicit evidence includes `CREATOR_CHARACTER_DRAFT_TESTS_PASSED`, `WEB_CREATOR_STUDIO_SMOKE_PASSED ... animationMapAuthoring=true missingMapBlocked=true`, `WEB_CREATOR_PACKAGE_SMOKE_PASSED ... animationMapRoundTrip=true animationPreview=true missingAnimationMapBlocked=true`, and `SMOKE_SUITE_PASSED count=24` in both Chromium and Edge.
+- Product head `23c673be0fa6a58949849884b3d879b1186174ee` passed CI #413 (`35420773510`), and documentation-updated latest PR head `a7952ee28ffafdbfa210908503b62b82f3ff9f2f` passed CI #415 (`35422840793`).
+- PR #162 squash-merged to `main` as `65489e41d66bed5af2eb44b3c2ad63222b240b78`.
+- Main CI #416 (`35431205627`) completed successfully on exact `main` revision `65489e41d66bed5af2eb44b3c2ad63222b240b78`. Attempt 1 reached production Edge after Pages/public/Render success but timed out in unchanged Creator Preview `timeline-overlap-window`; feature-specific character-animation and Creator animation-map coverage had already passed. Per L-007, no unrelated runtime code changed; the exact-SHA targeted retry passed the full chain.
+- Final production evidence includes `WEB_CHARACTER_ANIMATION_SMOKE_PASSED`, `WEB_CREATOR_STUDIO_SMOKE_PASSED ... animationMapAuthoring=true missingMapBlocked=true`, `WEB_CREATOR_PACKAGE_SMOKE_PASSED ... animationMapRoundTrip=true animationPreview=true missingAnimationMapBlocked=true`, `SMOKE_SUITE_PASSED count=24`, and `PRODUCTION_AI_BACKEND_READY ... revision=65489e41d66bed5af2eb44b3c2ad63222b240b78`.
 - No arbitrary resource path, URL, script, callback, or executable payload is introduced.
 - Existing timeline audio remains a safe cue-token boundary only. Audio-file import and package audio assets are deferred to later V2-3 work.
 - V2 remains **25% (2/8 phases complete)** until the complete V2-3 acceptance criterion is met.
+
+Work unit 2 — **per-semantic animation-map authoring + in-memory Preview — implementation synchronized; PR validation pending**:
+- New `CharacterAnimationDraft` loads a trusted starter map, exposes only the fixed `CharacterAnimationMap.REQUIRED_SEMANTICS` vocabulary, and validates every authored animation ID as a safe lowercase token through the existing runtime `CharacterAnimationMap` contract.
+- Character Editor adds a Semantic selector + Animation ID field. Web authoring can update one semantic at a time; path-like values such as `../evil.gd` make the draft invalid and block Preview.
+- `CreatorPreviewSession.stage_preview(...)` accepts an optional validated animation-map dictionary, requires its map ID to match `CharacterDraft.animation_map`, and clears stale animation-preview data on failed staging.
+- Training Preview loads the validated in-memory map through `CharacterAnimationMap.load_from_dictionary()`; runtime telemetry exposes that the override is active and the current semantic resolves to the authored animation token.
+- Preview → Creator round-trip preserves the transient semantic mapping in session memory.
+- Character Package schema is deliberately unchanged in WU2. Package import resets any transient semantic override to the package's trusted `character.animation_map` reference, preventing stale in-memory mappings from leaking across package boundaries. Persisting custom semantic mappings in packages is deferred to WU3.
+- Domain/browser regressions cover safe/unsafe semantic authoring, map-ID mismatch fail-closed behavior, runtime Preview application, Preview return preservation, and package-import transient reset.
+- No arbitrary animation resource path, URL, script, callback, or executable payload is introduced.
+- V2 remains **25% (2/8 phases complete)** until the full V2-3 phase acceptance criterion is satisfied.
 
 ### V2-1 implementation checkpoints
 
@@ -325,4 +338,4 @@ AI VFX backend: `https://custom-fighter-ai-vfx.onrender.com`
 
 ## Next implementation target
 
-Run the documentation-updated latest-head PR gate for #162. If Windows Native, Godot/domain/backend, Web/Chromium and hosted Microsoft Edge remain green, request explicit merge approval. After merge, require exact-`main` production validation before starting the next safe V2-3 slice: per-semantic animation-map authoring and preview, before approved audio-file assets.
+Validate V2-3 Work Unit 2 on GitHub: Godot import/boot, `CREATOR_CHARACTER_ANIMATION_DRAFT_TESTS_PASSED`, Creator Preview session safety, Web export/size budget, Chromium `smoke:all`, and hosted Microsoft Edge `smoke:all`. After WU2 is production-validated, begin WU3 to persist validated custom semantic animation mappings through Character Package export/import without allowing arbitrary resource paths.
