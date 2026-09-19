@@ -16,6 +16,7 @@ var skill_panel: PanelContainer
 var id_edit: LineEdit
 var name_edit: LineEdit
 var archetype_edit: LineEdit
+var animation_map_edit: LineEdit
 var hp_spin: SpinBox
 var mp_spin: SpinBox
 var speed_spin: SpinBox
@@ -40,6 +41,7 @@ var skill_validation_label: Label
 var skill_summary_label: Label
 
 var _web_set_name_callback
+var _web_set_animation_map_callback
 var _web_set_hp_callback
 var _web_reset_callback
 var _web_select_editor_callback
@@ -149,9 +151,10 @@ func _build_character_panel() -> PanelContainer:
 	id_edit = _add_text_field(identity_column, "Character ID", "Safe lowercase token, e.g. my_fighter_001")
 	name_edit = _add_text_field(identity_column, "Display Name", "Shown to players")
 	archetype_edit = _add_text_field(identity_column, "Archetype", "Safe token, e.g. balanced")
+	animation_map_edit = _add_text_field(identity_column, "Animation Map", "Trusted content map id, e.g. ember_vanguard or storm_duelist")
 
 	var inherited := Label.new()
-	inherited.text = "Approved starter defaults remain active for visual profile, animation map and U/I/O/P/B/H skill slots."
+	inherited.text = "Approved starter defaults remain active for visual profile and U/I/O/P/B/H skill slots. Animation Map is editable but must resolve through trusted character-animation content."
 	inherited.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	inherited.modulate = Color("8fa1c6")
 	identity_column.add_child(inherited)
@@ -164,6 +167,7 @@ func _build_character_panel() -> PanelContainer:
 	id_edit.text_changed.connect(_on_id_changed)
 	name_edit.text_changed.connect(_on_name_changed)
 	archetype_edit.text_changed.connect(_on_archetype_changed)
+	animation_map_edit.text_changed.connect(_on_animation_map_changed)
 	hp_spin.value_changed.connect(_on_hp_changed)
 	mp_spin.value_changed.connect(_on_mp_changed)
 	speed_spin.value_changed.connect(_on_speed_changed)
@@ -345,6 +349,7 @@ func _sync_character_controls_from_draft() -> void:
 	id_edit.text = character_draft.character_id
 	name_edit.text = character_draft.character_name
 	archetype_edit.text = character_draft.archetype
+	animation_map_edit.text = character_draft.animation_map
 	hp_spin.value = character_draft.max_hp
 	mp_spin.value = character_draft.max_mp
 	speed_spin.value = character_draft.move_speed
@@ -425,6 +430,10 @@ func _on_name_changed(value: String) -> void:
 
 func _on_archetype_changed(value: String) -> void:
 	character_draft.archetype = value
+	_refresh_character_validation()
+
+func _on_animation_map_changed(value: String) -> void:
+	character_draft.animation_map = value
 	_refresh_character_validation()
 
 func _on_hp_changed(value: float) -> void:
@@ -521,12 +530,13 @@ func _refresh_character_validation(increment_revision: bool = true) -> void:
 	var valid := errors.is_empty()
 	character_validation_label.text = "VALID · Character draft passes runtime schema" if valid else "INVALID · %s" % " | ".join(errors)
 	character_validation_label.modulate = Color("7ff0b1") if valid else Color("ff7b86")
-	character_summary_label.text = "Character: %s · %s · HP %d · MP %d · Move %.0f" % [
+	character_summary_label.text = "Character: %s · %s · HP %d · MP %d · Move %.0f · Anim %s" % [
 		character_draft.character_id,
 		character_draft.character_name,
 		character_draft.max_hp,
 		character_draft.max_mp,
-		character_draft.move_speed
+		character_draft.move_speed,
+		character_draft.animation_map
 	]
 	_set_web_state(errors)
 
@@ -553,6 +563,7 @@ func _install_web_bridge() -> void:
 	if not OS.has_feature("web"):
 		return
 	_web_set_name_callback = JavaScriptBridge.create_callback(_web_set_name)
+	_web_set_animation_map_callback = JavaScriptBridge.create_callback(_web_set_animation_map)
 	_web_set_hp_callback = JavaScriptBridge.create_callback(_web_set_hp)
 	_web_reset_callback = JavaScriptBridge.create_callback(_web_reset)
 	_web_select_editor_callback = JavaScriptBridge.create_callback(_web_select_editor)
@@ -564,6 +575,7 @@ func _install_web_bridge() -> void:
 	_web_reset_skill_callback = JavaScriptBridge.create_callback(_web_reset_skill)
 	var window = JavaScriptBridge.get_interface("window")
 	window.customFighterCreatorSetName = _web_set_name_callback
+	window.customFighterCreatorSetAnimationMap = _web_set_animation_map_callback
 	window.customFighterCreatorSetMaxHp = _web_set_hp_callback
 	window.customFighterCreatorResetDraft = _web_reset_callback
 	window.customFighterCreatorSelectEditor = _web_select_editor_callback
@@ -579,6 +591,12 @@ func _web_set_name(args: Array) -> void:
 		return
 	name_edit.text = str(args[0])
 	_on_name_changed(name_edit.text)
+
+func _web_set_animation_map(args: Array) -> void:
+	if args.is_empty():
+		return
+	animation_map_edit.text = str(args[0])
+	_on_animation_map_changed(animation_map_edit.text)
 
 func _web_set_hp(args: Array) -> void:
 	if args.is_empty():
@@ -660,6 +678,7 @@ func _set_web_state(character_errors: PackedStringArray = PackedStringArray(), s
 		"document.documentElement.dataset.creatorDraftId=%s;" % JSON.stringify(character_draft.character_id) +
 		"document.documentElement.dataset.creatorDraftName=%s;" % JSON.stringify(character_draft.character_name) +
 		"document.documentElement.dataset.creatorDraftArchetype=%s;" % JSON.stringify(character_draft.archetype) +
+		"document.documentElement.dataset.creatorDraftAnimationMap=%s;" % JSON.stringify(character_draft.animation_map) +
 		"document.documentElement.dataset.creatorDraftMaxHp='%d';" % character_draft.max_hp +
 		"document.documentElement.dataset.creatorDraftMaxMp='%d';" % character_draft.max_mp +
 		"document.documentElement.dataset.creatorDraftMoveSpeed='%.3f';" % character_draft.move_speed +
