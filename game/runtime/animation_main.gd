@@ -1,12 +1,15 @@
 extends "res://game/runtime/preview_selectable_main.gd"
 
 const CharacterAnimationMap = preload("res://game/core/character/character_animation_map.gd")
+const CharacterAudioBindings = preload("res://game/core/character/character_audio_bindings.gd")
 const VfxDraft = preload("res://game/creator/vfx_editor/vfx_draft.gd")
 const TimelineCombatBox = preload("res://game/core/combat/combat_box.gd")
 const TIMELINE_INSTANT_PULSE_SECONDS := 0.18
 
 var player_animation_map := CharacterAnimationMap.new()
 var player_animation_load_error := ""
+var player_audio_bindings := CharacterAudioBindings.new()
+var player_audio_bindings_load_error := ""
 var preview_return_button: Button
 var _web_preview_return_callback
 
@@ -50,6 +53,21 @@ func _enter_tree() -> void:
 	if not animation_errors.is_empty():
 		player_animation_load_error = " | ".join(animation_errors)
 		push_error("Failed to load player animation map: %s" % player_animation_load_error)
+
+	var audio_errors := PackedStringArray()
+	if (
+		session != null
+		and session.has_method("has_active_audio_bindings_preview")
+		and bool(session.call("has_active_audio_bindings_preview"))
+		and session.has_method("preview_audio_bindings_data")
+	):
+		var preview_audio_data: Dictionary = session.call("preview_audio_bindings_data")
+		audio_errors = player_audio_bindings.load_from_dictionary(preview_audio_data)
+	else:
+		audio_errors = player_audio_bindings.load_defaults()
+	if not audio_errors.is_empty():
+		player_audio_bindings_load_error = " | ".join(audio_errors)
+		push_error("Failed to load player audio bindings: %s" % player_audio_bindings_load_error)
 
 func _ready() -> void:
 	super()
@@ -95,7 +113,7 @@ func _consume_creator_preview_timeline_transitions() -> void:
 					preview_timeline_last_vfx = str(event.get("visual", "")).strip_edges().to_lower()
 					preview_timeline_vfx_pulse_remaining = TIMELINE_INSTANT_PULSE_SECONDS if duration <= 0.0 else 0.0
 				"audio":
-					preview_timeline_last_audio_cue = str(event.get("cue", "")).strip_edges().to_lower()
+					preview_timeline_last_audio_cue = _resolve_preview_audio_cue(str(event.get("cue", "")))
 					preview_timeline_audio_event_count += 1
 		elif phase_name == "end" and event_type == "animation":
 			var ending_semantic := str(event.get("animation", "")).strip_edges().to_lower()
@@ -105,6 +123,12 @@ func _consume_creator_preview_timeline_transitions() -> void:
 
 	_set_web_state()
 	queue_redraw()
+
+func _resolve_preview_audio_cue(raw_cue: String) -> String:
+	var normalized := raw_cue.strip_edges().to_lower()
+	if player_audio_bindings.loaded and CharacterAudioBindings.REQUIRED_BINDINGS.has(normalized):
+		return player_audio_bindings.cue_for_binding(normalized)
+	return normalized
 
 func _tick_creator_preview_timeline_pulses(delta: float) -> void:
 	var safe_delta := maxf(0.0, delta)
@@ -324,6 +348,14 @@ func _set_web_state() -> void:
 		"document.documentElement.dataset.playerAnimationId=%s;" % JSON.stringify(_current_animation_id()) +
 		"document.documentElement.dataset.playerAnimationLoadError=%s;" % JSON.stringify(player_animation_load_error) +
 		"document.documentElement.dataset.creatorPreviewAnimationOverrideActive='%s';" % ("true" if preview_active and session != null and session.has_method("has_active_animation_preview") and bool(session.call("has_active_animation_preview")) else "false") +
+		"document.documentElement.dataset.playerAudioBindingsLoaded='%s';" % _bool_text(player_audio_bindings.loaded) +
+		"document.documentElement.dataset.creatorPreviewAudioBindingsActive='%s';" % ("true" if preview_active and session != null and session.has_method("has_active_audio_bindings_preview") and bool(session.call("has_active_audio_bindings_preview")) else "false") +
+		"document.documentElement.dataset.playerAudioCueReady=%s;" % JSON.stringify(player_audio_bindings.cue_for_binding("ready")) +
+		"document.documentElement.dataset.playerAudioCueBasicAttack=%s;" % JSON.stringify(player_audio_bindings.cue_for_binding("basic_attack")) +
+		"document.documentElement.dataset.playerAudioCueHitReceived=%s;" % JSON.stringify(player_audio_bindings.cue_for_binding("hit_received")) +
+		"document.documentElement.dataset.playerAudioCueSkillCast=%s;" % JSON.stringify(player_audio_bindings.cue_for_binding("skill_cast")) +
+		"document.documentElement.dataset.playerAudioCueSkillImpact=%s;" % JSON.stringify(player_audio_bindings.cue_for_binding("skill_impact")) +
+		"document.documentElement.dataset.playerAudioBindingsLoadError=%s;" % JSON.stringify(player_audio_bindings_load_error) +
 		"document.documentElement.dataset.creatorPreviewReturnReady='%s';" % ("true" if preview_active else "false") +
 		"document.documentElement.dataset.creatorPreviewVfxRuntimeLoaded='%s';" % _bool_text(preview_vfx_loaded) +
 		"document.documentElement.dataset.creatorPreviewVfxRuntimeFrameCount='%d';" % (preview_vfx_draft.frame_count if preview_vfx_loaded else 0) +
