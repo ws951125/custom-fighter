@@ -213,13 +213,16 @@ try {
 
   // Skill 1: hold real browser input across a Godot frame so the runner cannot miss it.
   await nudge('u', 90);
-  await page.waitForFunction(
-    () => Number(document.documentElement.dataset.playerMp) === 75,
+  const fireballCooldownHandle = await page.waitForFunction(
+    () => {
+      const mp = Number(document.documentElement.dataset.playerMp);
+      const cooldown = Number(document.documentElement.dataset.skillCooldown);
+      return mp === 75 && cooldown > 0 ? cooldown : false;
+    },
     null,
-    { timeout: 3_000 },
+    { timeout: 5_000 },
   );
-  const fireballCooldown = await readNumber('skillCooldown');
-  if (!(fireballCooldown > 0)) throw new Error(`Expected fireball cooldown; got ${fireballCooldown}`);
+  const fireballCooldown = Number(await fireballCooldownHandle.jsonValue());
 
   // A held recast attempt also prevents a dropped key from looking like a valid cooldown rejection.
   await nudge('u', 90);
