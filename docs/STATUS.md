@@ -211,16 +211,24 @@ Work unit 1 — **trusted animation-map authoring foundation — accepted and pr
 - Existing timeline audio remains a safe cue-token boundary only. Audio-file import and package audio assets are deferred to later V2-3 work.
 - V2 remains **25% (2/8 phases complete)** until the complete V2-3 acceptance criterion is met.
 
-Work unit 2 — **per-semantic animation-map authoring + in-memory Preview — implementation synchronized; PR validation pending**:
-- New `CharacterAnimationDraft` loads a trusted starter map, exposes only the fixed `CharacterAnimationMap.REQUIRED_SEMANTICS` vocabulary, and validates every authored animation ID as a safe lowercase token through the existing runtime `CharacterAnimationMap` contract.
-- Character Editor adds a Semantic selector + Animation ID field. Web authoring can update one semantic at a time; path-like values such as `../evil.gd` make the draft invalid and block Preview.
-- `CreatorPreviewSession.stage_preview(...)` accepts an optional validated animation-map dictionary, requires its map ID to match `CharacterDraft.animation_map`, and clears stale animation-preview data on failed staging.
-- Training Preview loads the validated in-memory map through `CharacterAnimationMap.load_from_dictionary()`; runtime telemetry exposes that the override is active and the current semantic resolves to the authored animation token.
-- Preview → Creator round-trip preserves the transient semantic mapping in session memory.
-- Character Package schema is deliberately unchanged in WU2. Package import resets any transient semantic override to the package's trusted `character.animation_map` reference, preventing stale in-memory mappings from leaking across package boundaries. Persisting custom semantic mappings in packages is deferred to WU3.
-- Package export now uses the same combined Character + animation-draft validation as Preview. An invalid semantic token makes `creatorPackageCanExport=false` and blocks export instead of silently serializing a package that omits invalid in-memory animation state.
-- Domain/browser regressions cover safe/unsafe semantic authoring, map-ID mismatch fail-closed behavior, runtime Preview application, Preview return preservation, invalid-animation package-export blocking, and package-import transient reset.
-- No arbitrary animation resource path, URL, script, callback, or executable payload is introduced.
+Work unit 2 — **per-semantic animation-map authoring + in-memory Preview — accepted and production-validated**:
+- `CharacterAnimationDraft` edits only fixed `CharacterAnimationMap.REQUIRED_SEMANTICS` entries and safe lowercase animation-ID tokens; unsafe/path-like values fail closed.
+- Creator Preview stages only a validated in-memory map whose ID matches `CharacterDraft.animation_map`, Training applies it through the existing `CharacterAnimationMap` parser, and Preview → Creator preserves the transient draft.
+- Package export is blocked while semantic animation state is invalid; WU2 intentionally kept package persistence unchanged and package import reset transient animation state to its trusted repository map.
+- PR #163 latest head `4183aa45eac248365c3efeab8f814965d1dac09c` passed PR CI #417 (`35444063803`) across Windows Native, Godot/domain/backend/Web/Chromium and hosted Microsoft Edge.
+- PR #163 squash-merged to `main` as `2111f3b27dfbd3fa0de8380fc72f3167ff4be461`.
+- Main CI #418 (`35444847516`) passed the complete production chain on that exact SHA on attempt 3: Windows Native, Godot/domain/backend/Web/Chromium, hosted Edge, GitHub Pages deployment/public reachability, Render exact-revision readiness, and production Edge full smoke.
+- Main CI #418 attempts 1 and 2 failed only in different unchanged hosted-Edge observation windows: `web_smoke.mjs` missed the short Dummy `RECOVERING` state, then `creator_vfx_runtime_binding_web_smoke.mjs` missed a 5-second Creator dataset synchronization window. WU2-specific semantic animation stages passed before the second timeout; attempt 3 passed the same SHA without product changes. This recurrence is tracked under L-007.
+- Final production evidence includes `WEB_CHARACTER_ANIMATION_SMOKE_PASSED`, `WEB_CREATOR_STUDIO_SMOKE_PASSED ... semanticAuthoring=true unsafeSemanticTokenBlocked=true`, `WEB_CREATOR_PREVIEW_SMOKE_PASSED ... semanticAnimationOverride=true semanticAnimationRoundTrip=true`, `SMOKE_SUITE_PASSED count=24`, and `PRODUCTION_AI_BACKEND_READY ... revision=2111f3b27dfbd3fa0de8380fc72f3167ff4be461`.
+- V2 remains **25% (2/8 phases complete)** until the full V2-3 phase acceptance criterion is satisfied.
+
+Work unit 3 — **self-contained Character Package persistence for semantic animation mappings — implementation synchronized; PR validation pending**:
+- Self-contained package schema v2 now accepts an optional `animation_map` payload containing only the existing schema-v1 `CharacterAnimationMap` shape.
+- Package validation reuses `CharacterAnimationMap.load_from_dictionary()`, canonicalizes only fixed required semantics, rejects unknown/path/code-like fields and unsafe animation IDs, and requires the payload ID to equal `character.animation_map`.
+- Legacy Character Package schema v1 remains unchanged and import-compatible; schema-v2 packages that omit `animation_map` remain valid.
+- Creator schema-v2 export includes the currently validated semantic animation draft. Import first completes the existing legacy character/skill compatibility path, then restores the validated packaged map into Creator/session state so stale transient edits cannot win.
+- Domain regressions cover deterministic map round-trip, ID mismatch, unsafe animation token and unknown-field rejection. Creator Package browser regression now exports a custom `ready` mapping, verifies package JSON, blocks a tampered unsafe mapping without mutating valid drafts, imports the original package, and proves Training runs the packaged custom semantic mapping.
+- No arbitrary animation resource/file path, URL, script, callback or executable payload is introduced.
 - V2 remains **25% (2/8 phases complete)** until the full V2-3 phase acceptance criterion is satisfied.
 
 ### V2-1 implementation checkpoints
@@ -339,4 +347,4 @@ AI VFX backend: `https://custom-fighter-ai-vfx.onrender.com`
 
 ## Next implementation target
 
-Validate V2-3 Work Unit 2 on GitHub: Godot import/boot, `CREATOR_CHARACTER_ANIMATION_DRAFT_TESTS_PASSED`, Creator Preview session safety, Web export/size budget, Chromium `smoke:all`, and hosted Microsoft Edge `smoke:all`. After WU2 is production-validated, begin WU3 to persist validated custom semantic animation mappings through Character Package export/import without allowing arbitrary resource paths.
+Validate V2-3 Work Unit 3 on GitHub: self-contained package domain tests, Godot import/boot, Web export/size budget, Creator Package Chromium regression, full Chromium `smoke:all`, Windows Native, and hosted Microsoft Edge `smoke:all`. After WU3 is production-validated, continue V2-3 with the next safe animation/audio authoring slice.
