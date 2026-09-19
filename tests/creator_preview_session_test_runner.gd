@@ -2,6 +2,7 @@ extends SceneTree
 
 const CreatorPreviewSession = preload("res://game/creator/preview/creator_preview_session.gd")
 const CharacterDraft = preload("res://game/creator/character_editor/character_draft.gd")
+const CharacterAnimationMap = preload("res://game/core/character/character_animation_map.gd")
 const SkillDraft = preload("res://game/creator/skill_editor/skill_draft.gd")
 const VfxDraft = preload("res://game/creator/vfx_editor/vfx_draft.gd")
 
@@ -49,6 +50,56 @@ func _run() -> void:
 	_check(int(session.preview_skill_data().get("mp_cost", 0)) == 17, "preview skill carries authored MP cost")
 	_check(absf(float(session.preview_skill_data().get("cooldown", 0.0)) - 2.4) < 0.001, "preview skill carries authored cooldown")
 	_check(str(session.stored_character_draft_data().get("skill_slots", {}).get("skill_1", "")) == "fireball_001", "stored editable CharacterDraft is not mutated by preview binding")
+
+	var animation_map := CharacterAnimationMap.new()
+	var animation_load_errors: PackedStringArray = animation_map.load_from_id("ember_vanguard")
+	_check(animation_load_errors.is_empty(), "trusted animation map loads for preview-session test")
+	var authored_animation_data: Dictionary = animation_map.to_dictionary()
+	var authored_animations: Dictionary = authored_animation_data.get("animations", {}).duplicate(true)
+	authored_animations["ready"] = "preview_ready_custom"
+	authored_animation_data["animations"] = authored_animations
+	var authored_animation_errors: PackedStringArray = session.stage_preview(
+		character.to_dictionary(),
+		skill.to_dictionary(),
+		authored_animation_data
+	)
+	_check(authored_animation_errors.is_empty(), "validated per-semantic animation mapping stages in Creator Preview")
+	_check(session.has_active_animation_preview(), "staged semantic mapping activates animation preview override")
+	_check(session.has_stored_animation_map(), "staged semantic mapping is preserved in session")
+	_check(
+		str(session.preview_animation_map_data().get("animations", {}).get("ready", "")) == "preview_ready_custom",
+		"preview session preserves authored ready animation token"
+	)
+
+	var mismatched_animation_data: Dictionary = authored_animation_data.duplicate(true)
+	mismatched_animation_data["id"] = "storm_duelist"
+	var mismatch_errors: PackedStringArray = session.stage_preview(
+		character.to_dictionary(),
+		skill.to_dictionary(),
+		mismatched_animation_data
+	)
+	_check(_contains_fragment(mismatch_errors, "animation map id must match character animation_map"), "mismatched animation map id fails closed")
+	_check(not session.has_active_preview(), "mismatched animation map deactivates failed preview")
+	_check(not session.has_active_animation_preview(), "mismatched animation map clears stale active animation override")
+
+	var unsafe_animation_data: Dictionary = authored_animation_data.duplicate(true)
+	var unsafe_animations: Dictionary = unsafe_animation_data.get("animations", {}).duplicate(true)
+	unsafe_animations["attack_1"] = "../evil.gd"
+	unsafe_animation_data["animations"] = unsafe_animations
+	var unsafe_animation_errors: PackedStringArray = session.stage_preview(
+		character.to_dictionary(),
+		skill.to_dictionary(),
+		unsafe_animation_data
+	)
+	_check(_contains_fragment(unsafe_animation_errors, "safe lowercase token"), "unsafe animation token fails closed in preview session")
+	_check(not session.has_active_preview(), "unsafe animation payload cannot activate preview")
+
+	var restore_animation_errors: PackedStringArray = session.stage_preview(
+		character.to_dictionary(),
+		skill.to_dictionary(),
+		authored_animation_data
+	)
+	_check(restore_animation_errors.is_empty() and session.has_active_animation_preview(), "valid authored animation preview restores after fail-closed cases")
 
 	var restored_character := CharacterDraft.new()
 	var restore_character_errors: PackedStringArray = restored_character.load_from_dictionary(session.stored_character_draft_data())
