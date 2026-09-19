@@ -36,6 +36,9 @@ async function diagnosticSnapshot() {
         'lastSkillHit',
         'skillHitCount',
         'playerAnimationSemantic',
+        'playerAnimationId',
+        'playerAnimationMapId',
+        'creatorPreviewAnimationOverrideActive',
         'creatorPreviewTimelineRunning',
         'creatorPreviewTimelineElapsed',
         'creatorPreviewTimelineTransitionCount',
@@ -79,6 +82,7 @@ try {
       document.documentElement.dataset.creatorPreviewReady === 'true' &&
       document.documentElement.dataset.creatorTimelineReady === 'true' &&
       typeof window.customFighterCreatorPreview === 'function' &&
+      typeof window.customFighterCreatorSetAnimationSemantic === 'function' &&
       typeof window.customFighterCreatorSetSkillMpCost === 'function' &&
       typeof window.customFighterCreatorSetSkillCooldown === 'function' &&
       typeof window.customFighterCreatorTimelineAdd === 'function' &&
@@ -110,6 +114,7 @@ try {
   diagnosticStage = 'author-timeline';
   await page.evaluate(() => {
     window.customFighterCreatorSetName('Preview Nova');
+    window.customFighterCreatorSetAnimationSemantic('ready', 'preview_ready_custom');
     window.customFighterCreatorSetMaxHp(180);
     window.customFighterCreatorSetSkillName('Nova Bolt');
     window.customFighterCreatorSetSkillDamage(33);
@@ -125,6 +130,9 @@ try {
       document.documentElement.dataset.creatorDraftValid === 'true' &&
       document.documentElement.dataset.creatorSkillDraftValid === 'true' &&
       document.documentElement.dataset.creatorDraftName === 'Preview Nova' &&
+      document.documentElement.dataset.creatorAnimationDraftValid === 'true' &&
+      document.documentElement.dataset.creatorAnimationDraftSemantic === 'ready' &&
+      document.documentElement.dataset.creatorAnimationDraftAnimationId === 'preview_ready_custom' &&
       document.documentElement.dataset.creatorDraftMaxHp === '180' &&
       document.documentElement.dataset.creatorSkillDraftName === 'Nova Bolt' &&
       document.documentElement.dataset.creatorSkillDraftDamage === '33' &&
@@ -148,6 +156,11 @@ try {
       document.documentElement.dataset.creatorPreviewActive === 'true' &&
       document.documentElement.dataset.playerCharacterSource === 'creator_preview_session' &&
       document.documentElement.dataset.playerCharacterName === 'Preview Nova' &&
+      document.documentElement.dataset.creatorPreviewAnimationOverrideActive === 'true' &&
+      document.documentElement.dataset.playerAnimationMapLoaded === 'true' &&
+      document.documentElement.dataset.playerAnimationMapId === 'ember_vanguard' &&
+      document.documentElement.dataset.playerAnimationSemantic === 'ready' &&
+      document.documentElement.dataset.playerAnimationId === 'preview_ready_custom' &&
       document.documentElement.dataset.playerMaxHp === '180' &&
       document.documentElement.dataset.playerRuntimeSkill1 === 'my_projectile_001' &&
       document.documentElement.dataset.skillId === 'my_projectile_001' &&
@@ -236,7 +249,7 @@ try {
   );
 
   diagnosticStage = 'passed';
-  console.log('WEB_CREATOR_PREVIEW_SMOKE_PASSED invalidBlocked=true authoredHp=180 authoredDamage=33 authoredMpCost=17 authoredCooldown=2.4 safeComposition=true timelineRoundTrip=true animationTiming=true vfxTiming=true audioTiming=true spatialHitbox=true spatialHurtbox=true cast=true draftsRestored=true');
+  console.log('WEB_CREATOR_PREVIEW_SMOKE_PASSED invalidBlocked=true authoredHp=180 authoredDamage=33 authoredMpCost=17 authoredCooldown=2.4 semanticAnimationOverride=true safeComposition=true timelineRoundTrip=true animationTiming=true vfxTiming=true audioTiming=true spatialHitbox=true spatialHurtbox=true cast=true draftsRestored=true');
   await page.close();
 } catch (error) {
   const snapshot = await diagnosticSnapshot();
