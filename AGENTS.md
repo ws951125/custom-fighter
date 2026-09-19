@@ -157,3 +157,20 @@ For every meaningful development result/progress reply, report succinctly and in
 - **Next:** next highest-priority task.
 
 Do not report only the current small task while omitting overall project status. Do not claim a test passed without evidence from an executed GitHub-hosted check or workflow.
+<!-- remote-call-budget-optimization:v1 -->
+## Remote Desktop Commander / Remote MCP call-budget optimization (mandatory)
+
+This section is additive only. It does not replace or weaken any existing testing, Playwright, validation, Git/GitHub, Response Gate, PR/merge, deployment, authorization, cleanup, checkpoint, or safety rule.
+
+- Treat Remote Desktop Commander Remote MCP tool calls as a limited monthly resource. Optimize the number of remote calls, not the amount or quality of required work.
+- Batch-first: operations that can safely run in one shell/process must be grouped into one remote call. In particular, combine branch, HEAD, git status, diff summary, upstream/sync status, and other read-only Git checks instead of requesting them separately.
+- Prefer one long-lived terminal/process for a related work round. Do not create a new remote process for every small shell command when the same process can continue safely.
+- Reuse information already read in the current work round. Do not reread unchanged AGENTS.md, package manifests, lockfiles, tsconfig/pyproject/test config, or the same logs unless the file/state changed or revalidation is required.
+- Use failure-driven diagnostics: start with the smallest sufficient check; inspect only the failed scope; widen diagnostics only when the failure cannot be localized.
+- Preserve the existing fast-to-slow test policy. Remote-call optimization never authorizes skipping required lint, typecheck, unit, integration/API, targeted Playwright, or other project-specific gates.
+- Use scripts/agent-fast-gate.ps1 as a batched cheap preflight when applicable. It collects Git state and performs safe syntax/static checks on changed files; project-specific affected tests still follow the existing AGENTS.md rules.
+- Response Gate remains mandatory. Where safe, collect its read-only Git evidence in one batched command rather than one tool call per datum.
+- Do not introduce WSL, Docker, a browser, or another heavyweight environment merely to save tool calls. Use such environments only when the existing project rules or the actual verification scope requires them.
+- Never claim PASS, synchronization, completion, or deployment based on assumption. Saving Remote MCP calls must not reduce evidence quality.
+
+Principle: reduce remote tool calls, not verification.
