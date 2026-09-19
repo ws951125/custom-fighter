@@ -25,6 +25,7 @@ try {
       typeof window.customFighterCreatorExportPackage === 'function' &&
       typeof window.customFighterCreatorImportPackageJson === 'function' &&
       typeof window.customFighterCreatorSetAnimationMap === 'function' &&
+      typeof window.customFighterCreatorSetAnimationSemantic === 'function' &&
       typeof window.customFighterCreatorPreview === 'function' &&
       typeof window.customFighterCreatorTimelineApplyComposition === 'function' &&
       typeof window.customFighterCreatorTimelineClear === 'function' &&
@@ -50,6 +51,10 @@ try {
       document.documentElement.dataset.creatorPackageCanExport === 'true' &&
       document.documentElement.dataset.creatorDraftName === 'Package Nova' &&
       document.documentElement.dataset.creatorDraftAnimationMap === 'storm_duelist' &&
+      document.documentElement.dataset.creatorAnimationDraftValid === 'true' &&
+      document.documentElement.dataset.creatorAnimationDraftMapId === 'storm_duelist' &&
+      document.documentElement.dataset.creatorAnimationDraftSemantic === 'ready' &&
+      document.documentElement.dataset.creatorAnimationDraftAnimationId === 'storm_ready' &&
       document.documentElement.dataset.creatorDraftMaxHp === '222' &&
       document.documentElement.dataset.creatorSkillDraftName === 'Package Bolt' &&
       document.documentElement.dataset.creatorSkillDraftDamage === '41' &&
@@ -108,6 +113,7 @@ try {
   await page.evaluate(() => {
     window.customFighterCreatorSetName('Mutated Draft');
     window.customFighterCreatorSetAnimationMap('ember_vanguard');
+    window.customFighterCreatorSetAnimationSemantic('ready', 'transient_ready_custom');
     window.customFighterCreatorSetSkillDamage(7);
     window.customFighterCreatorSetSkillMpCost(3);
     window.customFighterCreatorTimelineClear();
@@ -116,6 +122,9 @@ try {
     () =>
       document.documentElement.dataset.creatorDraftName === 'Mutated Draft' &&
       document.documentElement.dataset.creatorDraftAnimationMap === 'ember_vanguard' &&
+      document.documentElement.dataset.creatorAnimationDraftValid === 'true' &&
+      document.documentElement.dataset.creatorAnimationDraftSemantic === 'ready' &&
+      document.documentElement.dataset.creatorAnimationDraftAnimationId === 'transient_ready_custom' &&
       document.documentElement.dataset.creatorSkillDraftDamage === '7' &&
       document.documentElement.dataset.creatorSkillDraftMpCost === '3' &&
       document.documentElement.dataset.creatorTimelineCount === '0',
@@ -131,6 +140,7 @@ try {
       (document.documentElement.dataset.creatorPackageImportError ?? '').includes('unsupported package schema_version') &&
       document.documentElement.dataset.creatorDraftName === 'Mutated Draft' &&
       document.documentElement.dataset.creatorDraftAnimationMap === 'ember_vanguard' &&
+      document.documentElement.dataset.creatorAnimationDraftAnimationId === 'transient_ready_custom' &&
       document.documentElement.dataset.creatorSkillDraftDamage === '7' &&
       document.documentElement.dataset.creatorSkillDraftMpCost === '3',
     null,
@@ -148,6 +158,7 @@ try {
       (document.documentElement.dataset.creatorPackageImportError ?? '').includes('animation map file is empty or missing') &&
       document.documentElement.dataset.creatorDraftName === 'Mutated Draft' &&
       document.documentElement.dataset.creatorDraftAnimationMap === 'ember_vanguard' &&
+      document.documentElement.dataset.creatorAnimationDraftAnimationId === 'transient_ready_custom' &&
       document.documentElement.dataset.creatorSkillDraftDamage === '7' &&
       document.documentElement.dataset.creatorSkillDraftMpCost === '3',
     null,
@@ -182,6 +193,8 @@ try {
       document.documentElement.dataset.playerAnimationMapLoaded === 'true' &&
       document.documentElement.dataset.playerAnimationMapId === 'storm_duelist' &&
       document.documentElement.dataset.playerAnimationSemantic === 'ready' &&
+      document.documentElement.dataset.playerAnimationId === 'storm_ready' &&
+      document.documentElement.dataset.creatorPreviewAnimationOverrideActive === 'true' &&
       document.documentElement.dataset.playerMaxHp === '222' &&
       document.documentElement.dataset.playerRuntimeSkill1 === 'my_projectile_001' &&
       document.documentElement.dataset.creatorPreviewRuntimeSkillDamage === '41' &&
@@ -202,7 +215,7 @@ try {
     { timeout: 5_000 },
   );
 
-  console.log('WEB_CREATOR_PACKAGE_SMOKE_PASSED export=true schema=2 noVfxFallback=true animationMapRoundTrip=true animationPreview=true missingAnimationMapBlocked=true timelineRoundTrip=true compositionExpanded=true invalidPreserved=true import=true authoredHp=222 authoredDamage=41 authoredMpCost=19 previewCast=true');
+  console.log('WEB_CREATOR_PACKAGE_SMOKE_PASSED export=true schema=2 noVfxFallback=true animationMapRoundTrip=true animationPreview=true semanticTransientReset=true missingAnimationMapBlocked=true timelineRoundTrip=true compositionExpanded=true invalidPreserved=true import=true authoredHp=222 authoredDamage=41 authoredMpCost=19 previewCast=true');
   await page.close();
 } finally {
   await browser.close();
