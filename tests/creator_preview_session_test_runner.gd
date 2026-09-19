@@ -54,7 +54,11 @@ func _run() -> void:
 	var animation_map := CharacterAnimationMap.new()
 	var animation_load_errors: PackedStringArray = animation_map.load_from_id("ember_vanguard")
 	_check(animation_load_errors.is_empty(), "trusted animation map loads for preview-session test")
-	var authored_animation_data: Dictionary = animation_map.to_dictionary()
+	var authored_animation_data: Dictionary = {
+		"schema_version": CharacterAnimationMap.CURRENT_SCHEMA_VERSION,
+		"id": animation_map.map_id,
+		"animations": animation_map.animations.duplicate(true)
+	}
 	var authored_animations: Dictionary = authored_animation_data.get("animations", {}).duplicate(true)
 	authored_animations["ready"] = "preview_ready_custom"
 	authored_animation_data["animations"] = authored_animations
