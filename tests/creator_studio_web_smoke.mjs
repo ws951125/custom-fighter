@@ -36,6 +36,7 @@ try {
       document.documentElement.dataset.creatorStudioReady === 'true' &&
       typeof window.customFighterCreatorSetName === 'function' &&
       typeof window.customFighterCreatorSetAnimationMap === 'function' &&
+      typeof window.customFighterCreatorSetAnimationSemantic === 'function' &&
       typeof window.customFighterCreatorSetMaxHp === 'function' &&
       typeof window.customFighterCreatorResetDraft === 'function',
     null,
@@ -48,6 +49,10 @@ try {
     id: await dataset(page, 'creatorDraftId'),
     name: await dataset(page, 'creatorDraftName'),
     animationMap: await dataset(page, 'creatorDraftAnimationMap'),
+    animationDraftValid: await dataset(page, 'creatorAnimationDraftValid'),
+    animationDraftMapId: await dataset(page, 'creatorAnimationDraftMapId'),
+    animationDraftSemantic: await dataset(page, 'creatorAnimationDraftSemantic'),
+    animationDraftAnimationId: await dataset(page, 'creatorAnimationDraftAnimationId'),
     hp: Number(await dataset(page, 'creatorDraftMaxHp')),
     mp: Number(await dataset(page, 'creatorDraftMaxMp')),
     speed: Number(await dataset(page, 'creatorDraftMoveSpeed')),
@@ -59,6 +64,10 @@ try {
     initial.id !== 'my_fighter_001' ||
     initial.name !== 'My Fighter' ||
     initial.animationMap !== 'ember_vanguard' ||
+    initial.animationDraftValid !== 'true' ||
+    initial.animationDraftMapId !== 'ember_vanguard' ||
+    initial.animationDraftSemantic !== 'ready' ||
+    initial.animationDraftAnimationId !== 'ember_ready' ||
     initial.hp !== 100 ||
     initial.mp !== 100 ||
     Math.abs(initial.speed - 360) > 0.01 ||
@@ -104,6 +113,37 @@ try {
     { timeout: 5_000 },
   );
 
+  await page.evaluate(() => window.customFighterCreatorSetAnimationSemantic('attack_1', 'custom_attack_one'));
+  await page.waitForFunction(
+    () =>
+      document.documentElement.dataset.creatorDraftValid === 'true' &&
+      document.documentElement.dataset.creatorAnimationDraftValid === 'true' &&
+      document.documentElement.dataset.creatorAnimationDraftSemantic === 'attack_1' &&
+      document.documentElement.dataset.creatorAnimationDraftAnimationId === 'custom_attack_one',
+    null,
+    { timeout: 5_000 },
+  );
+
+  await page.evaluate(() => window.customFighterCreatorSetAnimationSemantic('attack_1', '../evil.gd'));
+  await page.waitForFunction(
+    () =>
+      document.documentElement.dataset.creatorDraftValid === 'false' &&
+      document.documentElement.dataset.creatorAnimationDraftValid === 'false' &&
+      (document.documentElement.dataset.creatorDraftError ?? '').includes('safe lowercase token'),
+    null,
+    { timeout: 5_000 },
+  );
+
+  await page.evaluate(() => window.customFighterCreatorSetAnimationSemantic('attack_1', 'custom_attack_one'));
+  await page.waitForFunction(
+    () =>
+      document.documentElement.dataset.creatorDraftValid === 'true' &&
+      document.documentElement.dataset.creatorAnimationDraftValid === 'true' &&
+      document.documentElement.dataset.creatorAnimationDraftAnimationId === 'custom_attack_one',
+    null,
+    { timeout: 5_000 },
+  );
+
   await page.evaluate(() => window.customFighterCreatorSetMaxHp(0));
   await page.waitForFunction(
     () =>
@@ -129,13 +169,16 @@ try {
       document.documentElement.dataset.creatorDraftValid === 'true' &&
       document.documentElement.dataset.creatorDraftName === 'My Fighter' &&
       document.documentElement.dataset.creatorDraftAnimationMap === 'ember_vanguard' &&
+      document.documentElement.dataset.creatorAnimationDraftValid === 'true' &&
+      document.documentElement.dataset.creatorAnimationDraftMapId === 'ember_vanguard' &&
+      document.documentElement.dataset.creatorAnimationDraftAnimationId === 'ember_attack_1' &&
       document.documentElement.dataset.creatorDraftMaxHp === '100' &&
       Number(document.documentElement.dataset.creatorDraftRevision ?? '0') > previousRevision,
     revisionBeforeReset,
     { timeout: 5_000 },
   );
 
-  console.log('WEB_CREATOR_STUDIO_SMOKE_PASSED mode=creator valid-invalid-valid-reset animationMapAuthoring=true missingMapBlocked=true trainingDefaultPreserved=true');
+  console.log('WEB_CREATOR_STUDIO_SMOKE_PASSED mode=creator valid-invalid-valid-reset animationMapAuthoring=true semanticAuthoring=true unsafeSemanticTokenBlocked=true missingMapBlocked=true trainingDefaultPreserved=true');
   await page.close();
 } finally {
   await browser.close();
