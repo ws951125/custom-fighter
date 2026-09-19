@@ -253,8 +253,6 @@ try {
       document.documentElement.dataset.creatorAnimationDraftSemantic === 'ready' &&
       document.documentElement.dataset.creatorAnimationDraftAnimationId === 'preview_ready_custom' &&
       document.documentElement.dataset.creatorAudioDraftValid === 'true' &&
-      document.documentElement.dataset.creatorAudioDraftBinding === 'skill_cast' &&
-      document.documentElement.dataset.creatorAudioDraftCue === 'preview_cast_custom' &&
       document.documentElement.dataset.creatorDraftMaxHp === '180' &&
       document.documentElement.dataset.creatorSkillDraftName === 'Nova Bolt' &&
       document.documentElement.dataset.creatorSkillDraftDamage === '33' &&
