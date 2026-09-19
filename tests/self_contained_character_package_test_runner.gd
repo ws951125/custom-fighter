@@ -6,6 +6,10 @@ func _init() -> void:
 	var failures := PackedStringArray()
 	_test_accepts_legacy_v1(failures)
 	_test_valid_v2_vfx_round_trip(failures)
+	_test_valid_v2_animation_map_round_trip(failures)
+	_test_rejects_animation_map_id_mismatch(failures)
+	_test_rejects_unsafe_animation_map_token(failures)
+	_test_rejects_unknown_animation_map_field(failures)
 	_test_rejects_malformed_base64(failures)
 	_test_rejects_non_png_bytes(failures)
 	_test_rejects_oversized_png(failures)
@@ -41,6 +45,56 @@ func _test_valid_v2_vfx_round_trip(failures: PackedStringArray) -> void:
 	_expect(reload_errors.is_empty(), "serialized schema-v2 package should reload", failures)
 	_expect(reloaded.vfx_png_bytes == package.vfx_png_bytes, "VFX PNG bytes should round trip deterministically", failures)
 	_expect(JSON.stringify(serialized) == JSON.stringify(reloaded.to_dictionary()), "schema-v2 package round trip should be deterministic", failures)
+
+func _test_valid_v2_animation_map_round_trip(failures: PackedStringArray) -> void:
+	var data: Dictionary = _legacy_package()
+	data["schema_version"] = 2
+	data["animation_map"] = _animation_map("package_ready_custom")
+	var package := PackageDefinition.new()
+	var errors: PackedStringArray = package.load_from_dictionary(data)
+	_expect(errors.is_empty(), "schema-v2 package should accept a validated animation map payload", failures)
+	_expect(package.has_animation_map(), "schema-v2 package should expose packaged animation map data", failures)
+	_expect(str(package.animation_map_data.get("id", "")) == "ember_vanguard", "packaged animation map id should match character reference", failures)
+	var animations: Dictionary = package.animation_map_data.get("animations", {})
+	_expect(str(animations.get("ready", "")) == "package_ready_custom", "custom semantic animation should survive package validation", failures)
+
+	var serialized: Dictionary = package.to_dictionary()
+	_expect(serialized.has("animation_map"), "schema-v2 serialization should retain animation_map when present", failures)
+	var reloaded := PackageDefinition.new()
+	var reload_errors: PackedStringArray = reloaded.load_from_dictionary(serialized)
+	_expect(reload_errors.is_empty(), "serialized animation-map package should reload", failures)
+	_expect(JSON.stringify(serialized) == JSON.stringify(reloaded.to_dictionary()), "animation-map package round trip should be deterministic", failures)
+
+func _test_rejects_animation_map_id_mismatch(failures: PackedStringArray) -> void:
+	var data: Dictionary = _legacy_package()
+	data["schema_version"] = 2
+	var animation_map: Dictionary = _animation_map("package_ready_custom")
+	animation_map["id"] = "storm_duelist"
+	data["animation_map"] = animation_map
+	var package := PackageDefinition.new()
+	var errors: PackedStringArray = package.load_from_dictionary(data)
+	_expect(_contains(errors, "animation_map id must match character animation_map"), "package animation map id mismatch must fail closed", failures)
+
+func _test_rejects_unsafe_animation_map_token(failures: PackedStringArray) -> void:
+	var data: Dictionary = _legacy_package()
+	data["schema_version"] = 2
+	var animation_map: Dictionary = _animation_map("package_ready_custom")
+	var animations: Dictionary = animation_map.get("animations", {})
+	animations["ready"] = "../payload.gd"
+	data["animation_map"] = animation_map
+	var package := PackageDefinition.new()
+	var errors: PackedStringArray = package.load_from_dictionary(data)
+	_expect(_contains(errors, "safe lowercase token"), "unsafe packaged animation token must fail closed", failures)
+
+func _test_rejects_unknown_animation_map_field(failures: PackedStringArray) -> void:
+	var data: Dictionary = _legacy_package()
+	data["schema_version"] = 2
+	var animation_map: Dictionary = _animation_map("package_ready_custom")
+	animation_map["script_path"] = "res://payload.gd"
+	data["animation_map"] = animation_map
+	var package := PackageDefinition.new()
+	var errors: PackedStringArray = package.load_from_dictionary(data)
+	_expect(_contains(errors, "unsupported animation_map field: script_path"), "unknown packaged animation-map fields must fail closed", failures)
 
 func _test_rejects_malformed_base64(failures: PackedStringArray) -> void:
 	var data: Dictionary = _v2_package_with_vfx()
@@ -110,6 +164,29 @@ func _v2_package_with_vfx() -> Dictionary:
 		"png_base64": Marshalls.raw_to_base64(png_bytes)
 	}
 	return data
+
+func _animation_map(ready_id: String) -> Dictionary:
+	return {
+		"schema_version": 1,
+		"id": "ember_vanguard",
+		"animations": {
+			"ready": ready_id,
+			"walk": "ember_walk",
+			"run": "ember_run",
+			"jump": "ember_jump",
+			"dash": "ember_dash",
+			"guard": "ember_guard",
+			"attack_1": "ember_attack_one",
+			"attack_2": "ember_attack_two",
+			"attack_3": "ember_attack_three",
+			"skill_1": "ember_skill_one",
+			"skill_2": "ember_skill_two",
+			"skill_3": "ember_skill_three",
+			"skill_4": "ember_skill_four",
+			"skill_5": "ember_skill_five",
+			"skill_6": "ember_skill_six"
+		}
+	}
 
 func _png_strip_bytes() -> PackedByteArray:
 	var image := Image.create(16, 4, false, Image.FORMAT_RGBA8)
