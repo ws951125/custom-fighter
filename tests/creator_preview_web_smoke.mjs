@@ -142,8 +142,6 @@ try {
       document.documentElement.dataset.creatorAnimationDraftSemantic === 'ready' &&
       document.documentElement.dataset.creatorAnimationDraftAnimationId === 'preview_ready_custom' &&
       document.documentElement.dataset.creatorAudioDraftValid === 'true' &&
-      document.documentElement.dataset.creatorAudioDraftBinding === 'skill_cast' &&
-      document.documentElement.dataset.creatorAudioDraftCue === 'preview_cast_custom' &&
       document.documentElement.dataset.creatorDraftMaxHp === '180' &&
       document.documentElement.dataset.creatorSkillDraftName === 'Nova Bolt' &&
       document.documentElement.dataset.creatorSkillDraftDamage === '33' &&
@@ -267,6 +265,14 @@ try {
     null,
     { timeout: 10_000 },
   );
+
+  diagnosticStage = 'audio-binding-round-trip';
+  const restoredAudioDraft = JSON.parse(
+    await page.evaluate(() => document.documentElement.dataset.creatorAudioDraftJson ?? '{}'),
+  );
+  if (restoredAudioDraft?.cues?.skill_cast !== 'preview_cast_custom') {
+    throw new Error(`Audio binding draft round-trip mismatch: ${JSON.stringify(restoredAudioDraft)}`);
+  }
 
   diagnosticStage = 'passed';
   console.log('WEB_CREATOR_PREVIEW_SMOKE_PASSED invalidBlocked=true authoredHp=180 authoredDamage=33 authoredMpCost=17 authoredCooldown=2.4 semanticAnimationOverride=true semanticAnimationRoundTrip=true audioBindingOverride=true audioBindingRoundTrip=true safeComposition=true timelineRoundTrip=true animationTiming=true vfxTiming=true audioTiming=true spatialHitbox=true spatialHurtbox=true cast=true draftsRestored=true');
