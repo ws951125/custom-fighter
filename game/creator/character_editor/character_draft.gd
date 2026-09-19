@@ -2,6 +2,7 @@ class_name CharacterDraft
 extends RefCounted
 
 const CharacterDefinition = preload("res://game/core/character/character_definition.gd")
+const CharacterAnimationMap = preload("res://game/core/character/character_animation_map.gd")
 
 var character_id := "my_fighter_001"
 var character_name := "My Fighter"
@@ -49,6 +50,12 @@ func load_from_dictionary(data: Dictionary) -> PackedStringArray:
 	var errors: PackedStringArray = definition.load_from_dictionary(data)
 	if not errors.is_empty():
 		return errors
+	var animation_map_definition := CharacterAnimationMap.new()
+	var animation_errors: PackedStringArray = animation_map_definition.load_from_id(definition.animation_map)
+	for error in animation_errors:
+		errors.append("animation_map: %s" % error)
+	if not errors.is_empty():
+		return errors
 	character_id = definition.character_id
 	character_name = definition.character_name
 	archetype = definition.archetype
@@ -84,7 +91,14 @@ func to_dictionary() -> Dictionary:
 
 func validate() -> PackedStringArray:
 	var definition := CharacterDefinition.new()
-	return definition.load_from_dictionary(to_dictionary())
+	var errors: PackedStringArray = definition.load_from_dictionary(to_dictionary())
+	if not errors.is_empty():
+		return errors
+	var animation_map_definition := CharacterAnimationMap.new()
+	var animation_errors: PackedStringArray = animation_map_definition.load_from_id(definition.animation_map)
+	for error in animation_errors:
+		errors.append("animation_map: %s" % error)
+	return errors
 
 func is_valid() -> bool:
 	return validate().is_empty()

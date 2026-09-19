@@ -40,6 +40,17 @@ func _run() -> void:
 	_check(_contains_error(unsafe_id_errors, "id must be a safe lowercase reference token"), "unsafe creator id is rejected")
 
 	draft.reset()
+	draft.animation_map = "missing_animation_map"
+	var missing_animation_errors := draft.validate()
+	_check(
+		_contains_error_fragment(missing_animation_errors, "animation_map: animation map file is empty or missing:"),
+		"missing Creator animation map fails closed"
+	)
+	draft.animation_map = "storm_duelist"
+	_check(draft.is_valid(), "trusted Storm animation map is Creator-valid")
+	_check(str(draft.to_dictionary().get("animation_map", "")) == "storm_duelist", "Creator serializes selected animation map")
+
+	draft.reset()
 	_check(draft.is_valid(), "reset restores valid starter character")
 	_check(draft.character_name == "My Fighter" and draft.max_hp == 100, "reset restores starter values")
 
@@ -53,6 +64,12 @@ func _run() -> void:
 func _contains_error(errors: PackedStringArray, expected: String) -> bool:
 	for error in errors:
 		if error == expected:
+			return true
+	return false
+
+func _contains_error_fragment(errors: PackedStringArray, expected: String) -> bool:
+	for error in errors:
+		if str(error).contains(expected):
 			return true
 	return false
 
