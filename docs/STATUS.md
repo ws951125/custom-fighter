@@ -195,6 +195,18 @@ Final production evidence is PR #160 merged to `main` as `5502bbc9b31725488d34e3
 
 V2 progress therefore advances to **25% (2/8 phases complete)**, and **V2-3 Character Animation & Audio Authoring** becomes the active phase.
 
+### V2-3 implementation checkpoints
+
+Work unit 1 — **trusted animation-map authoring foundation — implementation synchronized; PR validation pending**:
+- V2-3 architecture inventory is recorded in `docs/V2_3_CHARACTER_ANIMATION_AUDIO_INVENTORY.md`.
+- Existing runtime `CharacterAnimationMap` remains authoritative and resolves only trusted `res://content/character_animations/<id>.animation.json` data with safe-token animation IDs.
+- Character Editor now exposes an Animation Map field and Web bridge/telemetry.
+- `CharacterDraft` now requires the authored map to actually resolve through `CharacterAnimationMap`; a safe-looking but missing token fails closed rather than reaching Preview with a broken runtime reference.
+- Existing Character Package schema is intentionally unchanged because `character.animation_map` already round-trips. Browser regression now proves authored `storm_duelist` survives export/import and Preview loads the Storm map; a package referencing a missing map is rejected without mutating the valid draft.
+- No arbitrary resource path, URL, script, callback, or executable payload is introduced.
+- Existing timeline audio remains a safe cue-token boundary only. Audio-file import and package audio assets are deferred to later V2-3 work.
+- V2 remains **25% (2/8 phases complete)** until the complete V2-3 acceptance criterion is met.
+
 ### V2-1 implementation checkpoints
 
 Work unit 1 was merged by PR #133 to `main` at `bb6d1c68a697958748e4dd9e6d2aac3c03bca414`:
@@ -311,4 +323,4 @@ AI VFX backend: `https://custom-fighter-ai-vfx.onrender.com`
 
 ## Next implementation target
 
-Begin **V2-3 Character Animation & Audio Authoring**. First inventory the current character animation map, Creator animation authoring/preview path, existing approved audio/token boundaries, and Character Package asset schema. Then implement the smallest safe V2-3 slice that preserves package round-trip, avoids arbitrary executable/resource paths, and is covered by deterministic domain tests plus Chromium/hosted-Edge Creator validation.
+Complete V2-3 Work Unit 1 PR validation for trusted animation-map authoring. Require CharacterDraft/domain validation, package round-trip, Creator Chromium, hosted Microsoft Edge, and standard GitHub CI gates on the latest branch head. After WU1 is production-validated, continue to the next safe V2-3 slice: per-semantic animation-map authoring and preview, before introducing approved audio-file assets.
