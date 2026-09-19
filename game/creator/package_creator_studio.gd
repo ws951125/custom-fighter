@@ -124,7 +124,7 @@ func _on_import_package_pressed() -> void:
 
 func _build_export_package() -> Dictionary:
 	var errors := PackedStringArray()
-	var character_errors: PackedStringArray = character_draft.validate()
+	var character_errors: PackedStringArray = _validate_character_authoring()
 	var skill_errors: PackedStringArray = skill_draft.validate()
 	for error in character_errors:
 		errors.append("character: %s" % error)
@@ -381,7 +381,7 @@ func _set_web_state(character_errors: PackedStringArray = PackedStringArray(), s
 func _set_package_web_state() -> void:
 	if not OS.has_feature("web"):
 		return
-	var can_export: bool = character_draft.is_valid() and skill_draft.is_valid()
+	var can_export: bool = _validate_character_authoring().is_empty() and skill_draft.is_valid()
 	JavaScriptBridge.eval(
 		"document.documentElement.dataset.creatorPackageReady='true';" +
 		"document.documentElement.dataset.creatorPackageCanExport='%s';" % ("true" if can_export else "false") +
