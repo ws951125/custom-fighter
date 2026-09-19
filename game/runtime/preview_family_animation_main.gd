@@ -115,7 +115,7 @@ func _consume_creator_preview_timeline_transitions() -> void:
 					preview_timeline_last_vfx = str(event.get("visual", "")).strip_edges().to_lower()
 					preview_timeline_vfx_pulse_remaining = TIMELINE_INSTANT_PULSE_SECONDS if duration <= 0.0 else 0.0
 				"audio":
-					preview_timeline_last_audio_cue = str(event.get("cue", "")).strip_edges().to_lower()
+					preview_timeline_last_audio_cue = _resolve_preview_audio_cue(str(event.get("cue", "")))
 					preview_timeline_audio_event_count += 1
 		elif phase_name == "end" and event_type == "animation":
 			var ending_semantic := str(event.get("animation", "")).strip_edges().to_lower()

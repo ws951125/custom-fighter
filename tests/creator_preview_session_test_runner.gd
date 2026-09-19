@@ -3,6 +3,7 @@ extends SceneTree
 const CreatorPreviewSession = preload("res://game/creator/preview/creator_preview_session.gd")
 const CharacterDraft = preload("res://game/creator/character_editor/character_draft.gd")
 const CharacterAnimationMap = preload("res://game/core/character/character_animation_map.gd")
+const CharacterAudioBindings = preload("res://game/core/character/character_audio_bindings.gd")
 const SkillDraft = preload("res://game/creator/skill_editor/skill_draft.gd")
 const VfxDraft = preload("res://game/creator/vfx_editor/vfx_draft.gd")
 
@@ -74,6 +75,46 @@ func _run() -> void:
 		str(session.preview_animation_map_data().get("animations", {}).get("ready", "")) == "preview_ready_custom",
 		"preview session preserves authored ready animation token"
 	)
+
+	var authored_audio_data: Dictionary = CharacterAudioBindings.default_dictionary()
+	var authored_audio_cues: Dictionary = authored_audio_data.get("cues", {}).duplicate(true)
+	authored_audio_cues["skill_cast"] = "preview_cast_custom"
+	authored_audio_data["cues"] = authored_audio_cues
+	var authored_audio_errors: PackedStringArray = session.stage_preview(
+		character.to_dictionary(),
+		skill.to_dictionary(),
+		authored_animation_data,
+		authored_audio_data
+	)
+	_check(authored_audio_errors.is_empty(), "validated audio cue bindings stage in Creator Preview")
+	_check(session.has_active_audio_bindings_preview(), "staged audio bindings activate preview override")
+	_check(session.has_stored_audio_bindings(), "staged audio bindings are preserved in session")
+	_check(
+		str(session.preview_audio_bindings_data().get("cues", {}).get("skill_cast", "")) == "preview_cast_custom",
+		"preview session preserves authored skill_cast cue"
+	)
+
+	var unsafe_audio_data: Dictionary = authored_audio_data.duplicate(true)
+	var unsafe_audio_cues: Dictionary = unsafe_audio_data.get("cues", {}).duplicate(true)
+	unsafe_audio_cues["skill_cast"] = "../evil.wav"
+	unsafe_audio_data["cues"] = unsafe_audio_cues
+	var unsafe_audio_errors: PackedStringArray = session.stage_preview(
+		character.to_dictionary(),
+		skill.to_dictionary(),
+		authored_animation_data,
+		unsafe_audio_data
+	)
+	_check(_contains_fragment(unsafe_audio_errors, "safe lowercase token"), "unsafe audio cue fails closed in preview session")
+	_check(not session.has_active_preview(), "unsafe audio bindings cannot activate preview")
+	_check(not session.has_active_audio_bindings_preview(), "unsafe audio bindings clear stale active audio override")
+
+	var restore_audio_errors: PackedStringArray = session.stage_preview(
+		character.to_dictionary(),
+		skill.to_dictionary(),
+		authored_animation_data,
+		authored_audio_data
+	)
+	_check(restore_audio_errors.is_empty() and session.has_active_audio_bindings_preview(), "valid audio preview restores after fail-closed case")
 
 	var mismatched_animation_data: Dictionary = authored_animation_data.duplicate(true)
 	mismatched_animation_data["id"] = "storm_duelist"

@@ -25,12 +25,17 @@ func _restore_session_drafts() -> void:
 	var character_errors: PackedStringArray = character_draft.load_from_dictionary(character_data)
 	var skill_errors: PackedStringArray = skill_draft.load_from_dictionary(skill_data)
 	var animation_errors := PackedStringArray()
+	var audio_errors := PackedStringArray()
 	if session.has_method("has_stored_animation_map") and bool(session.call("has_stored_animation_map")) and session.has_method("stored_animation_map_data"):
 		animation_errors = animation_draft.load_from_dictionary(session.call("stored_animation_map_data"))
 	else:
 		animation_errors = animation_draft.load_from_id(character_draft.animation_map)
-	if not character_errors.is_empty() or not skill_errors.is_empty() or not animation_errors.is_empty():
-		push_error("Failed to restore Creator preview drafts: %s | %s | %s" % [" | ".join(character_errors), " | ".join(skill_errors), " | ".join(animation_errors)])
+	if session.has_method("has_stored_audio_bindings") and bool(session.call("has_stored_audio_bindings")) and session.has_method("stored_audio_bindings_data"):
+		audio_errors = audio_draft.load_from_dictionary(session.call("stored_audio_bindings_data"))
+	else:
+		audio_draft.reset()
+	if not character_errors.is_empty() or not skill_errors.is_empty() or not animation_errors.is_empty() or not audio_errors.is_empty():
+		push_error("Failed to restore Creator preview drafts: %s | %s | %s | %s" % [" | ".join(character_errors), " | ".join(skill_errors), " | ".join(animation_errors), " | ".join(audio_errors)])
 		return
 	_sync_character_controls_from_draft()
 	_sync_skill_controls_from_draft()
@@ -103,7 +108,7 @@ func _on_preview_pressed() -> void:
 	if session == null:
 		_set_preview_error("Creator preview session is unavailable")
 		return
-	var stage_errors: PackedStringArray = session.call("stage_preview", character_draft.to_dictionary(), skill_draft.to_dictionary(), animation_draft.to_dictionary())
+	var stage_errors: PackedStringArray = session.call("stage_preview", character_draft.to_dictionary(), skill_draft.to_dictionary(), animation_draft.to_dictionary(), audio_draft.to_dictionary())
 	if not stage_errors.is_empty():
 		_set_preview_error(" | ".join(stage_errors))
 		return
@@ -124,6 +129,10 @@ func _on_vfx_pressed() -> void:
 	var animation_store_errors: PackedStringArray = session.call("store_animation_map_draft", animation_draft.to_dictionary()) if session.has_method("store_animation_map_draft") else PackedStringArray(["Creator preview session cannot preserve animation draft"])
 	if not animation_store_errors.is_empty():
 		_set_preview_error("Fix invalid Animation draft before opening VFX Creator")
+		return
+	var audio_store_errors: PackedStringArray = session.call("store_audio_bindings_draft", audio_draft.to_dictionary()) if session.has_method("store_audio_bindings_draft") else PackedStringArray(["Creator preview session cannot preserve audio binding draft"])
+	if not audio_store_errors.is_empty():
+		_set_preview_error("Fix invalid Audio draft before opening VFX Creator")
 		return
 	var store_errors: PackedStringArray = session.call("store_drafts", character_draft.to_dictionary(), skill_draft.to_dictionary())
 	if not store_errors.is_empty():
@@ -186,7 +195,7 @@ func _set_preview_web_state(error_message: String = "") -> void:
 		return
 	var session: Variant = get_node_or_null("/root/CreatorPreviewSession")
 	var session_ready := session != null
-	var can_preview := character_draft.is_valid() and skill_draft.is_valid() and session_ready
+	var can_preview := _validate_character_authoring().is_empty() and skill_draft.is_valid() and session_ready
 	var vfx_bound := false
 	var vfx_frame_count := 0
 	var vfx_scale := 1.0

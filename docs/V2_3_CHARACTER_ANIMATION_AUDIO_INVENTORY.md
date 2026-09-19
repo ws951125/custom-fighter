@@ -23,9 +23,9 @@ Before V2-3 Work Unit 1, Creator preserved only the starter `animation_map` valu
 
 ## Existing package boundary
 
-Character Package already serializes `character.animation_map` in its canonical character shape. Self-contained package schema v2 currently adds only an optional validated PNG VFX asset; it does not embed animation-map JSON or audio bytes.
+Character Package already serializes `character.animation_map` in its canonical character shape. Self-contained package schema v2 retains the optional validated PNG VFX asset and, as of WU3, can also carry validated structured `animation_map` data. WU4 extends that same schema additively with optional structured `audio_bindings`; it still does not carry audio bytes.
 
-Therefore Work Unit 1 does not require a package-schema version bump. The first safe slice can prove animation-map reference authoring and package round-trip using trusted repository animation maps. Later V2-3 work may extend the self-contained asset schema when creator-imported animation/audio assets are introduced.
+Legacy schema v1 remains unchanged. Optional schema-v2 fields are validated independently and may be omitted for backwards compatibility. Audio-file bytes require a separate approved asset contract rather than overloading cue/binding metadata.
 
 ## Existing audio boundary
 
@@ -37,12 +37,12 @@ Current safety properties:
 - runtime Preview exposes timeline audio telemetry;
 - no arbitrary filesystem path, URL, script, callback, decoder command, or user executable payload is accepted.
 
-Current limitation:
-- there is no approved audio-file import contract;
-- there is no package audio asset payload;
-- there is no character-level/impact-level audio binding editor outside the existing skill timeline cue token.
+Before Work Unit 4, the remaining audio limitations were:
+- no approved audio-file import contract;
+- no package audio asset payload;
+- no character-level/impact-level binding editor outside the existing skill timeline cue token.
 
-Those remain later V2-3 work and must not be conflated with WU1.
+WU4 addresses the semantic binding layer only. Approved audio bytes and real playback remain separate later work so file/codec validation does not get coupled to Creator binding semantics.
 
 ## Work Unit 1 — trusted animation-map authoring foundation
 
@@ -118,13 +118,37 @@ Validation target:
 - full Web export/size budget and `smoke:all`;
 - Windows Native export.
 
-## Deferred after WU3
+## Work Unit 3 production validation
+
+- PR #165 latest head `48900734c095e5de0dc35690cebb9458f698ff76` passed PR CI #420 (`35446574026`).
+- PR #165 squash-merged as `930e6bed3bdfaabc26495b2c6264f05ae14e201a`.
+- Main CI #421 (`35452686079`) passed the complete production chain on that exact SHA: Windows Native, Godot/domain/backend/Web/Chromium, hosted Edge, GitHub Pages deployment/public reachability, Render exact-revision readiness, and production Edge full smoke.
+
+## Work Unit 4 — safe audio cue binding semantics
+
+Scope:
+1. Introduce a strict `CharacterAudioBindings` schema with exactly `ready`, `basic_attack`, `hit_received`, `skill_cast`, and `skill_impact`.
+2. Restrict values to safe lowercase cue tokens; reject missing/unknown fields and path/URL/code-like values.
+3. Add Creator fixed-binding + cue-token editing with live validation.
+4. Stage validated bindings through Creator Preview and resolve semantic timeline cues such as `skill_cast` through the authored map.
+5. Persist optional `audio_bindings` in self-contained schema-v2 packages without changing legacy schema v1.
+6. Reset to safe defaults when importing older packages that contain no audio-binding payload.
+7. Prove Creator authoring, Preview runtime resolution, package round-trip and tamper rejection in domain/Chromium/hosted-Edge coverage.
+8. Keep raw audio files, decoders, URLs, filesystem paths and executable callbacks out of WU4.
+
+Validation result:
+- PR #166 head `22c41b662a5753d59f47a3cd44bd20e63cfc975c` passed PR CI #425 (`35457465896`).
+- Windows Native, Godot import/boot/domain/backend, Web export/size budget, Chromium `smoke:all`, and GitHub-hosted Microsoft Edge `smoke:all` all passed.
+- Creator Studio proved safe/unsafe audio binding authoring; Creator Preview proved runtime `skill_cast` resolution plus serialized draft round-trip; Creator Package proved schema-v2 export/import, tamper rejection, and Training preservation.
+- CI #422/#424 failures were limited to the browser test treating a transient selector row as persisted model state. The product/runtime state was already correct; L-034 records the correction and CI #425 validates it cross-browser.
+
+## Deferred after WU4
 
 - creator-provided animation asset import;
 - animation asset packaging/self-contained transport;
-- approved audio-file import;
-- skill/impact/character audio binding UX;
-- audio asset packaging/runtime playback binding;
+- approved audio-file import with bounded MIME/codec/size validation;
+- audio asset packaging and runtime playback;
+- broader character/basic-attack/hit/impact playback triggers backed by approved assets;
 - final V2-3 cross-machine/self-contained acceptance.
 
 V2 progress remains **25% (2/8 phases complete)** until the entire V2-3 acceptance criterion is satisfied and synchronized.

@@ -3,6 +3,7 @@ extends Node
 const CharacterDefinition = preload("res://game/core/character/character_definition.gd")
 const CharacterVisualProfile = preload("res://game/core/character/character_visual_profile.gd")
 const CharacterAnimationMap = preload("res://game/core/character/character_animation_map.gd")
+const CharacterAudioBindings = preload("res://game/core/character/character_audio_bindings.gd")
 const SkillDefinition = preload("res://game/core/skills/skill_definition.gd")
 const VfxDraft = preload("res://game/creator/vfx_editor/vfx_draft.gd")
 const AiSkillProposal = preload("res://game/ai/skill/ai_skill_proposal.gd")
@@ -29,12 +30,14 @@ const MAX_VFX_PNG_BYTES := 5 * 1024 * 1024
 var _draft_character_data: Dictionary = {}
 var _draft_skill_data: Dictionary = {}
 var _stored_animation_map_data: Dictionary = {}
+var _stored_audio_bindings_data: Dictionary = {}
 var _stored_vfx_data: Dictionary = {}
 var _stored_vfx_png_bytes := PackedByteArray()
 var _pending_ai_skill_proposal: Dictionary = {}
 var _preview_character_data: Dictionary = {}
 var _preview_skill_data: Dictionary = {}
 var _preview_animation_map_data: Dictionary = {}
+var _preview_audio_bindings_data: Dictionary = {}
 var _preview_skill_slot := ""
 var _preview_vfx_data: Dictionary = {}
 var _preview_vfx_png_bytes := PackedByteArray()
@@ -50,7 +53,7 @@ func store_drafts(character_data: Dictionary, skill_data: Dictionary) -> PackedS
 	revision += 1
 	return PackedStringArray()
 
-func stage_preview(character_data: Dictionary, skill_data: Dictionary, animation_map_data: Dictionary = {}) -> PackedStringArray:
+func stage_preview(character_data: Dictionary, skill_data: Dictionary, animation_map_data: Dictionary = {}, audio_bindings_data: Dictionary = {}) -> PackedStringArray:
 	var errors: PackedStringArray = _validate_drafts(character_data, skill_data)
 	if not errors.is_empty():
 		_deactivate_failed_preview()
@@ -83,6 +86,14 @@ func stage_preview(character_data: Dictionary, skill_data: Dictionary, animation
 			_deactivate_failed_preview()
 			return errors
 
+	if not audio_bindings_data.is_empty():
+		var audio_errors: PackedStringArray = _validate_audio_bindings_payload(audio_bindings_data)
+		for error in audio_errors:
+			errors.append("character audio: %s" % error)
+		if not errors.is_empty():
+			_deactivate_failed_preview()
+			return errors
+
 	if preview_type == "projectile" and has_stored_vfx():
 		var vfx_errors: PackedStringArray = _validate_vfx_payload(_stored_vfx_data, _stored_vfx_png_bytes)
 		for error in vfx_errors:
@@ -99,6 +110,12 @@ func stage_preview(character_data: Dictionary, skill_data: Dictionary, animation
 	else:
 		_stored_animation_map_data = animation_map_data.duplicate(true)
 		_preview_animation_map_data = animation_map_data.duplicate(true)
+	if audio_bindings_data.is_empty():
+		_stored_audio_bindings_data.clear()
+		_preview_audio_bindings_data.clear()
+	else:
+		_stored_audio_bindings_data = audio_bindings_data.duplicate(true)
+		_preview_audio_bindings_data = audio_bindings_data.duplicate(true)
 	_preview_character_data = preview_character
 	_preview_skill_data = preview_skill
 	_preview_skill_slot = preview_slot
@@ -120,6 +137,18 @@ func store_animation_map_draft(animation_map_data: Dictionary) -> PackedStringAr
 	_stored_animation_map_data = animation_map_data.duplicate(true)
 	if not _preview_active:
 		_preview_animation_map_data.clear()
+	revision += 1
+	return PackedStringArray()
+
+func store_audio_bindings_draft(audio_bindings_data: Dictionary) -> PackedStringArray:
+	var errors: PackedStringArray = _validate_audio_bindings_payload(audio_bindings_data)
+	if not errors.is_empty():
+		_stored_audio_bindings_data.clear()
+		_preview_audio_bindings_data.clear()
+		return errors
+	_stored_audio_bindings_data = audio_bindings_data.duplicate(true)
+	if not _preview_active:
+		_preview_audio_bindings_data.clear()
 	revision += 1
 	return PackedStringArray()
 
@@ -208,6 +237,10 @@ func _validate_animation_map_payload(animation_map_data: Dictionary, expected_id
 		errors.append("animation map id must match character animation_map")
 	return errors
 
+func _validate_audio_bindings_payload(audio_bindings_data: Dictionary) -> PackedStringArray:
+	var bindings := CharacterAudioBindings.new()
+	return bindings.load_from_dictionary(audio_bindings_data)
+
 func _validate_vfx_payload(vfx_data: Dictionary, png_bytes: PackedByteArray) -> PackedStringArray:
 	var errors := PackedStringArray()
 	var draft := VfxDraft.new()
@@ -247,6 +280,12 @@ func has_stored_animation_map() -> bool:
 func has_active_animation_preview() -> bool:
 	return has_active_preview() and not _preview_animation_map_data.is_empty()
 
+func has_stored_audio_bindings() -> bool:
+	return not _stored_audio_bindings_data.is_empty()
+
+func has_active_audio_bindings_preview() -> bool:
+	return has_active_preview() and not _preview_audio_bindings_data.is_empty()
+
 func has_stored_vfx() -> bool:
 	return not _stored_vfx_data.is_empty() and not _stored_vfx_png_bytes.is_empty()
 
@@ -270,6 +309,9 @@ func preview_skill_slot() -> String:
 func preview_animation_map_data() -> Dictionary:
 	return _preview_animation_map_data.duplicate(true)
 
+func preview_audio_bindings_data() -> Dictionary:
+	return _preview_audio_bindings_data.duplicate(true)
+
 func preview_vfx_data() -> Dictionary:
 	return _preview_vfx_data.duplicate(true)
 
@@ -285,6 +327,9 @@ func stored_skill_draft_data() -> Dictionary:
 func stored_animation_map_data() -> Dictionary:
 	return _stored_animation_map_data.duplicate(true)
 
+func stored_audio_bindings_data() -> Dictionary:
+	return _stored_audio_bindings_data.duplicate(true)
+
 func stored_vfx_data() -> Dictionary:
 	return _stored_vfx_data.duplicate(true)
 
@@ -295,18 +340,21 @@ func deactivate_preview() -> void:
 	_preview_active = false
 	_preview_skill_slot = ""
 	_preview_animation_map_data.clear()
+	_preview_audio_bindings_data.clear()
 	_clear_preview_vfx()
 
 func clear() -> void:
 	_draft_character_data.clear()
 	_draft_skill_data.clear()
 	_stored_animation_map_data.clear()
+	_stored_audio_bindings_data.clear()
 	_stored_vfx_data.clear()
 	_stored_vfx_png_bytes.clear()
 	_pending_ai_skill_proposal.clear()
 	_preview_character_data.clear()
 	_preview_skill_data.clear()
 	_preview_animation_map_data.clear()
+	_preview_audio_bindings_data.clear()
 	_preview_skill_slot = ""
 	_clear_preview_vfx()
 	_preview_active = false
@@ -316,6 +364,7 @@ func _deactivate_failed_preview() -> void:
 	_preview_active = false
 	_preview_skill_slot = ""
 	_preview_animation_map_data.clear()
+	_preview_audio_bindings_data.clear()
 	_clear_preview_vfx()
 
 func _clear_preview_vfx() -> void:

@@ -37,6 +37,7 @@ try {
       typeof window.customFighterCreatorSetName === 'function' &&
       typeof window.customFighterCreatorSetAnimationMap === 'function' &&
       typeof window.customFighterCreatorSetAnimationSemantic === 'function' &&
+      typeof window.customFighterCreatorSetAudioBinding === 'function' &&
       typeof window.customFighterCreatorSetMaxHp === 'function' &&
       typeof window.customFighterCreatorResetDraft === 'function',
     null,
@@ -53,6 +54,9 @@ try {
     animationDraftMapId: await dataset(page, 'creatorAnimationDraftMapId'),
     animationDraftSemantic: await dataset(page, 'creatorAnimationDraftSemantic'),
     animationDraftAnimationId: await dataset(page, 'creatorAnimationDraftAnimationId'),
+    audioDraftValid: await dataset(page, 'creatorAudioDraftValid'),
+    audioDraftBinding: await dataset(page, 'creatorAudioDraftBinding'),
+    audioDraftCue: await dataset(page, 'creatorAudioDraftCue'),
     hp: Number(await dataset(page, 'creatorDraftMaxHp')),
     mp: Number(await dataset(page, 'creatorDraftMaxMp')),
     speed: Number(await dataset(page, 'creatorDraftMoveSpeed')),
@@ -68,6 +72,9 @@ try {
     initial.animationDraftMapId !== 'ember_vanguard' ||
     initial.animationDraftSemantic !== 'ready' ||
     initial.animationDraftAnimationId !== 'ember_ready' ||
+    initial.audioDraftValid !== 'true' ||
+    initial.audioDraftBinding !== 'ready' ||
+    initial.audioDraftCue !== 'character_ready' ||
     initial.hp !== 100 ||
     initial.mp !== 100 ||
     Math.abs(initial.speed - 360) > 0.01 ||
@@ -144,6 +151,37 @@ try {
     { timeout: 5_000 },
   );
 
+  await page.evaluate(() => window.customFighterCreatorSetAudioBinding('skill_cast', 'nova_skill_cast'));
+  await page.waitForFunction(
+    () =>
+      document.documentElement.dataset.creatorDraftValid === 'true' &&
+      document.documentElement.dataset.creatorAudioDraftValid === 'true' &&
+      document.documentElement.dataset.creatorAudioDraftBinding === 'skill_cast' &&
+      document.documentElement.dataset.creatorAudioDraftCue === 'nova_skill_cast',
+    null,
+    { timeout: 5_000 },
+  );
+
+  await page.evaluate(() => window.customFighterCreatorSetAudioBinding('skill_cast', '../evil.wav'));
+  await page.waitForFunction(
+    () =>
+      document.documentElement.dataset.creatorDraftValid === 'false' &&
+      document.documentElement.dataset.creatorAudioDraftValid === 'false' &&
+      (document.documentElement.dataset.creatorDraftError ?? '').includes('audio cue for skill_cast must be a safe lowercase token'),
+    null,
+    { timeout: 5_000 },
+  );
+
+  await page.evaluate(() => window.customFighterCreatorSetAudioBinding('skill_cast', 'nova_skill_cast'));
+  await page.waitForFunction(
+    () =>
+      document.documentElement.dataset.creatorDraftValid === 'true' &&
+      document.documentElement.dataset.creatorAudioDraftValid === 'true' &&
+      document.documentElement.dataset.creatorAudioDraftCue === 'nova_skill_cast',
+    null,
+    { timeout: 5_000 },
+  );
+
   await page.evaluate(() => window.customFighterCreatorSetMaxHp(0));
   await page.waitForFunction(
     () =>
@@ -172,13 +210,16 @@ try {
       document.documentElement.dataset.creatorAnimationDraftValid === 'true' &&
       document.documentElement.dataset.creatorAnimationDraftMapId === 'ember_vanguard' &&
       document.documentElement.dataset.creatorAnimationDraftAnimationId === 'ember_attack_1' &&
+      document.documentElement.dataset.creatorAudioDraftValid === 'true' &&
+      document.documentElement.dataset.creatorAudioDraftBinding === 'skill_cast' &&
+      document.documentElement.dataset.creatorAudioDraftCue === 'skill_cast' &&
       document.documentElement.dataset.creatorDraftMaxHp === '100' &&
       Number(document.documentElement.dataset.creatorDraftRevision ?? '0') > previousRevision,
     revisionBeforeReset,
     { timeout: 5_000 },
   );
 
-  console.log('WEB_CREATOR_STUDIO_SMOKE_PASSED mode=creator valid-invalid-valid-reset animationMapAuthoring=true semanticAuthoring=true unsafeSemanticTokenBlocked=true missingMapBlocked=true trainingDefaultPreserved=true');
+  console.log('WEB_CREATOR_STUDIO_SMOKE_PASSED mode=creator valid-invalid-valid-reset animationMapAuthoring=true semanticAuthoring=true audioBindingAuthoring=true unsafeSemanticTokenBlocked=true unsafeAudioCueBlocked=true missingMapBlocked=true trainingDefaultPreserved=true');
   await page.close();
 } finally {
   await browser.close();

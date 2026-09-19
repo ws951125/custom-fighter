@@ -39,6 +39,12 @@ async function diagnosticSnapshot() {
         'playerAnimationId',
         'playerAnimationMapId',
         'creatorPreviewAnimationOverrideActive',
+        'creatorAudioDraftValid',
+        'creatorAudioDraftBinding',
+        'creatorAudioDraftCue',
+        'playerAudioBindingsLoaded',
+        'creatorPreviewAudioBindingsActive',
+        'playerAudioCueSkillCast',
         'creatorPreviewTimelineRunning',
         'creatorPreviewTimelineElapsed',
         'creatorPreviewTimelineTransitionCount',
@@ -83,6 +89,7 @@ try {
       document.documentElement.dataset.creatorTimelineReady === 'true' &&
       typeof window.customFighterCreatorPreview === 'function' &&
       typeof window.customFighterCreatorSetAnimationSemantic === 'function' &&
+      typeof window.customFighterCreatorSetAudioBinding === 'function' &&
       typeof window.customFighterCreatorSetSkillMpCost === 'function' &&
       typeof window.customFighterCreatorSetSkillCooldown === 'function' &&
       typeof window.customFighterCreatorTimelineAdd === 'function' &&
@@ -115,6 +122,7 @@ try {
   await page.evaluate(() => {
     window.customFighterCreatorSetName('Preview Nova');
     window.customFighterCreatorSetAnimationSemantic('ready', 'preview_ready_custom');
+    window.customFighterCreatorSetAudioBinding('skill_cast', 'preview_cast_custom');
     window.customFighterCreatorSetMaxHp(180);
     window.customFighterCreatorSetSkillName('Nova Bolt');
     window.customFighterCreatorSetSkillDamage(33);
@@ -133,6 +141,7 @@ try {
       document.documentElement.dataset.creatorAnimationDraftValid === 'true' &&
       document.documentElement.dataset.creatorAnimationDraftSemantic === 'ready' &&
       document.documentElement.dataset.creatorAnimationDraftAnimationId === 'preview_ready_custom' &&
+      document.documentElement.dataset.creatorAudioDraftValid === 'true' &&
       document.documentElement.dataset.creatorDraftMaxHp === '180' &&
       document.documentElement.dataset.creatorSkillDraftName === 'Nova Bolt' &&
       document.documentElement.dataset.creatorSkillDraftDamage === '33' &&
@@ -157,6 +166,9 @@ try {
       document.documentElement.dataset.playerCharacterSource === 'creator_preview_session' &&
       document.documentElement.dataset.playerCharacterName === 'Preview Nova' &&
       document.documentElement.dataset.creatorPreviewAnimationOverrideActive === 'true' &&
+      document.documentElement.dataset.playerAudioBindingsLoaded === 'true' &&
+      document.documentElement.dataset.creatorPreviewAudioBindingsActive === 'true' &&
+      document.documentElement.dataset.playerAudioCueSkillCast === 'preview_cast_custom' &&
       document.documentElement.dataset.playerAnimationMapLoaded === 'true' &&
       document.documentElement.dataset.playerAnimationMapId === 'ember_vanguard' &&
       document.documentElement.dataset.playerAnimationSemantic === 'ready' &&
@@ -191,7 +203,7 @@ try {
       document.documentElement.dataset.playerAnimationSemantic === 'skill_3' &&
       document.documentElement.dataset.creatorPreviewTimelineLastVfx === 'prototype_impact' &&
       document.documentElement.dataset.creatorPreviewTimelineVfxActive === 'true' &&
-      document.documentElement.dataset.creatorPreviewTimelineLastAudioCue === 'skill_cast' &&
+      document.documentElement.dataset.creatorPreviewTimelineLastAudioCue === 'preview_cast_custom' &&
       Number(document.documentElement.dataset.creatorPreviewTimelineAudioEventCount ?? '0') >= 1 &&
       Number(document.documentElement.dataset.creatorPreviewTimelineHitboxActiveCount ?? '0') >= 1 &&
       Number(document.documentElement.dataset.creatorPreviewTimelineHurtboxActiveCount ?? '0') >= 1,
@@ -240,6 +252,7 @@ try {
       document.documentElement.dataset.creatorAnimationDraftValid === 'true' &&
       document.documentElement.dataset.creatorAnimationDraftSemantic === 'ready' &&
       document.documentElement.dataset.creatorAnimationDraftAnimationId === 'preview_ready_custom' &&
+      document.documentElement.dataset.creatorAudioDraftValid === 'true' &&
       document.documentElement.dataset.creatorDraftMaxHp === '180' &&
       document.documentElement.dataset.creatorSkillDraftName === 'Nova Bolt' &&
       document.documentElement.dataset.creatorSkillDraftDamage === '33' &&
@@ -251,8 +264,16 @@ try {
     { timeout: 10_000 },
   );
 
+  diagnosticStage = 'audio-binding-round-trip';
+  const restoredAudioDraft = JSON.parse(
+    await page.evaluate(() => document.documentElement.dataset.creatorAudioDraftJson ?? '{}'),
+  );
+  if (restoredAudioDraft?.cues?.skill_cast !== 'preview_cast_custom') {
+    throw new Error(`Audio binding draft round-trip mismatch: ${JSON.stringify(restoredAudioDraft)}`);
+  }
+
   diagnosticStage = 'passed';
-  console.log('WEB_CREATOR_PREVIEW_SMOKE_PASSED invalidBlocked=true authoredHp=180 authoredDamage=33 authoredMpCost=17 authoredCooldown=2.4 semanticAnimationOverride=true semanticAnimationRoundTrip=true safeComposition=true timelineRoundTrip=true animationTiming=true vfxTiming=true audioTiming=true spatialHitbox=true spatialHurtbox=true cast=true draftsRestored=true');
+  console.log('WEB_CREATOR_PREVIEW_SMOKE_PASSED invalidBlocked=true authoredHp=180 authoredDamage=33 authoredMpCost=17 authoredCooldown=2.4 semanticAnimationOverride=true semanticAnimationRoundTrip=true audioBindingOverride=true audioBindingRoundTrip=true safeComposition=true timelineRoundTrip=true animationTiming=true vfxTiming=true audioTiming=true spatialHitbox=true spatialHurtbox=true cast=true draftsRestored=true');
   await page.close();
 } catch (error) {
   const snapshot = await diagnosticSnapshot();
