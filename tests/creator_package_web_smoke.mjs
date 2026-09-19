@@ -24,6 +24,7 @@ try {
       document.documentElement.dataset.creatorPackageReady === 'true' &&
       typeof window.customFighterCreatorExportPackage === 'function' &&
       typeof window.customFighterCreatorImportPackageJson === 'function' &&
+      typeof window.customFighterCreatorSetAnimationMap === 'function' &&
       typeof window.customFighterCreatorPreview === 'function' &&
       typeof window.customFighterCreatorTimelineApplyComposition === 'function' &&
       typeof window.customFighterCreatorTimelineClear === 'function' &&
@@ -34,6 +35,7 @@ try {
 
   await page.evaluate(() => {
     window.customFighterCreatorSetName('Package Nova');
+    window.customFighterCreatorSetAnimationMap('storm_duelist');
     window.customFighterCreatorSetMaxHp(222);
     window.customFighterCreatorSetSkillName('Package Bolt');
     window.customFighterCreatorSetSkillDamage(41);
@@ -47,6 +49,7 @@ try {
     () =>
       document.documentElement.dataset.creatorPackageCanExport === 'true' &&
       document.documentElement.dataset.creatorDraftName === 'Package Nova' &&
+      document.documentElement.dataset.creatorDraftAnimationMap === 'storm_duelist' &&
       document.documentElement.dataset.creatorDraftMaxHp === '222' &&
       document.documentElement.dataset.creatorSkillDraftName === 'Package Bolt' &&
       document.documentElement.dataset.creatorSkillDraftDamage === '41' &&
@@ -79,6 +82,7 @@ try {
   if ('vfx_asset' in exported) throw new Error('Package without authored VFX must not emit a vfx_asset');
   if (exported.package_id !== 'my_fighter_001') throw new Error(`Unexpected package_id ${exported.package_id}`);
   if (exported.character?.name !== 'Package Nova') throw new Error('Exported character name mismatch');
+  if (exported.character?.animation_map !== 'storm_duelist') throw new Error('Exported animation map mismatch');
   if (exported.character?.stats?.max_hp !== 222) throw new Error('Exported HP mismatch');
   if (exported.character?.skill_slots?.skill_1 !== 'my_projectile_001') throw new Error('Exported Skill 1 binding mismatch');
   if (!Array.isArray(exported.skills) || exported.skills.length !== 6) throw new Error('Export must contain six referenced skills');
@@ -103,6 +107,7 @@ try {
 
   await page.evaluate(() => {
     window.customFighterCreatorSetName('Mutated Draft');
+    window.customFighterCreatorSetAnimationMap('ember_vanguard');
     window.customFighterCreatorSetSkillDamage(7);
     window.customFighterCreatorSetSkillMpCost(3);
     window.customFighterCreatorTimelineClear();
@@ -110,6 +115,7 @@ try {
   await page.waitForFunction(
     () =>
       document.documentElement.dataset.creatorDraftName === 'Mutated Draft' &&
+      document.documentElement.dataset.creatorDraftAnimationMap === 'ember_vanguard' &&
       document.documentElement.dataset.creatorSkillDraftDamage === '7' &&
       document.documentElement.dataset.creatorSkillDraftMpCost === '3' &&
       document.documentElement.dataset.creatorTimelineCount === '0',
@@ -124,6 +130,7 @@ try {
       document.documentElement.dataset.creatorPackageImportStatus === 'invalid' &&
       (document.documentElement.dataset.creatorPackageImportError ?? '').includes('unsupported package schema_version') &&
       document.documentElement.dataset.creatorDraftName === 'Mutated Draft' &&
+      document.documentElement.dataset.creatorDraftAnimationMap === 'ember_vanguard' &&
       document.documentElement.dataset.creatorSkillDraftDamage === '7' &&
       document.documentElement.dataset.creatorSkillDraftMpCost === '3',
     null,
@@ -136,6 +143,7 @@ try {
       document.documentElement.dataset.creatorPackageImportStatus === 'valid' &&
       document.documentElement.dataset.creatorPackageImportCount === '1' &&
       document.documentElement.dataset.creatorDraftName === 'Package Nova' &&
+      document.documentElement.dataset.creatorDraftAnimationMap === 'storm_duelist' &&
       document.documentElement.dataset.creatorDraftMaxHp === '222' &&
       document.documentElement.dataset.creatorSkillDraftName === 'Package Bolt' &&
       document.documentElement.dataset.creatorSkillDraftDamage === '41' &&
@@ -154,6 +162,9 @@ try {
       document.documentElement.dataset.appMode === 'training' &&
       document.documentElement.dataset.creatorPreviewActive === 'true' &&
       document.documentElement.dataset.playerCharacterName === 'Package Nova' &&
+      document.documentElement.dataset.playerAnimationMapLoaded === 'true' &&
+      document.documentElement.dataset.playerAnimationMapId === 'storm_duelist' &&
+      document.documentElement.dataset.playerAnimationSemantic === 'ready' &&
       document.documentElement.dataset.playerMaxHp === '222' &&
       document.documentElement.dataset.playerRuntimeSkill1 === 'my_projectile_001' &&
       document.documentElement.dataset.creatorPreviewRuntimeSkillDamage === '41' &&
@@ -174,7 +185,7 @@ try {
     { timeout: 5_000 },
   );
 
-  console.log('WEB_CREATOR_PACKAGE_SMOKE_PASSED export=true schema=2 noVfxFallback=true timelineRoundTrip=true compositionExpanded=true invalidPreserved=true import=true authoredHp=222 authoredDamage=41 authoredMpCost=19 previewCast=true');
+  console.log('WEB_CREATOR_PACKAGE_SMOKE_PASSED export=true schema=2 noVfxFallback=true animationMapRoundTrip=true animationPreview=true timelineRoundTrip=true compositionExpanded=true invalidPreserved=true import=true authoredHp=222 authoredDamage=41 authoredMpCost=19 previewCast=true');
   await page.close();
 } finally {
   await browser.close();
