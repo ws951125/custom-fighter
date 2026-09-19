@@ -74,6 +74,7 @@ Scope:
 5. Preview return preserves the semantic draft in session memory.
 6. Failed map-ID or unsafe-token staging clears stale active override state.
 7. Character Package schema remains unchanged in WU2; importing a package resets transient semantic edits to the package's trusted map reference so stale memory state cannot leak across package boundaries.
+8. Character Package export reuses combined Character + animation-draft validation; invalid semantic animation state blocks export until corrected.
 
 Safety:
 - no arbitrary animation file/resource path;
@@ -87,7 +88,7 @@ Validation target:
 - Creator Preview session domain coverage for valid override, map-ID mismatch and unsafe-token fail-closed cases;
 - Chromium/hosted Edge Creator Studio semantic authoring regression;
 - Chromium/hosted Edge Creator Preview runtime override + return regression;
-- Character Package browser regression proving transient semantic reset on package import;
+- Character Package browser regression proving invalid semantic animation blocks export and transient semantic state resets on package import;
 - standard Windows Native, Godot import/boot/domain/backend and Web export/size-budget gates.
 
 ## Deferred after WU2
