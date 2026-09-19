@@ -3,12 +3,16 @@ extends Control
 const CharacterDraft = preload("res://game/creator/character_editor/character_draft.gd")
 const CharacterAnimationDraft = preload("res://game/creator/character_editor/character_animation_draft.gd")
 const CharacterAnimationMap = preload("res://game/core/character/character_animation_map.gd")
+const CharacterAudioDraft = preload("res://game/creator/character_editor/character_audio_draft.gd")
+const CharacterAudioBindings = preload("res://game/core/character/character_audio_bindings.gd")
 const SkillDraft = preload("res://game/creator/skill_editor/skill_draft.gd")
 
 var character_draft := CharacterDraft.new()
 var character_draft_revision := 0
 var animation_draft := CharacterAnimationDraft.new()
 var animation_draft_revision := 0
+var audio_draft := CharacterAudioDraft.new()
+var audio_draft_revision := 0
 var skill_draft := SkillDraft.new()
 var skill_draft_revision := 0
 var current_editor := "character"
@@ -23,6 +27,8 @@ var archetype_edit: LineEdit
 var animation_map_edit: LineEdit
 var animation_semantic_select: OptionButton
 var animation_id_edit: LineEdit
+var audio_binding_select: OptionButton
+var audio_cue_edit: LineEdit
 var hp_spin: SpinBox
 var mp_spin: SpinBox
 var speed_spin: SpinBox
@@ -49,6 +55,7 @@ var skill_summary_label: Label
 var _web_set_name_callback
 var _web_set_animation_map_callback
 var _web_set_animation_semantic_callback
+var _web_set_audio_binding_callback
 var _web_set_hp_callback
 var _web_reset_callback
 var _web_select_editor_callback
@@ -176,12 +183,18 @@ func _build_character_panel() -> PanelContainer:
 	animation_semantic_select = _add_option_field(stats_column, "Semantic", CharacterAnimationMap.REQUIRED_SEMANTICS)
 	animation_id_edit = _add_text_field(stats_column, "Animation ID", "Safe token only, e.g. custom_attack_one")
 
+	_add_heading(stats_column, "Audio Cue Bindings")
+	audio_binding_select = _add_option_field(stats_column, "Binding", CharacterAudioBindings.REQUIRED_BINDINGS)
+	audio_cue_edit = _add_text_field(stats_column, "Cue ID", "Safe token only, e.g. nova_skill_cast")
+
 	id_edit.text_changed.connect(_on_id_changed)
 	name_edit.text_changed.connect(_on_name_changed)
 	archetype_edit.text_changed.connect(_on_archetype_changed)
 	animation_map_edit.text_changed.connect(_on_animation_map_changed)
 	animation_semantic_select.item_selected.connect(_on_animation_semantic_selected)
 	animation_id_edit.text_changed.connect(_on_animation_id_changed)
+	audio_binding_select.item_selected.connect(_on_audio_binding_selected)
+	audio_cue_edit.text_changed.connect(_on_audio_cue_changed)
 	hp_spin.value_changed.connect(_on_hp_changed)
 	mp_spin.value_changed.connect(_on_mp_changed)
 	speed_spin.value_changed.connect(_on_speed_changed)
@@ -365,6 +378,7 @@ func _sync_character_controls_from_draft() -> void:
 	archetype_edit.text = character_draft.archetype
 	animation_map_edit.text = character_draft.animation_map
 	_sync_animation_controls_from_draft()
+	_sync_audio_controls_from_draft()
 	hp_spin.value = character_draft.max_hp
 	mp_spin.value = character_draft.max_mp
 	speed_spin.value = character_draft.move_speed
@@ -380,6 +394,18 @@ func _sync_animation_controls_from_draft() -> void:
 	animation_id_edit.set_block_signals(true)
 	animation_id_edit.text = animation_draft.animation_id_for_semantic(semantic)
 	animation_id_edit.set_block_signals(false)
+
+func _sync_audio_controls_from_draft() -> void:
+	if audio_binding_select == null or audio_cue_edit == null:
+		return
+	var selected_index := audio_binding_select.selected
+	if selected_index < 0 or selected_index >= audio_binding_select.item_count:
+		selected_index = 0
+		audio_binding_select.select(selected_index)
+	var binding := audio_binding_select.get_item_text(selected_index).strip_edges().to_lower()
+	audio_cue_edit.set_block_signals(true)
+	audio_cue_edit.text = audio_draft.cue_for_binding(binding)
+	audio_cue_edit.set_block_signals(false)
 
 func _sync_skill_controls_from_draft() -> void:
 	skill_id_edit.text = skill_draft.skill_id
@@ -479,6 +505,18 @@ func _on_animation_id_changed(value: String) -> void:
 	animation_draft_revision += 1
 	_refresh_character_validation()
 
+func _on_audio_binding_selected(_index: int) -> void:
+	_sync_audio_controls_from_draft()
+	_set_web_state()
+
+func _on_audio_cue_changed(value: String) -> void:
+	if audio_binding_select == null or audio_binding_select.selected < 0:
+		return
+	var binding := audio_binding_select.get_item_text(audio_binding_select.selected)
+	audio_draft.set_cue(binding, value)
+	audio_draft_revision += 1
+	_refresh_character_validation()
+
 func _on_hp_changed(value: float) -> void:
 	character_draft.max_hp = roundi(value)
 	_refresh_character_validation()
@@ -496,6 +534,8 @@ func _on_reset_pressed() -> void:
 	character_draft_revision += 1
 	animation_draft.load_from_id(character_draft.animation_map)
 	animation_draft_revision += 1
+	audio_draft.reset()
+	audio_draft_revision += 1
 	_sync_character_controls_from_draft()
 	_refresh_character_validation(false)
 
@@ -575,6 +615,9 @@ func _validate_character_authoring() -> PackedStringArray:
 		errors.append("animation draft: %s" % error)
 	if animation_draft.map_id != character_draft.animation_map.strip_edges().to_lower():
 		errors.append("animation draft id must match character animation_map")
+	var audio_errors: PackedStringArray = audio_draft.validate()
+	for error in audio_errors:
+		errors.append("audio draft: %s" % error)
 	return errors
 
 func _refresh_character_validation(increment_revision: bool = true) -> void:
@@ -619,6 +662,7 @@ func _install_web_bridge() -> void:
 	_web_set_name_callback = JavaScriptBridge.create_callback(_web_set_name)
 	_web_set_animation_map_callback = JavaScriptBridge.create_callback(_web_set_animation_map)
 	_web_set_animation_semantic_callback = JavaScriptBridge.create_callback(_web_set_animation_semantic)
+	_web_set_audio_binding_callback = JavaScriptBridge.create_callback(_web_set_audio_binding)
 	_web_set_hp_callback = JavaScriptBridge.create_callback(_web_set_hp)
 	_web_reset_callback = JavaScriptBridge.create_callback(_web_reset)
 	_web_select_editor_callback = JavaScriptBridge.create_callback(_web_select_editor)
@@ -632,6 +676,7 @@ func _install_web_bridge() -> void:
 	window.customFighterCreatorSetName = _web_set_name_callback
 	window.customFighterCreatorSetAnimationMap = _web_set_animation_map_callback
 	window.customFighterCreatorSetAnimationSemantic = _web_set_animation_semantic_callback
+	window.customFighterCreatorSetAudioBinding = _web_set_audio_binding_callback
 	window.customFighterCreatorSetMaxHp = _web_set_hp_callback
 	window.customFighterCreatorResetDraft = _web_reset_callback
 	window.customFighterCreatorSelectEditor = _web_select_editor_callback
@@ -667,6 +712,20 @@ func _web_set_animation_semantic(args: Array) -> void:
 	animation_id_edit.text = str(args[1])
 	animation_id_edit.set_block_signals(false)
 	_on_animation_id_changed(animation_id_edit.text)
+
+func _web_set_audio_binding(args: Array) -> void:
+	if args.size() < 2:
+		return
+	var requested_binding := str(args[0]).strip_edges().to_lower()
+	var binding_index := CharacterAudioBindings.REQUIRED_BINDINGS.find(requested_binding)
+	if binding_index < 0:
+		return
+	audio_binding_select.select(binding_index)
+	_sync_audio_controls_from_draft()
+	audio_cue_edit.set_block_signals(true)
+	audio_cue_edit.text = str(args[1])
+	audio_cue_edit.set_block_signals(false)
+	_on_audio_cue_changed(audio_cue_edit.text)
 
 func _web_set_hp(args: Array) -> void:
 	if args.is_empty():
@@ -755,6 +814,11 @@ func _set_web_state(character_errors: PackedStringArray = PackedStringArray(), s
 		"document.documentElement.dataset.creatorAnimationDraftSemantic=%s;" % JSON.stringify(animation_semantic_select.get_item_text(animation_semantic_select.selected).strip_edges().to_lower() if animation_semantic_select != null and animation_semantic_select.selected >= 0 else "") +
 		"document.documentElement.dataset.creatorAnimationDraftAnimationId=%s;" % JSON.stringify(animation_id_edit.text if animation_id_edit != null else "") +
 		"document.documentElement.dataset.creatorAnimationDraftJson=%s;" % JSON.stringify(JSON.stringify(animation_draft.to_dictionary(), "", true)) +
+		"document.documentElement.dataset.creatorAudioDraftRevision='%d';" % audio_draft_revision +
+		"document.documentElement.dataset.creatorAudioDraftValid='%s';" % ("true" if audio_draft.validate().is_empty() else "false") +
+		"document.documentElement.dataset.creatorAudioDraftBinding=%s;" % JSON.stringify(audio_binding_select.get_item_text(audio_binding_select.selected).strip_edges().to_lower() if audio_binding_select != null and audio_binding_select.selected >= 0 else "") +
+		"document.documentElement.dataset.creatorAudioDraftCue=%s;" % JSON.stringify(audio_cue_edit.text if audio_cue_edit != null else "") +
+		"document.documentElement.dataset.creatorAudioDraftJson=%s;" % JSON.stringify(JSON.stringify(audio_draft.to_dictionary(), "", true)) +
 		"document.documentElement.dataset.creatorDraftMaxHp='%d';" % character_draft.max_hp +
 		"document.documentElement.dataset.creatorDraftMaxMp='%d';" % character_draft.max_mp +
 		"document.documentElement.dataset.creatorDraftMoveSpeed='%.3f';" % character_draft.move_speed +
