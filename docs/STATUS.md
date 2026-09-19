@@ -218,7 +218,8 @@ Work unit 2 — **per-semantic animation-map authoring + in-memory Preview — i
 - Training Preview loads the validated in-memory map through `CharacterAnimationMap.load_from_dictionary()`; runtime telemetry exposes that the override is active and the current semantic resolves to the authored animation token.
 - Preview → Creator round-trip preserves the transient semantic mapping in session memory.
 - Character Package schema is deliberately unchanged in WU2. Package import resets any transient semantic override to the package's trusted `character.animation_map` reference, preventing stale in-memory mappings from leaking across package boundaries. Persisting custom semantic mappings in packages is deferred to WU3.
-- Domain/browser regressions cover safe/unsafe semantic authoring, map-ID mismatch fail-closed behavior, runtime Preview application, Preview return preservation, and package-import transient reset.
+- Package export now uses the same combined Character + animation-draft validation as Preview. An invalid semantic token makes `creatorPackageCanExport=false` and blocks export instead of silently serializing a package that omits invalid in-memory animation state.
+- Domain/browser regressions cover safe/unsafe semantic authoring, map-ID mismatch fail-closed behavior, runtime Preview application, Preview return preservation, invalid-animation package-export blocking, and package-import transient reset.
 - No arbitrary animation resource path, URL, script, callback, or executable payload is introduced.
 - V2 remains **25% (2/8 phases complete)** until the full V2-3 phase acceptance criterion is satisfied.
 
