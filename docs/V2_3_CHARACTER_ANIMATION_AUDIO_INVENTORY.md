@@ -55,11 +55,14 @@ Scope:
 6. Creator Preview proves the imported map actually loads in Training.
 7. No arbitrary resource path or executable field is introduced.
 
-Validation target:
-- Creator CharacterDraft domain tests;
-- Creator Studio Chromium/hosted-Edge regression;
-- Character Package Chromium/hosted-Edge export/import/Preview regression;
-- existing Godot import/boot, package, animation, Web export and browser gates.
+Validation result:
+- PR #162 head `23c673be0fa6a58949849884b3d879b1186174ee` passed CI #413 (`35420773510`).
+- Windows Native, Godot import/boot/domain/backend, Web export/size budget, Chromium, and hosted Microsoft Edge all passed.
+- Domain evidence: `CREATOR_CHARACTER_DRAFT_TESTS_PASSED`.
+- Chromium and Edge both emitted `WEB_CREATOR_STUDIO_SMOKE_PASSED ... animationMapAuthoring=true missingMapBlocked=true`.
+- Chromium and Edge both emitted `WEB_CREATOR_PACKAGE_SMOKE_PASSED ... animationMapRoundTrip=true animationPreview=true missingAnimationMapBlocked=true`.
+- Both browser suites completed `SMOKE_SUITE_PASSED count=24`.
+- A documentation-updated latest-head PR gate remains required before merge authorization.
 
 ## Deferred after WU1
 
