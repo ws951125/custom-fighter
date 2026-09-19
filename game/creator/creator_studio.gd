@@ -1,10 +1,14 @@
 extends Control
 
 const CharacterDraft = preload("res://game/creator/character_editor/character_draft.gd")
+const CharacterAnimationDraft = preload("res://game/creator/character_editor/character_animation_draft.gd")
+const CharacterAnimationMap = preload("res://game/core/character/character_animation_map.gd")
 const SkillDraft = preload("res://game/creator/skill_editor/skill_draft.gd")
 
 var character_draft := CharacterDraft.new()
 var character_draft_revision := 0
+var animation_draft := CharacterAnimationDraft.new()
+var animation_draft_revision := 0
 var skill_draft := SkillDraft.new()
 var skill_draft_revision := 0
 var current_editor := "character"
@@ -17,6 +21,8 @@ var id_edit: LineEdit
 var name_edit: LineEdit
 var archetype_edit: LineEdit
 var animation_map_edit: LineEdit
+var animation_semantic_select: OptionButton
+var animation_id_edit: LineEdit
 var hp_spin: SpinBox
 var mp_spin: SpinBox
 var speed_spin: SpinBox
@@ -42,6 +48,7 @@ var skill_summary_label: Label
 
 var _web_set_name_callback
 var _web_set_animation_map_callback
+var _web_set_animation_semantic_callback
 var _web_set_hp_callback
 var _web_reset_callback
 var _web_select_editor_callback
@@ -53,6 +60,7 @@ var _web_set_skill_range_callback
 var _web_reset_skill_callback
 
 func _ready() -> void:
+	animation_draft.load_from_id(character_draft.animation_map)
 	_build_ui()
 	_sync_character_controls_from_draft()
 	_sync_skill_controls_from_draft()
@@ -164,10 +172,16 @@ func _build_character_panel() -> PanelContainer:
 	mp_spin = _add_number_field(stats_column, "Max MP", 0.0, 10000.0, 1.0)
 	speed_spin = _add_number_field(stats_column, "Move Speed", 0.0, 2000.0, 5.0)
 
+	_add_heading(stats_column, "Animation Semantics")
+	animation_semantic_select = _add_option_field(stats_column, "Semantic", CharacterAnimationMap.REQUIRED_SEMANTICS)
+	animation_id_edit = _add_text_field(stats_column, "Animation ID", "Safe token only, e.g. custom_attack_one")
+
 	id_edit.text_changed.connect(_on_id_changed)
 	name_edit.text_changed.connect(_on_name_changed)
 	archetype_edit.text_changed.connect(_on_archetype_changed)
 	animation_map_edit.text_changed.connect(_on_animation_map_changed)
+	animation_semantic_select.item_selected.connect(_on_animation_semantic_selected)
+	animation_id_edit.text_changed.connect(_on_animation_id_changed)
 	hp_spin.value_changed.connect(_on_hp_changed)
 	mp_spin.value_changed.connect(_on_mp_changed)
 	speed_spin.value_changed.connect(_on_speed_changed)
@@ -350,9 +364,22 @@ func _sync_character_controls_from_draft() -> void:
 	name_edit.text = character_draft.character_name
 	archetype_edit.text = character_draft.archetype
 	animation_map_edit.text = character_draft.animation_map
+	_sync_animation_controls_from_draft()
 	hp_spin.value = character_draft.max_hp
 	mp_spin.value = character_draft.max_mp
 	speed_spin.value = character_draft.move_speed
+
+func _sync_animation_controls_from_draft() -> void:
+	if animation_semantic_select == null or animation_id_edit == null:
+		return
+	var selected_index := animation_semantic_select.selected
+	if selected_index < 0 or selected_index >= animation_semantic_select.item_count:
+		selected_index = 0
+		animation_semantic_select.select(selected_index)
+	var semantic := animation_semantic_select.get_item_text(selected_index).strip_edges().to_lower()
+	animation_id_edit.set_block_signals(true)
+	animation_id_edit.text = animation_draft.animation_id_for_semantic(semantic)
+	animation_id_edit.set_block_signals(false)
 
 func _sync_skill_controls_from_draft() -> void:
 	skill_id_edit.text = skill_draft.skill_id
@@ -434,6 +461,22 @@ func _on_archetype_changed(value: String) -> void:
 
 func _on_animation_map_changed(value: String) -> void:
 	character_draft.animation_map = value
+	var animation_errors: PackedStringArray = animation_draft.load_from_id(value)
+	if animation_errors.is_empty():
+		animation_draft_revision += 1
+		_sync_animation_controls_from_draft()
+	_refresh_character_validation()
+
+func _on_animation_semantic_selected(_index: int) -> void:
+	_sync_animation_controls_from_draft()
+	_set_web_state()
+
+func _on_animation_id_changed(value: String) -> void:
+	if animation_semantic_select == null or animation_semantic_select.selected < 0:
+		return
+	var semantic := animation_semantic_select.get_item_text(animation_semantic_select.selected)
+	animation_draft.set_animation(semantic, value)
+	animation_draft_revision += 1
 	_refresh_character_validation()
 
 func _on_hp_changed(value: float) -> void:
@@ -451,6 +494,8 @@ func _on_speed_changed(value: float) -> void:
 func _on_reset_pressed() -> void:
 	character_draft.reset()
 	character_draft_revision += 1
+	animation_draft.load_from_id(character_draft.animation_map)
+	animation_draft_revision += 1
 	_sync_character_controls_from_draft()
 	_refresh_character_validation(false)
 
@@ -523,10 +568,19 @@ func _on_training_pressed() -> void:
 		return
 	get_tree().change_scene_to_file("res://game/runtime/main.tscn")
 
+func _validate_character_authoring() -> PackedStringArray:
+	var errors: PackedStringArray = character_draft.validate()
+	var animation_errors: PackedStringArray = animation_draft.validate()
+	for error in animation_errors:
+		errors.append("animation draft: %s" % error)
+	if animation_draft.map_id != character_draft.animation_map.strip_edges().to_lower():
+		errors.append("animation draft id must match character animation_map")
+	return errors
+
 func _refresh_character_validation(increment_revision: bool = true) -> void:
 	if increment_revision:
 		character_draft_revision += 1
-	var errors := character_draft.validate()
+	var errors := _validate_character_authoring()
 	var valid := errors.is_empty()
 	character_validation_label.text = "VALID · Character draft passes runtime schema" if valid else "INVALID · %s" % " | ".join(errors)
 	character_validation_label.modulate = Color("7ff0b1") if valid else Color("ff7b86")
@@ -564,6 +618,7 @@ func _install_web_bridge() -> void:
 		return
 	_web_set_name_callback = JavaScriptBridge.create_callback(_web_set_name)
 	_web_set_animation_map_callback = JavaScriptBridge.create_callback(_web_set_animation_map)
+	_web_set_animation_semantic_callback = JavaScriptBridge.create_callback(_web_set_animation_semantic)
 	_web_set_hp_callback = JavaScriptBridge.create_callback(_web_set_hp)
 	_web_reset_callback = JavaScriptBridge.create_callback(_web_reset)
 	_web_select_editor_callback = JavaScriptBridge.create_callback(_web_select_editor)
@@ -576,6 +631,7 @@ func _install_web_bridge() -> void:
 	var window = JavaScriptBridge.get_interface("window")
 	window.customFighterCreatorSetName = _web_set_name_callback
 	window.customFighterCreatorSetAnimationMap = _web_set_animation_map_callback
+	window.customFighterCreatorSetAnimationSemantic = _web_set_animation_semantic_callback
 	window.customFighterCreatorSetMaxHp = _web_set_hp_callback
 	window.customFighterCreatorResetDraft = _web_reset_callback
 	window.customFighterCreatorSelectEditor = _web_select_editor_callback
@@ -597,6 +653,18 @@ func _web_set_animation_map(args: Array) -> void:
 		return
 	animation_map_edit.text = str(args[0])
 	_on_animation_map_changed(animation_map_edit.text)
+
+func _web_set_animation_semantic(args: Array) -> void:
+	if args.size() < 2:
+		return
+	var requested_semantic := str(args[0]).strip_edges().to_lower()
+	var semantic_index := CharacterAnimationMap.REQUIRED_SEMANTICS.find(requested_semantic)
+	if semantic_index < 0:
+		return
+	animation_semantic_select.select(semantic_index)
+	_sync_animation_controls_from_draft()
+	animation_id_edit.text = str(args[1])
+	_on_animation_id_changed(animation_id_edit.text)
 
 func _web_set_hp(args: Array) -> void:
 	if args.is_empty():
@@ -665,8 +733,8 @@ func _set_web_state(character_errors: PackedStringArray = PackedStringArray(), s
 	if not OS.has_feature("web"):
 		return
 	var current_character_errors := character_errors
-	if current_character_errors.is_empty() and not character_draft.is_valid():
-		current_character_errors = character_draft.validate()
+	if current_character_errors.is_empty():
+		current_character_errors = _validate_character_authoring()
 	var current_skill_errors := skill_errors
 	if current_skill_errors.is_empty() and not skill_draft.is_valid():
 		current_skill_errors = skill_draft.validate()
@@ -679,6 +747,12 @@ func _set_web_state(character_errors: PackedStringArray = PackedStringArray(), s
 		"document.documentElement.dataset.creatorDraftName=%s;" % JSON.stringify(character_draft.character_name) +
 		"document.documentElement.dataset.creatorDraftArchetype=%s;" % JSON.stringify(character_draft.archetype) +
 		"document.documentElement.dataset.creatorDraftAnimationMap=%s;" % JSON.stringify(character_draft.animation_map) +
+		"document.documentElement.dataset.creatorAnimationDraftRevision='%d';" % animation_draft_revision +
+		"document.documentElement.dataset.creatorAnimationDraftValid='%s';" % ("true" if animation_draft.validate().is_empty() else "false") +
+		"document.documentElement.dataset.creatorAnimationDraftMapId=%s;" % JSON.stringify(animation_draft.map_id) +
+		"document.documentElement.dataset.creatorAnimationDraftSemantic=%s;" % JSON.stringify(animation_semantic_select.get_item_text(animation_semantic_select.selected).strip_edges().to_lower() if animation_semantic_select != null and animation_semantic_select.selected >= 0 else "") +
+		"document.documentElement.dataset.creatorAnimationDraftAnimationId=%s;" % JSON.stringify(animation_id_edit.text if animation_id_edit != null else "") +
+		"document.documentElement.dataset.creatorAnimationDraftJson=%s;" % JSON.stringify(JSON.stringify(animation_draft.to_dictionary(), "", true)) +
 		"document.documentElement.dataset.creatorDraftMaxHp='%d';" % character_draft.max_hp +
 		"document.documentElement.dataset.creatorDraftMaxMp='%d';" % character_draft.max_mp +
 		"document.documentElement.dataset.creatorDraftMoveSpeed='%.3f';" % character_draft.move_speed +
