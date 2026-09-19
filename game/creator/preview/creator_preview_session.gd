@@ -364,6 +364,7 @@ func _deactivate_failed_preview() -> void:
 	_preview_active = false
 	_preview_skill_slot = ""
 	_preview_animation_map_data.clear()
+	_preview_audio_bindings_data.clear()
 	_clear_preview_vfx()
 
 func _clear_preview_vfx() -> void:
