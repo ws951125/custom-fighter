@@ -5,9 +5,9 @@
 **V1/MVP is complete; V2 roadmap is now active.**
 
 - V1 completion remains **100% (13/13 phases complete)**.
-- V2 completion is **12.5% (1/8 phases complete)**.
-- Completed V2 phase: **V2-1 Advanced Creator Timeline**.
-- Active V2 phase: **V2-2 Extended Skill Families**.
+- V2 completion is **25% (2/8 phases complete)**.
+- Completed V2 phases: **V2-1 Advanced Creator Timeline** and **V2-2 Extended Skill Families**.
+- Active V2 phase: **V2-3 Character Animation & Audio Authoring**.
 
 V1 roadmap:
 - M0–M8 MVP: 9/9 complete.
@@ -21,15 +21,15 @@ V2 roadmap is defined in `docs/V2_ROADMAP.md` and captures previously discussed/
 ## V2 roadmap
 
 1. V2-1 Advanced Creator Timeline — **complete**.
-2. V2-2 Extended Skill Families — **in progress**.
-3. V2-3 Character Animation & Audio Authoring — pending.
+2. V2-2 Extended Skill Families — **complete**.
+3. V2-3 Character Animation & Audio Authoring — **in progress**.
 4. V2-4 AI Opponents & Single-player Gameplay — pending.
 5. V2-5 Game Modes, Balance & Competitive Foundation — pending.
 6. V2-6 Network PvP — pending.
 7. V2-7 Creator Sharing Ecosystem — pending.
 8. V2-8 Mobile Targets — pending.
 
-V2-1 delivered visual event timeline authoring, startup/active/recovery timing, animation/VFX/audio events, hitbox/hurtbox timing and spatial editing, safe multi-event compositions, validation, and Creator → Training preview round trip. V2-2 now extends the data-driven skill engine beyond the six V1 families while preserving safe declarative event boundaries and no arbitrary user code.
+V2-1 delivered visual event timeline authoring, startup/active/recovery timing, animation/VFX/audio events, hitbox/hurtbox timing and spatial editing, safe multi-event compositions, validation, and Creator → Training preview round trip. V2-2 extended the data-driven skill engine beyond the six V1 families and is now accepted complete with bounded Beam/Trap/Aura/Teleport/Counter/Grab/Summon families plus safe declarative scripted compositions. V2-3 is now active.
 
 ### V2-2 implementation checkpoints
 
@@ -175,16 +175,25 @@ Work unit 9 — **sixth genuinely new family: `grab` — accepted and production
 - Production evidence includes `WEB_CREATOR_PREVIEW_FAMILY_SMOKE_PASSED families=12 ... grabPolicy=overlap-hold-once ... timelineDispatch=true roundTrip=true`. Grab Work Unit 9 is therefore accepted and production-validated.
 - V2 remains **12.5% (1/8 phases complete)** because V2-2 still requires its final family, **Summon**.
 
-Work unit 10 — **final V2-2 family: `summon` — implementation complete; PR validation passed on product-fix head; latest-head docs gate pending**:
+Work unit 10 — **final V2-2 family: `summon` — accepted and production-validated**:
 - Summon reuses existing common fields only: `range` is bounded forward spawn offset, `speed` is deterministic horizontal actor speed, `active` is finite actor lifetime, and the existing hitbox dimensions bound collision volume. No package schema field was added.
 - `SummonState` owns exactly one actor instance per activation. Spawn and arena geometry fail closed, movement is deterministic toward only the runtime-provided designated target, lifetime is finite, and one actor can consume at most one eligible overlap hit before deterministic cleanup.
 - Runtime routing is optional `skill_13` / Q. The coordinated controller reuses `SkillCastState`, MP/cooldown, `SkillCoordinator`, exact-type registry loading and the existing declarative timeline scheduler.
-- Creator authoring, Creator Preview temporary slot injection, Character Package common-field round trip, deterministic domain coverage and thirteen-family Chromium/Edge smoke coverage are synchronized on PR #160.
+- Creator authoring, Creator Preview temporary slot injection, Character Package common-field round trip, deterministic domain coverage and thirteen-family Chromium/Edge smoke coverage are synchronized.
 - CI #403 (`35368837252`) and diagnostic CI #404 (`35369547182`) exposed one GDScript parse defect before domain/browser execution: `target_eligible := ...` depended on dynamic `host` members, so Godot 4.7 could not infer a static type. A temporary `--check-only` diagnostic identified `summon_skill_controller.gd:104`; commit `88b671bd85437ff8fa354d95c2d340ffb0302fb1` changed it to explicit `bool`, and the diagnostic step was removed in `12930f7ac5cbe903e206358e2cca4d774ab7783c`.
-- CI #406 (`35369838845`) on product-fix head `12930f7ac5cbe903e206358e2cca4d774ab7783c` passed Windows Native, Godot import/boot/domain/backend, Web export/size budget, Chromium `smoke:all`, and hosted Microsoft Edge `smoke:all`.
-- Explicit evidence includes `SUMMON_TESTS_PASSED`, Character Package/Creator Preview PASS, and both browsers emitting `WEB_CREATOR_PREVIEW_FAMILY_SMOKE_PASSED families=13 ... summonPolicy=bounded-actor-single-hit ... timelineDispatch=true roundTrip=true` plus `SMOKE_SUITE_PASSED count=24`.
+- Latest PR head `23eff68188dca878877209ffe92d3fd3e1e40938` passed CI #409 (`35407714816`) across Windows Native, Godot import/boot/domain/backend, Web export/size budget, Chromium `smoke:all`, and hosted Microsoft Edge `smoke:all`.
+- PR #160 was explicitly approved and squash-merged to `main` at `5502bbc9b31725488d34e3614c495fe2ad47d85d`.
+- Main CI #410 (`35410123320`) passed the complete production chain on that exact revision: Windows Native, Godot import/boot/domain/backend, Web export/size budget, Chromium, hosted Microsoft Edge, GitHub Pages deployment, public-Web reachability, Render exact-revision readiness, and production Microsoft Edge full smoke.
+- Production evidence includes `SUMMON_TESTS_PASSED`, `WEB_CREATOR_PREVIEW_FAMILY_SMOKE_PASSED families=13 ... summonPolicy=bounded-actor-single-hit ... timelineDispatch=true roundTrip=true`, and `SMOKE_SUITE_PASSED count=24`. Render readiness emitted `PRODUCTION_AI_BACKEND_READY ... revision=5502bbc9b31725488d34e3614c495fe2ad47d85d`.
 - Summon data contains no arbitrary scene/resource path, callback, script, target selector, user code or unbounded actor list.
-- V2 remains **12.5% (1/8 phases complete)** until the documentation-updated latest PR head passes CI, PR #160 receives explicit merge approval, exact-`main` production validation passes, and full V2-2 phase acceptance is recorded.
+
+### V2-2 acceptance
+
+V2-2 Extended Skill Families is **accepted complete** on 2026-09-19. The roadmap acceptance criterion is satisfied: Beam, Trap, Aura, Teleport, Counter, Grab, and Summon each have validated data definitions, runtime implementations, Creator authoring/Preview paths, deterministic tests, and Chromium/hosted-Edge coverage; safe scripted event compositions expand only into the existing allow-listed declarative timeline events; no arbitrary user code is executed.
+
+Final production evidence is PR #160 merged to `main` as `5502bbc9b31725488d34e3614c495fe2ad47d85d` and Main CI #410 (`35410123320`), which passed the full production chain including GitHub Pages/public reachability, Render exact-revision readiness, and production Microsoft Edge full smoke. The deployed thirteen-family regression reports `summonPolicy=bounded-actor-single-hit` and all 24 smoke stages passing.
+
+V2 progress therefore advances to **25% (2/8 phases complete)**, and **V2-3 Character Animation & Audio Authoring** becomes the active phase.
 
 ### V2-1 implementation checkpoints
 
@@ -302,4 +311,4 @@ AI VFX backend: `https://custom-fighter-ai-vfx.onrender.com`
 
 ## Next implementation target
 
-Run the documentation-updated latest-head PR gate for #160. If Windows Native, Godot/domain/backend, Web/Chromium and hosted Microsoft Edge remain green, request explicit merge approval. After merge, require the exact `main` revision to pass GitHub Pages deployment/public reachability, Render exact-revision readiness and production Microsoft Edge full smoke before formally accepting V2-2.
+Begin **V2-3 Character Animation & Audio Authoring**. First inventory the current character animation map, Creator animation authoring/preview path, existing approved audio/token boundaries, and Character Package asset schema. Then implement the smallest safe V2-3 slice that preserves package round-trip, avoids arbitrary executable/resource paths, and is covered by deterministic domain tests plus Chromium/hosted-Edge Creator validation.
