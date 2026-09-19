@@ -35,6 +35,7 @@ try {
       document.documentElement.dataset.appMode === 'creator' &&
       document.documentElement.dataset.creatorStudioReady === 'true' &&
       typeof window.customFighterCreatorSetName === 'function' &&
+      typeof window.customFighterCreatorSetAnimationMap === 'function' &&
       typeof window.customFighterCreatorSetMaxHp === 'function' &&
       typeof window.customFighterCreatorResetDraft === 'function',
     null,
@@ -46,6 +47,7 @@ try {
     valid: await dataset(page, 'creatorDraftValid'),
     id: await dataset(page, 'creatorDraftId'),
     name: await dataset(page, 'creatorDraftName'),
+    animationMap: await dataset(page, 'creatorDraftAnimationMap'),
     hp: Number(await dataset(page, 'creatorDraftMaxHp')),
     mp: Number(await dataset(page, 'creatorDraftMaxMp')),
     speed: Number(await dataset(page, 'creatorDraftMoveSpeed')),
@@ -56,6 +58,7 @@ try {
     initial.valid !== 'true' ||
     initial.id !== 'my_fighter_001' ||
     initial.name !== 'My Fighter' ||
+    initial.animationMap !== 'ember_vanguard' ||
     initial.hp !== 100 ||
     initial.mp !== 100 ||
     Math.abs(initial.speed - 360) > 0.01 ||
@@ -78,6 +81,25 @@ try {
     () =>
       document.documentElement.dataset.creatorDraftValid === 'true' &&
       document.documentElement.dataset.creatorDraftName === 'Nova Smith',
+    null,
+    { timeout: 5_000 },
+  );
+
+  await page.evaluate(() => window.customFighterCreatorSetAnimationMap('missing_animation_map'));
+  await page.waitForFunction(
+    () =>
+      document.documentElement.dataset.creatorDraftValid === 'false' &&
+      document.documentElement.dataset.creatorDraftAnimationMap === 'missing_animation_map' &&
+      (document.documentElement.dataset.creatorDraftError ?? '').includes('animation map file is empty or missing'),
+    null,
+    { timeout: 5_000 },
+  );
+
+  await page.evaluate(() => window.customFighterCreatorSetAnimationMap('storm_duelist'));
+  await page.waitForFunction(
+    () =>
+      document.documentElement.dataset.creatorDraftValid === 'true' &&
+      document.documentElement.dataset.creatorDraftAnimationMap === 'storm_duelist',
     null,
     { timeout: 5_000 },
   );
@@ -106,13 +128,14 @@ try {
     (previousRevision) =>
       document.documentElement.dataset.creatorDraftValid === 'true' &&
       document.documentElement.dataset.creatorDraftName === 'My Fighter' &&
+      document.documentElement.dataset.creatorDraftAnimationMap === 'ember_vanguard' &&
       document.documentElement.dataset.creatorDraftMaxHp === '100' &&
       Number(document.documentElement.dataset.creatorDraftRevision ?? '0') > previousRevision,
     revisionBeforeReset,
     { timeout: 5_000 },
   );
 
-  console.log('WEB_CREATOR_STUDIO_SMOKE_PASSED mode=creator valid-invalid-valid-reset trainingDefaultPreserved=true');
+  console.log('WEB_CREATOR_STUDIO_SMOKE_PASSED mode=creator valid-invalid-valid-reset animationMapAuthoring=true missingMapBlocked=true trainingDefaultPreserved=true');
   await page.close();
 } finally {
   await browser.close();
