@@ -366,3 +366,15 @@
 - **Prevention Rule:** Every browser test that positions a player relative to a target must pace each movement command from runtime-observed coordinate progress and include overshoot recovery. Never use a long held direction whose release depends on delayed hosted-browser telemetry.
 - **Validation:** Fix commit `d4cca251fe36cae0672ad6f8b11d35aef8d31917`; PR #158 head `c3b5da271fe70c58bcafaa82be0ede16b3d47888` passed CI #398 (`35346916303`) on Windows Native, Godot/domain/backend, Web/Chromium and GitHub-hosted Microsoft Edge. Both browsers completed all 24 smoke stages, including the hardened Aura/Counter/Grab proximity setup.
 - **Status:** Verified on PR #158 CI #398
+
+
+## L-034 — Round-trip tests must distinguish persisted draft data from transient editor selection
+
+- **Date:** 2026-09-20
+- **Area:** V2-3 audio bindings / Creator Preview / Playwright
+- **Symptom:** PR #166 CI #422 passed Godot import/boot/domain/backend, Windows Native, Web export/size budget and the new Creator audio-authoring smoke, then Chromium `smoke:creator-preview` timed out only at the return-to-Creator assertion. The failure snapshot showed the authored runtime binding was active (`playerAudioCueSkillCast=preview_cast_custom`) and the Creator draft was valid after return, but the visible audio binding selector had reset to its default `ready → character_ready` view.
+- **Root Cause:** The browser regression treated the currently selected Audio Binding row as the persistence source of truth. The complete `CharacterAudioDraft` is persisted in session data, while the selector index is transient editor view state and intentionally initializes to the first fixed binding when a new Creator scene is built.
+- **Fix:** Verify round-trip persistence from the serialized `creatorAudioDraftJson` and assert its `cues.skill_cast` value instead of requiring a particular selector row to remain selected. Runtime/Creator product behavior is unchanged.
+- **Prevention Rule:** For Creator round-trip/import tests, assert persisted model state from canonical serialized draft/package telemetry. Assert selector/tab/focus state only when preserving that view state is itself a product requirement.
+- **Validation:** Fix commit `2443f60e39e2f0aa7cdccae6099cf01071a13d86`; latest-head PR CI validation pending.
+- **Status:** Fix synchronized; cross-browser validation pending
