@@ -237,6 +237,9 @@ try {
       document.documentElement.dataset.appMode === 'creator' &&
       document.documentElement.dataset.creatorStudioReady === 'true' &&
       document.documentElement.dataset.creatorDraftName === 'Preview Nova' &&
+      document.documentElement.dataset.creatorAnimationDraftValid === 'true' &&
+      document.documentElement.dataset.creatorAnimationDraftSemantic === 'ready' &&
+      document.documentElement.dataset.creatorAnimationDraftAnimationId === 'preview_ready_custom' &&
       document.documentElement.dataset.creatorDraftMaxHp === '180' &&
       document.documentElement.dataset.creatorSkillDraftName === 'Nova Bolt' &&
       document.documentElement.dataset.creatorSkillDraftDamage === '33' &&
@@ -249,7 +252,7 @@ try {
   );
 
   diagnosticStage = 'passed';
-  console.log('WEB_CREATOR_PREVIEW_SMOKE_PASSED invalidBlocked=true authoredHp=180 authoredDamage=33 authoredMpCost=17 authoredCooldown=2.4 semanticAnimationOverride=true safeComposition=true timelineRoundTrip=true animationTiming=true vfxTiming=true audioTiming=true spatialHitbox=true spatialHurtbox=true cast=true draftsRestored=true');
+  console.log('WEB_CREATOR_PREVIEW_SMOKE_PASSED invalidBlocked=true authoredHp=180 authoredDamage=33 authoredMpCost=17 authoredCooldown=2.4 semanticAnimationOverride=true semanticAnimationRoundTrip=true safeComposition=true timelineRoundTrip=true animationTiming=true vfxTiming=true audioTiming=true spatialHitbox=true spatialHurtbox=true cast=true draftsRestored=true');
   await page.close();
 } catch (error) {
   const snapshot = await diagnosticSnapshot();
