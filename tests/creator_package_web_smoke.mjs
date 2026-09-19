@@ -137,6 +137,23 @@ try {
     { timeout: 5_000 },
   );
 
+  const missingAnimationPackage = JSON.stringify({
+    ...exported,
+    character: { ...exported.character, animation_map: 'missing_animation_map' },
+  });
+  await page.evaluate((json) => window.customFighterCreatorImportPackageJson(json), missingAnimationPackage);
+  await page.waitForFunction(
+    () =>
+      document.documentElement.dataset.creatorPackageImportStatus === 'invalid' &&
+      (document.documentElement.dataset.creatorPackageImportError ?? '').includes('animation map file is empty or missing') &&
+      document.documentElement.dataset.creatorDraftName === 'Mutated Draft' &&
+      document.documentElement.dataset.creatorDraftAnimationMap === 'ember_vanguard' &&
+      document.documentElement.dataset.creatorSkillDraftDamage === '7' &&
+      document.documentElement.dataset.creatorSkillDraftMpCost === '3',
+    null,
+    { timeout: 5_000 },
+  );
+
   await page.evaluate((json) => window.customFighterCreatorImportPackageJson(json), exportedJson);
   await page.waitForFunction(
     () =>
@@ -185,7 +202,7 @@ try {
     { timeout: 5_000 },
   );
 
-  console.log('WEB_CREATOR_PACKAGE_SMOKE_PASSED export=true schema=2 noVfxFallback=true animationMapRoundTrip=true animationPreview=true timelineRoundTrip=true compositionExpanded=true invalidPreserved=true import=true authoredHp=222 authoredDamage=41 authoredMpCost=19 previewCast=true');
+  console.log('WEB_CREATOR_PACKAGE_SMOKE_PASSED export=true schema=2 noVfxFallback=true animationMapRoundTrip=true animationPreview=true missingAnimationMapBlocked=true timelineRoundTrip=true compositionExpanded=true invalidPreserved=true import=true authoredHp=222 authoredDamage=41 authoredMpCost=19 previewCast=true');
   await page.close();
 } finally {
   await browser.close();
