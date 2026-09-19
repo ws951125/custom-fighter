@@ -222,13 +222,26 @@ Work unit 2 — **per-semantic animation-map authoring + in-memory Preview — a
 - Final production evidence includes `WEB_CHARACTER_ANIMATION_SMOKE_PASSED`, `WEB_CREATOR_STUDIO_SMOKE_PASSED ... semanticAuthoring=true unsafeSemanticTokenBlocked=true`, `WEB_CREATOR_PREVIEW_SMOKE_PASSED ... semanticAnimationOverride=true semanticAnimationRoundTrip=true`, `SMOKE_SUITE_PASSED count=24`, and `PRODUCTION_AI_BACKEND_READY ... revision=2111f3b27dfbd3fa0de8380fc72f3167ff4be461`.
 - V2 remains **25% (2/8 phases complete)** until the full V2-3 phase acceptance criterion is satisfied.
 
-Work unit 3 — **self-contained Character Package persistence for semantic animation mappings — implementation synchronized; PR validation pending**:
-- Self-contained package schema v2 now accepts an optional `animation_map` payload containing only the existing schema-v1 `CharacterAnimationMap` shape.
+Work unit 3 — **self-contained Character Package persistence for semantic animation mappings — accepted and production-validated**:
+- Self-contained package schema v2 accepts an optional `animation_map` payload containing only the existing schema-v1 `CharacterAnimationMap` shape.
 - Package validation reuses `CharacterAnimationMap.load_from_dictionary()`, canonicalizes only fixed required semantics, rejects unknown/path/code-like fields and unsafe animation IDs, and requires the payload ID to equal `character.animation_map`.
 - Legacy Character Package schema v1 remains unchanged and import-compatible; schema-v2 packages that omit `animation_map` remain valid.
 - Creator schema-v2 export includes the currently validated semantic animation draft. Import first completes the existing legacy character/skill compatibility path, then restores the validated packaged map into Creator/session state so stale transient edits cannot win.
-- Domain regressions cover deterministic map round-trip, ID mismatch, unsafe animation token and unknown-field rejection. Creator Package browser regression now exports a custom `ready` mapping, verifies package JSON, blocks a tampered unsafe mapping without mutating valid drafts, imports the original package, and proves Training runs the packaged custom semantic mapping.
+- Domain regressions cover deterministic map round-trip, ID mismatch, unsafe animation token and unknown-field rejection. Creator Package browser regression exports a custom `ready` mapping, verifies package JSON, blocks a tampered unsafe mapping without mutating valid drafts, imports the original package, and proves Training runs the packaged custom semantic mapping.
+- PR #165 latest head `48900734c095e5de0dc35690cebb9458f698ff76` passed PR CI #420 (`35446574026`) across Windows Native, Godot/domain/backend/Web/Chromium and hosted Microsoft Edge.
+- PR #165 squash-merged to `main` as `930e6bed3bdfaabc26495b2c6264f05ae14e201a`.
+- Main CI #421 (`35452686079`) passed the complete exact-SHA production chain on the first attempt: Windows Native, Godot/domain/backend/Web/Chromium, hosted Edge, GitHub Pages deployment/public reachability, Render exact-revision readiness, and production Edge full smoke.
 - No arbitrary animation resource/file path, URL, script, callback or executable payload is introduced.
+- V2 remains **25% (2/8 phases complete)** until the full V2-3 phase acceptance criterion is satisfied.
+
+Work unit 4 — **safe character/skill audio cue bindings — implementation synchronized; PR validation pending**:
+- A new `CharacterAudioBindings` contract defines exactly five fixed semantic binding slots: `ready`, `basic_attack`, `hit_received`, `skill_cast`, and `skill_impact`.
+- Each binding resolves only to a safe lowercase cue token. Unknown binding names, missing required bindings, path/URL/code-like values and arbitrary executable metadata fail closed.
+- Creator Character Editor exposes fixed binding selection + Cue ID editing through `CharacterAudioDraft`; combined Character validation blocks Preview/package export while the audio draft is invalid.
+- Creator Preview stages validated audio bindings in memory. Existing timeline `audio` events remain declarative; when their cue is one of the fixed semantic binding names, Preview resolves it through the authored binding map before publishing runtime audio telemetry.
+- Self-contained Character Package schema v2 adds optional structured `audio_bindings` data. Legacy schema v1 and schema-v2 packages without this field remain compatible; imports without authored bindings reset to safe defaults.
+- Browser/domain regressions cover safe/unsafe Creator editing, PreviewSession fail-closed behavior, runtime `skill_cast` resolution, deterministic package round-trip, tampered package rejection and import → Training preservation.
+- WU4 deliberately does **not** accept or decode audio files yet. Audio bytes, approved MIME/codec import, package asset transport and real playback binding remain later V2-3 slices.
 - V2 remains **25% (2/8 phases complete)** until the full V2-3 phase acceptance criterion is satisfied.
 
 ### V2-1 implementation checkpoints
