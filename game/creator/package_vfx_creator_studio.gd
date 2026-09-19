@@ -10,6 +10,7 @@ func _build_export_package() -> Dictionary:
 
 	var package_input: Dictionary = base_result.get("data", {}).duplicate(true)
 	package_input["schema_version"] = SelfContainedPackageDefinition.CURRENT_SCHEMA_VERSION
+	package_input["animation_map"] = animation_draft.to_dictionary()
 	var session: Variant = get_node_or_null("/root/CreatorPreviewSession")
 	if session != null and session.has_method("has_stored_vfx") and bool(session.call("has_stored_vfx")):
 		var character_data: Dictionary = package_input.get("character", {})
@@ -64,6 +65,25 @@ func _import_package_json(json_text: String) -> PackedStringArray:
 		errors.append(error)
 	if not errors.is_empty():
 		return errors
+
+	if package.has_animation_map():
+		var animation_errors: PackedStringArray = animation_draft.load_from_dictionary(package.animation_map_data)
+		for error in animation_errors:
+			errors.append("packaged animation map: %s" % error)
+		if not errors.is_empty():
+			return errors
+		var animation_session: Variant = get_node_or_null("/root/CreatorPreviewSession")
+		if animation_session == null or not animation_session.has_method("store_animation_map_draft"):
+			errors.append("Creator preview session cannot restore packaged animation map")
+			return errors
+		var animation_store_errors: PackedStringArray = animation_session.call("store_animation_map_draft", animation_draft.to_dictionary())
+		for error in animation_store_errors:
+			errors.append("packaged animation map: %s" % error)
+		if not errors.is_empty():
+			return errors
+		_sync_character_controls_from_draft()
+		_refresh_character_validation(false)
+		_set_web_state()
 
 	if package.has_vfx_asset():
 		var session: Variant = get_node_or_null("/root/CreatorPreviewSession")
