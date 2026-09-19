@@ -663,7 +663,9 @@ func _web_set_animation_semantic(args: Array) -> void:
 		return
 	animation_semantic_select.select(semantic_index)
 	_sync_animation_controls_from_draft()
+	animation_id_edit.set_block_signals(true)
 	animation_id_edit.text = str(args[1])
+	animation_id_edit.set_block_signals(false)
 	_on_animation_id_changed(animation_id_edit.text)
 
 func _web_set_hp(args: Array) -> void:
