@@ -376,5 +376,5 @@
 - **Root Cause:** The browser regression treated the currently selected Audio Binding row as the persistence source of truth. The complete `CharacterAudioDraft` is persisted in session data, while the selector index is transient editor view state and intentionally initializes to the first fixed binding when a new Creator scene is built.
 - **Fix:** Verify round-trip persistence from the serialized `creatorAudioDraftJson` and assert its `cues.skill_cast` value instead of requiring a particular selector row to remain selected. Runtime/Creator product behavior is unchanged.
 - **Prevention Rule:** For Creator round-trip/import tests, assert persisted model state from canonical serialized draft/package telemetry. Assert selector/tab/focus state only when preserving that view state is itself a product requirement.
-- **Validation:** Fix commit `2443f60e39e2f0aa7cdccae6099cf01071a13d86`; latest-head PR CI validation pending.
-- **Status:** Fix synchronized; cross-browser validation pending
+- **Validation:** Fix commits `2443f60e39e2f0aa7cdccae6099cf01071a13d86` and `22c41b662a5753d59f47a3cd44bd20e63cfc975c`; PR #166 CI #425 (`35457465896`) passed Windows Native, Godot/domain/backend, Web export/size budget, Chromium `smoke:all`, and GitHub-hosted Microsoft Edge `smoke:all`.
+- **Status:** Verified cross-browser on PR #166 CI #425
