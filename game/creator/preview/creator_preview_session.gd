@@ -28,11 +28,13 @@ const MAX_VFX_PNG_BYTES := 5 * 1024 * 1024
 
 var _draft_character_data: Dictionary = {}
 var _draft_skill_data: Dictionary = {}
+var _stored_animation_map_data: Dictionary = {}
 var _stored_vfx_data: Dictionary = {}
 var _stored_vfx_png_bytes := PackedByteArray()
 var _pending_ai_skill_proposal: Dictionary = {}
 var _preview_character_data: Dictionary = {}
 var _preview_skill_data: Dictionary = {}
+var _preview_animation_map_data: Dictionary = {}
 var _preview_skill_slot := ""
 var _preview_vfx_data: Dictionary = {}
 var _preview_vfx_png_bytes := PackedByteArray()
@@ -48,7 +50,7 @@ func store_drafts(character_data: Dictionary, skill_data: Dictionary) -> PackedS
 	revision += 1
 	return PackedStringArray()
 
-func stage_preview(character_data: Dictionary, skill_data: Dictionary) -> PackedStringArray:
+func stage_preview(character_data: Dictionary, skill_data: Dictionary, animation_map_data: Dictionary = {}) -> PackedStringArray:
 	var errors: PackedStringArray = _validate_drafts(character_data, skill_data)
 	if not errors.is_empty():
 		_deactivate_failed_preview()
@@ -73,6 +75,14 @@ func stage_preview(character_data: Dictionary, skill_data: Dictionary) -> Packed
 		_deactivate_failed_preview()
 		return preview_errors
 
+	if not animation_map_data.is_empty():
+		var animation_errors: PackedStringArray = _validate_animation_map_payload(animation_map_data, preview_definition.animation_map)
+		for error in animation_errors:
+			errors.append("character animation: %s" % error)
+		if not errors.is_empty():
+			_deactivate_failed_preview()
+			return errors
+
 	if preview_type == "projectile" and has_stored_vfx():
 		var vfx_errors: PackedStringArray = _validate_vfx_payload(_stored_vfx_data, _stored_vfx_png_bytes)
 		for error in vfx_errors:
@@ -83,6 +93,12 @@ func stage_preview(character_data: Dictionary, skill_data: Dictionary) -> Packed
 
 	_draft_character_data = character_data.duplicate(true)
 	_draft_skill_data = skill_data.duplicate(true)
+	if animation_map_data.is_empty():
+		_stored_animation_map_data.clear()
+		_preview_animation_map_data.clear()
+	else:
+		_stored_animation_map_data = animation_map_data.duplicate(true)
+		_preview_animation_map_data = animation_map_data.duplicate(true)
 	_preview_character_data = preview_character
 	_preview_skill_data = preview_skill
 	_preview_skill_slot = preview_slot
@@ -92,6 +108,18 @@ func stage_preview(character_data: Dictionary, skill_data: Dictionary) -> Packed
 	else:
 		_clear_preview_vfx()
 	_preview_active = true
+	revision += 1
+	return PackedStringArray()
+
+func store_animation_map_draft(animation_map_data: Dictionary) -> PackedStringArray:
+	var errors: PackedStringArray = _validate_animation_map_payload(animation_map_data)
+	if not errors.is_empty():
+		_stored_animation_map_data.clear()
+		_preview_animation_map_data.clear()
+		return errors
+	_stored_animation_map_data = animation_map_data.duplicate(true)
+	if not _preview_active:
+		_preview_animation_map_data.clear()
 	revision += 1
 	return PackedStringArray()
 
@@ -170,6 +198,16 @@ func _validate_drafts(character_data: Dictionary, skill_data: Dictionary) -> Pac
 			errors.append("character animation: %s" % error)
 	return errors
 
+func _validate_animation_map_payload(animation_map_data: Dictionary, expected_id: String = "") -> PackedStringArray:
+	var animation_map := CharacterAnimationMap.new()
+	var errors: PackedStringArray = animation_map.load_from_dictionary(animation_map_data)
+	if not errors.is_empty():
+		return errors
+	var normalized_expected := expected_id.strip_edges().to_lower()
+	if not normalized_expected.is_empty() and animation_map.map_id != normalized_expected:
+		errors.append("animation map id must match character animation_map")
+	return errors
+
 func _validate_vfx_payload(vfx_data: Dictionary, png_bytes: PackedByteArray) -> PackedStringArray:
 	var errors := PackedStringArray()
 	var draft := VfxDraft.new()
@@ -203,6 +241,12 @@ func has_active_preview() -> bool:
 func has_stored_drafts() -> bool:
 	return not _draft_character_data.is_empty() and not _draft_skill_data.is_empty()
 
+func has_stored_animation_map() -> bool:
+	return not _stored_animation_map_data.is_empty()
+
+func has_active_animation_preview() -> bool:
+	return has_active_preview() and not _preview_animation_map_data.is_empty()
+
 func has_stored_vfx() -> bool:
 	return not _stored_vfx_data.is_empty() and not _stored_vfx_png_bytes.is_empty()
 
@@ -223,6 +267,9 @@ func preview_skill_type() -> String:
 func preview_skill_slot() -> String:
 	return _preview_skill_slot if has_active_preview() else ""
 
+func preview_animation_map_data() -> Dictionary:
+	return _preview_animation_map_data.duplicate(true)
+
 func preview_vfx_data() -> Dictionary:
 	return _preview_vfx_data.duplicate(true)
 
@@ -235,6 +282,9 @@ func stored_character_draft_data() -> Dictionary:
 func stored_skill_draft_data() -> Dictionary:
 	return _draft_skill_data.duplicate(true)
 
+func stored_animation_map_data() -> Dictionary:
+	return _stored_animation_map_data.duplicate(true)
+
 func stored_vfx_data() -> Dictionary:
 	return _stored_vfx_data.duplicate(true)
 
@@ -244,16 +294,19 @@ func stored_vfx_png_bytes() -> PackedByteArray:
 func deactivate_preview() -> void:
 	_preview_active = false
 	_preview_skill_slot = ""
+	_preview_animation_map_data.clear()
 	_clear_preview_vfx()
 
 func clear() -> void:
 	_draft_character_data.clear()
 	_draft_skill_data.clear()
+	_stored_animation_map_data.clear()
 	_stored_vfx_data.clear()
 	_stored_vfx_png_bytes.clear()
 	_pending_ai_skill_proposal.clear()
 	_preview_character_data.clear()
 	_preview_skill_data.clear()
+	_preview_animation_map_data.clear()
 	_preview_skill_slot = ""
 	_clear_preview_vfx()
 	_preview_active = false
@@ -262,6 +315,7 @@ func clear() -> void:
 func _deactivate_failed_preview() -> void:
 	_preview_active = false
 	_preview_skill_slot = ""
+	_preview_animation_map_data.clear()
 	_clear_preview_vfx()
 
 func _clear_preview_vfx() -> void:

@@ -24,8 +24,13 @@ func _restore_session_drafts() -> void:
 	var skill_data: Dictionary = session.call("stored_skill_draft_data")
 	var character_errors: PackedStringArray = character_draft.load_from_dictionary(character_data)
 	var skill_errors: PackedStringArray = skill_draft.load_from_dictionary(skill_data)
-	if not character_errors.is_empty() or not skill_errors.is_empty():
-		push_error("Failed to restore Creator preview drafts: %s | %s" % [" | ".join(character_errors), " | ".join(skill_errors)])
+	var animation_errors := PackedStringArray()
+	if session.has_method("has_stored_animation_map") and bool(session.call("has_stored_animation_map")) and session.has_method("stored_animation_map_data"):
+		animation_errors = animation_draft.load_from_dictionary(session.call("stored_animation_map_data"))
+	else:
+		animation_errors = animation_draft.load_from_id(character_draft.animation_map)
+	if not character_errors.is_empty() or not skill_errors.is_empty() or not animation_errors.is_empty():
+		push_error("Failed to restore Creator preview drafts: %s | %s | %s" % [" | ".join(character_errors), " | ".join(skill_errors), " | ".join(animation_errors)])
 		return
 	_sync_character_controls_from_draft()
 	_sync_skill_controls_from_draft()
@@ -89,7 +94,7 @@ func _install_preview_web_bridge() -> void:
 	window.customFighterCreatorOpenVfx = _web_open_vfx_callback
 
 func _on_preview_pressed() -> void:
-	var character_errors := character_draft.validate()
+	var character_errors := _validate_character_authoring()
 	var skill_errors := skill_draft.validate()
 	if not character_errors.is_empty() or not skill_errors.is_empty():
 		_set_preview_error("Fix invalid Character/Skill drafts before preview")
@@ -98,7 +103,7 @@ func _on_preview_pressed() -> void:
 	if session == null:
 		_set_preview_error("Creator preview session is unavailable")
 		return
-	var stage_errors: PackedStringArray = session.call("stage_preview", character_draft.to_dictionary(), skill_draft.to_dictionary())
+	var stage_errors: PackedStringArray = session.call("stage_preview", character_draft.to_dictionary(), skill_draft.to_dictionary(), animation_draft.to_dictionary())
 	if not stage_errors.is_empty():
 		_set_preview_error(" | ".join(stage_errors))
 		return
@@ -115,6 +120,10 @@ func _on_vfx_pressed() -> void:
 	var session: Variant = get_node_or_null("/root/CreatorPreviewSession")
 	if session == null or not session.has_method("store_drafts"):
 		_set_preview_error("Creator preview session cannot preserve drafts for VFX editing")
+		return
+	var animation_store_errors: PackedStringArray = session.call("store_animation_map_draft", animation_draft.to_dictionary()) if session.has_method("store_animation_map_draft") else PackedStringArray(["Creator preview session cannot preserve animation draft"])
+	if not animation_store_errors.is_empty():
+		_set_preview_error("Fix invalid Animation draft before opening VFX Creator")
 		return
 	var store_errors: PackedStringArray = session.call("store_drafts", character_draft.to_dictionary(), skill_draft.to_dictionary())
 	if not store_errors.is_empty():

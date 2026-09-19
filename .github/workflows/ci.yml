@@ -63,6 +63,7 @@ jobs:
           godot --headless --path . --script res://tests/character_test_runner.gd
           godot --headless --path . --script res://tests/character_registry_test_runner.gd
           godot --headless --path . --script res://tests/character_animation_test_runner.gd
+          godot --headless --path . --script res://tests/creator_character_animation_draft_test_runner.gd
           godot --headless --path . --script res://tests/creator_character_draft_test_runner.gd
           godot --headless --path . --script res://tests/creator_skill_draft_test_runner.gd
           godot --headless --path . --script res://tests/creator_preview_session_test_runner.gd

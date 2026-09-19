@@ -56,17 +56,44 @@ Scope:
 7. No arbitrary resource path or executable field is introduced.
 
 Validation result:
-- PR #162 head `23c673be0fa6a58949849884b3d879b1186174ee` passed CI #413 (`35420773510`).
-- Windows Native, Godot import/boot/domain/backend, Web export/size budget, Chromium, and hosted Microsoft Edge all passed.
-- Domain evidence: `CREATOR_CHARACTER_DRAFT_TESTS_PASSED`.
-- Chromium and Edge both emitted `WEB_CREATOR_STUDIO_SMOKE_PASSED ... animationMapAuthoring=true missingMapBlocked=true`.
-- Chromium and Edge both emitted `WEB_CREATOR_PACKAGE_SMOKE_PASSED ... animationMapRoundTrip=true animationPreview=true missingAnimationMapBlocked=true`.
-- Both browser suites completed `SMOKE_SUITE_PASSED count=24`.
-- A documentation-updated latest-head PR gate remains required before merge authorization.
+- PR #162 product head `23c673be0fa6a58949849884b3d879b1186174ee` passed CI #413 (`35420773510`).
+- Documentation-updated latest PR head `a7952ee28ffafdbfa210908503b62b82f3ff9f2f` passed CI #415 (`35422840793`).
+- PR #162 squash-merged as `65489e41d66bed5af2eb44b3c2ad63222b240b78`.
+- Main CI #416 (`35431205627`) final attempt passed Windows Native, Godot/domain/backend, Web/Chromium, hosted Edge, Pages/public reachability, Render exact-revision readiness, and production Edge full smoke on that exact SHA.
+- Attempt 1 production Edge timed out only in unchanged Creator Preview `timeline-overlap-window` after WU1-specific animation/Creator coverage had passed. Exact-SHA targeted retry succeeded with no runtime changes, consistent with L-007.
+- Production evidence includes `WEB_CHARACTER_ANIMATION_SMOKE_PASSED`, `WEB_CREATOR_STUDIO_SMOKE_PASSED ... animationMapAuthoring=true missingMapBlocked=true`, `WEB_CREATOR_PACKAGE_SMOKE_PASSED ... animationMapRoundTrip=true animationPreview=true missingAnimationMapBlocked=true`, and `SMOKE_SUITE_PASSED count=24`.
+- Render readiness emitted `PRODUCTION_AI_BACKEND_READY ... revision=65489e41d66bed5af2eb44b3c2ad63222b240b78`.
 
-## Deferred after WU1
+## Work Unit 2 — per-semantic animation-map authoring + in-memory Preview
 
-- per-semantic animation mapping editor rather than map-reference selection;
+Scope:
+1. `CharacterAnimationDraft` edits only the fixed required semantic vocabulary and safe animation ID tokens.
+2. Character Editor exposes semantic selection + animation ID editing with live validation.
+3. Creator Preview stages the validated map dictionary only when its ID matches `CharacterDraft.animation_map`.
+4. Training Preview consumes the in-memory map through the existing `CharacterAnimationMap` parser and exposes runtime animation-ID telemetry.
+5. Preview return preserves the semantic draft in session memory.
+6. Failed map-ID or unsafe-token staging clears stale active override state.
+7. Character Package schema remains unchanged in WU2; importing a package resets transient semantic edits to the package's trusted map reference so stale memory state cannot leak across package boundaries.
+8. Character Package export reuses combined Character + animation-draft validation; invalid semantic animation state blocks export until corrected.
+
+Safety:
+- no arbitrary animation file/resource path;
+- no URL or filesystem path;
+- no script/callback/executable field;
+- semantic names are fixed by `CharacterAnimationMap.REQUIRED_SEMANTICS`;
+- animation IDs remain validated safe lowercase tokens.
+
+Validation target:
+- `CREATOR_CHARACTER_ANIMATION_DRAFT_TESTS_PASSED`;
+- Creator Preview session domain coverage for valid override, map-ID mismatch and unsafe-token fail-closed cases;
+- Chromium/hosted Edge Creator Studio semantic authoring regression;
+- Chromium/hosted Edge Creator Preview runtime override + return regression;
+- Character Package browser regression proving invalid semantic animation blocks export and transient semantic state resets on package import;
+- standard Windows Native, Godot import/boot/domain/backend and Web export/size-budget gates.
+
+## Deferred after WU2
+
+- Character Package persistence/round-trip for custom semantic animation mappings;
 - creator-provided animation asset import;
 - animation asset packaging/self-contained transport;
 - approved audio-file import;
