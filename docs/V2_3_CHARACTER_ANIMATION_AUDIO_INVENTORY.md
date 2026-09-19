@@ -91,9 +91,35 @@ Validation target:
 - Character Package browser regression proving invalid semantic animation blocks export and transient semantic state resets on package import;
 - standard Windows Native, Godot import/boot/domain/backend and Web export/size-budget gates.
 
-## Deferred after WU2
+## Work Unit 2 production validation
 
-- Character Package persistence/round-trip for custom semantic animation mappings;
+- PR #163 head `4183aa45eac248365c3efeab8f814965d1dac09c` passed PR CI #417 (`35444063803`).
+- PR #163 squash-merged as `2111f3b27dfbd3fa0de8380fc72f3167ff4be461`.
+- Main CI #418 (`35444847516`) attempt 3 passed the complete exact-SHA production chain, including hosted Edge, Pages/public reachability, Render revision readiness and production Edge `SMOKE_SUITE_PASSED count=24`.
+- Attempts 1 and 2 exposed different unchanged hosted-Edge observation-window timeouts after feature-specific semantic animation coverage had passed; the same SHA passed without product changes on attempt 3, consistent with L-007.
+- Render readiness confirmed `PRODUCTION_AI_BACKEND_READY provider=gemini model=gemini-3.6-flash billing_mode=free-tier-only revision=2111f3b27dfbd3fa0de8380fc72f3167ff4be461`.
+
+## Work Unit 3 — self-contained package persistence for semantic animation mappings
+
+Scope:
+1. Keep legacy Character Package schema v1 unchanged.
+2. Extend self-contained schema v2 with optional `animation_map` structured data.
+3. Validate the payload exclusively through the existing `CharacterAnimationMap` contract and require its ID to match `character.animation_map`.
+4. Canonicalize only the fixed required semantics and safe animation-ID tokens; reject unknown fields, paths, URLs and executable metadata.
+5. Include the current validated semantic draft in Creator schema-v2 export.
+6. On import, complete existing legacy character/skill compatibility first, then restore the packaged semantic map into Creator + Preview session state.
+7. Preserve schema-v2 packages without `animation_map` and all legacy-v1 packages.
+8. Prove domain round-trip/fail-closed behavior and Creator export → mutate → import → Training playable preservation in Chromium/Edge.
+
+Validation target:
+- `SELF_CONTAINED_CHARACTER_PACKAGE_TESTS_PASSED` with semantic animation package cases;
+- Godot import/boot/domain suite;
+- Creator Package Chromium/hosted-Edge regression with `semanticPackageRoundTrip=true`;
+- full Web export/size budget and `smoke:all`;
+- Windows Native export.
+
+## Deferred after WU3
+
 - creator-provided animation asset import;
 - animation asset packaging/self-contained transport;
 - approved audio-file import;
