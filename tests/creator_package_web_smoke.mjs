@@ -37,6 +37,7 @@ try {
   await page.evaluate(() => {
     window.customFighterCreatorSetName('Package Nova');
     window.customFighterCreatorSetAnimationMap('storm_duelist');
+    window.customFighterCreatorSetAnimationSemantic('ready', 'package_ready_custom');
     window.customFighterCreatorSetMaxHp(222);
     window.customFighterCreatorSetSkillName('Package Bolt');
     window.customFighterCreatorSetSkillDamage(41);
@@ -54,7 +55,7 @@ try {
       document.documentElement.dataset.creatorAnimationDraftValid === 'true' &&
       document.documentElement.dataset.creatorAnimationDraftMapId === 'storm_duelist' &&
       document.documentElement.dataset.creatorAnimationDraftSemantic === 'ready' &&
-      document.documentElement.dataset.creatorAnimationDraftAnimationId === 'storm_ready' &&
+      document.documentElement.dataset.creatorAnimationDraftAnimationId === 'package_ready_custom' &&
       document.documentElement.dataset.creatorDraftMaxHp === '222' &&
       document.documentElement.dataset.creatorSkillDraftName === 'Package Bolt' &&
       document.documentElement.dataset.creatorSkillDraftDamage === '41' &&
@@ -88,6 +89,14 @@ try {
   if (exported.package_id !== 'my_fighter_001') throw new Error(`Unexpected package_id ${exported.package_id}`);
   if (exported.character?.name !== 'Package Nova') throw new Error('Exported character name mismatch');
   if (exported.character?.animation_map !== 'storm_duelist') throw new Error('Exported animation map mismatch');
+  if (exported.animation_map?.id !== 'storm_duelist') throw new Error('Packaged animation map id mismatch');
+  if (exported.animation_map?.schema_version !== 1) throw new Error('Packaged animation map schema mismatch');
+  if (exported.animation_map?.animations?.ready !== 'package_ready_custom') {
+    throw new Error('Custom semantic animation mapping did not serialize');
+  }
+  if ('script' in exported.animation_map || 'path' in exported.animation_map || 'url' in exported.animation_map) {
+    throw new Error('Packaged animation map must remain declarative safe-token data only');
+  }
   if (exported.character?.stats?.max_hp !== 222) throw new Error('Exported HP mismatch');
   if (exported.character?.skill_slots?.skill_1 !== 'my_projectile_001') throw new Error('Exported Skill 1 binding mismatch');
   if (!Array.isArray(exported.skills) || exported.skills.length !== 6) throw new Error('Export must contain six referenced skills');
@@ -158,8 +167,9 @@ try {
     { timeout: 5_000 },
   );
 
+  const { animation_map: _omittedAnimationMap, ...exportedWithoutAnimationPayload } = exported;
   const missingAnimationPackage = JSON.stringify({
-    ...exported,
+    ...exportedWithoutAnimationPayload,
     character: { ...exported.character, animation_map: 'missing_animation_map' },
   });
   await page.evaluate((json) => window.customFighterCreatorImportPackageJson(json), missingAnimationPackage);
@@ -176,6 +186,24 @@ try {
     { timeout: 5_000 },
   );
 
+  const unsafeAnimationPackage = JSON.stringify({
+    ...exported,
+    animation_map: {
+      ...exported.animation_map,
+      animations: { ...exported.animation_map.animations, ready: '../payload.gd' },
+    },
+  });
+  await page.evaluate((json) => window.customFighterCreatorImportPackageJson(json), unsafeAnimationPackage);
+  await page.waitForFunction(
+    () =>
+      document.documentElement.dataset.creatorPackageImportStatus === 'invalid' &&
+      (document.documentElement.dataset.creatorPackageImportError ?? '').includes('safe lowercase token') &&
+      document.documentElement.dataset.creatorDraftName === 'Mutated Draft' &&
+      document.documentElement.dataset.creatorAnimationDraftAnimationId === 'transient_ready_custom',
+    null,
+    { timeout: 5_000 },
+  );
+
   await page.evaluate((json) => window.customFighterCreatorImportPackageJson(json), exportedJson);
   await page.waitForFunction(
     () =>
@@ -183,6 +211,7 @@ try {
       document.documentElement.dataset.creatorPackageImportCount === '1' &&
       document.documentElement.dataset.creatorDraftName === 'Package Nova' &&
       document.documentElement.dataset.creatorDraftAnimationMap === 'storm_duelist' &&
+      document.documentElement.dataset.creatorAnimationDraftAnimationId === 'package_ready_custom' &&
       document.documentElement.dataset.creatorDraftMaxHp === '222' &&
       document.documentElement.dataset.creatorSkillDraftName === 'Package Bolt' &&
       document.documentElement.dataset.creatorSkillDraftDamage === '41' &&
@@ -204,7 +233,7 @@ try {
       document.documentElement.dataset.playerAnimationMapLoaded === 'true' &&
       document.documentElement.dataset.playerAnimationMapId === 'storm_duelist' &&
       document.documentElement.dataset.playerAnimationSemantic === 'ready' &&
-      document.documentElement.dataset.playerAnimationId === 'storm_ready' &&
+      document.documentElement.dataset.playerAnimationId === 'package_ready_custom' &&
       document.documentElement.dataset.creatorPreviewAnimationOverrideActive === 'true' &&
       document.documentElement.dataset.playerMaxHp === '222' &&
       document.documentElement.dataset.playerRuntimeSkill1 === 'my_projectile_001' &&
@@ -226,7 +255,7 @@ try {
     { timeout: 5_000 },
   );
 
-  console.log('WEB_CREATOR_PACKAGE_SMOKE_PASSED export=true schema=2 noVfxFallback=true animationMapRoundTrip=true animationPreview=true semanticInvalidExportBlocked=true semanticTransientReset=true missingAnimationMapBlocked=true timelineRoundTrip=true compositionExpanded=true invalidPreserved=true import=true authoredHp=222 authoredDamage=41 authoredMpCost=19 previewCast=true');
+  console.log('WEB_CREATOR_PACKAGE_SMOKE_PASSED export=true schema=2 noVfxFallback=true animationMapRoundTrip=true animationPreview=true semanticInvalidExportBlocked=true semanticPackageRoundTrip=true semanticTransientReset=true unsafePackagedAnimationBlocked=true missingAnimationMapBlocked=true timelineRoundTrip=true compositionExpanded=true invalidPreserved=true import=true authoredHp=222 authoredDamage=41 authoredMpCost=19 previewCast=true');
   await page.close();
 } finally {
   await browser.close();
