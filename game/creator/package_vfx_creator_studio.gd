@@ -11,6 +11,7 @@ func _build_export_package() -> Dictionary:
 	var package_input: Dictionary = base_result.get("data", {}).duplicate(true)
 	package_input["schema_version"] = SelfContainedPackageDefinition.CURRENT_SCHEMA_VERSION
 	package_input["animation_map"] = animation_draft.to_dictionary()
+	package_input["audio_bindings"] = audio_draft.to_dictionary()
 	var session: Variant = get_node_or_null("/root/CreatorPreviewSession")
 	if session != null and session.has_method("has_stored_vfx") and bool(session.call("has_stored_vfx")):
 		var character_data: Dictionary = package_input.get("character", {})
@@ -66,6 +67,27 @@ func _import_package_json(json_text: String) -> PackedStringArray:
 	if not errors.is_empty():
 		return errors
 
+if package.has_audio_bindings():
+		var audio_errors: PackedStringArray = audio_draft.load_from_dictionary(package.audio_bindings_data)
+		for error in audio_errors:
+			errors.append("packaged audio bindings: %s" % error)
+		if not errors.is_empty():
+			return errors
+	else:
+		audio_draft.reset()
+	var audio_session: Variant = get_node_or_null("/root/CreatorPreviewSession")
+	if audio_session == null or not audio_session.has_method("store_audio_bindings_draft"):
+		errors.append("Creator preview session cannot restore packaged audio bindings")
+		return errors
+	var audio_store_errors: PackedStringArray = audio_session.call("store_audio_bindings_draft", audio_draft.to_dictionary())
+	for error in audio_store_errors:
+		errors.append("packaged audio bindings: %s" % error)
+	if not errors.is_empty():
+		return errors
+	_sync_audio_controls_from_draft()
+	_refresh_character_validation(false)
+	_set_web_state()
+
 	if package.has_animation_map():
 		var animation_errors: PackedStringArray = animation_draft.load_from_dictionary(package.animation_map_data)
 		for error in animation_errors:
@@ -106,13 +128,17 @@ func _set_package_web_state() -> void:
 	var session: Variant = get_node_or_null("/root/CreatorPreviewSession")
 	var vfx_bound := false
 	var vfx_bytes := 0
+	var audio_bound := false
 	if session != null and session.has_method("has_stored_vfx"):
 		vfx_bound = bool(session.call("has_stored_vfx"))
+	if session != null and session.has_method("has_stored_audio_bindings"):
+		audio_bound = bool(session.call("has_stored_audio_bindings"))
 	if vfx_bound and session.has_method("stored_vfx_png_bytes"):
 		var bytes: PackedByteArray = session.call("stored_vfx_png_bytes")
 		vfx_bytes = bytes.size()
 	JavaScriptBridge.eval(
 		"document.documentElement.dataset.creatorPackageFormatVersion='%d';" % SelfContainedPackageDefinition.CURRENT_SCHEMA_VERSION +
+		"document.documentElement.dataset.creatorPackageAudioBindings='%s';" % ("true" if audio_bound else "false") +
 		"document.documentElement.dataset.creatorPackageVfxBound='%s';" % ("true" if vfx_bound else "false") +
 		"document.documentElement.dataset.creatorPackageVfxBytes='%d';" % vfx_bytes
 	)
