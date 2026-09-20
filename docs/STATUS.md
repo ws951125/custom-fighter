@@ -271,7 +271,9 @@ Work unit 6 — **bounded WAV Character Package transport — implementation in 
 - Creator package JSON is bounded at 8 MB so the already-supported bounded VFX payload plus one ≤512 KB WAV can coexist without making package input unbounded.
 - Domain regressions cover deterministic WAV package round-trip, binding dependency/mismatch, tampered bytes and unknown fields. Creator Package browser regression now proves export/import restoration and tamper rejection.
 - WU6 remains **transport-only**: it does not add runtime WAV playback, arbitrary paths/URLs, scripts, callbacks, compressed audio, or an unbounded asset collection.
-- Active branch: `feat/v2-3-wav-package-transport-wu6`. GitHub-hosted validation is pending.
+- PR #169 implementation head `665d1965a23c9dbe7b33fd7eba8e3cf225e2da1d` passed PR CI #435 (`35494696068`): Windows Native, Godot import/boot/domain/AI contracts, trusted backend, Web export/size budget, Chromium `smoke:all`, and GitHub-hosted Microsoft Edge `smoke:all` all succeeded.
+- Chromium and hosted Edge both exercised the updated Creator Package regression, including WAV export/import restoration and tampered packaged-WAV fail-closed behavior.
+- Active branch: `feat/v2-3-wav-package-transport-wu6`; PR #169 is open and mergeable. Final documentation-sync HEAD validation is the remaining pre-merge gate.
 - V2 remains **25% (2/8 phases complete)** until the full V2-3 phase acceptance criterion is satisfied.
 
 ### V2-1 implementation checkpoints
