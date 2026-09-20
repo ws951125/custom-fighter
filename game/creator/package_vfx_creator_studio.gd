@@ -13,6 +13,13 @@ func _build_export_package() -> Dictionary:
 	package_input["animation_map"] = animation_draft.to_dictionary()
 	package_input["audio_bindings"] = audio_draft.to_dictionary()
 	var session: Variant = get_node_or_null("/root/CreatorPreviewSession")
+	if session != null and session.has_method("has_stored_audio_asset") and bool(session.call("has_stored_audio_asset")):
+		var audio_asset_data: Dictionary = session.call("stored_audio_asset_data")
+		var wav_bytes: PackedByteArray = session.call("stored_audio_asset_bytes")
+		package_input["audio_asset"] = {
+			"metadata": audio_asset_data.duplicate(true),
+			"wav_base64": Marshalls.raw_to_base64(wav_bytes)
+		}
 	if session != null and session.has_method("has_stored_vfx") and bool(session.call("has_stored_vfx")):
 		var character_data: Dictionary = package_input.get("character", {})
 		var slots: Dictionary = character_data.get("skill_slots", {})
@@ -88,6 +95,22 @@ func _import_package_json(json_text: String) -> PackedStringArray:
 	_refresh_character_validation(false)
 	_set_web_state()
 
+	if package.has_audio_asset():
+		if audio_session == null or not audio_session.has_method("store_audio_asset_draft"):
+			errors.append("Creator preview session cannot restore packaged WAV")
+			return errors
+		var audio_asset_store_errors: PackedStringArray = audio_session.call(
+			"store_audio_asset_draft",
+			package.audio_asset_data,
+			package.audio_wav_bytes
+		)
+		for error in audio_asset_store_errors:
+			errors.append("packaged WAV: %s" % error)
+		if not errors.is_empty():
+			return errors
+		_restore_audio_asset_from_session()
+		_refresh_audio_asset_status()
+
 	if package.has_animation_map():
 		var animation_errors: PackedStringArray = animation_draft.load_from_dictionary(package.animation_map_data)
 		for error in animation_errors:
@@ -129,16 +152,25 @@ func _set_package_web_state() -> void:
 	var vfx_bound := false
 	var vfx_bytes := 0
 	var audio_bound := false
+	var audio_asset_bound := false
+	var audio_asset_bytes := 0
 	if session != null and session.has_method("has_stored_vfx"):
 		vfx_bound = bool(session.call("has_stored_vfx"))
 	if session != null and session.has_method("has_stored_audio_bindings"):
 		audio_bound = bool(session.call("has_stored_audio_bindings"))
+	if session != null and session.has_method("has_stored_audio_asset"):
+		audio_asset_bound = bool(session.call("has_stored_audio_asset"))
+	if audio_asset_bound and session.has_method("stored_audio_asset_bytes"):
+		var wav_bytes: PackedByteArray = session.call("stored_audio_asset_bytes")
+		audio_asset_bytes = wav_bytes.size()
 	if vfx_bound and session.has_method("stored_vfx_png_bytes"):
 		var bytes: PackedByteArray = session.call("stored_vfx_png_bytes")
 		vfx_bytes = bytes.size()
 	JavaScriptBridge.eval(
 		"document.documentElement.dataset.creatorPackageFormatVersion='%d';" % SelfContainedPackageDefinition.CURRENT_SCHEMA_VERSION +
 		"document.documentElement.dataset.creatorPackageAudioBindings='%s';" % ("true" if audio_bound else "false") +
+		"document.documentElement.dataset.creatorPackageAudioAssetBound='%s';" % ("true" if audio_asset_bound else "false") +
+		"document.documentElement.dataset.creatorPackageAudioAssetBytes='%d';" % audio_asset_bytes +
 		"document.documentElement.dataset.creatorPackageVfxBound='%s';" % ("true" if vfx_bound else "false") +
 		"document.documentElement.dataset.creatorPackageVfxBytes='%d';" % vfx_bytes
 	)
