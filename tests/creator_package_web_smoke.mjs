@@ -50,6 +50,8 @@ try {
       typeof window.customFighterCreatorImportPackageJson === 'function' &&
       typeof window.customFighterCreatorSetAnimationMap === 'function' &&
       typeof window.customFighterCreatorSetAnimationSemantic === 'function' &&
+      typeof window.customFighterCreatorImportAnimationPng === 'function' &&
+      typeof window.customFighterCreatorSetAnimationAssetTiming === 'function' &&
       typeof window.customFighterCreatorSetAudioBinding === 'function' &&
       typeof window.customFighterCreatorImportWav === 'function' &&
       typeof window.customFighterCreatorPreview === 'function' &&
@@ -73,6 +75,33 @@ try {
     window.customFighterCreatorTimelineClear();
     window.customFighterCreatorTimelineApplyComposition('guarded_impact', 0);
   });
+
+  await page.evaluate(() => window.customFighterCreatorSetAnimationAssetTiming(4, 18));
+  const packageAnimationPngDataUrl = await page.evaluate(() => {
+    const canvas = document.createElement('canvas');
+    canvas.width = 16;
+    canvas.height = 4;
+    const context = canvas.getContext('2d');
+    ['#ff3355', '#33dd77', '#4477ff', '#ffee44'].forEach((color, index) => {
+      context.fillStyle = color;
+      context.fillRect(index * 4, 0, 4, 4);
+    });
+    return canvas.toDataURL('image/png');
+  });
+  await page.evaluate(
+    ({ dataUrl }) => window.customFighterCreatorImportAnimationPng('package-ready.png', 'image/png', dataUrl),
+    { dataUrl: packageAnimationPngDataUrl },
+  );
+  await page.waitForFunction(
+    () =>
+      document.documentElement.dataset.creatorAnimationAssetValid === 'true' &&
+      document.documentElement.dataset.creatorAnimationAssetSemantic === 'ready' &&
+      document.documentElement.dataset.creatorAnimationAssetAnimationId === 'package_ready_custom' &&
+      document.documentElement.dataset.creatorAnimationAssetFile === 'package-ready.png' &&
+      Number(document.documentElement.dataset.creatorAnimationAssetBytes ?? '0') > 0,
+    null,
+    { timeout: 5_000 },
+  );
 
   const packageWavDataUrl = pcmWavDataUrl();
   await page.evaluate(
@@ -99,6 +128,12 @@ try {
       document.documentElement.dataset.creatorAnimationDraftMapId === 'storm_duelist' &&
       document.documentElement.dataset.creatorAnimationDraftSemantic === 'ready' &&
       document.documentElement.dataset.creatorAnimationDraftAnimationId === 'package_ready_custom' &&
+      document.documentElement.dataset.creatorAnimationAssetValid === 'true' &&
+      document.documentElement.dataset.creatorAnimationAssetSemantic === 'ready' &&
+      document.documentElement.dataset.creatorAnimationAssetAnimationId === 'package_ready_custom' &&
+      document.documentElement.dataset.creatorAnimationAssetFile === 'package-ready.png' &&
+      Number(document.documentElement.dataset.creatorAnimationAssetBytes ?? '0') > 0 &&
+      document.documentElement.dataset.creatorAnimationAssetError === '' &&
       document.documentElement.dataset.creatorAudioDraftValid === 'true' &&
       document.documentElement.dataset.creatorAudioDraftBinding === 'skill_cast' &&
       document.documentElement.dataset.creatorAudioDraftCue === 'package_cast_custom' &&
@@ -136,6 +171,9 @@ try {
   const exported = JSON.parse(exportedJson);
   if (exported.schema_version !== 2) throw new Error('Exported package schema_version mismatch');
   if ('vfx_asset' in exported) throw new Error('Package without authored VFX must not emit a vfx_asset');
+  if ('animation_asset' in exported || 'animation_assets' in exported) {
+    throw new Error('WU11 animation PNG must remain memory-only and outside package schema');
+  }
   if ('audio_assets' in exported) throw new Error('Character Package must not accept an unbounded audio asset collection');
   if (exported.audio_asset?.metadata?.binding !== 'skill_cast') throw new Error('Packaged WAV binding mismatch');
   if (exported.audio_asset?.metadata?.cue_id !== 'package_cast_custom') throw new Error('Packaged WAV cue mismatch');
@@ -202,6 +240,22 @@ try {
     window.customFighterCreatorSetSkillMpCost(3);
     window.customFighterCreatorTimelineClear();
   });
+  await page.evaluate(() => window.customFighterCreatorSetAnimationAssetTiming(4, 20));
+  await page.evaluate(
+    ({ dataUrl }) => window.customFighterCreatorImportAnimationPng('transient-ready.png', 'image/png', dataUrl),
+    { dataUrl: packageAnimationPngDataUrl },
+  );
+  await page.waitForFunction(
+    () =>
+      document.documentElement.dataset.creatorAnimationAssetValid === 'true' &&
+      document.documentElement.dataset.creatorAnimationAssetSemantic === 'ready' &&
+      document.documentElement.dataset.creatorAnimationAssetAnimationId === 'transient_ready_custom' &&
+      document.documentElement.dataset.creatorAnimationAssetFile === 'transient-ready.png' &&
+      Number(document.documentElement.dataset.creatorAnimationAssetBytes ?? '0') > 0,
+    null,
+    { timeout: 5_000 },
+  );
+
   await page.evaluate(
     ({ dataUrl }) => window.customFighterCreatorImportWav('transient-cast.wav', 'audio/wav', dataUrl),
     { dataUrl: packageWavDataUrl },
@@ -215,6 +269,9 @@ try {
       document.documentElement.dataset.creatorAnimationDraftValid === 'true' &&
       document.documentElement.dataset.creatorAnimationDraftSemantic === 'ready' &&
       document.documentElement.dataset.creatorAnimationDraftAnimationId === 'transient_ready_custom' &&
+      document.documentElement.dataset.creatorAnimationAssetValid === 'true' &&
+      document.documentElement.dataset.creatorAnimationAssetAnimationId === 'transient_ready_custom' &&
+      document.documentElement.dataset.creatorAnimationAssetFile === 'transient-ready.png' &&
       document.documentElement.dataset.creatorAudioDraftValid === 'true' &&
       document.documentElement.dataset.creatorAudioDraftCue === 'transient_cast_custom' &&
       document.documentElement.dataset.creatorAudioAssetValid === 'true' &&
@@ -236,6 +293,9 @@ try {
       document.documentElement.dataset.creatorDraftName === 'Mutated Draft' &&
       document.documentElement.dataset.creatorDraftAnimationMap === 'ember_vanguard' &&
       document.documentElement.dataset.creatorAnimationDraftAnimationId === 'transient_ready_custom' &&
+      document.documentElement.dataset.creatorAnimationAssetValid === 'true' &&
+      document.documentElement.dataset.creatorAnimationAssetAnimationId === 'transient_ready_custom' &&
+      document.documentElement.dataset.creatorAnimationAssetFile === 'transient-ready.png' &&
       document.documentElement.dataset.creatorAudioDraftCue === 'transient_cast_custom' &&
       document.documentElement.dataset.creatorAudioAssetValid === 'true' &&
       document.documentElement.dataset.creatorAudioAssetCue === 'transient_cast_custom' &&
@@ -258,6 +318,8 @@ try {
       document.documentElement.dataset.creatorDraftName === 'Mutated Draft' &&
       document.documentElement.dataset.creatorDraftAnimationMap === 'ember_vanguard' &&
       document.documentElement.dataset.creatorAnimationDraftAnimationId === 'transient_ready_custom' &&
+      document.documentElement.dataset.creatorAnimationAssetValid === 'true' &&
+      document.documentElement.dataset.creatorAnimationAssetAnimationId === 'transient_ready_custom' &&
       document.documentElement.dataset.creatorAudioDraftCue === 'transient_cast_custom' &&
       document.documentElement.dataset.creatorSkillDraftDamage === '7' &&
       document.documentElement.dataset.creatorSkillDraftMpCost === '3',
@@ -278,7 +340,9 @@ try {
       document.documentElement.dataset.creatorPackageImportStatus === 'invalid' &&
       (document.documentElement.dataset.creatorPackageImportError ?? '').includes('safe lowercase token') &&
       document.documentElement.dataset.creatorDraftName === 'Mutated Draft' &&
-      document.documentElement.dataset.creatorAnimationDraftAnimationId === 'transient_ready_custom',
+      document.documentElement.dataset.creatorAnimationDraftAnimationId === 'transient_ready_custom' &&
+      document.documentElement.dataset.creatorAnimationAssetValid === 'true' &&
+      document.documentElement.dataset.creatorAnimationAssetAnimationId === 'transient_ready_custom',
     null,
     { timeout: 5_000 },
   );
@@ -330,6 +394,9 @@ try {
       document.documentElement.dataset.creatorDraftName === 'Package Nova' &&
       document.documentElement.dataset.creatorDraftAnimationMap === 'storm_duelist' &&
       document.documentElement.dataset.creatorAnimationDraftAnimationId === 'package_ready_custom' &&
+      document.documentElement.dataset.creatorAnimationAssetValid === 'false' &&
+      document.documentElement.dataset.creatorAnimationAssetBytes === '0' &&
+      document.documentElement.dataset.creatorAnimationAssetError === '' &&
       document.documentElement.dataset.creatorAudioDraftValid === 'true' &&
       document.documentElement.dataset.creatorAudioDraftBinding === 'skill_cast' &&
       document.documentElement.dataset.creatorAudioDraftCue === 'package_cast_custom' &&
@@ -388,7 +455,7 @@ try {
     { timeout: 5_000 },
   );
 
-  console.log('WEB_CREATOR_PACKAGE_SMOKE_PASSED export=true schema=2 noVfxFallback=true animationMapRoundTrip=true animationPreview=true semanticInvalidExportBlocked=true semanticPackageRoundTrip=true semanticTransientReset=true audioBindingPackageRoundTrip=true wavPackageRoundTrip=true invalidImportPreservesWav=true validImportRestoresWav=true tamperedPackagedWavBlocked=true unsafePackagedAudioBlocked=true unsafePackagedAnimationBlocked=true missingAnimationMapBlocked=true timelineRoundTrip=true compositionExpanded=true invalidPreserved=true import=true authoredHp=222 authoredDamage=41 authoredMpCost=19 previewCast=true');
+  console.log('WEB_CREATOR_PACKAGE_SMOKE_PASSED export=true schema=2 noVfxFallback=true animationMapRoundTrip=true animationPreview=true animationPngMemoryOnly=true invalidImportPreservesAnimationPng=true validImportClearsAnimationPng=true semanticInvalidExportBlocked=true semanticPackageRoundTrip=true semanticTransientReset=true audioBindingPackageRoundTrip=true wavPackageRoundTrip=true invalidImportPreservesWav=true validImportRestoresWav=true tamperedPackagedWavBlocked=true unsafePackagedAudioBlocked=true unsafePackagedAnimationBlocked=true missingAnimationMapBlocked=true timelineRoundTrip=true compositionExpanded=true invalidPreserved=true import=true authoredHp=222 authoredDamage=41 authoredMpCost=19 previewCast=true');
   await page.close();
 } finally {
   await browser.close();

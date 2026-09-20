@@ -62,6 +62,9 @@ try {
       typeof window.customFighterCreatorSetName === 'function' &&
       typeof window.customFighterCreatorSetAnimationMap === 'function' &&
       typeof window.customFighterCreatorSetAnimationSemantic === 'function' &&
+      typeof window.customFighterCreatorImportAnimationPng === 'function' &&
+      typeof window.customFighterCreatorClearAnimationAsset === 'function' &&
+      typeof window.customFighterCreatorSetAnimationAssetTiming === 'function' &&
       typeof window.customFighterCreatorSetAudioBinding === 'function' &&
       typeof window.customFighterCreatorImportWav === 'function' &&
       typeof window.customFighterCreatorClearAudioAsset === 'function' &&
@@ -81,6 +84,8 @@ try {
     animationDraftMapId: await dataset(page, 'creatorAnimationDraftMapId'),
     animationDraftSemantic: await dataset(page, 'creatorAnimationDraftSemantic'),
     animationDraftAnimationId: await dataset(page, 'creatorAnimationDraftAnimationId'),
+    animationAssetValid: await dataset(page, 'creatorAnimationAssetValid'),
+    animationAssetBytes: Number(await dataset(page, 'creatorAnimationAssetBytes')),
     audioDraftValid: await dataset(page, 'creatorAudioDraftValid'),
     audioDraftBinding: await dataset(page, 'creatorAudioDraftBinding'),
     audioDraftCue: await dataset(page, 'creatorAudioDraftCue'),
@@ -99,6 +104,8 @@ try {
     initial.animationDraftMapId !== 'ember_vanguard' ||
     initial.animationDraftSemantic !== 'ready' ||
     initial.animationDraftAnimationId !== 'ember_ready' ||
+    initial.animationAssetValid !== 'false' ||
+    initial.animationAssetBytes !== 0 ||
     initial.audioDraftValid !== 'true' ||
     initial.audioDraftBinding !== 'ready' ||
     initial.audioDraftCue !== 'character_ready' ||
@@ -154,6 +161,81 @@ try {
       document.documentElement.dataset.creatorAnimationDraftValid === 'true' &&
       document.documentElement.dataset.creatorAnimationDraftSemantic === 'attack_1' &&
       document.documentElement.dataset.creatorAnimationDraftAnimationId === 'custom_attack_one',
+    null,
+    { timeout: 5_000 },
+  );
+
+  await page.evaluate(() => window.customFighterCreatorSetAnimationAssetTiming(4, 18));
+  const animationPngDataUrl = await page.evaluate(() => {
+    const canvas = document.createElement('canvas');
+    canvas.width = 16;
+    canvas.height = 4;
+    const context = canvas.getContext('2d');
+    ['#ff3344', '#33ff66', '#3377ff', '#ffee33'].forEach((color, index) => {
+      context.fillStyle = color;
+      context.fillRect(index * 4, 0, 4, 4);
+    });
+    return canvas.toDataURL('image/png');
+  });
+  await page.evaluate(
+    ({ dataUrl }) => window.customFighterCreatorImportAnimationPng('attack-strip.png', 'image/png', dataUrl),
+    { dataUrl: animationPngDataUrl },
+  );
+  await page.waitForFunction(
+    () =>
+      document.documentElement.dataset.creatorAnimationAssetValid === 'true' &&
+      document.documentElement.dataset.creatorAnimationAssetSemantic === 'attack_1' &&
+      document.documentElement.dataset.creatorAnimationAssetAnimationId === 'custom_attack_one' &&
+      document.documentElement.dataset.creatorAnimationAssetFile === 'attack-strip.png' &&
+      Number(document.documentElement.dataset.creatorAnimationAssetBytes ?? '0') > 0 &&
+      document.documentElement.dataset.creatorAnimationAssetWidth === '16' &&
+      document.documentElement.dataset.creatorAnimationAssetHeight === '4' &&
+      document.documentElement.dataset.creatorAnimationAssetFrameCount === '4' &&
+      document.documentElement.dataset.creatorAnimationAssetFps === '18.000' &&
+      document.documentElement.dataset.creatorAnimationAssetError === '',
+    null,
+    { timeout: 5_000 },
+  );
+
+  await page.evaluate(() => window.customFighterCreatorSetAnimationAssetTiming(2, 24));
+  await page.waitForFunction(
+    () =>
+      document.documentElement.dataset.creatorAnimationAssetValid === 'true' &&
+      document.documentElement.dataset.creatorAnimationAssetFrameCount === '2' &&
+      document.documentElement.dataset.creatorAnimationAssetFps === '24.000',
+    null,
+    { timeout: 5_000 },
+  );
+
+  await page.evaluate(() => window.customFighterCreatorSetAnimationSemantic('attack_1', 'custom_attack_two'));
+  await page.waitForFunction(
+    () =>
+      document.documentElement.dataset.creatorAnimationDraftAnimationId === 'custom_attack_two' &&
+      document.documentElement.dataset.creatorAnimationAssetValid === 'false' &&
+      document.documentElement.dataset.creatorAnimationAssetBytes === '0' &&
+      (document.documentElement.dataset.creatorAnimationAssetError ?? '').includes('bound animation ID changed'),
+    null,
+    { timeout: 5_000 },
+  );
+
+  await page.evaluate(() => window.customFighterCreatorSetAnimationSemantic('attack_1', 'custom_attack_one'));
+  await page.waitForFunction(
+    () =>
+      document.documentElement.dataset.creatorDraftValid === 'true' &&
+      document.documentElement.dataset.creatorAnimationDraftValid === 'true' &&
+      document.documentElement.dataset.creatorAnimationDraftAnimationId === 'custom_attack_one',
+    null,
+    { timeout: 5_000 },
+  );
+  await page.evaluate(() => window.customFighterCreatorSetAnimationAssetTiming(4, 18));
+  await page.evaluate(
+    ({ dataUrl }) => window.customFighterCreatorImportAnimationPng('attack-strip.png', 'image/png', dataUrl),
+    { dataUrl: animationPngDataUrl },
+  );
+  await page.waitForFunction(
+    () =>
+      document.documentElement.dataset.creatorAnimationAssetValid === 'true' &&
+      document.documentElement.dataset.creatorAnimationAssetAnimationId === 'custom_attack_one',
     null,
     { timeout: 5_000 },
   );
@@ -282,6 +364,9 @@ try {
       document.documentElement.dataset.creatorAnimationDraftValid === 'true' &&
       document.documentElement.dataset.creatorAnimationDraftMapId === 'ember_vanguard' &&
       document.documentElement.dataset.creatorAnimationDraftAnimationId === 'ember_attack_1' &&
+      document.documentElement.dataset.creatorAnimationAssetValid === 'false' &&
+      document.documentElement.dataset.creatorAnimationAssetBytes === '0' &&
+      document.documentElement.dataset.creatorAnimationAssetError === '' &&
       document.documentElement.dataset.creatorAudioDraftValid === 'true' &&
       document.documentElement.dataset.creatorAudioDraftBinding === 'skill_cast' &&
       document.documentElement.dataset.creatorAudioDraftCue === 'skill_cast' &&
@@ -294,7 +379,7 @@ try {
     { timeout: 5_000 },
   );
 
-  console.log('WEB_CREATOR_STUDIO_SMOKE_PASSED mode=creator valid-invalid-valid-reset animationMapAuthoring=true semanticAuthoring=true audioBindingAuthoring=true wavImport=true staleWavCleared=true wavResetCleared=true unsafeSemanticTokenBlocked=true unsafeAudioCueBlocked=true missingMapBlocked=true trainingDefaultPreserved=true');
+  console.log('WEB_CREATOR_STUDIO_SMOKE_PASSED mode=creator valid-invalid-valid-reset animationMapAuthoring=true semanticAuthoring=true animationPngImport=true animationPngTiming=true staleAnimationPngCleared=true animationPngResetCleared=true audioBindingAuthoring=true wavImport=true staleWavCleared=true wavResetCleared=true unsafeSemanticTokenBlocked=true unsafeAudioCueBlocked=true missingMapBlocked=true trainingDefaultPreserved=true');
   await page.close();
 } finally {
   await browser.close();

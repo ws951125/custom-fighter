@@ -236,6 +236,7 @@ func _import_package_json(json_text: String) -> PackedStringArray:
 
 	if session.has_method("clear_vfx_draft"):
 		session.call("clear_vfx_draft")
+	_clear_animation_asset("")
 	_clear_audio_asset("")
 
 	var apply_character_errors: PackedStringArray = character_draft.load_from_dictionary(character_data)

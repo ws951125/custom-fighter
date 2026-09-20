@@ -251,28 +251,39 @@ Validation result:
 
 ## Work Unit 10 — hit-received WAV runtime trigger
 
+Validation result:
+- PR #174 latest head `ad1802bf7a2a9c22b0a0568c77e6ae4884da2b91` passed final PR CI #458 (`35521524471`).
+- PR #174 was squash-merged as `2b027ee70afc5b5e408c15cddc71ede8f18585fb`.
+- Exact-main CI #459 (`35523850244`) passed Windows Native, Godot/domain/backend/Web/Chromium, hosted Microsoft Edge, GitHub Pages deployment/public reachability, Render exact-revision readiness, and production Microsoft Edge full smoke.
+- Production Edge proved `wavRuntimePlayback=true basicAttackWavRuntimePlayback=true skillImpactWavRuntimePlayback=true hitReceivedWavRuntimePlayback=true` and completed `SMOKE_SUITE_PASSED count=24`; Render readiness matched exact revision `2b027ee70afc5b5e408c15cddc71ede8f18585fb`.
+- The runtime retains only the synchronous `receive_player_hit(...)` override as the `hit_received` event owner; L-035 records the duplicate-consumer prevention rule.
+- WU10 is accepted and production-validated.
+
+## Work Unit 11 — bounded character animation PNG import + memory-only persistence
+
 Scope:
-1. Reuse the same validated/staged single WAV and fixed audio-binding contract; do not add another asset slot, path/URL loading, external decoder, native library, script, callback or executable payload.
-2. Reuse the authoritative `receive_player_hit(...)` boundary rather than inventing a second damage/impact path.
-3. Delegate to the parent boundary first and request `hit_received` playback only when the returned dealt damage is greater than zero.
-4. Therefore Counter-intercepted, zero-damage, defeated-state and otherwise rejected hits remain silent for the hurt cue.
-5. Resolve fixed `hit_received` through the authored binding map and retain exact staged-WAV Cue matching as the final playback gate.
-6. Extend Creator Preview Chromium/hosted-Edge regression with a fourth Preview cycle: bind/import `hit_received → preview_hit_custom`, require the constrained Training incoming-hit bridge, deal 9 real damage, verify authoritative incoming-hit/damage telemetry plus WAV playback, then return to Creator.
-7. Preserve WU7 `skill_cast`, WU8 `basic_attack` and WU9 `skill_impact` behavior unchanged.
-8. Keep `ready` deferred because automatic playback still requires deliberate browser autoplay-policy handling.
-9. Use only the synchronous `receive_player_hit(...)` override as the event owner. Do not also poll incoming-hit counters for playback; the duplicate polling path found during branch reconciliation was removed by `d78ede0e93b266e0708f92d3b582d5af01290ef0` to prevent double emission.
+1. Introduce a dedicated `CharacterAnimationAssetDraft` rather than reusing skill-VFX metadata. The contract binds one asset to exactly one required character animation semantic and one safe animation ID.
+2. Accept only safe leaf `.png` filenames and canonical `image/png`; reject paths, URLs, code-like identifiers and unsupported fields.
+3. Bound decoded PNG bytes to ≤5 MB, dimensions to ≤4096 px per axis, horizontal frame count to 1–64, and FPS to 1–60. Require width to divide evenly across frame count.
+4. Decode with Godot `Image.load_png_from_buffer()` and require decoded dimensions to exactly match metadata; no external decoder, native library, filesystem/resource path or executable payload.
+5. Add Character Editor controls for Choose/Clear Animation PNG, Frames and FPS. Transfer bytes only as a bounded browser data URL.
+6. Store metadata + PNG bytes only in `CreatorPreviewSession` memory in WU11. Preview staging must require exact `semantic + animation_id` agreement with the active authored animation map.
+7. Clear stale animation bytes immediately when their bound animation ID changes.
+8. Prove Creator → Training Preview → Creator memory round-trip and deterministic PreviewSession store/stage behavior.
+9. Keep WU11 package-neutral: export must not serialize `animation_asset`/collections yet. Failed package imports preserve current memory-only animation PNG; successful package import clears it to avoid cross-character leakage.
+10. Keep self-contained animation-asset package transport for the next separate work unit; keep `ready` audio autoplay semantics deferred.
 
 Validation result:
-- PR #174 latest head `73e46478dbd9e4f7940c7908ac4cc1b621c6c133` completed required PR CI #456 (`35519908707`) successfully on attempt 2. Attempt 1 was cancelled by GitHub during Chromium installation without a product/test assertion failure.
-- Attempt 2 passed Windows Native, Godot import/boot/domain/AI contracts, trusted backend, Web export/size budget, Chromium `smoke:all`, and GitHub-hosted Microsoft Edge `smoke:all`.
-- Both Chromium and hosted Edge preserved WU7/WU8/WU9 playback telemetry and proved `hitReceivedWavRuntimePlayback=true` after the constrained Training incoming-hit bridge dealt 9 real damage through the authoritative `receive_player_hit(...)` path.
-- Both browsers completed `SMOKE_SUITE_PASSED count=24`; the reconciled runtime has one authoritative `hit_received` playback owner and no second polling consumer.
-- Final documentation-sync latest-head validation remains required before merge.
+- PR #175 initial CI #460 (`35526219448`) passed Windows Native, Godot/domain/backend, Web export/size budget, Creator Studio Animation-PNG import/timing/stale-clear/reset and Creator Preview memory round-trip before the new package regression exposed a misplaced test assertion.
+- The failure was test-only: the pre-export state incorrectly required the newly imported PNG to be cleared. Fix `512381ef6e46ff7bc54c30c41f1e37cba6a20baa` moved that assertion to the unique successful-package-import context; L-036 records the prevention rule.
+- Head `dd7c274987f2ccb294fe0181413c50cfc8c7c7dd` passed PR CI #462 (`35526663871`) across Windows Native, Godot import/boot/domain/AI contracts, backend, Web export/size budget, Chromium `smoke:all`, and hosted Microsoft Edge `smoke:all`.
+- Chromium and Edge both proved `animationPngImport=true`, `animationPngTiming=true`, `staleAnimationPngCleared=true`, `animationPngResetCleared=true`, `animationPngMemoryRoundTrip=true`, `animationPngMemoryOnly=true`, `invalidImportPreservesAnimationPng=true`, and `validImportClearsAnimationPng=true`.
+- Both browsers completed `SMOKE_SUITE_PASSED count=24`; package schema remains unchanged.
 
-## Deferred after WU10
+## Deferred after WU11
 
-- creator-provided animation asset import;
-- animation asset packaging/self-contained transport;
+- self-contained Character Package transport for the bounded character animation PNG;
+- runtime use/rendering of the imported character animation sprite strip beyond memory/staging, if required by the final playable animation-asset acceptance path;
 - `ready` playback trigger with browser autoplay-safe semantics;
 - final V2-3 cross-machine/self-contained acceptance.
 

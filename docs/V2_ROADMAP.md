@@ -164,4 +164,4 @@ The architecture previously allowed a future local/open-model AI provider such a
 
 ## Next implementation target
 
-Continue **V2-3 Character Animation & Audio Authoring** with Work Unit 10: reuse the approved single WAV and fixed audio-binding contract for one bounded `hit_received` runtime trigger that fires only after the authoritative incoming-hit boundary deals real player damage, while preserving `skill_cast`, `basic_attack`, and `skill_impact`.
+Continue **V2-3 Character Animation & Audio Authoring** with Work Unit 11: add one bounded creator-provided character Animation PNG/sprite-strip import bound to an exact required semantic + safe animation ID, preserve it through Creator Preview memory only, and keep package transport as a separate follow-up work unit.
