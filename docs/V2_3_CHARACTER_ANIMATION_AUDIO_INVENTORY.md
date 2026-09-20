@@ -251,29 +251,32 @@ Validation result:
 
 ## Work Unit 10 — hit-received WAV runtime trigger
 
-Scope:
-1. Reuse the same validated/staged single WAV and fixed audio-binding contract; do not add another asset slot, path/URL loading, external decoder, native library, script, callback or executable payload.
-2. Reuse the authoritative `receive_player_hit(...)` boundary rather than inventing a second damage/impact path.
-3. Delegate to the parent boundary first and request `hit_received` playback only when the returned dealt damage is greater than zero.
-4. Therefore Counter-intercepted, zero-damage, defeated-state and otherwise rejected hits remain silent for the hurt cue.
-5. Resolve fixed `hit_received` through the authored binding map and retain exact staged-WAV Cue matching as the final playback gate.
-6. Extend Creator Preview Chromium/hosted-Edge regression with a fourth Preview cycle: bind/import `hit_received → preview_hit_custom`, require the constrained Training incoming-hit bridge, deal 9 real damage, verify authoritative incoming-hit/damage telemetry plus WAV playback, then return to Creator.
-7. Preserve WU7 `skill_cast`, WU8 `basic_attack` and WU9 `skill_impact` behavior unchanged.
-8. Keep `ready` deferred because automatic playback still requires deliberate browser autoplay-policy handling.
-9. Use only the synchronous `receive_player_hit(...)` override as the event owner. Do not also poll incoming-hit counters for playback; the duplicate polling path found during branch reconciliation was removed by `d78ede0e93b266e0708f92d3b582d5af01290ef0` to prevent double emission.
-
 Validation result:
-- PR #174 latest head `73e46478dbd9e4f7940c7908ac4cc1b621c6c133` completed required PR CI #456 (`35519908707`) successfully on attempt 2. Attempt 1 was cancelled by GitHub during Chromium installation without a product/test assertion failure.
-- Attempt 2 passed Windows Native, Godot import/boot/domain/AI contracts, trusted backend, Web export/size budget, Chromium `smoke:all`, and GitHub-hosted Microsoft Edge `smoke:all`.
-- Both Chromium and hosted Edge preserved WU7/WU8/WU9 playback telemetry and proved `hitReceivedWavRuntimePlayback=true` after the constrained Training incoming-hit bridge dealt 9 real damage through the authoritative `receive_player_hit(...)` path.
-- Both browsers completed `SMOKE_SUITE_PASSED count=24`; the reconciled runtime has one authoritative `hit_received` playback owner and no second polling consumer.
-- Final documentation-sync latest-head validation remains required before merge.
+- PR #174 latest head `ad1802bf7a2a9c22b0a0568c77e6ae4884da2b91` passed final PR CI #458 (`35521524471`) across Windows Native, Godot/domain/backend, Web export/size budget, Chromium and hosted Edge.
+- PR #174 was squash-merged as `2b027ee70afc5b5e408c15cddc71ede8f18585fb`.
+- Exact-main CI #459 (`35523850244`) passed Windows Native, Godot/domain/backend/Web/Chromium, hosted Microsoft Edge, GitHub Pages deployment/public reachability, Render exact-revision readiness, and production Microsoft Edge full smoke.
+- Production Edge proved `wavRuntimePlayback=true basicAttackWavRuntimePlayback=true skillImpactWavRuntimePlayback=true hitReceivedWavRuntimePlayback=true` and completed `SMOKE_SUITE_PASSED count=24`; Render readiness matched exact revision `2b027ee70afc5b5e408c15cddc71ede8f18585fb`.
+- WU10 is accepted and production-validated.
 
-## Deferred after WU10
+## Work Unit 11 — bounded character-animation PNG import + memory-only persistence
 
-- creator-provided animation asset import;
+Scope:
+1. Add one optional `CharacterAnimationAssetDraft` representing a horizontal PNG sprite strip bound to one required character-animation semantic and its current safe animation-ID token.
+2. Accept only `image/png`, safe `.png` filename, decoded dimensions 1–4096, 1–64 horizontal frames with exact width divisibility, FPS 1–60, and at most 5 MB of PNG bytes.
+3. Decode bytes through Godot's in-memory PNG loader and require decoded dimensions to equal authored metadata. Do not accept filesystem/resource paths, URLs, external decoders, native libraries, scripts, callbacks, or executable payloads.
+4. Add Creator `PNG Frames`, `PNG FPS`, `Choose Animation PNG`, and `Clear Animation PNG` controls. Browser bytes move through a bounded base64 `data:image/png` transfer only.
+5. Store validated metadata + bytes only in `CreatorPreviewSession` memory. WU11 does not add them to Character Package schema v2.
+6. At Preview staging, revalidate metadata + bytes and require the stored asset's semantic to map to exactly the stored animation ID in the active authored `CharacterAnimationMap`. Mismatch fails closed and clears stale active preview asset state.
+7. Clear stale stored animation PNG when its bound animation ID, Animation Map, frame count, FPS, or Character reset changes.
+8. Failed Character Package imports remain non-mutating and preserve the current memory-only PNG. Successful package imports clear it so state cannot leak to a newly imported character.
+9. Add deterministic draft/session regressions and Creator/Package Chromium + hosted-Edge coverage.
+10. Keep actual runtime sprite rendering and animation-asset package transport deferred to separate work units; WU11 proves the safe import/storage boundary only.
+
+## Deferred after WU11
+
+- runtime Creator Preview rendering/playback of the imported character animation PNG;
 - animation asset packaging/self-contained transport;
-- `ready` playback trigger with browser autoplay-safe semantics;
+- `ready` WAV playback with browser autoplay-safe semantics;
 - final V2-3 cross-machine/self-contained acceptance.
 
 V2 progress remains **25% (2/8 phases complete)** until the entire V2-3 acceptance criterion is satisfied and synchronized.
