@@ -285,16 +285,26 @@ Work unit 7 — **Creator Preview runtime WAV playback — accepted and producti
 - Production Edge emitted `WEB_CREATOR_PREVIEW_SMOKE_PASSED ... wavRuntimePlayback=true`, `WEB_CREATOR_VFX_EDITOR_SMOKE_PASSED`, and `SMOKE_SUITE_PASSED count=24`. Render readiness emitted `PRODUCTION_AI_BACKEND_READY provider=gemini model=gemini-3.6-flash billing_mode=free-tier-only revision=6d1c40878cd8988a6d27e8438c402ba706c020cd`.
 - WU7 is therefore accepted and production-validated. Its deliberate scope remains the timeline-driven `skill_cast` playback path.
 
-Work unit 8 — **basic-attack WAV runtime trigger — implementation complete; PR validation passed**:
+Work unit 8 — **basic-attack WAV runtime trigger — accepted and production-validated**:
 - WU8 extends the already-approved single-WAV runtime path to the fixed `basic_attack` semantic only; it does not add another asset slot, collection, decoder, resource path, URL, script, callback, or executable event vocabulary.
-- Creator Preview observes each newly-started normal attack step after the authoritative combat state has accepted it, resolves `basic_attack` through the existing `CharacterAudioBindings`, and calls the same exact-Cue-matching WAV playback boundary used by WU7.
-- One attack step can request playback at most once. A staged WAV bound to any other semantic/Cue remains a no-op, preserving fail-closed behavior.
-- Creator Preview browser regression keeps the existing WU7 `skill_cast` proof, then reauthors the one WAV to `basic_attack → preview_attack_custom`, launches Preview again, presses J, and requires persistent playback telemetry for that exact Cue before returning to Creator.
-- PR #172 implementation head `35715e9437983cea55b6a2014b16a4210630a541` passed PR CI #445 (`35510295745`) on attempt 1: Windows Native, Godot import/boot/domain/AI contracts, trusted backend, Web export/size budget, Chromium `smoke:all`, and GitHub-hosted Microsoft Edge `smoke:all` all succeeded.
-- Chromium and hosted Edge both emitted `WEB_CREATOR_PREVIEW_SMOKE_PASSED ... wavRuntimePlayback=true basicAttackWavRuntimePlayback=true` and `SMOKE_SUITE_PASSED count=24`, proving WU7 skill-cast playback remains intact and J triggers the newly bound `basic_attack` WAV.
-- Active branch: `feat/v2-3-basic-attack-wav-trigger-wu8`; PR #172 is open. Final documentation-sync latest-head validation remains the pre-merge gate.
-- `ready`, `hit_received`, and `skill_impact` playback triggers remain deferred to later bounded slices; `ready` also requires explicit consideration of browser autoplay behavior.
-- V2 remains **25% (2/8 phases complete)** until the full V2-3 phase acceptance criterion is satisfied.
+- Creator Preview observes each newly-started normal attack step after the authoritative combat state accepts it, resolves `basic_attack` through `CharacterAudioBindings`, and reuses the exact-Cue-matching WU7 playback boundary.
+- PR #172 implementation head `35715e9437983cea55b6a2014b16a4210630a541` passed PR CI #445 (`35510295745`) on attempt 1. Latest documentation-sync head `df0fe77a625dce634cb538d44df0289c10400d3f` then passed PR CI #447 (`35511016768`) across Windows Native, Godot/domain/backend, Web export/size budget, Chromium `smoke:all`, and hosted Microsoft Edge `smoke:all`.
+- Chromium and hosted Edge emitted `WEB_CREATOR_PREVIEW_SMOKE_PASSED ... wavRuntimePlayback=true basicAttackWavRuntimePlayback=true` and `SMOKE_SUITE_PASSED count=24`, proving WU7 skill-cast playback remained intact and J triggered the newly bound `basic_attack` WAV.
+- PR #172 was explicitly approved and squash-merged to `main` as `a2e348c83c2db03c0bd2cef0466382854e3a097a`.
+- Exact-main CI #448 (`35512384893`) passed the complete production chain: Windows Native, Godot/domain/backend, Web export/size budget, Chromium `smoke:all`, hosted Microsoft Edge `smoke:all`, GitHub Pages deployment/public reachability, Render exact-revision readiness, and production Microsoft Edge full smoke.
+- Production Edge again emitted `WEB_CREATOR_PREVIEW_SMOKE_PASSED ... wavRuntimePlayback=true basicAttackWavRuntimePlayback=true` and `SMOKE_SUITE_PASSED count=24`. Render readiness emitted `PRODUCTION_AI_BACKEND_READY provider=gemini model=gemini-3.6-flash billing_mode=free-tier-only revision=a2e348c83c2db03c0bd2cef0466382854e3a097a`.
+- WU8 is therefore accepted and production-validated.
+
+Work unit 9 — **skill-impact WAV runtime trigger — implementation complete; PR validation passed**:
+- WU9 extends the same one-WAV safe runtime path to the fixed `skill_impact` semantic only. It adds no second asset, unbounded collection, path/URL loading, external decoder, script, callback, native library, or new executable event language.
+- After the parent combat runtime finishes its authoritative collision/damage step, Creator Preview observes the persistent skill-hit counters. Playback is requested only when the accepted skill-impact count increases, so audio follows a real hit rather than predicted timing.
+- `skill_impact` resolves through the existing authored `CharacterAudioBindings`; the existing exact-Cue match remains the final playback gate.
+- The Creator Preview regression preserves both WU7 `skill_cast` and WU8 `basic_attack` coverage, then reauthors the one WAV to `skill_impact → preview_impact_custom`, launches Preview, casts Skill 1 with U, waits for a real registered hit, and requires matching WAV playback telemetry.
+- PR #173 implementation head `44f3101ff66524b39ce26eb955c4a2f1dee900c1` passed PR CI #449 (`35516777928`) on attempt 1: Windows Native, Godot import/boot/domain/AI contracts, trusted backend, Web export/size budget, Chromium `smoke:all`, and GitHub-hosted Microsoft Edge `smoke:all` all succeeded.
+- Chromium and hosted Edge both emitted `WEB_CREATOR_PREVIEW_SMOKE_PASSED ... wavRuntimePlayback=true basicAttackWavRuntimePlayback=true skillImpactWavRuntimePlayback=true` and `SMOKE_SUITE_PASSED count=24`, proving WU7/WU8 behavior remains intact and the new WAV plays after an authoritative Skill 1 hit.
+- Active branch: `feat/v2-3-skill-impact-wav-trigger-wu9`; PR #173 is open. Final documentation-sync latest-head validation remains the pre-merge gate.
+- `ready` and `hit_received` remain deferred. `ready` still requires deliberate handling of browser autoplay policy.
+- V2 remains **25% (2/8 phases complete)** until the full V2-3 acceptance criterion is satisfied.
 
 ### V2-1 implementation checkpoints
 
@@ -412,4 +422,4 @@ AI VFX backend: `https://custom-fighter-ai-vfx.onrender.com`
 
 ## Next implementation target
 
-Validate V2-3 Work Unit 8 on GitHub: basic-attack WAV trigger runtime behavior, the extended Creator Preview regression preserving WU7 `skill_cast` playback plus J-triggered `basic_attack` playback, Godot import/boot/domain/backend, Web export/size budget, full Chromium `smoke:all`, Windows Native, and hosted Microsoft Edge `smoke:all`. After WU8 passes and receives merge approval, require the exact-main production chain before continuing to the next bounded audio semantic trigger.
+Validate V2-3 Work Unit 9 on GitHub: preserve WU7 `skill_cast` and WU8 `basic_attack` WAV playback, then prove the single approved WAV can be rebound to `skill_impact` and plays only after an authoritative skill hit. Require Godot import/boot/domain/backend, Web export/size budget, Chromium `smoke:all`, Windows Native, and hosted Microsoft Edge `smoke:all` before any merge.

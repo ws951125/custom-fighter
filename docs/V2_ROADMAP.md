@@ -164,4 +164,4 @@ The architecture previously allowed a future local/open-model AI provider such a
 
 ## Next implementation target
 
-Continue **V2-3 Character Animation & Audio Authoring** with Work Unit 8: reuse the approved single WAV and fixed audio-binding contract for one bounded `basic_attack` runtime trigger, validate it in Creator Preview across Chromium/hosted Edge, then production-validate the exact merged revision before advancing to another deferred audio semantic.
+Continue **V2-3 Character Animation & Audio Authoring** with Work Unit 9: reuse the approved single WAV and fixed audio-binding contract for one bounded `skill_impact` runtime trigger that fires only after an authoritative skill hit, while preserving the already-validated `skill_cast` and `basic_attack` paths.

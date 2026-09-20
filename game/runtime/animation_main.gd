@@ -19,6 +19,7 @@ var preview_audio_asset_load_error := ""
 var preview_audio_playback_count := 0
 var preview_audio_last_played_cue := ""
 var preview_audio_observed_basic_attack_step := 0
+var preview_audio_observed_skill_impact_count := 0
 var preview_return_button: Button
 var _web_preview_return_callback
 
@@ -87,6 +88,7 @@ func _ready() -> void:
 
 func _process(delta: float) -> void:
 	super(delta)
+	_consume_creator_preview_skill_impact_audio()
 	_consume_creator_preview_basic_attack_audio()
 	_consume_creator_preview_timeline_transitions()
 	_tick_creator_preview_timeline_pulses(delta)
@@ -151,6 +153,7 @@ func _load_creator_preview_audio_asset() -> void:
 	preview_audio_playback_count = 0
 	preview_audio_last_played_cue = ""
 	preview_audio_observed_basic_attack_step = 0
+	preview_audio_observed_skill_impact_count = 0
 
 	var session: Variant = get_node_or_null("/root/CreatorPreviewSession")
 	if session == null or not session.has_method("has_active_audio_asset_preview") or not bool(session.call("has_active_audio_asset_preview")):
@@ -194,6 +197,23 @@ func _play_creator_preview_audio_cue(cue_id: String) -> void:
 	preview_audio_player.play()
 	preview_audio_playback_count += 1
 	preview_audio_last_played_cue = normalized
+
+func _consume_creator_preview_skill_impact_audio() -> void:
+	var current_impact_count := fireball_hit_count + dash_slash_hit_count
+	var session: Variant = get_node_or_null("/root/CreatorPreviewSession")
+	if not _preview_session_active(session):
+		preview_audio_observed_skill_impact_count = current_impact_count
+		return
+	if current_impact_count <= preview_audio_observed_skill_impact_count:
+		return
+	preview_audio_observed_skill_impact_count = current_impact_count
+	if not player_audio_bindings.loaded:
+		return
+	var cue_id := player_audio_bindings.cue_for_binding("skill_impact")
+	var playback_before := preview_audio_playback_count
+	_play_creator_preview_audio_cue(cue_id)
+	if preview_audio_playback_count > playback_before:
+		_set_web_state()
 
 func _consume_creator_preview_basic_attack_audio() -> void:
 	var session: Variant = get_node_or_null("/root/CreatorPreviewSession")

@@ -233,16 +233,35 @@ Scope:
 
 Validation result:
 - PR #172 implementation head `35715e9437983cea55b6a2014b16a4210630a541` passed PR CI #445 (`35510295745`) on attempt 1.
+- Latest PR head `df0fe77a625dce634cb538d44df0289c10400d3f` passed PR CI #447 (`35511016768`) across Windows Native, Godot/domain/backend, Web export/size budget, Chromium and hosted Edge.
+- PR #172 was squash-merged as `a2e348c83c2db03c0bd2cef0466382854e3a097a`.
+- Exact-main CI #448 (`35512384893`) passed Windows Native, Godot/domain/backend/Web/Chromium, hosted Microsoft Edge, GitHub Pages deployment/public reachability, Render exact-revision readiness, and production Microsoft Edge full smoke.
+- Production Edge proved `wavRuntimePlayback=true basicAttackWavRuntimePlayback=true` and completed `SMOKE_SUITE_PASSED count=24`; Render readiness matched exact revision `a2e348c83c2db03c0bd2cef0466382854e3a097a`.
+- WU8 is accepted and production-validated.
+
+## Work Unit 9 — skill-impact WAV runtime trigger
+
+Scope:
+1. Reuse the same one validated/staged WAV and fixed audio-binding contract; do not add another asset slot or any path/URL/external decoder/script/callback/native code.
+2. Observe skill impact only after the authoritative parent combat runtime increments its persistent skill-hit counters.
+3. Resolve fixed `skill_impact` through the authored binding map and play only on exact Cue match with the staged WAV.
+4. Advance the observed impact counter even when the staged WAV does not match, so an old hit cannot be replayed later after rebinding.
+5. Preserve WU7 timeline-driven `skill_cast` and WU8 J-triggered `basic_attack` behavior unchanged.
+6. Extend Creator Preview Chromium/hosted-Edge regression with a third Preview cycle: bind/import `skill_impact → preview_impact_custom`, cast U, require a real `skillHitCount` increment plus matching playback telemetry, then return to Creator.
+7. Keep `ready` and `hit_received` triggers deferred; `ready` remains isolated due to browser autoplay policy.
+
+Validation result:
+- PR #173 implementation head `44f3101ff66524b39ce26eb955c4a2f1dee900c1` passed PR CI #449 (`35516777928`) on attempt 1.
 - Windows Native, Godot import/boot/domain/AI contracts, trusted backend, Web export/size budget, Chromium `smoke:all`, and GitHub-hosted Microsoft Edge `smoke:all` all passed.
-- Both Chromium and hosted Edge preserved WU7 `wavRuntimePlayback=true` and proved `basicAttackWavRuntimePlayback=true` after the Creator re-bound the single validated WAV to `basic_attack → preview_attack_custom` and pressed J in Training Preview.
+- Both Chromium and hosted Edge preserved `wavRuntimePlayback=true` and `basicAttackWavRuntimePlayback=true`, then proved `skillImpactWavRuntimePlayback=true` only after Skill 1 registered a real hit through the authoritative combat counters.
 - Both browsers completed `SMOKE_SUITE_PASSED count=24`; no second WAV slot or unsafe resource/execution path was introduced.
 - Final documentation-sync latest-head validation remains required before merge.
 
-## Deferred after WU8
+## Deferred after WU9
 
 - creator-provided animation asset import;
 - animation asset packaging/self-contained transport;
-- `ready`, `hit_received`, and `skill_impact` playback triggers backed by approved assets;
+- `ready` and `hit_received` playback triggers backed by approved assets;
 - final V2-3 cross-machine/self-contained acceptance.
 
 V2 progress remains **25% (2/8 phases complete)** until the entire V2-3 acceptance criterion is satisfied and synchronized.
