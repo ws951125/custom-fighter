@@ -295,12 +295,14 @@ Work unit 8 — **basic-attack WAV runtime trigger — accepted and production-v
 - Production Edge again emitted `WEB_CREATOR_PREVIEW_SMOKE_PASSED ... wavRuntimePlayback=true basicAttackWavRuntimePlayback=true` and `SMOKE_SUITE_PASSED count=24`. Render readiness emitted `PRODUCTION_AI_BACKEND_READY provider=gemini model=gemini-3.6-flash billing_mode=free-tier-only revision=a2e348c83c2db03c0bd2cef0466382854e3a097a`.
 - WU8 is therefore accepted and production-validated.
 
-Work unit 9 — **skill-impact WAV runtime trigger — implementation in progress**:
+Work unit 9 — **skill-impact WAV runtime trigger — implementation complete; PR validation passed**:
 - WU9 extends the same one-WAV safe runtime path to the fixed `skill_impact` semantic only. It adds no second asset, unbounded collection, path/URL loading, external decoder, script, callback, native library, or new executable event language.
 - After the parent combat runtime finishes its authoritative collision/damage step, Creator Preview observes the persistent skill-hit counters. Playback is requested only when the accepted skill-impact count increases, so audio follows a real hit rather than predicted timing.
 - `skill_impact` resolves through the existing authored `CharacterAudioBindings`; the existing exact-Cue match remains the final playback gate.
 - The Creator Preview regression preserves both WU7 `skill_cast` and WU8 `basic_attack` coverage, then reauthors the one WAV to `skill_impact → preview_impact_custom`, launches Preview, casts Skill 1 with U, waits for a real registered hit, and requires matching WAV playback telemetry.
-- Active branch: `feat/v2-3-skill-impact-wav-trigger-wu9`. GitHub-hosted validation is the next gate.
+- PR #173 implementation head `44f3101ff66524b39ce26eb955c4a2f1dee900c1` passed PR CI #449 (`35516777928`) on attempt 1: Windows Native, Godot import/boot/domain/AI contracts, trusted backend, Web export/size budget, Chromium `smoke:all`, and GitHub-hosted Microsoft Edge `smoke:all` all succeeded.
+- Chromium and hosted Edge both emitted `WEB_CREATOR_PREVIEW_SMOKE_PASSED ... wavRuntimePlayback=true basicAttackWavRuntimePlayback=true skillImpactWavRuntimePlayback=true` and `SMOKE_SUITE_PASSED count=24`, proving WU7/WU8 behavior remains intact and the new WAV plays after an authoritative Skill 1 hit.
+- Active branch: `feat/v2-3-skill-impact-wav-trigger-wu9`; PR #173 is open. Final documentation-sync latest-head validation remains the pre-merge gate.
 - `ready` and `hit_received` remain deferred. `ready` still requires deliberate handling of browser autoplay policy.
 - V2 remains **25% (2/8 phases complete)** until the full V2-3 acceptance criterion is satisfied.
 
