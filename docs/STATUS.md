@@ -282,7 +282,11 @@ Work unit 7 — **Creator Preview runtime WAV playback — implementation in pro
 - WU7 is intentionally limited to the existing timeline-driven `skill_cast` path. Broader ready/basic-attack/hit/skill-impact triggers remain deferred.
 - PR #170 implementation head `a4289662a94be4423d389f45e5d86c5dad5d6380` passed PR CI #438 (`35498848537`): Windows Native, Godot import/boot/domain/AI contracts, trusted backend, Web export/size budget, Chromium `smoke:all`, and GitHub-hosted Microsoft Edge `smoke:all` all succeeded.
 - Chromium and hosted Edge both exercised the updated Creator Preview regression with `wavRuntimePlayback=true`: the staged WAV loaded with no runtime error and the authored `skill_cast` timeline event incremented playback telemetry for `preview_cast_custom`.
-- Active branch: `feat/v2-3-runtime-wav-playback-wu7`; PR #170 is open. Final documentation-sync HEAD validation is the remaining pre-merge gate.
+- Latest PR head `f79402ed3d2b94f1d8a47fa67a885b900d074fd3` passed PR CI #440 (`35499474313`) on the first attempt.
+- PR #170 was explicitly approved and squash-merged to `main` as `0ecbbcdd5b6439bf8d4ae50d184b349cd1fea495`. The merge tree exactly matches the latest green PR tree `8a35d36b71f8575547ba26a143e7298cd4ea1f53`.
+- Main CI #441 (`35502103936`) attempt 1 passed Windows Native and Chromium, then unchanged hosted Edge `smoke:web` missed the short jump-offset observation after already observing `playerJumping=true`. Attempt 2 passed the WU7-specific Creator Preview `wavRuntimePlayback=true` stage, then a different unchanged `smoke:creator-vfx` revision observation exceeded its 5-second window.
+- Per L-007, two different unchanged short observation failures on the same exact tree stop blind retries. Test-only branch `test/v2-3-wu7-edge-timing-stability` hardens browser-side jump capture and the bounded Creator VFX revision wait without changing gameplay/runtime semantics.
+- WU7 product behavior is merged but production validation remains blocked until the timing-stability hotfix passes and the exact-main production chain completes.
 - V2 remains **25% (2/8 phases complete)** until the full V2-3 phase acceptance criterion is satisfied.
 
 ### V2-1 implementation checkpoints
@@ -401,4 +405,4 @@ AI VFX backend: `https://custom-fighter-ai-vfx.onrender.com`
 
 ## Next implementation target
 
-Validate V2-3 Work Unit 5 on GitHub: PCM WAV domain tests, CreatorPreviewSession audio-asset safety coverage, Creator Studio/Preview/Package browser regressions, Godot import/boot, Web export/size budget, full Chromium `smoke:all`, Windows Native, and hosted Microsoft Edge `smoke:all`. After WU5 is production-validated, continue with the package-transport / runtime-playback slice while preserving the bounded audio safety contract.
+Complete PR #171 (`test/v2-3-wu7-edge-timing-stability`) through the required GitHub-hosted merge gate. After explicit merge approval, squash-merge the test-only timing-stability hotfix, then require the exact new `main` revision to pass the complete production chain: Windows Native, Godot/domain/backend, Web export/size budget, Chromium `smoke:all`, hosted Microsoft Edge `smoke:all`, GitHub Pages deployment/public reachability, Render exact-revision readiness, and production Microsoft Edge full smoke. Only after WU7 is production-validated should V2-3 continue into the next bounded audio trigger slice beyond the existing timeline-driven `skill_cast` path.

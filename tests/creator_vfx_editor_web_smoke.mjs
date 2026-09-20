@@ -19,10 +19,12 @@ async function dataset(page, key) {
 }
 
 async function waitForRevision(page, before) {
+  // Revision is persistent once the Creator mutation is applied. Use a bounded state-driven
+  // window that tolerates hosted Windows/Edge scheduling stalls without adding fixed sleeps.
   await page.waitForFunction(
     (previous) => Number(document.documentElement.dataset.creatorVfxRevision ?? '0') > previous,
     before,
-    { timeout: 5_000 },
+    { timeout: 15_000 },
   );
 }
 

@@ -263,26 +263,25 @@ try {
     { timeout: 2_000 },
   );
 
-  // Keep Space down until the Godot diagnostics acknowledge the jump, then release it.
+  // Keep Space down until one browser-side observation sees both the jump state and
+  // a meaningful positive offset. Hosted Edge can otherwise advance through the short
+  // ascent window between separate JS reads even though the runtime jump was valid.
   await page.keyboard.down('Space');
   try {
     await page.waitForFunction(
-      () => document.documentElement.dataset.playerJumping === 'true',
+      () =>
+        document.documentElement.dataset.playerJumping === 'true' &&
+        Number(document.documentElement.dataset.playerJumpOffset) > 5,
       null,
-      { timeout: 2_000 },
+      { timeout: 5_000 },
     );
   } finally {
     await page.keyboard.up('Space');
   }
   await page.waitForFunction(
-    () => Number(document.documentElement.dataset.playerJumpOffset) > 5,
-    null,
-    { timeout: 2_000 },
-  );
-  await page.waitForFunction(
     () => document.documentElement.dataset.playerJumping === 'false',
     null,
-    { timeout: 2_000 },
+    { timeout: 5_000 },
   );
 
   await page.keyboard.down('Shift');
