@@ -8,6 +8,10 @@ if (browserChannel) launchOptions.channel = browserChannel;
 console.log(`CREATOR_PACKAGE_BROWSER=${browserChannel || 'playwright-chromium'}`);
 console.log(`CREATOR_PACKAGE_BASE_URL=${baseUrl}`);
 
+function animationPngDataUrl() {
+  return 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Y9Zk3sAAAAASUVORK5CYII=';
+}
+
 function pcmWavDataUrl({ sampleRate = 8000, channels = 1, bits = 8, dataSize = 800 } = {}) {
   const bytes = new Uint8Array(44 + dataSize);
   const view = new DataView(bytes.buffer);
@@ -50,6 +54,7 @@ try {
       typeof window.customFighterCreatorImportPackageJson === 'function' &&
       typeof window.customFighterCreatorSetAnimationMap === 'function' &&
       typeof window.customFighterCreatorSetAnimationSemantic === 'function' &&
+      typeof window.customFighterCreatorImportAnimationPng === 'function' &&
       typeof window.customFighterCreatorSetAudioBinding === 'function' &&
       typeof window.customFighterCreatorImportWav === 'function' &&
       typeof window.customFighterCreatorPreview === 'function' &&
@@ -202,6 +207,11 @@ try {
     window.customFighterCreatorSetSkillMpCost(3);
     window.customFighterCreatorTimelineClear();
   });
+  const transientAnimationPngDataUrl = animationPngDataUrl();
+  await page.evaluate(
+    ({ dataUrl }) => window.customFighterCreatorImportAnimationPng('transient-ready.png', 'image/png', 1, 1, dataUrl),
+    { dataUrl: transientAnimationPngDataUrl },
+  );
   await page.evaluate(
     ({ dataUrl }) => window.customFighterCreatorImportWav('transient-cast.wav', 'audio/wav', dataUrl),
     { dataUrl: packageWavDataUrl },
@@ -215,6 +225,11 @@ try {
       document.documentElement.dataset.creatorAnimationDraftValid === 'true' &&
       document.documentElement.dataset.creatorAnimationDraftSemantic === 'ready' &&
       document.documentElement.dataset.creatorAnimationDraftAnimationId === 'transient_ready_custom' &&
+      document.documentElement.dataset.creatorAnimationAssetValid === 'true' &&
+      document.documentElement.dataset.creatorAnimationAssetSemantic === 'ready' &&
+      document.documentElement.dataset.creatorAnimationAssetAnimationId === 'transient_ready_custom' &&
+      document.documentElement.dataset.creatorAnimationAssetFile === 'transient-ready.png' &&
+      Number(document.documentElement.dataset.creatorAnimationAssetBytes ?? '0') > 0 &&
       document.documentElement.dataset.creatorAudioDraftValid === 'true' &&
       document.documentElement.dataset.creatorAudioDraftCue === 'transient_cast_custom' &&
       document.documentElement.dataset.creatorAudioAssetValid === 'true' &&
@@ -236,6 +251,8 @@ try {
       document.documentElement.dataset.creatorDraftName === 'Mutated Draft' &&
       document.documentElement.dataset.creatorDraftAnimationMap === 'ember_vanguard' &&
       document.documentElement.dataset.creatorAnimationDraftAnimationId === 'transient_ready_custom' &&
+      document.documentElement.dataset.creatorAnimationAssetValid === 'true' &&
+      document.documentElement.dataset.creatorAnimationAssetAnimationId === 'transient_ready_custom' &&
       document.documentElement.dataset.creatorAudioDraftCue === 'transient_cast_custom' &&
       document.documentElement.dataset.creatorAudioAssetValid === 'true' &&
       document.documentElement.dataset.creatorAudioAssetCue === 'transient_cast_custom' &&
@@ -258,6 +275,8 @@ try {
       document.documentElement.dataset.creatorDraftName === 'Mutated Draft' &&
       document.documentElement.dataset.creatorDraftAnimationMap === 'ember_vanguard' &&
       document.documentElement.dataset.creatorAnimationDraftAnimationId === 'transient_ready_custom' &&
+      document.documentElement.dataset.creatorAnimationAssetValid === 'true' &&
+      document.documentElement.dataset.creatorAnimationAssetAnimationId === 'transient_ready_custom' &&
       document.documentElement.dataset.creatorAudioDraftCue === 'transient_cast_custom' &&
       document.documentElement.dataset.creatorSkillDraftDamage === '7' &&
       document.documentElement.dataset.creatorSkillDraftMpCost === '3',
@@ -278,7 +297,9 @@ try {
       document.documentElement.dataset.creatorPackageImportStatus === 'invalid' &&
       (document.documentElement.dataset.creatorPackageImportError ?? '').includes('safe lowercase token') &&
       document.documentElement.dataset.creatorDraftName === 'Mutated Draft' &&
-      document.documentElement.dataset.creatorAnimationDraftAnimationId === 'transient_ready_custom',
+      document.documentElement.dataset.creatorAnimationDraftAnimationId === 'transient_ready_custom' &&
+      document.documentElement.dataset.creatorAnimationAssetValid === 'true' &&
+      document.documentElement.dataset.creatorAnimationAssetAnimationId === 'transient_ready_custom',
     null,
     { timeout: 5_000 },
   );
@@ -330,6 +351,9 @@ try {
       document.documentElement.dataset.creatorDraftName === 'Package Nova' &&
       document.documentElement.dataset.creatorDraftAnimationMap === 'storm_duelist' &&
       document.documentElement.dataset.creatorAnimationDraftAnimationId === 'package_ready_custom' &&
+      document.documentElement.dataset.creatorAnimationAssetValid === 'false' &&
+      document.documentElement.dataset.creatorAnimationAssetBytes === '0' &&
+      document.documentElement.dataset.creatorAnimationAssetError === '' &&
       document.documentElement.dataset.creatorAudioDraftValid === 'true' &&
       document.documentElement.dataset.creatorAudioDraftBinding === 'skill_cast' &&
       document.documentElement.dataset.creatorAudioDraftCue === 'package_cast_custom' &&
@@ -388,7 +412,7 @@ try {
     { timeout: 5_000 },
   );
 
-  console.log('WEB_CREATOR_PACKAGE_SMOKE_PASSED export=true schema=2 noVfxFallback=true animationMapRoundTrip=true animationPreview=true semanticInvalidExportBlocked=true semanticPackageRoundTrip=true semanticTransientReset=true audioBindingPackageRoundTrip=true wavPackageRoundTrip=true invalidImportPreservesWav=true validImportRestoresWav=true tamperedPackagedWavBlocked=true unsafePackagedAudioBlocked=true unsafePackagedAnimationBlocked=true missingAnimationMapBlocked=true timelineRoundTrip=true compositionExpanded=true invalidPreserved=true import=true authoredHp=222 authoredDamage=41 authoredMpCost=19 previewCast=true');
+  console.log('WEB_CREATOR_PACKAGE_SMOKE_PASSED export=true schema=2 noVfxFallback=true animationMapRoundTrip=true animationPreview=true semanticInvalidExportBlocked=true semanticPackageRoundTrip=true semanticTransientReset=true audioBindingPackageRoundTrip=true wavPackageRoundTrip=true animationAssetMemoryOnly=true invalidImportPreservesAnimationPng=true validImportClearsAnimationPng=true invalidImportPreservesWav=true validImportRestoresWav=true tamperedPackagedWavBlocked=true unsafePackagedAudioBlocked=true unsafePackagedAnimationBlocked=true missingAnimationMapBlocked=true timelineRoundTrip=true compositionExpanded=true invalidPreserved=true import=true authoredHp=222 authoredDamage=41 authoredMpCost=19 previewCast=true');
   await page.close();
 } finally {
   await browser.close();
