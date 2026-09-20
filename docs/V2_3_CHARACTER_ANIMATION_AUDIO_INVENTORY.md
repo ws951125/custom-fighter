@@ -192,13 +192,34 @@ Validation result:
 - Windows Native, Godot import/boot/domain/AI contracts, trusted backend, Web export/size budget, Chromium `smoke:all`, and GitHub-hosted Microsoft Edge `smoke:all` all passed.
 - Character Package domain coverage validates deterministic WAV round-trip, binding dependency/mismatch, tampered RIFF/WAVE bytes, and unknown-field rejection.
 - Creator Package browser coverage proves a real authored WAV is serialized into schema-v2, restored after successful import, preserved across invalid imports, and rejected when packaged bytes are tampered.
-- Latest documentation-sync HEAD validation remains required before merge.
 
-## Deferred after WU6
+## Work Unit 6 production closeout
+
+- PR #169 latest head `a6886daa27519346fd8d4f10f342e1939ccac50a` passed CI #436; one unchanged hosted-Edge Buff observation failed on attempt 1 and passed on the exact same SHA when only the failed Edge gate was retried.
+- PR #169 squash-merged as `2335ef2351409d8e023f0884a2e55b176d45781c`.
+- Exact-main CI #437 (`35497667643`) passed Windows Native, Godot/domain/backend/Web/Chromium, hosted Microsoft Edge, GitHub Pages deployment/public reachability, Render exact-revision readiness, and production Microsoft Edge full smoke.
+
+## Work Unit 7 — Creator Preview runtime WAV playback
+
+Scope:
+1. Stage one validated stored WAV into active Creator Preview only when its fixed binding/Cue ID exactly matches active authored `audio_bindings`.
+2. Revalidate staged metadata + bytes at Training runtime before loading the WAV.
+3. Use Godot's in-memory `AudioStreamWAV.load_from_buffer()` and an `AudioStreamPlayer`; do not introduce filesystem/resource paths, URLs, external decoders, scripts, callbacks or native libraries.
+4. Preserve the declarative timeline contract: an `audio` event resolves through `CharacterAudioBindings`, and playback occurs only if that resolved Cue ID exactly equals the staged WAV's Cue ID.
+5. Expose deterministic runtime telemetry for WAV active/loaded state, Cue ID, byte count, load error, playback count and last-played Cue.
+6. Add PreviewSession coverage for valid active staging and binding/Cue mismatch rejection.
+7. Extend Creator Preview Chromium/hosted-Edge regression so the imported WAV is runtime-loaded before the cast and the authored `skill_cast` timeline event increments playback telemetry.
+8. Keep WU7 narrow: only existing timeline-driven playback is added. Broader ready/basic-attack/hit/skill-impact triggers are deferred.
+
+Validation target:
+- CreatorPreviewSession domain regression with active WAV staging/mismatch checks;
+- Creator Preview browser regression with `wavRuntimePlayback=true`;
+- standard Windows Native, Godot import/boot/domain/backend, Web export/size budget, Chromium `smoke:all`, and hosted Microsoft Edge `smoke:all`.
+
+## Deferred after WU7
 
 - creator-provided animation asset import;
 - animation asset packaging/self-contained transport;
-- runtime WAV playback through the authored cue-binding layer;
 - broader ready/basic-attack/hit/skill-impact playback triggers backed by approved assets;
 - final V2-3 cross-machine/self-contained acceptance.
 
