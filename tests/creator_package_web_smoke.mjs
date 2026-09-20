@@ -102,9 +102,10 @@ try {
       document.documentElement.dataset.creatorAudioDraftValid === 'true' &&
       document.documentElement.dataset.creatorAudioDraftBinding === 'skill_cast' &&
       document.documentElement.dataset.creatorAudioDraftCue === 'package_cast_custom' &&
-      document.documentElement.dataset.creatorAudioAssetValid === 'false' &&
-      document.documentElement.dataset.creatorAudioAssetBytes === '0' &&
-      document.documentElement.dataset.creatorAudioAssetError === '' &&
+      document.documentElement.dataset.creatorAudioAssetValid === 'true' &&
+      document.documentElement.dataset.creatorAudioAssetCue === 'package_cast_custom' &&
+      document.documentElement.dataset.creatorAudioAssetFile === 'package-cast.wav' &&
+      document.documentElement.dataset.creatorAudioAssetBytes === '844' &&
       document.documentElement.dataset.creatorDraftMaxHp === '222' &&
       document.documentElement.dataset.creatorSkillDraftName === 'Package Bolt' &&
       document.documentElement.dataset.creatorSkillDraftDamage === '41' &&
@@ -306,6 +307,9 @@ try {
       document.documentElement.dataset.creatorAudioDraftValid === 'true' &&
       document.documentElement.dataset.creatorAudioDraftBinding === 'skill_cast' &&
       document.documentElement.dataset.creatorAudioDraftCue === 'package_cast_custom' &&
+      document.documentElement.dataset.creatorAudioAssetValid === 'false' &&
+      document.documentElement.dataset.creatorAudioAssetBytes === '0' &&
+      document.documentElement.dataset.creatorAudioAssetError === '' &&
       document.documentElement.dataset.creatorDraftMaxHp === '222' &&
       document.documentElement.dataset.creatorSkillDraftName === 'Package Bolt' &&
       document.documentElement.dataset.creatorSkillDraftDamage === '41' &&
