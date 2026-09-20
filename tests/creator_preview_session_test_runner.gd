@@ -3,6 +3,7 @@ extends SceneTree
 const CreatorPreviewSession = preload("res://game/creator/preview/creator_preview_session.gd")
 const CharacterDraft = preload("res://game/creator/character_editor/character_draft.gd")
 const CharacterAnimationMap = preload("res://game/core/character/character_animation_map.gd")
+const CharacterAnimationAssetDraft = preload("res://game/creator/character_editor/character_animation_asset_draft.gd")
 const CharacterAudioBindings = preload("res://game/core/character/character_audio_bindings.gd")
 const CharacterAudioAssetDraft = preload("res://game/creator/character_editor/character_audio_asset_draft.gd")
 const SkillDraft = preload("res://game/creator/skill_editor/skill_draft.gd")
@@ -76,6 +77,64 @@ func _run() -> void:
 		str(session.preview_animation_map_data().get("animations", {}).get("ready", "")) == "preview_ready_custom",
 		"preview session preserves authored ready animation token"
 	)
+
+	var animation_strip_image := Image.create(16, 4, false, Image.FORMAT_RGBA8)
+	animation_strip_image.fill(Color("55aaff"))
+	var animation_png_bytes: PackedByteArray = animation_strip_image.save_png_to_buffer()
+	var animation_asset := CharacterAnimationAssetDraft.new()
+	var animation_asset_errors: PackedStringArray = animation_asset.configure_import(
+		"preview-ready.png", "image/png", "ready", "preview_ready_custom", 16, 4, 4, 20.0
+	)
+	_check(animation_asset_errors.is_empty(), "test character animation PNG metadata validates")
+	_check(animation_asset.validate_bytes(animation_png_bytes).is_empty(), "test character animation PNG bytes validate")
+	var store_animation_asset_errors: PackedStringArray = session.store_animation_asset_draft(
+		animation_asset.to_dictionary(), animation_png_bytes
+	)
+	_check(store_animation_asset_errors.is_empty(), "validated character animation PNG stores in preview session")
+	_check(session.has_stored_animation_asset(), "stored character animation PNG survives Creator/Preview navigation")
+	_check(str(session.stored_animation_asset_data().get("semantic", "")) == "ready", "stored animation PNG keeps semantic binding")
+	_check(session.stored_animation_asset_bytes().size() == animation_png_bytes.size(), "stored animation PNG keeps bounded bytes")
+
+	var animation_asset_stage_errors: PackedStringArray = session.stage_preview(
+		character.to_dictionary(),
+		skill.to_dictionary(),
+		authored_animation_data
+	)
+	_check(animation_asset_stage_errors.is_empty(), "matching character animation PNG stages with authored animation map")
+	_check(session.has_active_animation_asset_preview(), "matching character animation PNG becomes active preview asset")
+	_check(str(session.preview_animation_asset_data().get("animation_id", "")) == "preview_ready_custom", "active animation PNG keeps mapped animation id")
+	_check(session.preview_animation_asset_bytes().size() == animation_png_bytes.size(), "active animation PNG exposes validated bytes")
+
+	var mismatched_asset_animation_data: Dictionary = authored_animation_data.duplicate(true)
+	var mismatched_asset_animations: Dictionary = mismatched_asset_animation_data.get("animations", {}).duplicate(true)
+	mismatched_asset_animations["ready"] = "other_ready"
+	mismatched_asset_animation_data["animations"] = mismatched_asset_animations
+	var mismatched_asset_errors: PackedStringArray = session.stage_preview(
+		character.to_dictionary(),
+		skill.to_dictionary(),
+		mismatched_asset_animation_data
+	)
+	_check(_contains_fragment(mismatched_asset_errors, "animation_id must match the active semantic mapping"), "animation PNG/mapping mismatch fails closed")
+	_check(not session.has_active_preview(), "mismatched animation PNG cannot activate preview")
+	_check(not session.has_active_animation_asset_preview(), "mismatched animation PNG clears stale active asset")
+
+	var restore_animation_asset_errors: PackedStringArray = session.stage_preview(
+		character.to_dictionary(),
+		skill.to_dictionary(),
+		authored_animation_data
+	)
+	_check(restore_animation_asset_errors.is_empty() and session.has_active_animation_asset_preview(), "matching animation PNG preview restores after mismatch rejection")
+
+	var tampered_animation_png := PackedByteArray([1, 2, 3, 4])
+	var tampered_animation_store_errors: PackedStringArray = session.store_animation_asset_draft(
+		animation_asset.to_dictionary(), tampered_animation_png
+	)
+	_check(not tampered_animation_store_errors.is_empty(), "tampered character animation PNG fails closed in preview session")
+	_check(not session.has_stored_animation_asset(), "invalid character animation PNG clears stale stored asset")
+	var restore_animation_store_errors: PackedStringArray = session.store_animation_asset_draft(
+		animation_asset.to_dictionary(), animation_png_bytes
+	)
+	_check(restore_animation_store_errors.is_empty() and session.has_stored_animation_asset(), "valid character animation PNG restores after fail-closed case")
 
 	var authored_audio_data: Dictionary = CharacterAudioBindings.default_dictionary()
 	var authored_audio_cues: Dictionary = authored_audio_data.get("cues", {}).duplicate(true)
