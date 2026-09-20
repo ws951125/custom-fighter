@@ -400,5 +400,5 @@
 - **Root Cause:** A source-edit replacement targeted a short assertion sequence that appeared both before export and after successful package import. The first occurrence was replaced, so the post-import isolation assertion was inserted into the pre-export state.
 - **Fix:** Restore the pre-export assertion to require the authored Animation PNG to remain valid, and insert the clear-after-successful-import assertion using the unique `creatorPackageImportStatus === 'valid'` plus import-count context.
 - **Prevention Rule:** When editing a long E2E file through structured remote source replacement, never mutate a repeated short anchor when semantic placement matters. Use a unique stage/function/context block, inspect all matching occurrences first, and make occurrence-specific assertions explicit.
-- **Validation:** Fix commit `512381ef6e46ff7bc54c30c41f1e37cba6a20baa`; latest-head GitHub CI must pass Creator package isolation plus the full required PR gates.
-- **Status:** Fix committed; validation pending
+- **Validation:** Fix commit `512381ef6e46ff7bc54c30c41f1e37cba6a20baa`; PR #175 CI #462 (`35526663871`) passed Windows Native, Godot/domain/backend, Web export/size budget, Chromium `smoke:all`, and hosted Microsoft Edge `smoke:all`. Both browsers passed the corrected package isolation flow and `SMOKE_SUITE_PASSED count=24`.
+- **Status:** Verified cross-browser on PR #175
