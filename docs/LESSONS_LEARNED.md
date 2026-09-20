@@ -378,3 +378,15 @@
 - **Prevention Rule:** For Creator round-trip/import tests, assert persisted model state from canonical serialized draft/package telemetry. Assert selector/tab/focus state only when preserving that view state is itself a product requirement.
 - **Validation:** Fix commits `2443f60e39e2f0aa7cdccae6099cf01071a13d86` and `22c41b662a5753d59f47a3cd44bd20e63cfc975c`; PR #166 CI #425 (`35457465896`) passed Windows Native, Godot/domain/backend, Web export/size budget, Chromium `smoke:all`, and GitHub-hosted Microsoft Edge `smoke:all`.
 - **Status:** Verified cross-browser on PR #166 CI #425
+
+
+## L-035 — One runtime event must have one authoritative audio-trigger consumption path
+
+- **Date:** 2026-09-20
+- **Area:** V2-3 Creator Preview audio / GDScript inheritance / runtime event consumption
+- **Symptom:** During WU10 branch reconciliation, `hit_received` temporarily had two independent playback paths at once: an `animation_main.gd::receive_player_hit(...)` override that delegated to the parent damage boundary and played after real dealt damage, plus a frame-polled consumer that observed `player_incoming_hit_count` and `last_player_damage_dealt`. A single successful incoming hit could therefore request the same WAV twice.
+- **Root Cause:** Two individually reasonable integration strategies were composed without first choosing one event owner. The inherited override already sits on the authoritative synchronous damage boundary, so adding a second polling consumer duplicated event consumption rather than adding coverage.
+- **Fix:** Keep only the `receive_player_hit(...)` override. It delegates to `super` first and plays `hit_received` only when the authoritative returned damage is greater than zero. Remove the observed-player-hit counter, process-loop call, reset state, and polling helper.
+- **Prevention Rule:** For one semantic runtime event, choose exactly one authoritative trigger boundary. Prefer the synchronous source-of-truth method when it exposes the accepted/result value; use frame polling only when no direct event boundary exists. Before combining parallel branch work, search for all producers/consumers of the semantic to prevent duplicate side effects.
+- **Validation:** WU10 latest-head GitHub CI must prove one Creator Preview playback flow on Chromium and hosted Microsoft Edge while preserving WU7/WU8/WU9 regressions. Production validation remains pending until the approved merge reaches exact-main CI.
+- **Status:** Fix committed; PR validation pending
