@@ -231,6 +231,13 @@ Scope:
 6. Extend Creator Preview Chromium/hosted-Edge regression to prove both WU7 `skill_cast` WAV playback and a second Preview cycle where J triggers `basic_attack → preview_attack_custom`.
 7. Keep `ready`, `hit_received`, and `skill_impact` runtime triggers deferred. Treat `ready` separately because automatic playback can interact with browser autoplay policy.
 
+Validation result:
+- PR #172 implementation head `35715e9437983cea55b6a2014b16a4210630a541` passed PR CI #445 (`35510295745`) on attempt 1.
+- Windows Native, Godot import/boot/domain/AI contracts, trusted backend, Web export/size budget, Chromium `smoke:all`, and GitHub-hosted Microsoft Edge `smoke:all` all passed.
+- Both Chromium and hosted Edge preserved WU7 `wavRuntimePlayback=true` and proved `basicAttackWavRuntimePlayback=true` after the Creator re-bound the single validated WAV to `basic_attack → preview_attack_custom` and pressed J in Training Preview.
+- Both browsers completed `SMOKE_SUITE_PASSED count=24`; no second WAV slot or unsafe resource/execution path was introduced.
+- Final documentation-sync latest-head validation remains required before merge.
+
 ## Deferred after WU8
 
 - creator-provided animation asset import;
