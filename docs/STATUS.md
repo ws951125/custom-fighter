@@ -285,12 +285,14 @@ Work unit 7 — **Creator Preview runtime WAV playback — accepted and producti
 - Production Edge emitted `WEB_CREATOR_PREVIEW_SMOKE_PASSED ... wavRuntimePlayback=true`, `WEB_CREATOR_VFX_EDITOR_SMOKE_PASSED`, and `SMOKE_SUITE_PASSED count=24`. Render readiness emitted `PRODUCTION_AI_BACKEND_READY provider=gemini model=gemini-3.6-flash billing_mode=free-tier-only revision=6d1c40878cd8988a6d27e8438c402ba706c020cd`.
 - WU7 is therefore accepted and production-validated. Its deliberate scope remains the timeline-driven `skill_cast` playback path.
 
-Work unit 8 — **basic-attack WAV runtime trigger — implementation in progress**:
+Work unit 8 — **basic-attack WAV runtime trigger — implementation complete; PR validation passed**:
 - WU8 extends the already-approved single-WAV runtime path to the fixed `basic_attack` semantic only; it does not add another asset slot, collection, decoder, resource path, URL, script, callback, or executable event vocabulary.
 - Creator Preview observes each newly-started normal attack step after the authoritative combat state has accepted it, resolves `basic_attack` through the existing `CharacterAudioBindings`, and calls the same exact-Cue-matching WAV playback boundary used by WU7.
 - One attack step can request playback at most once. A staged WAV bound to any other semantic/Cue remains a no-op, preserving fail-closed behavior.
 - Creator Preview browser regression keeps the existing WU7 `skill_cast` proof, then reauthors the one WAV to `basic_attack → preview_attack_custom`, launches Preview again, presses J, and requires persistent playback telemetry for that exact Cue before returning to Creator.
-- Active branch: `feat/v2-3-basic-attack-wav-trigger-wu8`. GitHub-hosted validation is the next gate.
+- PR #172 implementation head `35715e9437983cea55b6a2014b16a4210630a541` passed PR CI #445 (`35510295745`) on attempt 1: Windows Native, Godot import/boot/domain/AI contracts, trusted backend, Web export/size budget, Chromium `smoke:all`, and GitHub-hosted Microsoft Edge `smoke:all` all succeeded.
+- Chromium and hosted Edge both emitted `WEB_CREATOR_PREVIEW_SMOKE_PASSED ... wavRuntimePlayback=true basicAttackWavRuntimePlayback=true` and `SMOKE_SUITE_PASSED count=24`, proving WU7 skill-cast playback remains intact and J triggers the newly bound `basic_attack` WAV.
+- Active branch: `feat/v2-3-basic-attack-wav-trigger-wu8`; PR #172 is open. Final documentation-sync latest-head validation remains the pre-merge gate.
 - `ready`, `hit_received`, and `skill_impact` playback triggers remain deferred to later bounded slices; `ready` also requires explicit consideration of browser autoplay behavior.
 - V2 remains **25% (2/8 phases complete)** until the full V2-3 phase acceptance criterion is satisfied.
 
