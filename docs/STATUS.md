@@ -305,14 +305,16 @@ Work unit 9 — **skill-impact WAV runtime trigger — accepted and production-v
 - Production Edge emitted `WEB_CREATOR_PREVIEW_SMOKE_PASSED ... wavRuntimePlayback=true basicAttackWavRuntimePlayback=true skillImpactWavRuntimePlayback=true` and `SMOKE_SUITE_PASSED count=24`. Render readiness emitted `PRODUCTION_AI_BACKEND_READY provider=gemini model=gemini-3.6-flash billing_mode=free-tier-only revision=920ca4a237999856b8e06cf5fbb28b4c88cd4521`.
 - WU9 is therefore accepted and production-validated.
 
-Work unit 10 — **hit-received WAV runtime trigger — implementation in progress**:
+Work unit 10 — **hit-received WAV runtime trigger — implementation complete; PR validation passed**:
 - WU10 extends the same approved single-WAV runtime path to the fixed `hit_received` semantic only; no second asset, collection, path/URL, decoder, script, callback, native library, or executable content is added.
 - `animation_main.gd` delegates every incoming hit to the existing authoritative `receive_player_hit(...)` boundary first. Audio is considered only after that parent boundary returns the actual dealt damage.
 - Playback occurs only when `dealt > 0`, so Counter-intercepted hits, zero-damage hits, defeated-state no-ops and other rejected hits do not produce a false hurt cue.
 - The existing authored `CharacterAudioBindings` and exact-Cue-match playback gate remain authoritative.
 - Branch reconciliation briefly exposed a duplicate second polling consumer for the same hit event. Commit `d78ede0e93b266e0708f92d3b582d5af01290ef0` removes that duplicate path and keeps only the synchronous authoritative `receive_player_hit(...)` override, preventing double playback from one hit; L-035 records the prevention rule.
 - Creator Preview regression preserves WU7/WU8/WU9 audio paths, then reauthors the one WAV to `hit_received → preview_hit_custom`, launches Preview, invokes the existing constrained Training incoming-hit bridge for 9 damage, and requires authoritative damage telemetry plus matching WAV playback before returning to Creator.
-- Active branch: `feat/v2-3-hit-received-wav-trigger-wu10`. GitHub-hosted validation is the next gate.
+- PR #174 latest head `73e46478dbd9e4f7940c7908ac4cc1b621c6c133` completed required PR CI #456 (`35519908707`) successfully on attempt 2 after attempt 1 was cancelled by GitHub during Chromium installation without a test failure. Attempt 2 passed Windows Native, Godot import/boot/domain/AI contracts, trusted backend, Web export/size budget, Chromium `smoke:all`, and GitHub-hosted Microsoft Edge `smoke:all`.
+- Chromium and hosted Edge both emitted `WEB_CREATOR_PREVIEW_SMOKE_PASSED ... wavRuntimePlayback=true basicAttackWavRuntimePlayback=true skillImpactWavRuntimePlayback=true hitReceivedWavRuntimePlayback=true` and `SMOKE_SUITE_PASSED count=24`.
+- Active branch: `feat/v2-3-hit-received-wav-trigger-wu10`; PR #174 is open. Final documentation-sync latest-head validation remains the pre-merge gate.
 - `ready` remains deferred because automatic playback still requires explicit browser autoplay-policy handling.
 - V2 remains **25% (2/8 phases complete)** until the full V2-3 phase acceptance criterion is satisfied.
 
