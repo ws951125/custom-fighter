@@ -305,17 +305,27 @@ Work unit 9 — **skill-impact WAV runtime trigger — accepted and production-v
 - Production Edge emitted `WEB_CREATOR_PREVIEW_SMOKE_PASSED ... wavRuntimePlayback=true basicAttackWavRuntimePlayback=true skillImpactWavRuntimePlayback=true` and `SMOKE_SUITE_PASSED count=24`. Render readiness emitted `PRODUCTION_AI_BACKEND_READY provider=gemini model=gemini-3.6-flash billing_mode=free-tier-only revision=920ca4a237999856b8e06cf5fbb28b4c88cd4521`.
 - WU9 is therefore accepted and production-validated.
 
-Work unit 10 — **hit-received WAV runtime trigger — implementation complete; PR validation passed**:
-- WU10 extends the same approved single-WAV runtime path to the fixed `hit_received` semantic only; no second asset, collection, path/URL, decoder, script, callback, native library, or executable content is added.
-- `animation_main.gd` delegates every incoming hit to the existing authoritative `receive_player_hit(...)` boundary first. Audio is considered only after that parent boundary returns the actual dealt damage.
-- Playback occurs only when `dealt > 0`, so Counter-intercepted hits, zero-damage hits, defeated-state no-ops and other rejected hits do not produce a false hurt cue.
-- The existing authored `CharacterAudioBindings` and exact-Cue-match playback gate remain authoritative.
-- Branch reconciliation briefly exposed a duplicate second polling consumer for the same hit event. Commit `d78ede0e93b266e0708f92d3b582d5af01290ef0` removes that duplicate path and keeps only the synchronous authoritative `receive_player_hit(...)` override, preventing double playback from one hit; L-035 records the prevention rule.
-- Creator Preview regression preserves WU7/WU8/WU9 audio paths, then reauthors the one WAV to `hit_received → preview_hit_custom`, launches Preview, invokes the existing constrained Training incoming-hit bridge for 9 damage, and requires authoritative damage telemetry plus matching WAV playback before returning to Creator.
-- PR #174 latest head `73e46478dbd9e4f7940c7908ac4cc1b621c6c133` completed required PR CI #456 (`35519908707`) successfully on attempt 2 after attempt 1 was cancelled by GitHub during Chromium installation without a test failure. Attempt 2 passed Windows Native, Godot import/boot/domain/AI contracts, trusted backend, Web export/size budget, Chromium `smoke:all`, and GitHub-hosted Microsoft Edge `smoke:all`.
-- Chromium and hosted Edge both emitted `WEB_CREATOR_PREVIEW_SMOKE_PASSED ... wavRuntimePlayback=true basicAttackWavRuntimePlayback=true skillImpactWavRuntimePlayback=true hitReceivedWavRuntimePlayback=true` and `SMOKE_SUITE_PASSED count=24`.
-- Active branch: `feat/v2-3-hit-received-wav-trigger-wu10`; PR #174 is open. Final documentation-sync latest-head validation remains the pre-merge gate.
-- `ready` remains deferred because automatic playback still requires explicit browser autoplay-policy handling.
+Work unit 10 — **hit-received WAV runtime trigger — accepted and production-validated**:
+- WU10 extends the approved single-WAV runtime path to the fixed `hit_received` semantic only and retains one authoritative synchronous event owner: `animation_main.gd::receive_player_hit(...)`.
+- Parent combat resolution runs first; playback is requested only when actual dealt damage is greater than zero. Counter-intercepted hits, zero-damage hits, defeated-state no-ops and rejected hits remain silent.
+- PR #174 latest head `ad1802bf7a2a9c22b0a0568c77e6ae4884da2b91` passed final PR CI #458 (`35521524471`) across Windows Native, Godot/domain/backend, Web export/size budget, Chromium `smoke:all`, and hosted Microsoft Edge `smoke:all`.
+- PR #174 was explicitly approved and squash-merged to `main` as `2b027ee70afc5b5e408c15cddc71ede8f18585fb`.
+- Exact-main CI #459 (`35523850244`) passed the complete production chain: Windows Native, Godot import/boot/domain/AI contracts, trusted backend, Web export/size budget, Chromium `smoke:all`, hosted Microsoft Edge `smoke:all`, GitHub Pages deployment/public reachability, Render exact-revision readiness, and production Microsoft Edge full smoke.
+- Production Edge emitted `WEB_CREATOR_PREVIEW_SMOKE_PASSED ... wavRuntimePlayback=true basicAttackWavRuntimePlayback=true skillImpactWavRuntimePlayback=true hitReceivedWavRuntimePlayback=true` and `SMOKE_SUITE_PASSED count=24`.
+- Render readiness emitted `PRODUCTION_AI_BACKEND_READY provider=gemini model=gemini-3.6-flash billing_mode=free-tier-only revision=2b027ee70afc5b5e408c15cddc71ede8f18585fb`.
+- L-035 records the branch-reconciliation correction that removed the duplicate frame-polling consumer and keeps one semantic event owner.
+- WU10 is therefore accepted and production-validated.
+
+Work unit 11 — **bounded character animation PNG import + memory-only Creator persistence — implementation in progress**:
+- A new `CharacterAnimationAssetDraft` contract accepts exactly one bounded character animation PNG/sprite strip at a time. It is bound to one fixed required animation semantic plus the currently authored safe animation ID.
+- Safety limits are `image/png` only, ≤5 MB decoded bytes, ≤4096×4096, 1–64 horizontal frames, FPS 1–60, safe leaf `.png` filename, no path/URL/script/native/executable content, and decoded PNG dimensions must exactly match metadata.
+- Creator Character Editor adds `Choose Animation PNG`, `Clear Animation PNG`, Frames and FPS controls. Browser bytes are transferred as a bounded base64 data URL and stored only in memory through `CreatorPreviewSession`.
+- Mapping integrity is fail-closed: if the semantic's authored animation ID changes, the stale PNG is cleared immediately. Preview staging requires the asset's `semantic + animation_id` to still exactly match the active animation map.
+- Creator → Training Preview → Creator regression preserves the validated animation PNG through PreviewSession memory while keeping the existing semantic-map, WAV and combat regressions intact.
+- WU11 deliberately does **not** change Character Package schema. Export must omit animation PNG bytes; failed package imports preserve the current memory-only PNG, while a successful import of another package clears it to prevent cross-character asset leakage.
+- Domain coverage validates safe metadata/bytes, unsafe filename/semantic/animation ID rejection, horizontal-strip shape, size bounds and deterministic metadata round-trip. PreviewSession coverage validates store/stage/mapping-mismatch clearing.
+- Active branch: `feat/v2-3-animation-asset-import-wu11`. GitHub-hosted CI is the next gate.
+- Remaining after WU11: self-contained animation PNG package transport, autoplay-safe `ready` audio semantics, and final V2-3 cross-machine/self-contained acceptance.
 - V2 remains **25% (2/8 phases complete)** until the full V2-3 phase acceptance criterion is satisfied.
 
 ### V2-1 implementation checkpoints
@@ -434,4 +444,4 @@ AI VFX backend: `https://custom-fighter-ai-vfx.onrender.com`
 
 ## Next implementation target
 
-Validate V2-3 Work Unit 10 on GitHub: preserve `skill_cast`, `basic_attack`, and `skill_impact` WAV playback, then prove the same single approved WAV can be rebound to `hit_received` and plays only after the authoritative incoming-hit boundary deals real player damage. Require Godot import/boot/domain/backend, Web export/size budget, Chromium `smoke:all`, Windows Native, and hosted Microsoft Edge `smoke:all` before any merge.
+Validate V2-3 Work Unit 11 on GitHub: prove one bounded creator-provided character Animation PNG/sprite strip can be imported, bound to an exact animation semantic + animation ID, preserved through Creator → Training Preview → Creator memory state, cleared when the mapping changes, and isolated from the package schema until the separate transport slice. Require Godot import/boot/domain/backend, Web export/size budget, Chromium `smoke:all`, Windows Native, and hosted Microsoft Edge `smoke:all` before any merge.
