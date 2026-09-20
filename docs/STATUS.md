@@ -250,16 +250,30 @@ Work unit 4 — **safe character/skill audio cue bindings — implementation com
 - Render readiness confirmed `PRODUCTION_AI_BACKEND_READY provider=gemini model=gemini-3.6-flash billing_mode=free-tier-only revision=66190eff50b60d4a11a57a702fc175accaf58634`.
 - V2 remains **25% (2/8 phases complete)** until the full V2-3 phase acceptance criterion is satisfied.
 
-Work unit 5 — **bounded PCM WAV import + memory-only Creator persistence — implementation complete; PR validation passed**:
+Work unit 5 — **bounded PCM WAV import + memory-only Creator persistence — accepted and production-validated**:
 - `CharacterAudioAssetDraft` accepts one short WAV asset bound to one existing fixed audio binding + safe cue token.
 - Accepted files are limited to safe `.wav` filenames, canonical `audio/wav`, RIFF/WAVE framing, uncompressed PCM, mono/stereo, 8/16-bit, 8–48 kHz, ≤3 seconds, and ≤512 KB.
 - The parser validates RIFF/chunk bounds, `fmt`/data presence, PCM format, byte rate, block alignment, complete PCM frames, payload length and derived duration. Compressed/non-PCM, malformed, oversized, path-like, or metadata-mismatched files fail closed.
 - Creator Character Editor adds `Choose WAV` / `Clear WAV` for the currently selected Audio Binding/Cue ID. The browser transfers bytes through a bounded base64 data URL; no filesystem path or remote URL is retained.
 - Validated metadata + bytes live only in `CreatorPreviewSession` memory and survive Creator → Training Preview → Creator navigation. WU5 does **not** play the WAV.
-- If the bound Cue ID changes, the stale WAV is cleared immediately. Character reset and successful package import also clear the memory-only WAV.
+- If the bound Cue ID changes, the stale WAV is cleared immediately. Character reset and successful package import clear the WU5 memory-only WAV.
 - WU5 deliberately does **not** serialize WAV bytes into Character Package schema v2. Invalid package imports preserve the current WAV; a successful package import clears it so state cannot leak across package boundaries.
 - Domain/session/browser regressions cover valid PCM parsing, unsafe filename/non-PCM/duration rejection, metadata round-trip, tampered-byte fail-closed clearing, Creator import/stale-clear/reset, Preview memory round-trip, and package workflow isolation.
-- PR #168 head `133633cc8491049d83a43fdd30fe6335b939bbfa` passed PR CI #431 (`35485169214`): Windows Native, Godot import/boot/domain/AI contracts, backend tests, Web export/size budget, Chromium `smoke:all`, and GitHub-hosted Microsoft Edge `smoke:all` all succeeded.
+- PR #168 latest head `a8d9ca8c2f264c97b2120943ce622c7c7d7ef716` passed PR CI #433 (`35485758758`) after the earlier product head had already passed CI #431.
+- PR #168 was explicitly approved and squash-merged to `main` as `c5f7e68e919aa0be111c167696757722bf061c80`.
+- Exact-main CI #434 (`35493570174`) passed the complete production chain on that revision: Windows Native, Godot import/boot/domain/AI contracts, trusted backend, Web export/size budget, Chromium `smoke:all`, hosted Microsoft Edge `smoke:all`, GitHub Pages deployment/public reachability, Render exact-revision readiness, and production Microsoft Edge full smoke.
+
+Work unit 6 — **bounded WAV Character Package transport — implementation in progress**:
+- Schema-v2 self-contained packages may carry one optional `audio_asset`: validated `CharacterAudioAssetDraft` metadata plus bounded WAV bytes encoded as base64. Legacy schema v1 and schema-v2 packages without the field remain compatible.
+- Package validation reuses the WU5 PCM parser and byte/metadata contract; no second codec/parser path is introduced.
+- A packaged WAV is accepted only when its fixed binding exists in packaged `audio_bindings` and its Cue ID exactly matches that binding. Missing/mismatched bindings, malformed base64, tampered RIFF/WAVE bytes, unknown fields and oversized payloads fail closed.
+- Creator export/import now transports the one validated WAV and restores it through `CreatorPreviewSession.store_audio_asset_draft()`; failed package imports remain non-mutating.
+- Creator package JSON is bounded at 8 MB so the already-supported bounded VFX payload plus one ≤512 KB WAV can coexist without making package input unbounded.
+- Domain regressions cover deterministic WAV package round-trip, binding dependency/mismatch, tampered bytes and unknown fields. Creator Package browser regression now proves export/import restoration and tamper rejection.
+- WU6 remains **transport-only**: it does not add runtime WAV playback, arbitrary paths/URLs, scripts, callbacks, compressed audio, or an unbounded asset collection.
+- PR #169 implementation head `665d1965a23c9dbe7b33fd7eba8e3cf225e2da1d` passed PR CI #435 (`35494696068`): Windows Native, Godot import/boot/domain/AI contracts, trusted backend, Web export/size budget, Chromium `smoke:all`, and GitHub-hosted Microsoft Edge `smoke:all` all succeeded.
+- Chromium and hosted Edge both exercised the updated Creator Package regression, including WAV export/import restoration and tampered packaged-WAV fail-closed behavior.
+- Active branch: `feat/v2-3-wav-package-transport-wu6`; PR #169 is open and mergeable. Final documentation-sync HEAD validation is the remaining pre-merge gate.
 - V2 remains **25% (2/8 phases complete)** until the full V2-3 phase acceptance criterion is satisfied.
 
 ### V2-1 implementation checkpoints

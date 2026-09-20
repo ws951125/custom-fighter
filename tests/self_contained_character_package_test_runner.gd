@@ -8,6 +8,11 @@ func _init() -> void:
 	_test_valid_v2_vfx_round_trip(failures)
 	_test_valid_v2_animation_map_round_trip(failures)
 	_test_valid_v2_audio_bindings_round_trip(failures)
+	_test_valid_v2_audio_asset_round_trip(failures)
+	_test_rejects_audio_asset_without_bindings(failures)
+	_test_rejects_audio_asset_cue_mismatch(failures)
+	_test_rejects_tampered_audio_asset_bytes(failures)
+	_test_rejects_unknown_audio_asset_field(failures)
 	_test_rejects_unsafe_audio_binding(failures)
 	_test_rejects_unknown_audio_binding(failures)
 	_test_rejects_animation_map_id_mismatch(failures)
@@ -32,6 +37,7 @@ func _test_accepts_legacy_v1(failures: PackedStringArray) -> void:
 	_expect(errors.is_empty(), "schema-v1 package should remain import compatible", failures)
 	_expect(package.schema_version == 1, "legacy package should preserve schema version 1", failures)
 	_expect(not package.has_vfx_asset(), "legacy package should not invent a VFX asset", failures)
+	_expect(not package.has_audio_asset(), "legacy package should not invent a WAV audio asset", failures)
 
 func _test_valid_v2_vfx_round_trip(failures: PackedStringArray) -> void:
 	var package := PackageDefinition.new()
@@ -84,6 +90,57 @@ func _test_valid_v2_audio_bindings_round_trip(failures: PackedStringArray) -> vo
 	var reload_errors: PackedStringArray = reloaded.load_from_dictionary(serialized)
 	_expect(reload_errors.is_empty(), "serialized audio-binding package should reload", failures)
 	_expect(JSON.stringify(serialized) == JSON.stringify(reloaded.to_dictionary()), "audio-binding package round trip should be deterministic", failures)
+
+func _test_valid_v2_audio_asset_round_trip(failures: PackedStringArray) -> void:
+	var data: Dictionary = _v2_package_with_audio_asset()
+	var package := PackageDefinition.new()
+	var errors: PackedStringArray = package.load_from_dictionary(data)
+	_expect(errors.is_empty(), "schema-v2 package should accept a validated WAV audio asset", failures)
+	_expect(package.has_audio_asset(), "schema-v2 package should expose packaged WAV bytes", failures)
+	_expect(str(package.audio_asset_data.get("binding", "")) == "skill_cast", "packaged WAV should retain its binding", failures)
+	_expect(str(package.audio_asset_data.get("cue_id", "")) == "package_cast_custom", "packaged WAV should retain its cue token", failures)
+
+	var serialized: Dictionary = package.to_dictionary()
+	_expect(serialized.has("audio_asset"), "schema-v2 serialization should retain audio_asset when present", failures)
+	var reloaded := PackageDefinition.new()
+	var reload_errors: PackedStringArray = reloaded.load_from_dictionary(serialized)
+	_expect(reload_errors.is_empty(), "serialized WAV package should reload", failures)
+	_expect(reloaded.audio_wav_bytes == package.audio_wav_bytes, "WAV bytes should round trip deterministically", failures)
+	_expect(JSON.stringify(serialized) == JSON.stringify(reloaded.to_dictionary()), "WAV package round trip should be deterministic", failures)
+
+func _test_rejects_audio_asset_without_bindings(failures: PackedStringArray) -> void:
+	var data: Dictionary = _v2_package_with_audio_asset()
+	data.erase("audio_bindings")
+	var package := PackageDefinition.new()
+	var errors: PackedStringArray = package.load_from_dictionary(data)
+	_expect(_contains(errors, "audio_asset requires packaged audio_bindings"), "packaged WAV must require packaged audio bindings", failures)
+
+func _test_rejects_audio_asset_cue_mismatch(failures: PackedStringArray) -> void:
+	var data: Dictionary = _v2_package_with_audio_asset()
+	var asset: Dictionary = data.get("audio_asset", {})
+	var metadata: Dictionary = asset.get("metadata", {})
+	metadata["cue_id"] = "wrong_cue"
+	var package := PackageDefinition.new()
+	var errors: PackedStringArray = package.load_from_dictionary(data)
+	_expect(_contains(errors, "cue_id must match packaged audio_bindings"), "packaged WAV cue must match the authored binding", failures)
+
+func _test_rejects_tampered_audio_asset_bytes(failures: PackedStringArray) -> void:
+	var data: Dictionary = _v2_package_with_audio_asset()
+	var asset: Dictionary = data.get("audio_asset", {})
+	var wav_bytes := Marshalls.base64_to_raw(str(asset.get("wav_base64", "")))
+	wav_bytes[0] = 0
+	asset["wav_base64"] = Marshalls.raw_to_base64(wav_bytes)
+	var package := PackageDefinition.new()
+	var errors: PackedStringArray = package.load_from_dictionary(data)
+	_expect(_contains(errors, "RIFF/WAVE framing"), "tampered packaged WAV bytes must fail closed", failures)
+
+func _test_rejects_unknown_audio_asset_field(failures: PackedStringArray) -> void:
+	var data: Dictionary = _v2_package_with_audio_asset()
+	var asset: Dictionary = data.get("audio_asset", {})
+	asset["script"] = "payload"
+	var package := PackageDefinition.new()
+	var errors: PackedStringArray = package.load_from_dictionary(data)
+	_expect(_contains(errors, "unsupported audio_asset field: script"), "unknown packaged WAV fields must fail closed", failures)
 
 func _test_rejects_unsafe_audio_binding(failures: PackedStringArray) -> void:
 	var data: Dictionary = _legacy_package()
@@ -203,6 +260,62 @@ func _v2_package_with_vfx() -> Dictionary:
 		"png_base64": Marshalls.raw_to_base64(png_bytes)
 	}
 	return data
+
+func _v2_package_with_audio_asset() -> Dictionary:
+	var data: Dictionary = _legacy_package()
+	data["schema_version"] = 2
+	data["audio_bindings"] = _audio_bindings("package_cast_custom")
+	var wav_bytes := _pcm_wav(8000, 1, 8, 800)
+	data["audio_asset"] = {
+		"metadata": {
+			"schema_version": 1,
+			"binding": "skill_cast",
+			"cue_id": "package_cast_custom",
+			"file_name": "package-cast.wav",
+			"mime_type": "audio/wav",
+			"byte_size": wav_bytes.size(),
+			"sample_rate": 8000,
+			"channels": 1,
+			"bits_per_sample": 8,
+			"duration_ms": 100
+		},
+		"wav_base64": Marshalls.raw_to_base64(wav_bytes)
+	}
+	return data
+
+func _pcm_wav(sample_rate: int, channels: int, bits: int, data_size: int) -> PackedByteArray:
+	var bytes := PackedByteArray()
+	_append_ascii(bytes, "RIFF")
+	_append_u32(bytes, 36 + data_size)
+	_append_ascii(bytes, "WAVE")
+	_append_ascii(bytes, "fmt ")
+	_append_u32(bytes, 16)
+	_append_u16(bytes, 1)
+	_append_u16(bytes, channels)
+	_append_u32(bytes, sample_rate)
+	var block_align := channels * bits / 8
+	_append_u32(bytes, sample_rate * block_align)
+	_append_u16(bytes, block_align)
+	_append_u16(bytes, bits)
+	_append_ascii(bytes, "data")
+	_append_u32(bytes, data_size)
+	for index in range(data_size):
+		bytes.append(128 if bits == 8 else 0)
+	return bytes
+
+func _append_ascii(bytes: PackedByteArray, value: String) -> void:
+	for index in range(value.length()):
+		bytes.append(value.unicode_at(index))
+
+func _append_u16(bytes: PackedByteArray, value: int) -> void:
+	bytes.append(value & 0xff)
+	bytes.append((value >> 8) & 0xff)
+
+func _append_u32(bytes: PackedByteArray, value: int) -> void:
+	bytes.append(value & 0xff)
+	bytes.append((value >> 8) & 0xff)
+	bytes.append((value >> 16) & 0xff)
+	bytes.append((value >> 24) & 0xff)
 
 func _animation_map(ready_id: String) -> Dictionary:
 	return {

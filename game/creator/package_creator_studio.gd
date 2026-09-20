@@ -6,7 +6,7 @@ const SkillDefinitionScript = preload("res://game/core/skills/skill_definition.g
 const CharacterDraftScript = preload("res://game/creator/character_editor/character_draft.gd")
 const SkillDraftScript = preload("res://game/creator/skill_editor/skill_draft.gd")
 
-const MAX_PACKAGE_JSON_BYTES := 256 * 1024
+const MAX_PACKAGE_JSON_BYTES := 8 * 1024 * 1024
 const APPROVED_PREVIEW_VISUAL := "prototype_fireball"
 const APPROVED_PREVIEW_IMPACT_VISUAL := "prototype_impact"
 
@@ -116,7 +116,7 @@ func _on_import_package_pressed() -> void:
 		"(()=>{const input=document.createElement('input');input.type='file';" +
 		"input.accept='.json,application/json';input.style.display='none';" +
 		"input.onchange=()=>{const file=input.files&&input.files[0];if(!file){input.remove();return;}" +
-		"if(file.size>%d){window.customFighterCreatorPackageFileError('Package exceeds 256 KB limit');input.remove();return;}" % MAX_PACKAGE_JSON_BYTES +
+		"if(file.size>%d){window.customFighterCreatorPackageFileError('Package exceeds 8 MB limit');input.remove();return;}" % MAX_PACKAGE_JSON_BYTES +
 		"const reader=new FileReader();reader.onload=()=>{window.customFighterCreatorImportPackageJson(String(reader.result||''));input.remove();};" +
 		"reader.onerror=()=>{window.customFighterCreatorPackageFileError('Package file could not be read');input.remove();};" +
 		"reader.readAsText(file,'utf-8');};document.body.appendChild(input);input.click();})();"
@@ -186,7 +186,7 @@ func _import_package_json(json_text: String) -> PackedStringArray:
 		errors.append("package JSON must not be empty")
 		return errors
 	if byte_count > MAX_PACKAGE_JSON_BYTES:
-		errors.append("package JSON exceeds 256 KB limit")
+		errors.append("package JSON exceeds 8 MB limit")
 		return errors
 
 	var parsed: Variant = JSON.parse_string(json_text)
