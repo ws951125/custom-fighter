@@ -316,7 +316,7 @@ Work unit 10 — **hit-received WAV runtime trigger — accepted and production-
 - L-035 records the branch-reconciliation correction that removed the duplicate frame-polling consumer and keeps one semantic event owner.
 - WU10 is therefore accepted and production-validated.
 
-Work unit 11 — **bounded character animation PNG import + memory-only Creator persistence — implementation in progress**:
+Work unit 11 — **bounded character animation PNG import + memory-only Creator persistence — implementation complete; PR validation passed**:
 - A new `CharacterAnimationAssetDraft` contract accepts exactly one bounded character animation PNG/sprite strip at a time. It is bound to one fixed required animation semantic plus the currently authored safe animation ID.
 - Safety limits are `image/png` only, ≤5 MB decoded bytes, ≤4096×4096, 1–64 horizontal frames, FPS 1–60, safe leaf `.png` filename, no path/URL/script/native/executable content, and decoded PNG dimensions must exactly match metadata.
 - Creator Character Editor adds `Choose Animation PNG`, `Clear Animation PNG`, Frames and FPS controls. Browser bytes are transferred as a bounded base64 data URL and stored only in memory through `CreatorPreviewSession`.
@@ -324,7 +324,12 @@ Work unit 11 — **bounded character animation PNG import + memory-only Creator 
 - Creator → Training Preview → Creator regression preserves the validated animation PNG through PreviewSession memory while keeping the existing semantic-map, WAV and combat regressions intact.
 - WU11 deliberately does **not** change Character Package schema. Export must omit animation PNG bytes; failed package imports preserve the current memory-only PNG, while a successful import of another package clears it to prevent cross-character asset leakage.
 - Domain coverage validates safe metadata/bytes, unsafe filename/semantic/animation ID rejection, horizontal-strip shape, size bounds and deterministic metadata round-trip. PreviewSession coverage validates store/stage/mapping-mismatch clearing.
-- Active branch: `feat/v2-3-animation-asset-import-wu11`. GitHub-hosted CI is the next gate.
+- PR #175 initial CI #460 (`35526219448`) passed Windows Native, Godot import/boot/domain/AI contracts, trusted backend, Web export/size budget, Creator Studio `animationPngImport=true` and Creator Preview `animationPngMemoryRoundTrip=true`, then failed only in the newly extended Creator Package regression because the post-import clear assertion had been inserted at the pre-export state.
+- Fix commit `512381ef6e46ff7bc54c30c41f1e37cba6a20baa` moved the assertion to the unique successful-import context; L-036 records the durable unique-anchor editing rule.
+- Latest implementation/docs head `dd7c274987f2ccb294fe0181413c50cfc8c7c7dd` passed PR CI #462 (`35526663871`) across Windows Native, Godot import/boot/domain/AI contracts, trusted backend, Web export/size budget, Chromium `smoke:all`, and GitHub-hosted Microsoft Edge `smoke:all`.
+- Both browsers emitted `WEB_CREATOR_STUDIO_SMOKE_PASSED ... animationPngImport=true animationPngTiming=true staleAnimationPngCleared=true animationPngResetCleared=true`, `WEB_CREATOR_PREVIEW_SMOKE_PASSED ... animationPngMemoryRoundTrip=true`, and `WEB_CREATOR_PACKAGE_SMOKE_PASSED ... animationPngMemoryOnly=true invalidImportPreservesAnimationPng=true validImportClearsAnimationPng=true`.
+- Both browsers completed `SMOKE_SUITE_PASSED count=24`.
+- Final documentation-sync latest-head validation remains required before merge.
 - Remaining after WU11: self-contained animation PNG package transport, autoplay-safe `ready` audio semantics, and final V2-3 cross-machine/self-contained acceptance.
 - V2 remains **25% (2/8 phases complete)** until the full V2-3 phase acceptance criterion is satisfied.
 
