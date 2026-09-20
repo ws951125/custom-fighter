@@ -2,6 +2,7 @@ extends "res://game/runtime/preview_selectable_main.gd"
 
 const CharacterAnimationMap = preload("res://game/core/character/character_animation_map.gd")
 const CharacterAudioBindings = preload("res://game/core/character/character_audio_bindings.gd")
+const CharacterAudioAssetDraft = preload("res://game/creator/character_editor/character_audio_asset_draft.gd")
 const VfxDraft = preload("res://game/creator/vfx_editor/vfx_draft.gd")
 const TimelineCombatBox = preload("res://game/core/combat/combat_box.gd")
 const TIMELINE_INSTANT_PULSE_SECONDS := 0.18
@@ -10,6 +11,13 @@ var player_animation_map := CharacterAnimationMap.new()
 var player_animation_load_error := ""
 var player_audio_bindings := CharacterAudioBindings.new()
 var player_audio_bindings_load_error := ""
+var preview_audio_asset_draft := CharacterAudioAssetDraft.new()
+var preview_audio_stream: AudioStreamWAV
+var preview_audio_player: AudioStreamPlayer
+var preview_audio_asset_loaded := false
+var preview_audio_asset_load_error := ""
+var preview_audio_playback_count := 0
+var preview_audio_last_played_cue := ""
 var preview_return_button: Button
 var _web_preview_return_callback
 
@@ -71,6 +79,7 @@ func _enter_tree() -> void:
 
 func _ready() -> void:
 	super()
+	_load_creator_preview_audio_asset()
 	_load_creator_preview_vfx()
 	_install_preview_return_path()
 	_set_web_state()
@@ -115,6 +124,7 @@ func _consume_creator_preview_timeline_transitions() -> void:
 				"audio":
 					preview_timeline_last_audio_cue = _resolve_preview_audio_cue(str(event.get("cue", "")))
 					preview_timeline_audio_event_count += 1
+					_play_creator_preview_audio_cue(preview_timeline_last_audio_cue)
 		elif phase_name == "end" and event_type == "animation":
 			var ending_semantic := str(event.get("animation", "")).strip_edges().to_lower()
 			if preview_timeline_animation_semantic == ending_semantic:
@@ -129,6 +139,58 @@ func _resolve_preview_audio_cue(raw_cue: String) -> String:
 	if player_audio_bindings.loaded and CharacterAudioBindings.REQUIRED_BINDINGS.has(normalized):
 		return player_audio_bindings.cue_for_binding(normalized)
 	return normalized
+
+func _load_creator_preview_audio_asset() -> void:
+	preview_audio_asset_draft.reset()
+	preview_audio_stream = null
+	preview_audio_player = null
+	preview_audio_asset_loaded = false
+	preview_audio_asset_load_error = ""
+	preview_audio_playback_count = 0
+	preview_audio_last_played_cue = ""
+
+	var session: Variant = get_node_or_null("/root/CreatorPreviewSession")
+	if session == null or not session.has_method("has_active_audio_asset_preview") or not bool(session.call("has_active_audio_asset_preview")):
+		return
+	if not session.has_method("preview_audio_asset_data") or not session.has_method("preview_audio_asset_bytes"):
+		preview_audio_asset_load_error = "Creator preview WAV session accessors are unavailable"
+		return
+
+	var metadata: Dictionary = session.call("preview_audio_asset_data")
+	var wav_bytes: PackedByteArray = session.call("preview_audio_asset_bytes")
+	var metadata_errors: PackedStringArray = preview_audio_asset_draft.load_from_dictionary(metadata)
+	if not metadata_errors.is_empty():
+		preview_audio_asset_load_error = " | ".join(metadata_errors)
+		return
+	var byte_errors: PackedStringArray = preview_audio_asset_draft.validate_bytes(wav_bytes)
+	if not byte_errors.is_empty():
+		preview_audio_asset_load_error = " | ".join(byte_errors)
+		return
+	if not player_audio_bindings.loaded or player_audio_bindings.cue_for_binding(preview_audio_asset_draft.binding) != preview_audio_asset_draft.cue_id:
+		preview_audio_asset_load_error = "Creator preview WAV cue does not match active audio bindings"
+		return
+
+	var loaded_stream: AudioStreamWAV = AudioStreamWAV.load_from_buffer(wav_bytes)
+	if loaded_stream == null:
+		preview_audio_asset_load_error = "Creator preview WAV failed AudioStreamWAV runtime decode"
+		return
+	preview_audio_stream = loaded_stream
+	preview_audio_player = AudioStreamPlayer.new()
+	preview_audio_player.name = "CreatorPreviewAudioPlayer"
+	preview_audio_player.stream = preview_audio_stream
+	preview_audio_player.max_polyphony = 4
+	add_child(preview_audio_player)
+	preview_audio_asset_loaded = true
+
+func _play_creator_preview_audio_cue(cue_id: String) -> void:
+	if not preview_audio_asset_loaded or preview_audio_player == null:
+		return
+	var normalized := cue_id.strip_edges().to_lower()
+	if normalized != preview_audio_asset_draft.cue_id:
+		return
+	preview_audio_player.play()
+	preview_audio_playback_count += 1
+	preview_audio_last_played_cue = normalized
 
 func _tick_creator_preview_timeline_pulses(delta: float) -> void:
 	var safe_delta := maxf(0.0, delta)
@@ -356,6 +418,13 @@ func _set_web_state() -> void:
 		"document.documentElement.dataset.playerAudioCueSkillCast=%s;" % JSON.stringify(player_audio_bindings.cue_for_binding("skill_cast")) +
 		"document.documentElement.dataset.playerAudioCueSkillImpact=%s;" % JSON.stringify(player_audio_bindings.cue_for_binding("skill_impact")) +
 		"document.documentElement.dataset.playerAudioBindingsLoadError=%s;" % JSON.stringify(player_audio_bindings_load_error) +
+		"document.documentElement.dataset.creatorPreviewAudioAssetActive='%s';" % (("true" if preview_active and session != null and session.has_method("has_active_audio_asset_preview") and bool(session.call("has_active_audio_asset_preview")) else "false")) +
+		"document.documentElement.dataset.creatorPreviewAudioAssetLoaded='%s';" % _bool_text(preview_audio_asset_loaded) +
+		"document.documentElement.dataset.creatorPreviewAudioAssetCue=%s;" % JSON.stringify(preview_audio_asset_draft.cue_id if preview_audio_asset_loaded else "") +
+		"document.documentElement.dataset.creatorPreviewAudioAssetBytes='%d';" % (preview_audio_asset_draft.byte_size if preview_audio_asset_loaded else 0) +
+		"document.documentElement.dataset.creatorPreviewAudioAssetLoadError=%s;" % JSON.stringify(preview_audio_asset_load_error) +
+		"document.documentElement.dataset.creatorPreviewAudioPlaybackCount='%d';" % preview_audio_playback_count +
+		"document.documentElement.dataset.creatorPreviewAudioLastPlayedCue=%s;" % JSON.stringify(preview_audio_last_played_cue) +
 		"document.documentElement.dataset.creatorPreviewReturnReady='%s';" % ("true" if preview_active else "false") +
 		"document.documentElement.dataset.creatorPreviewVfxRuntimeLoaded='%s';" % _bool_text(preview_vfx_loaded) +
 		"document.documentElement.dataset.creatorPreviewVfxRuntimeFrameCount='%d';" % (preview_vfx_draft.frame_count if preview_vfx_loaded else 0) +
