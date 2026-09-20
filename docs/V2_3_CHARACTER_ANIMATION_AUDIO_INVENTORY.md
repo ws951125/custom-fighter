@@ -250,6 +250,13 @@ Scope:
 6. Extend Creator Preview Chromium/hosted-Edge regression with a third Preview cycle: bind/import `skill_impact → preview_impact_custom`, cast U, require a real `skillHitCount` increment plus matching playback telemetry, then return to Creator.
 7. Keep `ready` and `hit_received` triggers deferred; `ready` remains isolated due to browser autoplay policy.
 
+Validation result:
+- PR #173 implementation head `44f3101ff66524b39ce26eb955c4a2f1dee900c1` passed PR CI #449 (`35516777928`) on attempt 1.
+- Windows Native, Godot import/boot/domain/AI contracts, trusted backend, Web export/size budget, Chromium `smoke:all`, and GitHub-hosted Microsoft Edge `smoke:all` all passed.
+- Both Chromium and hosted Edge preserved `wavRuntimePlayback=true` and `basicAttackWavRuntimePlayback=true`, then proved `skillImpactWavRuntimePlayback=true` only after Skill 1 registered a real hit through the authoritative combat counters.
+- Both browsers completed `SMOKE_SUITE_PASSED count=24`; no second WAV slot or unsafe resource/execution path was introduced.
+- Final documentation-sync latest-head validation remains required before merge.
+
 ## Deferred after WU9
 
 - creator-provided animation asset import;
