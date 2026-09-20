@@ -42,6 +42,13 @@ async function diagnosticSnapshot() {
         'creatorAudioDraftValid',
         'creatorAudioDraftBinding',
         'creatorAudioDraftCue',
+        'creatorAudioAssetValid',
+        'creatorAudioAssetBinding',
+        'creatorAudioAssetCue',
+        'creatorAudioAssetFile',
+        'creatorAudioAssetBytes',
+        'creatorAudioAssetDurationMs',
+        'creatorAudioAssetError',
         'playerAudioBindingsLoaded',
         'creatorPreviewAudioBindingsActive',
         'playerAudioCueSkillCast',
@@ -68,6 +75,31 @@ async function diagnosticSnapshot() {
   }
 }
 
+
+function pcmWavDataUrl({ sampleRate = 8000, channels = 1, bits = 8, dataSize = 800 } = {}) {
+  const bytes = new Uint8Array(44 + dataSize);
+  const view = new DataView(bytes.buffer);
+  const ascii = (offset, text) => {
+    for (let i = 0; i < text.length; i += 1) bytes[offset + i] = text.charCodeAt(i);
+  };
+  ascii(0, 'RIFF');
+  view.setUint32(4, 36 + dataSize, true);
+  ascii(8, 'WAVE');
+  ascii(12, 'fmt ');
+  view.setUint32(16, 16, true);
+  view.setUint16(20, 1, true);
+  view.setUint16(22, channels, true);
+  view.setUint32(24, sampleRate, true);
+  const blockAlign = (channels * bits) / 8;
+  view.setUint32(28, sampleRate * blockAlign, true);
+  view.setUint16(32, blockAlign, true);
+  view.setUint16(34, bits, true);
+  ascii(36, 'data');
+  view.setUint32(40, dataSize, true);
+  bytes.fill(bits === 8 ? 128 : 0, 44);
+  return `data:audio/wav;base64,${Buffer.from(bytes).toString('base64')}`;
+}
+
 function annotationSafe(value) {
   return String(value).replace(/%/g, '%25').replace(/\r/g, '%0D').replace(/\n/g, '%0A');
 }
@@ -90,6 +122,7 @@ try {
       typeof window.customFighterCreatorPreview === 'function' &&
       typeof window.customFighterCreatorSetAnimationSemantic === 'function' &&
       typeof window.customFighterCreatorSetAudioBinding === 'function' &&
+      typeof window.customFighterCreatorImportWav === 'function' &&
       typeof window.customFighterCreatorSetSkillMpCost === 'function' &&
       typeof window.customFighterCreatorSetSkillCooldown === 'function' &&
       typeof window.customFighterCreatorTimelineAdd === 'function' &&
@@ -132,6 +165,12 @@ try {
     window.customFighterCreatorTimelineApplyComposition('guarded_impact', 0);
   });
 
+  const previewWavDataUrl = pcmWavDataUrl();
+  await page.evaluate(
+    ({ dataUrl }) => window.customFighterCreatorImportWav('preview-cast.wav', 'audio/wav', dataUrl),
+    { dataUrl: previewWavDataUrl },
+  );
+
   diagnosticStage = 'authored-timeline-valid';
   await page.waitForFunction(
     () =>
@@ -142,6 +181,13 @@ try {
       document.documentElement.dataset.creatorAnimationDraftSemantic === 'ready' &&
       document.documentElement.dataset.creatorAnimationDraftAnimationId === 'preview_ready_custom' &&
       document.documentElement.dataset.creatorAudioDraftValid === 'true' &&
+      document.documentElement.dataset.creatorAudioAssetValid === 'true' &&
+      document.documentElement.dataset.creatorAudioAssetBinding === 'skill_cast' &&
+      document.documentElement.dataset.creatorAudioAssetCue === 'preview_cast_custom' &&
+      document.documentElement.dataset.creatorAudioAssetFile === 'preview-cast.wav' &&
+      document.documentElement.dataset.creatorAudioAssetBytes === '844' &&
+      document.documentElement.dataset.creatorAudioAssetDurationMs === '100' &&
+      document.documentElement.dataset.creatorAudioAssetError === '' &&
       document.documentElement.dataset.creatorDraftMaxHp === '180' &&
       document.documentElement.dataset.creatorSkillDraftName === 'Nova Bolt' &&
       document.documentElement.dataset.creatorSkillDraftDamage === '33' &&
@@ -253,6 +299,11 @@ try {
       document.documentElement.dataset.creatorAnimationDraftSemantic === 'ready' &&
       document.documentElement.dataset.creatorAnimationDraftAnimationId === 'preview_ready_custom' &&
       document.documentElement.dataset.creatorAudioDraftValid === 'true' &&
+      document.documentElement.dataset.creatorAudioAssetValid === 'true' &&
+      document.documentElement.dataset.creatorAudioAssetBinding === 'skill_cast' &&
+      document.documentElement.dataset.creatorAudioAssetCue === 'preview_cast_custom' &&
+      document.documentElement.dataset.creatorAudioAssetFile === 'preview-cast.wav' &&
+      document.documentElement.dataset.creatorAudioAssetBytes === '844' &&
       document.documentElement.dataset.creatorDraftMaxHp === '180' &&
       document.documentElement.dataset.creatorSkillDraftName === 'Nova Bolt' &&
       document.documentElement.dataset.creatorSkillDraftDamage === '33' &&
@@ -273,7 +324,7 @@ try {
   }
 
   diagnosticStage = 'passed';
-  console.log('WEB_CREATOR_PREVIEW_SMOKE_PASSED invalidBlocked=true authoredHp=180 authoredDamage=33 authoredMpCost=17 authoredCooldown=2.4 semanticAnimationOverride=true semanticAnimationRoundTrip=true audioBindingOverride=true audioBindingRoundTrip=true safeComposition=true timelineRoundTrip=true animationTiming=true vfxTiming=true audioTiming=true spatialHitbox=true spatialHurtbox=true cast=true draftsRestored=true');
+  console.log('WEB_CREATOR_PREVIEW_SMOKE_PASSED invalidBlocked=true authoredHp=180 authoredDamage=33 authoredMpCost=17 authoredCooldown=2.4 semanticAnimationOverride=true semanticAnimationRoundTrip=true audioBindingOverride=true audioBindingRoundTrip=true wavMemoryRoundTrip=true safeComposition=true timelineRoundTrip=true animationTiming=true vfxTiming=true audioTiming=true spatialHitbox=true spatialHurtbox=true cast=true draftsRestored=true');
   await page.close();
 } catch (error) {
   const snapshot = await diagnosticSnapshot();
