@@ -153,7 +153,7 @@ func _set_package_web_state() -> void:
 	var vfx_bytes := 0
 	var audio_bound := false
 	var audio_asset_bound := false
-	var audio_asset_bytes := 0
+	var audio_asset_byte_count := 0
 	if session != null and session.has_method("has_stored_vfx"):
 		vfx_bound = bool(session.call("has_stored_vfx"))
 	if session != null and session.has_method("has_stored_audio_bindings"):
@@ -162,7 +162,7 @@ func _set_package_web_state() -> void:
 		audio_asset_bound = bool(session.call("has_stored_audio_asset"))
 	if audio_asset_bound and session.has_method("stored_audio_asset_bytes"):
 		var wav_bytes: PackedByteArray = session.call("stored_audio_asset_bytes")
-		audio_asset_bytes = wav_bytes.size()
+		audio_asset_byte_count = wav_bytes.size()
 	if vfx_bound and session.has_method("stored_vfx_png_bytes"):
 		var bytes: PackedByteArray = session.call("stored_vfx_png_bytes")
 		vfx_bytes = bytes.size()
