@@ -669,7 +669,7 @@ func _refresh_audio_asset_status(increment_revision: bool = true) -> void:
 		]
 		audio_asset_status_label.modulate = Color("7ff0b1")
 	else:
-		audio_asset_status_label.text = "Optional WAV · PCM only · ≤ 3 s · ≤ 512 KB · memory only"
+		audio_asset_status_label.text = "Optional WAV · PCM only · ≤ 3 s · ≤ 512 KB · package-safe"
 		audio_asset_status_label.modulate = Color("8292b3")
 	_set_web_state()
 
