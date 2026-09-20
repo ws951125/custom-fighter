@@ -4,15 +4,18 @@ extends RefCounted
 const CharacterPackageDefinition = preload("res://game/core/package/character_package_definition.gd")
 const CharacterAnimationMap = preload("res://game/core/character/character_animation_map.gd")
 const CharacterAudioBindings = preload("res://game/core/character/character_audio_bindings.gd")
+const CharacterAudioAssetDraft = preload("res://game/creator/character_editor/character_audio_asset_draft.gd")
 const VfxDraft = preload("res://game/creator/vfx_editor/vfx_draft.gd")
 
 const CURRENT_SCHEMA_VERSION := 2
 const LEGACY_SCHEMA_VERSION := 1
 const MAX_VFX_PNG_BYTES := 5 * 1024 * 1024
 const MAX_VFX_BASE64_CHARS := 7 * 1024 * 1024
+const MAX_AUDIO_BASE64_CHARS := 700 * 1024
 const ALLOWED_V2_TOP_LEVEL_FIELDS := [
-	"schema_version", "package_id", "package_version", "character", "skills", "animation_map", "audio_bindings", "vfx_asset"
+	"schema_version", "package_id", "package_version", "character", "skills", "animation_map", "audio_bindings", "audio_asset", "vfx_asset"
 ]
+const ALLOWED_AUDIO_ASSET_FIELDS := ["metadata", "wav_base64"]
 const ALLOWED_VFX_ASSET_FIELDS := [
 	"skill_slot", "skill_id", "mime_type", "metadata", "png_base64"
 ]
@@ -24,6 +27,8 @@ var character_data: Dictionary = {}
 var skill_data_by_id: Dictionary = {}
 var animation_map_data: Dictionary = {}
 var audio_bindings_data: Dictionary = {}
+var audio_asset_data: Dictionary = {}
+var audio_wav_bytes := PackedByteArray()
 var vfx_data: Dictionary = {}
 var vfx_png_bytes := PackedByteArray()
 var loaded := false
@@ -36,6 +41,8 @@ func reset() -> void:
 	skill_data_by_id.clear()
 	animation_map_data.clear()
 	audio_bindings_data.clear()
+	audio_asset_data.clear()
+	audio_wav_bytes.clear()
 	vfx_data.clear()
 	vfx_png_bytes.clear()
 	loaded = false
@@ -95,6 +102,15 @@ func _load_v2(data: Dictionary) -> PackedStringArray:
 		if not errors.is_empty():
 			return errors
 
+	if data.has("audio_asset"):
+		var audio_asset_value: Variant = data.get("audio_asset")
+		if not audio_asset_value is Dictionary:
+			errors.append("audio_asset must be an object")
+			return errors
+		_validate_audio_asset(audio_asset_value, errors)
+		if not errors.is_empty():
+			return errors
+
 	if data.has("vfx_asset"):
 		var asset_value: Variant = data.get("vfx_asset")
 		if not asset_value is Dictionary:
@@ -107,6 +123,8 @@ func _load_v2(data: Dictionary) -> PackedStringArray:
 	if not loaded:
 		animation_map_data.clear()
 		audio_bindings_data.clear()
+		audio_asset_data.clear()
+		audio_wav_bytes.clear()
 		vfx_data.clear()
 		vfx_png_bytes.clear()
 	return errors
@@ -146,6 +164,54 @@ func _validate_audio_bindings_payload(value: Variant, errors: PackedStringArray)
 		return
 	audio_bindings_data = bindings.to_dictionary()
 
+func _validate_audio_asset(asset: Dictionary, errors: PackedStringArray) -> void:
+	_validate_allowed_fields(asset, ALLOWED_AUDIO_ASSET_FIELDS, "audio_asset", errors)
+	for required_field in ALLOWED_AUDIO_ASSET_FIELDS:
+		if not asset.has(required_field):
+			errors.append("missing required audio_asset field: %s" % required_field)
+	if not errors.is_empty():
+		return
+
+	var metadata_value: Variant = asset.get("metadata")
+	if not metadata_value is Dictionary:
+		errors.append("audio_asset metadata must be an object")
+		return
+	var draft := CharacterAudioAssetDraft.new()
+	var metadata_errors: PackedStringArray = draft.load_from_dictionary(metadata_value)
+	for error in metadata_errors:
+		errors.append("audio_asset metadata: %s" % error)
+	if not errors.is_empty():
+		return
+
+	if audio_bindings_data.is_empty():
+		errors.append("audio_asset requires packaged audio_bindings")
+		return
+	var cues: Dictionary = audio_bindings_data.get("cues", {})
+	var expected_cue: String = str(cues.get(draft.binding, "")).strip_edges().to_lower()
+	if expected_cue != draft.cue_id:
+		errors.append("audio_asset cue_id must match packaged audio_bindings")
+		return
+
+	var encoded: String = str(asset.get("wav_base64", "")).strip_edges()
+	if not _is_valid_base64_shape(encoded, MAX_AUDIO_BASE64_CHARS):
+		errors.append("audio_asset wav_base64 is malformed or exceeds the encoded size limit")
+		return
+	var wav_bytes: PackedByteArray = Marshalls.base64_to_raw(encoded)
+	if wav_bytes.is_empty():
+		errors.append("audio_asset WAV bytes must not be empty")
+		return
+	if wav_bytes.size() > CharacterAudioAssetDraft.MAX_FILE_BYTES:
+		errors.append("audio_asset WAV exceeds 512 KB limit")
+		return
+	var byte_errors: PackedStringArray = draft.validate_bytes(wav_bytes)
+	for error in byte_errors:
+		errors.append("audio_asset WAV: %s" % error)
+	if not errors.is_empty():
+		return
+
+	audio_asset_data = draft.to_dictionary()
+	audio_wav_bytes = wav_bytes.duplicate()
+
 func _validate_vfx_asset(asset: Dictionary, errors: PackedStringArray) -> void:
 	_validate_allowed_fields(asset, ALLOWED_VFX_ASSET_FIELDS, "vfx_asset", errors)
 	for required_field in ALLOWED_VFX_ASSET_FIELDS:
@@ -179,7 +245,7 @@ func _validate_vfx_asset(asset: Dictionary, errors: PackedStringArray) -> void:
 		return
 
 	var encoded: String = str(asset.get("png_base64", "")).strip_edges()
-	if not _is_valid_base64_shape(encoded):
+	if not _is_valid_base64_shape(encoded, MAX_VFX_BASE64_CHARS):
 		errors.append("vfx_asset png_base64 is malformed or exceeds the encoded size limit")
 		return
 	var png_bytes: PackedByteArray = Marshalls.base64_to_raw(encoded)
@@ -208,6 +274,9 @@ func has_animation_map() -> bool:
 func has_audio_bindings() -> bool:
 	return loaded and not audio_bindings_data.is_empty()
 
+func has_audio_asset() -> bool:
+	return loaded and not audio_asset_data.is_empty() and not audio_wav_bytes.is_empty()
+
 func has_vfx_asset() -> bool:
 	return loaded and not vfx_data.is_empty() and not vfx_png_bytes.is_empty()
 
@@ -223,6 +292,11 @@ func to_dictionary() -> Dictionary:
 		result["animation_map"] = animation_map_data.duplicate(true)
 	if has_audio_bindings():
 		result["audio_bindings"] = audio_bindings_data.duplicate(true)
+	if has_audio_asset():
+		result["audio_asset"] = {
+			"metadata": audio_asset_data.duplicate(true),
+			"wav_base64": Marshalls.raw_to_base64(audio_wav_bytes)
+		}
 	if has_vfx_asset():
 		var slots: Dictionary = character_data.get("skill_slots", {})
 		result["vfx_asset"] = {
@@ -266,8 +340,8 @@ func _validate_allowed_fields(data: Dictionary, allowed_fields: Array, scope: St
 		if not allowed_fields.has(key):
 			errors.append("unsupported %s field: %s" % [scope, key])
 
-func _is_valid_base64_shape(value: String) -> bool:
-	if value.is_empty() or value.length() > MAX_VFX_BASE64_CHARS or value.length() % 4 != 0:
+func _is_valid_base64_shape(value: String, max_chars: int) -> bool:
+	if value.is_empty() or value.length() > max_chars or value.length() % 4 != 0:
 		return false
 	var regex := RegEx.new()
 	regex.compile("^[A-Za-z0-9+/]*={0,2}$")
