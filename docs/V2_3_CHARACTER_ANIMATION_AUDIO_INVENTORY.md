@@ -273,6 +273,13 @@ Scope:
 9. Keep WU11 package-neutral: export must not serialize `animation_asset`/collections yet. Failed package imports preserve current memory-only animation PNG; successful package import clears it to avoid cross-character leakage.
 10. Keep self-contained animation-asset package transport for the next separate work unit; keep `ready` audio autoplay semantics deferred.
 
+Validation result:
+- PR #175 initial CI #460 (`35526219448`) passed Windows Native, Godot/domain/backend, Web export/size budget, Creator Studio Animation-PNG import/timing/stale-clear/reset and Creator Preview memory round-trip before the new package regression exposed a misplaced test assertion.
+- The failure was test-only: the pre-export state incorrectly required the newly imported PNG to be cleared. Fix `512381ef6e46ff7bc54c30c41f1e37cba6a20baa` moved that assertion to the unique successful-package-import context; L-036 records the prevention rule.
+- Head `dd7c274987f2ccb294fe0181413c50cfc8c7c7dd` passed PR CI #462 (`35526663871`) across Windows Native, Godot import/boot/domain/AI contracts, backend, Web export/size budget, Chromium `smoke:all`, and hosted Microsoft Edge `smoke:all`.
+- Chromium and Edge both proved `animationPngImport=true`, `animationPngTiming=true`, `staleAnimationPngCleared=true`, `animationPngResetCleared=true`, `animationPngMemoryRoundTrip=true`, `animationPngMemoryOnly=true`, `invalidImportPreservesAnimationPng=true`, and `validImportClearsAnimationPng=true`.
+- Both browsers completed `SMOKE_SUITE_PASSED count=24`; package schema remains unchanged.
+
 ## Deferred after WU11
 
 - self-contained Character Package transport for the bounded character animation PNG;
