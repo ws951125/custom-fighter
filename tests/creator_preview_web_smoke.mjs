@@ -45,6 +45,14 @@ async function diagnosticSnapshot() {
         'playerAnimationId',
         'playerAnimationMapId',
         'creatorPreviewAnimationOverrideActive',
+        'creatorAnimationAssetValid',
+        'creatorAnimationAssetSemantic',
+        'creatorAnimationAssetAnimationId',
+        'creatorAnimationAssetFile',
+        'creatorAnimationAssetBytes',
+        'creatorAnimationAssetFrameCount',
+        'creatorAnimationAssetFps',
+        'creatorAnimationAssetError',
         'creatorAudioDraftValid',
         'creatorAudioDraftBinding',
         'creatorAudioDraftCue',
@@ -137,6 +145,8 @@ try {
       document.documentElement.dataset.creatorTimelineReady === 'true' &&
       typeof window.customFighterCreatorPreview === 'function' &&
       typeof window.customFighterCreatorSetAnimationSemantic === 'function' &&
+      typeof window.customFighterCreatorImportAnimationPng === 'function' &&
+      typeof window.customFighterCreatorSetAnimationAssetTiming === 'function' &&
       typeof window.customFighterCreatorSetAudioBinding === 'function' &&
       typeof window.customFighterCreatorImportWav === 'function' &&
       typeof window.customFighterCreatorSetSkillMpCost === 'function' &&
@@ -181,6 +191,23 @@ try {
     window.customFighterCreatorTimelineApplyComposition('guarded_impact', 0);
   });
 
+  await page.evaluate(() => window.customFighterCreatorSetAnimationAssetTiming(4, 18));
+  const previewAnimationPngDataUrl = await page.evaluate(() => {
+    const canvas = document.createElement('canvas');
+    canvas.width = 16;
+    canvas.height = 4;
+    const context = canvas.getContext('2d');
+    ['#ff3355', '#33dd77', '#4477ff', '#ffee44'].forEach((color, index) => {
+      context.fillStyle = color;
+      context.fillRect(index * 4, 0, 4, 4);
+    });
+    return canvas.toDataURL('image/png');
+  });
+  await page.evaluate(
+    ({ dataUrl }) => window.customFighterCreatorImportAnimationPng('preview-ready.png', 'image/png', dataUrl),
+    { dataUrl: previewAnimationPngDataUrl },
+  );
+
   const previewWavDataUrl = pcmWavDataUrl();
   await page.evaluate(
     ({ dataUrl }) => window.customFighterCreatorImportWav('preview-cast.wav', 'audio/wav', dataUrl),
@@ -196,6 +223,14 @@ try {
       document.documentElement.dataset.creatorAnimationDraftValid === 'true' &&
       document.documentElement.dataset.creatorAnimationDraftSemantic === 'ready' &&
       document.documentElement.dataset.creatorAnimationDraftAnimationId === 'preview_ready_custom' &&
+      document.documentElement.dataset.creatorAnimationAssetValid === 'true' &&
+      document.documentElement.dataset.creatorAnimationAssetSemantic === 'ready' &&
+      document.documentElement.dataset.creatorAnimationAssetAnimationId === 'preview_ready_custom' &&
+      document.documentElement.dataset.creatorAnimationAssetFile === 'preview-ready.png' &&
+      Number(document.documentElement.dataset.creatorAnimationAssetBytes ?? '0') > 0 &&
+      document.documentElement.dataset.creatorAnimationAssetFrameCount === '4' &&
+      document.documentElement.dataset.creatorAnimationAssetFps === '18.000' &&
+      document.documentElement.dataset.creatorAnimationAssetError === '' &&
       document.documentElement.dataset.creatorAudioDraftValid === 'true' &&
       document.documentElement.dataset.creatorAudioAssetValid === 'true' &&
       document.documentElement.dataset.creatorAudioAssetBinding === 'skill_cast' &&
@@ -323,6 +358,14 @@ try {
       document.documentElement.dataset.creatorAnimationDraftValid === 'true' &&
       document.documentElement.dataset.creatorAnimationDraftSemantic === 'ready' &&
       document.documentElement.dataset.creatorAnimationDraftAnimationId === 'preview_ready_custom' &&
+      document.documentElement.dataset.creatorAnimationAssetValid === 'true' &&
+      document.documentElement.dataset.creatorAnimationAssetSemantic === 'ready' &&
+      document.documentElement.dataset.creatorAnimationAssetAnimationId === 'preview_ready_custom' &&
+      document.documentElement.dataset.creatorAnimationAssetFile === 'preview-ready.png' &&
+      Number(document.documentElement.dataset.creatorAnimationAssetBytes ?? '0') > 0 &&
+      document.documentElement.dataset.creatorAnimationAssetFrameCount === '4' &&
+      document.documentElement.dataset.creatorAnimationAssetFps === '18.000' &&
+      document.documentElement.dataset.creatorAnimationAssetError === '' &&
       document.documentElement.dataset.creatorAudioDraftValid === 'true' &&
       document.documentElement.dataset.creatorAudioAssetValid === 'true' &&
       document.documentElement.dataset.creatorAudioAssetBinding === 'skill_cast' &&
@@ -553,7 +596,7 @@ try {
   );
 
   diagnosticStage = 'passed';
-  console.log('WEB_CREATOR_PREVIEW_SMOKE_PASSED invalidBlocked=true authoredHp=180 authoredDamage=33 authoredMpCost=17 authoredCooldown=2.4 semanticAnimationOverride=true semanticAnimationRoundTrip=true audioBindingOverride=true audioBindingRoundTrip=true wavMemoryRoundTrip=true wavRuntimePlayback=true basicAttackWavRuntimePlayback=true skillImpactWavRuntimePlayback=true hitReceivedWavRuntimePlayback=true safeComposition=true timelineRoundTrip=true animationTiming=true vfxTiming=true audioTiming=true spatialHitbox=true spatialHurtbox=true cast=true draftsRestored=true');
+  console.log('WEB_CREATOR_PREVIEW_SMOKE_PASSED invalidBlocked=true authoredHp=180 authoredDamage=33 authoredMpCost=17 authoredCooldown=2.4 semanticAnimationOverride=true semanticAnimationRoundTrip=true audioBindingOverride=true audioBindingRoundTrip=true animationPngMemoryRoundTrip=true wavMemoryRoundTrip=true wavRuntimePlayback=true basicAttackWavRuntimePlayback=true skillImpactWavRuntimePlayback=true hitReceivedWavRuntimePlayback=true safeComposition=true timelineRoundTrip=true animationTiming=true vfxTiming=true audioTiming=true spatialHitbox=true spatialHurtbox=true cast=true draftsRestored=true');
   await page.close();
 } catch (error) {
   const snapshot = await diagnosticSnapshot();
