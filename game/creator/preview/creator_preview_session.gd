@@ -4,6 +4,7 @@ const CharacterDefinition = preload("res://game/core/character/character_definit
 const CharacterVisualProfile = preload("res://game/core/character/character_visual_profile.gd")
 const CharacterAnimationMap = preload("res://game/core/character/character_animation_map.gd")
 const CharacterAudioBindings = preload("res://game/core/character/character_audio_bindings.gd")
+const CharacterAudioAssetDraft = preload("res://game/creator/character_editor/character_audio_asset_draft.gd")
 const SkillDefinition = preload("res://game/core/skills/skill_definition.gd")
 const VfxDraft = preload("res://game/creator/vfx_editor/vfx_draft.gd")
 const AiSkillProposal = preload("res://game/ai/skill/ai_skill_proposal.gd")
@@ -31,6 +32,8 @@ var _draft_character_data: Dictionary = {}
 var _draft_skill_data: Dictionary = {}
 var _stored_animation_map_data: Dictionary = {}
 var _stored_audio_bindings_data: Dictionary = {}
+var _stored_audio_asset_data: Dictionary = {}
+var _stored_audio_asset_bytes := PackedByteArray()
 var _stored_vfx_data: Dictionary = {}
 var _stored_vfx_png_bytes := PackedByteArray()
 var _pending_ai_skill_proposal: Dictionary = {}
@@ -151,6 +154,29 @@ func store_audio_bindings_draft(audio_bindings_data: Dictionary) -> PackedString
 		_preview_audio_bindings_data.clear()
 	revision += 1
 	return PackedStringArray()
+
+func store_audio_asset_draft(audio_asset_data: Dictionary, wav_bytes: PackedByteArray) -> PackedStringArray:
+	var errors := PackedStringArray()
+	var draft := CharacterAudioAssetDraft.new()
+	var metadata_errors: PackedStringArray = draft.load_from_dictionary(audio_asset_data)
+	for error in metadata_errors:
+		errors.append(error)
+	if metadata_errors.is_empty():
+		var byte_errors: PackedStringArray = draft.validate_bytes(wav_bytes)
+		for error in byte_errors:
+			errors.append(error)
+	if not errors.is_empty():
+		clear_audio_asset_draft()
+		return errors
+	_stored_audio_asset_data = draft.to_dictionary()
+	_stored_audio_asset_bytes = wav_bytes.duplicate()
+	revision += 1
+	return PackedStringArray()
+
+func clear_audio_asset_draft() -> void:
+	_stored_audio_asset_data.clear()
+	_stored_audio_asset_bytes.clear()
+	revision += 1
 
 func store_vfx_draft(vfx_data: Dictionary, png_bytes: PackedByteArray) -> PackedStringArray:
 	var errors: PackedStringArray = _validate_vfx_payload(vfx_data, png_bytes)
@@ -286,6 +312,9 @@ func has_stored_audio_bindings() -> bool:
 func has_active_audio_bindings_preview() -> bool:
 	return has_active_preview() and not _preview_audio_bindings_data.is_empty()
 
+func has_stored_audio_asset() -> bool:
+	return not _stored_audio_asset_data.is_empty() and not _stored_audio_asset_bytes.is_empty()
+
 func has_stored_vfx() -> bool:
 	return not _stored_vfx_data.is_empty() and not _stored_vfx_png_bytes.is_empty()
 
@@ -330,6 +359,12 @@ func stored_animation_map_data() -> Dictionary:
 func stored_audio_bindings_data() -> Dictionary:
 	return _stored_audio_bindings_data.duplicate(true)
 
+func stored_audio_asset_data() -> Dictionary:
+	return _stored_audio_asset_data.duplicate(true)
+
+func stored_audio_asset_bytes() -> PackedByteArray:
+	return _stored_audio_asset_bytes.duplicate()
+
 func stored_vfx_data() -> Dictionary:
 	return _stored_vfx_data.duplicate(true)
 
@@ -348,6 +383,8 @@ func clear() -> void:
 	_draft_skill_data.clear()
 	_stored_animation_map_data.clear()
 	_stored_audio_bindings_data.clear()
+	_stored_audio_asset_data.clear()
+	_stored_audio_asset_bytes.clear()
 	_stored_vfx_data.clear()
 	_stored_vfx_png_bytes.clear()
 	_pending_ai_skill_proposal.clear()
