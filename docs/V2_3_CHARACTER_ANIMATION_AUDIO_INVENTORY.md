@@ -169,11 +169,33 @@ Validation result:
 - Domain tests emitted `CHARACTER_AUDIO_ASSET_DRAFT_TESTS_PASSED`; CreatorPreviewSession coverage proved valid WAV storage and tampered-byte fail-closed clearing.
 - Creator Studio proved real base64 PCM WAV import, cue-change stale clearing and reset clearing. Creator Preview proved Creator → Training → Creator memory round-trip. Creator Package proved WU5 remains memory-only, invalid imports preserve the current WAV, and successful package import clears it.
 
-## Deferred after WU5
+## Work Unit 5 production closeout
+
+- PR #168 latest head `a8d9ca8c2f264c97b2120943ce622c7c7d7ef716` passed PR CI #433 (`35485758758`).
+- PR #168 squash-merged as `c5f7e68e919aa0be111c167696757722bf061c80`.
+- Exact-main CI #434 (`35493570174`) passed Windows Native, Godot/domain/backend/Web/Chromium, hosted Microsoft Edge, GitHub Pages deployment/public reachability, Render exact-revision readiness, and production Microsoft Edge full smoke.
+
+## Work Unit 6 — bounded WAV Character Package transport
+
+Scope:
+1. Extend schema-v2 with one optional `audio_asset` containing validated WU5 metadata plus bounded WAV base64; do not create an unbounded audio collection.
+2. Reuse `CharacterAudioAssetDraft` metadata and PCM byte validation instead of creating a second decoder/parser path.
+3. Require the packaged WAV binding/Cue ID to exactly match packaged `audio_bindings`; reject orphaned or mismatched audio payloads.
+4. Keep package transport declarative: no filesystem/resource path, URL, script, callback, decoder command, native library or compressed audio.
+5. Raise the Creator JSON package ceiling from 256 KB to a bounded 8 MB so the existing ≤5 MB decoded VFX asset plus one ≤512 KB WAV can coexist after base64 expansion.
+6. Export the stored validated WAV and restore it through the existing CreatorPreviewSession validation boundary on successful import; invalid imports must preserve the current valid draft/WAV.
+7. Add deterministic package-domain and Chromium/hosted-Edge Creator Package coverage for valid round-trip, malformed/tampered bytes, binding mismatch and unknown-field rejection.
+8. Keep WU6 transport-only. Runtime WAV playback is a separate follow-up slice.
+
+Validation target:
+- `SELF_CONTAINED_CHARACTER_PACKAGE_TESTS_PASSED` with WAV transport coverage;
+- Creator Package browser proof of WAV export/import restoration and tamper fail-closed behavior;
+- standard Windows Native, Godot import/boot/domain/backend, Web export/size budget, Chromium `smoke:all`, and hosted Microsoft Edge `smoke:all`.
+
+## Deferred after WU6
 
 - creator-provided animation asset import;
 - animation asset packaging/self-contained transport;
-- WAV/audio asset packaging and Character Package size-policy revision;
 - runtime WAV playback through the authored cue-binding layer;
 - broader ready/basic-attack/hit/skill-impact playback triggers backed by approved assets;
 - final V2-3 cross-machine/self-contained acceptance.
