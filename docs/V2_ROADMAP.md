@@ -164,4 +164,4 @@ The architecture previously allowed a future local/open-model AI provider such a
 
 ## Next implementation target
 
-Start **V2-2 Extended Skill Families**. Begin with a repository/architecture inventory of the existing six V1 skill families and the shared V2 timeline/event primitives, then define the first safe declarative family slice and its acceptance tests before implementation.
+Continue **V2-3 Character Animation & Audio Authoring** with Work Unit 8: reuse the approved single WAV and fixed audio-binding contract for one bounded `basic_attack` runtime trigger, validate it in Creator Preview across Chromium/hosted Edge, then production-validate the exact merged revision before advancing to another deferred audio semantic.

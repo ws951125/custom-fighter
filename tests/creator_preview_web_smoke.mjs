@@ -51,6 +51,7 @@ async function diagnosticSnapshot() {
         'creatorAudioAssetError',
         'playerAudioBindingsLoaded',
         'creatorPreviewAudioBindingsActive',
+        'playerAudioCueBasicAttack',
         'playerAudioCueSkillCast',
         'creatorPreviewAudioAssetActive',
         'creatorPreviewAudioAssetLoaded',
@@ -339,8 +340,70 @@ try {
     throw new Error(`Audio binding draft round-trip mismatch: ${JSON.stringify(restoredAudioDraft)}`);
   }
 
+  diagnosticStage = 'author-basic-attack-audio';
+  await page.evaluate(() => {
+    window.customFighterCreatorSetAudioBinding('basic_attack', 'preview_attack_custom');
+  });
+  const basicAttackWavDataUrl = pcmWavDataUrl();
+  await page.evaluate(
+    ({ dataUrl }) => window.customFighterCreatorImportWav('preview-attack.wav', 'audio/wav', dataUrl),
+    { dataUrl: basicAttackWavDataUrl },
+  );
+  await page.waitForFunction(
+    () =>
+      document.documentElement.dataset.creatorAudioDraftValid === 'true' &&
+      document.documentElement.dataset.creatorAudioAssetValid === 'true' &&
+      document.documentElement.dataset.creatorAudioAssetBinding === 'basic_attack' &&
+      document.documentElement.dataset.creatorAudioAssetCue === 'preview_attack_custom' &&
+      document.documentElement.dataset.creatorAudioAssetFile === 'preview-attack.wav' &&
+      document.documentElement.dataset.creatorPreviewCanLaunch === 'true',
+    null,
+    { timeout: 5_000 },
+  );
+
+  diagnosticStage = 'basic-attack-preview-launch';
+  await page.evaluate(() => window.customFighterCreatorPreview());
+  await page.waitForFunction(
+    () =>
+      document.documentElement.dataset.appMode === 'training' &&
+      document.documentElement.dataset.creatorPreviewActive === 'true' &&
+      document.documentElement.dataset.playerAudioBindingsLoaded === 'true' &&
+      document.documentElement.dataset.playerAudioCueBasicAttack === 'preview_attack_custom' &&
+      document.documentElement.dataset.creatorPreviewAudioAssetActive === 'true' &&
+      document.documentElement.dataset.creatorPreviewAudioAssetLoaded === 'true' &&
+      document.documentElement.dataset.creatorPreviewAudioAssetCue === 'preview_attack_custom' &&
+      document.documentElement.dataset.creatorPreviewAudioPlaybackCount === '0' &&
+      document.documentElement.dataset.creatorPreviewAudioLastPlayedCue === '',
+    null,
+    { timeout: 60_000 },
+  );
+
+  diagnosticStage = 'basic-attack-wav-playback';
+  await page.keyboard.press('j');
+  await page.waitForFunction(
+    () =>
+      Number(document.documentElement.dataset.creatorPreviewAudioPlaybackCount ?? '0') >= 1 &&
+      document.documentElement.dataset.creatorPreviewAudioLastPlayedCue === 'preview_attack_custom',
+    null,
+    { timeout: 5_000 },
+  );
+
+  diagnosticStage = 'basic-attack-return';
+  await page.evaluate(() => window.customFighterPreviewReturnToCreator());
+  await page.waitForFunction(
+    () =>
+      document.documentElement.dataset.appMode === 'creator' &&
+      document.documentElement.dataset.creatorStudioReady === 'true' &&
+      document.documentElement.dataset.creatorAudioAssetValid === 'true' &&
+      document.documentElement.dataset.creatorAudioAssetBinding === 'basic_attack' &&
+      document.documentElement.dataset.creatorAudioAssetCue === 'preview_attack_custom' &&
+      document.documentElement.dataset.creatorAudioAssetFile === 'preview-attack.wav',
+    null,
+    { timeout: 10_000 },
+  );
+
   diagnosticStage = 'passed';
-  console.log('WEB_CREATOR_PREVIEW_SMOKE_PASSED invalidBlocked=true authoredHp=180 authoredDamage=33 authoredMpCost=17 authoredCooldown=2.4 semanticAnimationOverride=true semanticAnimationRoundTrip=true audioBindingOverride=true audioBindingRoundTrip=true wavMemoryRoundTrip=true wavRuntimePlayback=true safeComposition=true timelineRoundTrip=true animationTiming=true vfxTiming=true audioTiming=true spatialHitbox=true spatialHurtbox=true cast=true draftsRestored=true');
+  console.log('WEB_CREATOR_PREVIEW_SMOKE_PASSED invalidBlocked=true authoredHp=180 authoredDamage=33 authoredMpCost=17 authoredCooldown=2.4 semanticAnimationOverride=true semanticAnimationRoundTrip=true audioBindingOverride=true audioBindingRoundTrip=true wavMemoryRoundTrip=true wavRuntimePlayback=true basicAttackWavRuntimePlayback=true safeComposition=true timelineRoundTrip=true animationTiming=true vfxTiming=true audioTiming=true spatialHitbox=true spatialHurtbox=true cast=true draftsRestored=true');
   await page.close();
 } catch (error) {
   const snapshot = await diagnosticSnapshot();

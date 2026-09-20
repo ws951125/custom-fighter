@@ -212,17 +212,37 @@ Scope:
 8. Keep WU7 narrow: only existing timeline-driven playback is added. Broader ready/basic-attack/hit/skill-impact triggers are deferred.
 
 Validation result:
-- PR #170 implementation head `a4289662a94be4423d389f45e5d86c5dad5d6380` passed PR CI #438 (`35498848537`).
-- Windows Native, Godot import/boot/domain/AI contracts, trusted backend, Web export/size budget, Chromium `smoke:all`, and GitHub-hosted Microsoft Edge `smoke:all` all passed.
-- CreatorPreviewSession coverage proves the stored WAV becomes an active runtime asset only under an exact authored binding/Cue match; mismatches fail closed and clear stale active WAV state.
-- Creator Preview browser coverage proves the WAV is runtime-loaded before the cast and that the resolved `preview_cast_custom` timeline audio event increments actual playback telemetry with `wavRuntimePlayback=true`.
-- Latest documentation-sync HEAD validation remains required before merge.
+- PR #170 implementation head `a4289662a94be4423d389f45e5d86c5dad5d6380` passed PR CI #438 (`35498848537`), and latest PR head `f79402ed3d2b94f1d8a47fa67a885b900d074fd3` passed PR CI #440.
+- PR #170 was squash-merged as `0ecbbcdd5b6439bf8d4ae50d184b349cd1fea495`.
+- Main CI #441 reproduced two different unchanged hosted-Edge observation windows after WU7 playback coverage had passed, so L-007 required a test-only timing-stability correction rather than product changes.
+- PR #171 head `7ff377a4b759933286c8bb69d88f2da0efc051b0` passed PR CI #443 (`35507350929`) on attempt 1 and was squash-merged as `6d1c40878cd8988a6d27e8438c402ba706c020cd`.
+- Exact-main CI #444 (`35509107038`) passed Windows Native, Godot/domain/backend/Web/Chromium, hosted Microsoft Edge, GitHub Pages deployment/public reachability, Render exact-revision readiness, and production Microsoft Edge full smoke.
+- Production Edge proved `wavRuntimePlayback=true` and completed `SMOKE_SUITE_PASSED count=24`; Render readiness matched exact revision `6d1c40878cd8988a6d27e8438c402ba706c020cd`.
+- WU7 is accepted and production-validated.
 
-## Deferred after WU7
+## Work Unit 8 — basic-attack WAV runtime trigger
+
+Scope:
+1. Reuse the one validated/staged WU7 WAV and the existing fixed `CharacterAudioBindings` contract; do not add a second asset, unbounded collection, filesystem/resource path, URL, external decoder, script, callback or native library.
+2. Observe only authoritative accepted normal-attack steps in Creator Preview and map them to the fixed `basic_attack` binding.
+3. Resolve `basic_attack` through the authored binding map and play only when its Cue ID exactly equals the staged WAV Cue ID.
+4. Consume each attack step once so one accepted J attack cannot repeatedly retrigger playback across frames.
+5. Preserve WU7 timeline-driven `skill_cast` behavior unchanged.
+6. Extend Creator Preview Chromium/hosted-Edge regression to prove both WU7 `skill_cast` WAV playback and a second Preview cycle where J triggers `basic_attack → preview_attack_custom`.
+7. Keep `ready`, `hit_received`, and `skill_impact` runtime triggers deferred. Treat `ready` separately because automatic playback can interact with browser autoplay policy.
+
+Validation result:
+- PR #172 implementation head `35715e9437983cea55b6a2014b16a4210630a541` passed PR CI #445 (`35510295745`) on attempt 1.
+- Windows Native, Godot import/boot/domain/AI contracts, trusted backend, Web export/size budget, Chromium `smoke:all`, and GitHub-hosted Microsoft Edge `smoke:all` all passed.
+- Both Chromium and hosted Edge preserved WU7 `wavRuntimePlayback=true` and proved `basicAttackWavRuntimePlayback=true` after the Creator re-bound the single validated WAV to `basic_attack → preview_attack_custom` and pressed J in Training Preview.
+- Both browsers completed `SMOKE_SUITE_PASSED count=24`; no second WAV slot or unsafe resource/execution path was introduced.
+- Final documentation-sync latest-head validation remains required before merge.
+
+## Deferred after WU8
 
 - creator-provided animation asset import;
 - animation asset packaging/self-contained transport;
-- broader ready/basic-attack/hit/skill-impact playback triggers backed by approved assets;
+- `ready`, `hit_received`, and `skill_impact` playback triggers backed by approved assets;
 - final V2-3 cross-machine/self-contained acceptance.
 
 V2 progress remains **25% (2/8 phases complete)** until the entire V2-3 acceptance criterion is satisfied and synchronized.
