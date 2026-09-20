@@ -280,7 +280,9 @@ Work unit 7 — **Creator Preview runtime WAV playback — implementation in pro
 - Runtime telemetry exposes active/loaded state, Cue ID, byte count, load error, playback count and last-played Cue for deterministic browser verification.
 - Creator Preview session tests cover active WAV staging, exact binding/Cue matching and fail-closed mismatch handling. Creator Preview browser smoke now requires the WAV to load and records a real runtime playback when the authored `skill_cast` timeline event fires.
 - WU7 is intentionally limited to the existing timeline-driven `skill_cast` path. Broader ready/basic-attack/hit/skill-impact triggers remain deferred.
-- Active branch: `feat/v2-3-runtime-wav-playback-wu7`. GitHub-hosted validation is pending.
+- PR #170 implementation head `a4289662a94be4423d389f45e5d86c5dad5d6380` passed PR CI #438 (`35498848537`): Windows Native, Godot import/boot/domain/AI contracts, trusted backend, Web export/size budget, Chromium `smoke:all`, and GitHub-hosted Microsoft Edge `smoke:all` all succeeded.
+- Chromium and hosted Edge both exercised the updated Creator Preview regression with `wavRuntimePlayback=true`: the staged WAV loaded with no runtime error and the authored `skill_cast` timeline event incremented playback telemetry for `preview_cast_custom`.
+- Active branch: `feat/v2-3-runtime-wav-playback-wu7`; PR #170 is open. Final documentation-sync HEAD validation is the remaining pre-merge gate.
 - V2 remains **25% (2/8 phases complete)** until the full V2-3 phase acceptance criterion is satisfied.
 
 ### V2-1 implementation checkpoints
