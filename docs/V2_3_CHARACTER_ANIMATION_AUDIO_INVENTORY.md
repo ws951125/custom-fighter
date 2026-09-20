@@ -211,10 +211,12 @@ Scope:
 7. Extend Creator Preview Chromium/hosted-Edge regression so the imported WAV is runtime-loaded before the cast and the authored `skill_cast` timeline event increments playback telemetry.
 8. Keep WU7 narrow: only existing timeline-driven playback is added. Broader ready/basic-attack/hit/skill-impact triggers are deferred.
 
-Validation target:
-- CreatorPreviewSession domain regression with active WAV staging/mismatch checks;
-- Creator Preview browser regression with `wavRuntimePlayback=true`;
-- standard Windows Native, Godot import/boot/domain/backend, Web export/size budget, Chromium `smoke:all`, and hosted Microsoft Edge `smoke:all`.
+Validation result:
+- PR #170 implementation head `a4289662a94be4423d389f45e5d86c5dad5d6380` passed PR CI #438 (`35498848537`).
+- Windows Native, Godot import/boot/domain/AI contracts, trusted backend, Web export/size budget, Chromium `smoke:all`, and GitHub-hosted Microsoft Edge `smoke:all` all passed.
+- CreatorPreviewSession coverage proves the stored WAV becomes an active runtime asset only under an exact authored binding/Cue match; mismatches fail closed and clear stale active WAV state.
+- Creator Preview browser coverage proves the WAV is runtime-loaded before the cast and that the resolved `preview_cast_custom` timeline audio event increments actual playback telemetry with `wavRuntimePlayback=true`.
+- Latest documentation-sync HEAD validation remains required before merge.
 
 ## Deferred after WU7
 
