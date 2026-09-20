@@ -250,7 +250,7 @@ Work unit 4 — **safe character/skill audio cue bindings — implementation com
 - Render readiness confirmed `PRODUCTION_AI_BACKEND_READY provider=gemini model=gemini-3.6-flash billing_mode=free-tier-only revision=66190eff50b60d4a11a57a702fc175accaf58634`.
 - V2 remains **25% (2/8 phases complete)** until the full V2-3 phase acceptance criterion is satisfied.
 
-Work unit 5 — **bounded PCM WAV import + memory-only Creator persistence — implementation synchronized; PR validation pending**:
+Work unit 5 — **bounded PCM WAV import + memory-only Creator persistence — implementation complete; PR validation passed**:
 - `CharacterAudioAssetDraft` accepts one short WAV asset bound to one existing fixed audio binding + safe cue token.
 - Accepted files are limited to safe `.wav` filenames, canonical `audio/wav`, RIFF/WAVE framing, uncompressed PCM, mono/stereo, 8/16-bit, 8–48 kHz, ≤3 seconds, and ≤512 KB.
 - The parser validates RIFF/chunk bounds, `fmt`/data presence, PCM format, byte rate, block alignment, complete PCM frames, payload length and derived duration. Compressed/non-PCM, malformed, oversized, path-like, or metadata-mismatched files fail closed.
@@ -259,6 +259,7 @@ Work unit 5 — **bounded PCM WAV import + memory-only Creator persistence — i
 - If the bound Cue ID changes, the stale WAV is cleared immediately. Character reset and successful package import also clear the memory-only WAV.
 - WU5 deliberately does **not** serialize WAV bytes into Character Package schema v2. Invalid package imports preserve the current WAV; a successful package import clears it so state cannot leak across package boundaries.
 - Domain/session/browser regressions cover valid PCM parsing, unsafe filename/non-PCM/duration rejection, metadata round-trip, tampered-byte fail-closed clearing, Creator import/stale-clear/reset, Preview memory round-trip, and package workflow isolation.
+- PR #168 head `133633cc8491049d83a43fdd30fe6335b939bbfa` passed PR CI #431 (`35485169214`): Windows Native, Godot import/boot/domain/AI contracts, backend tests, Web export/size budget, Chromium `smoke:all`, and GitHub-hosted Microsoft Edge `smoke:all` all succeeded.
 - V2 remains **25% (2/8 phases complete)** until the full V2-3 phase acceptance criterion is satisfied.
 
 ### V2-1 implementation checkpoints
