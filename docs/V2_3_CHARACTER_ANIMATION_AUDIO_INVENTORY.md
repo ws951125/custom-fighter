@@ -260,6 +260,7 @@ Scope:
 6. Extend Creator Preview Chromium/hosted-Edge regression with a fourth Preview cycle: bind/import `hit_received → preview_hit_custom`, require the constrained Training incoming-hit bridge, deal 9 real damage, verify authoritative incoming-hit/damage telemetry plus WAV playback, then return to Creator.
 7. Preserve WU7 `skill_cast`, WU8 `basic_attack` and WU9 `skill_impact` behavior unchanged.
 8. Keep `ready` deferred because automatic playback still requires deliberate browser autoplay-policy handling.
+9. Use only the synchronous `receive_player_hit(...)` override as the event owner. Do not also poll incoming-hit counters for playback; the duplicate polling path found during branch reconciliation was removed by `d78ede0e93b266e0708f92d3b582d5af01290ef0` to prevent double emission.
 
 ## Deferred after WU10
 
