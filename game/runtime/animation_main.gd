@@ -198,6 +198,20 @@ func _play_creator_preview_audio_cue(cue_id: String) -> void:
 	preview_audio_playback_count += 1
 	preview_audio_last_played_cue = normalized
 
+func receive_player_hit(amount: int, source_x: float, source_depth: float, hitstun: float = 0.0) -> int:
+	var dealt := super.receive_player_hit(amount, source_x, source_depth, hitstun)
+	if dealt <= 0:
+		return dealt
+	var session: Variant = get_node_or_null("/root/CreatorPreviewSession")
+	if not _preview_session_active(session) or not player_audio_bindings.loaded:
+		return dealt
+	var cue_id := player_audio_bindings.cue_for_binding("hit_received")
+	var playback_before := preview_audio_playback_count
+	_play_creator_preview_audio_cue(cue_id)
+	if preview_audio_playback_count > playback_before:
+		_set_web_state()
+	return dealt
+
 func _consume_creator_preview_skill_impact_audio() -> void:
 	var current_impact_count := fireball_hit_count + dash_slash_hit_count
 	var session: Variant = get_node_or_null("/root/CreatorPreviewSession")
