@@ -2,6 +2,7 @@ extends Control
 
 const CharacterDraft = preload("res://game/creator/character_editor/character_draft.gd")
 const CharacterAnimationDraft = preload("res://game/creator/character_editor/character_animation_draft.gd")
+const CharacterAnimationAssetDraft = preload("res://game/creator/character_editor/character_animation_asset_draft.gd")
 const CharacterAnimationMap = preload("res://game/core/character/character_animation_map.gd")
 const CharacterAudioDraft = preload("res://game/creator/character_editor/character_audio_draft.gd")
 const CharacterAudioBindings = preload("res://game/core/character/character_audio_bindings.gd")
@@ -12,6 +13,10 @@ var character_draft := CharacterDraft.new()
 var character_draft_revision := 0
 var animation_draft := CharacterAnimationDraft.new()
 var animation_draft_revision := 0
+var animation_asset_draft := CharacterAnimationAssetDraft.new()
+var animation_asset_bytes := PackedByteArray()
+var animation_asset_error := ""
+var animation_asset_revision := 0
 var audio_draft := CharacterAudioDraft.new()
 var audio_draft_revision := 0
 var audio_asset_draft := CharacterAudioAssetDraft.new()
@@ -32,6 +37,9 @@ var archetype_edit: LineEdit
 var animation_map_edit: LineEdit
 var animation_semantic_select: OptionButton
 var animation_id_edit: LineEdit
+var animation_asset_frame_count_spin: SpinBox
+var animation_asset_fps_spin: SpinBox
+var animation_asset_status_label: Label
 var audio_binding_select: OptionButton
 var audio_cue_edit: LineEdit
 var audio_asset_status_label: Label
@@ -61,6 +69,10 @@ var skill_summary_label: Label
 var _web_set_name_callback
 var _web_set_animation_map_callback
 var _web_set_animation_semantic_callback
+var _web_import_animation_png_callback
+var _web_animation_import_error_callback
+var _web_clear_animation_asset_callback
+var _web_set_animation_asset_timing_callback
 var _web_set_audio_binding_callback
 var _web_import_audio_wav_callback
 var _web_import_audio_error_callback
@@ -78,6 +90,7 @@ var _web_reset_skill_callback
 func _ready() -> void:
 	animation_draft.load_from_id(character_draft.animation_map)
 	_build_ui()
+	_restore_animation_asset_from_session()
 	_restore_audio_asset_from_session()
 	_sync_character_controls_from_draft()
 	_sync_skill_controls_from_draft()
@@ -192,6 +205,27 @@ func _build_character_panel() -> PanelContainer:
 	_add_heading(stats_column, "Animation Semantics")
 	animation_semantic_select = _add_option_field(stats_column, "Semantic", CharacterAnimationMap.REQUIRED_SEMANTICS)
 	animation_id_edit = _add_text_field(stats_column, "Animation ID", "Safe token only, e.g. custom_attack_one")
+	var animation_asset_timing := HBoxContainer.new()
+	animation_asset_timing.add_theme_constant_override("separation", 8)
+	stats_column.add_child(animation_asset_timing)
+	animation_asset_frame_count_spin = _add_number_field(animation_asset_timing, "Frames", 1.0, float(CharacterAnimationAssetDraft.MAX_FRAME_COUNT), 1.0)
+	animation_asset_fps_spin = _add_number_field(animation_asset_timing, "FPS", 1.0, 60.0, 1.0)
+	var animation_asset_actions := HBoxContainer.new()
+	animation_asset_actions.add_theme_constant_override("separation", 8)
+	stats_column.add_child(animation_asset_actions)
+	var choose_animation_button := Button.new()
+	choose_animation_button.text = "Choose Animation PNG"
+	choose_animation_button.pressed.connect(_on_choose_animation_asset_pressed)
+	animation_asset_actions.add_child(choose_animation_button)
+	var clear_animation_button := Button.new()
+	clear_animation_button.text = "Clear Animation PNG"
+	clear_animation_button.pressed.connect(_on_clear_animation_asset_pressed)
+	animation_asset_actions.add_child(clear_animation_button)
+	animation_asset_status_label = Label.new()
+	animation_asset_status_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	animation_asset_status_label.modulate = Color("8292b3")
+	stats_column.add_child(animation_asset_status_label)
+	_refresh_animation_asset_status(false)
 
 	_add_heading(stats_column, "Audio Cue Bindings")
 	audio_binding_select = _add_option_field(stats_column, "Binding", CharacterAudioBindings.REQUIRED_BINDINGS)
@@ -219,6 +253,8 @@ func _build_character_panel() -> PanelContainer:
 	animation_map_edit.text_changed.connect(_on_animation_map_changed)
 	animation_semantic_select.item_selected.connect(_on_animation_semantic_selected)
 	animation_id_edit.text_changed.connect(_on_animation_id_changed)
+	animation_asset_frame_count_spin.value_changed.connect(_on_animation_asset_timing_changed)
+	animation_asset_fps_spin.value_changed.connect(_on_animation_asset_timing_changed)
 	audio_binding_select.item_selected.connect(_on_audio_binding_selected)
 	audio_cue_edit.text_changed.connect(_on_audio_cue_changed)
 	hp_spin.value_changed.connect(_on_hp_changed)
@@ -420,6 +456,10 @@ func _sync_animation_controls_from_draft() -> void:
 	animation_id_edit.set_block_signals(true)
 	animation_id_edit.text = animation_draft.animation_id_for_semantic(semantic)
 	animation_id_edit.set_block_signals(false)
+	if animation_asset_frame_count_spin != null:
+		animation_asset_frame_count_spin.set_value_no_signal(animation_asset_draft.frame_count)
+	if animation_asset_fps_spin != null:
+		animation_asset_fps_spin.set_value_no_signal(animation_asset_draft.fps)
 
 func _sync_audio_controls_from_draft() -> void:
 	if audio_binding_select == null or audio_cue_edit == null:
@@ -517,10 +557,12 @@ func _on_animation_map_changed(value: String) -> void:
 	if animation_errors.is_empty():
 		animation_draft_revision += 1
 		_sync_animation_controls_from_draft()
+		_clear_animation_asset_if_mapping_changed()
 	_refresh_character_validation()
 
 func _on_animation_semantic_selected(_index: int) -> void:
 	_sync_animation_controls_from_draft()
+	_refresh_animation_asset_status(false)
 	_set_web_state()
 
 func _on_animation_id_changed(value: String) -> void:
@@ -529,6 +571,7 @@ func _on_animation_id_changed(value: String) -> void:
 	var semantic := animation_semantic_select.get_item_text(animation_semantic_select.selected)
 	animation_draft.set_animation(semantic, value)
 	animation_draft_revision += 1
+	_clear_animation_asset_if_mapping_changed()
 	_refresh_character_validation()
 
 func _on_audio_binding_selected(_index: int) -> void:
@@ -544,6 +587,176 @@ func _on_audio_cue_changed(value: String) -> void:
 	audio_draft_revision += 1
 	_clear_audio_asset_if_binding_changed(binding)
 	_refresh_character_validation()
+
+func _on_choose_animation_asset_pressed() -> void:
+	if not OS.has_feature("web"):
+		animation_asset_error = "Animation PNG file picker is currently enabled for the Web build"
+		_refresh_animation_asset_status()
+		return
+	if animation_semantic_select == null or animation_semantic_select.selected < 0 or not animation_draft.validate().is_empty():
+		animation_asset_error = "Fix Animation Semantics before importing PNG"
+		_refresh_animation_asset_status()
+		return
+	var script := """
+(() => {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = 'image/png,.png';
+  input.style.display = 'none';
+  document.body.appendChild(input);
+  input.onchange = () => {
+    const file = input.files && input.files[0];
+    if (!file) { input.remove(); return; }
+    if (file.size > %d) {
+      window.customFighterCreatorAnimationImportError('Animation PNG exceeds 5 MB limit');
+      input.remove();
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      window.customFighterCreatorImportAnimationPng(file.name, file.type || 'image/png', String(reader.result || ''));
+      input.remove();
+    };
+    reader.onerror = () => {
+      window.customFighterCreatorAnimationImportError('Browser could not read Animation PNG');
+      input.remove();
+    };
+    reader.readAsDataURL(file);
+  };
+  input.click();
+})();
+""" % CharacterAnimationAssetDraft.MAX_FILE_BYTES
+	JavaScriptBridge.eval(script)
+
+func _on_clear_animation_asset_pressed() -> void:
+	_clear_animation_asset("")
+
+func _on_animation_asset_timing_changed(_value: float) -> void:
+	if animation_asset_bytes.is_empty():
+		return
+	animation_asset_draft.frame_count = roundi(animation_asset_frame_count_spin.value)
+	animation_asset_draft.fps = animation_asset_fps_spin.value
+	var errors: PackedStringArray = animation_asset_draft.validate_bytes(animation_asset_bytes)
+	if not errors.is_empty():
+		animation_asset_error = " | ".join(errors)
+		_refresh_animation_asset_status()
+		return
+	var session: Variant = get_node_or_null("/root/CreatorPreviewSession")
+	if session == null or not session.has_method("store_animation_asset_draft"):
+		animation_asset_error = "Creator preview session cannot store Animation PNG"
+		_refresh_animation_asset_status()
+		return
+	var store_errors: PackedStringArray = session.call("store_animation_asset_draft", animation_asset_draft.to_dictionary(), animation_asset_bytes)
+	animation_asset_error = "" if store_errors.is_empty() else "Preview session rejected Animation PNG: %s" % " | ".join(store_errors)
+	_refresh_animation_asset_status()
+
+func _restore_animation_asset_from_session() -> void:
+	var session: Variant = get_node_or_null("/root/CreatorPreviewSession")
+	if session == null or not session.has_method("has_stored_animation_asset") or not bool(session.call("has_stored_animation_asset")):
+		return
+	if not session.has_method("stored_animation_asset_data") or not session.has_method("stored_animation_asset_png_bytes"):
+		return
+	var metadata: Dictionary = session.call("stored_animation_asset_data")
+	var bytes: PackedByteArray = session.call("stored_animation_asset_png_bytes")
+	var errors: PackedStringArray = animation_asset_draft.load_from_dictionary(metadata)
+	if errors.is_empty():
+		errors = animation_asset_draft.validate_bytes(bytes)
+	if not errors.is_empty():
+		_clear_animation_asset("Stored Animation PNG failed validation")
+		return
+	animation_asset_bytes = bytes.duplicate()
+	animation_asset_error = ""
+
+func _import_animation_png_data(file_name: String, mime_type: String, data_url: String) -> void:
+	if data_url.length() > 8 * 1024 * 1024:
+		_clear_animation_asset("Animation PNG data URL exceeds safe transfer limit")
+		return
+	var marker := "base64,"
+	var marker_index := data_url.find(marker)
+	if marker_index < 0 or not data_url.begins_with("data:image/png"):
+		_clear_animation_asset("Animation import requires a base64 image/png data URL")
+		return
+	var bytes := Marshalls.base64_to_raw(data_url.substr(marker_index + marker.length()))
+	if bytes.is_empty() or bytes.size() > CharacterAnimationAssetDraft.MAX_FILE_BYTES:
+		_clear_animation_asset("Animation PNG exceeds 5 MB limit or is empty")
+		return
+	var image := Image.new()
+	if image.load_png_from_buffer(bytes) != OK:
+		_clear_animation_asset("Animation PNG bytes failed runtime decode")
+		return
+	if animation_semantic_select == null or animation_semantic_select.selected < 0:
+		_clear_animation_asset("Animation semantic selection is unavailable")
+		return
+	var semantic := animation_semantic_select.get_item_text(animation_semantic_select.selected).strip_edges().to_lower()
+	var animation_id := animation_draft.animation_id_for_semantic(semantic)
+	var errors: PackedStringArray = animation_asset_draft.configure_import(
+		semantic,
+		animation_id,
+		file_name,
+		mime_type,
+		image.get_width(),
+		image.get_height(),
+		roundi(animation_asset_frame_count_spin.value),
+		animation_asset_fps_spin.value
+	)
+	if errors.is_empty():
+		errors = animation_asset_draft.validate_bytes(bytes)
+	if not errors.is_empty():
+		_clear_animation_asset(" | ".join(errors))
+		return
+	var session: Variant = get_node_or_null("/root/CreatorPreviewSession")
+	if session == null or not session.has_method("store_animation_asset_draft"):
+		_clear_animation_asset("Creator preview session cannot store Animation PNG")
+		return
+	var store_errors: PackedStringArray = session.call("store_animation_asset_draft", animation_asset_draft.to_dictionary(), bytes)
+	if not store_errors.is_empty():
+		_clear_animation_asset("Preview session rejected Animation PNG: %s" % " | ".join(store_errors))
+		return
+	animation_asset_bytes = bytes.duplicate()
+	animation_asset_error = ""
+	animation_asset_revision += 1
+	_refresh_animation_asset_status(false)
+
+func _clear_animation_asset(message: String) -> void:
+	animation_asset_draft.reset()
+	animation_asset_bytes.clear()
+	animation_asset_error = message
+	animation_asset_revision += 1
+	var session: Variant = get_node_or_null("/root/CreatorPreviewSession")
+	if session != null and session.has_method("clear_animation_asset_draft"):
+		session.call("clear_animation_asset_draft")
+	if animation_asset_frame_count_spin != null:
+		animation_asset_frame_count_spin.set_value_no_signal(animation_asset_draft.frame_count)
+	if animation_asset_fps_spin != null:
+		animation_asset_fps_spin.set_value_no_signal(animation_asset_draft.fps)
+	_refresh_animation_asset_status(false)
+
+func _clear_animation_asset_if_mapping_changed() -> void:
+	if animation_asset_bytes.is_empty():
+		return
+	var current_id := animation_draft.animation_id_for_semantic(animation_asset_draft.semantic)
+	if current_id != animation_asset_draft.animation_id:
+		_clear_animation_asset("Animation PNG cleared because its bound animation ID changed")
+
+func _refresh_animation_asset_status(increment_revision: bool = true) -> void:
+	if increment_revision:
+		animation_asset_revision += 1
+	if animation_asset_status_label == null:
+		return
+	if not animation_asset_error.is_empty():
+		animation_asset_status_label.text = "ANIMATION PNG INVALID · %s" % animation_asset_error
+		animation_asset_status_label.modulate = Color("ff7b86")
+	elif not animation_asset_bytes.is_empty():
+		animation_asset_status_label.text = "ANIMATION PNG READY · %s → %s · %d frames @ %.0f FPS · %dx%d" % [
+			animation_asset_draft.semantic, animation_asset_draft.animation_id,
+			animation_asset_draft.frame_count, animation_asset_draft.fps,
+			animation_asset_draft.image_width, animation_asset_draft.image_height
+		]
+		animation_asset_status_label.modulate = Color("7ff0b1")
+	else:
+		animation_asset_status_label.text = "Optional Animation PNG · horizontal strip · ≤ 5 MB · ≤ 4096 px · ≤ 64 frames · memory only"
+		animation_asset_status_label.modulate = Color("8292b3")
+	_set_web_state()
 
 func _on_choose_audio_pressed() -> void:
 	if not OS.has_feature("web"):
@@ -692,6 +905,7 @@ func _on_reset_pressed() -> void:
 	animation_draft_revision += 1
 	audio_draft.reset()
 	audio_draft_revision += 1
+	_clear_animation_asset("")
 	_clear_audio_asset("")
 	_sync_character_controls_from_draft()
 	_refresh_character_validation(false)
@@ -819,6 +1033,10 @@ func _install_web_bridge() -> void:
 	_web_set_name_callback = JavaScriptBridge.create_callback(_web_set_name)
 	_web_set_animation_map_callback = JavaScriptBridge.create_callback(_web_set_animation_map)
 	_web_set_animation_semantic_callback = JavaScriptBridge.create_callback(_web_set_animation_semantic)
+	_web_import_animation_png_callback = JavaScriptBridge.create_callback(_web_import_animation_png)
+	_web_animation_import_error_callback = JavaScriptBridge.create_callback(_web_animation_import_error)
+	_web_clear_animation_asset_callback = JavaScriptBridge.create_callback(_web_clear_animation_asset)
+	_web_set_animation_asset_timing_callback = JavaScriptBridge.create_callback(_web_set_animation_asset_timing)
 	_web_set_audio_binding_callback = JavaScriptBridge.create_callback(_web_set_audio_binding)
 	_web_import_audio_wav_callback = JavaScriptBridge.create_callback(_web_import_audio_wav)
 	_web_import_audio_error_callback = JavaScriptBridge.create_callback(_web_import_audio_error)
@@ -836,6 +1054,10 @@ func _install_web_bridge() -> void:
 	window.customFighterCreatorSetName = _web_set_name_callback
 	window.customFighterCreatorSetAnimationMap = _web_set_animation_map_callback
 	window.customFighterCreatorSetAnimationSemantic = _web_set_animation_semantic_callback
+	window.customFighterCreatorImportAnimationPng = _web_import_animation_png_callback
+	window.customFighterCreatorAnimationImportError = _web_animation_import_error_callback
+	window.customFighterCreatorClearAnimationAsset = _web_clear_animation_asset_callback
+	window.customFighterCreatorSetAnimationAssetTiming = _web_set_animation_asset_timing_callback
 	window.customFighterCreatorSetAudioBinding = _web_set_audio_binding_callback
 	window.customFighterCreatorImportWav = _web_import_audio_wav_callback
 	window.customFighterCreatorAudioImportError = _web_import_audio_error_callback
@@ -875,6 +1097,25 @@ func _web_set_animation_semantic(args: Array) -> void:
 	animation_id_edit.text = str(args[1])
 	animation_id_edit.set_block_signals(false)
 	_on_animation_id_changed(animation_id_edit.text)
+
+func _web_import_animation_png(args: Array) -> void:
+	if args.size() < 3:
+		_clear_animation_asset("Animation PNG bridge requires name, MIME type and data URL")
+		return
+	_import_animation_png_data(str(args[0]), str(args[1]), str(args[2]))
+
+func _web_animation_import_error(args: Array) -> void:
+	_clear_animation_asset(str(args[0]) if not args.is_empty() else "Browser Animation PNG import failed")
+
+func _web_clear_animation_asset(_args: Array) -> void:
+	_clear_animation_asset("")
+
+func _web_set_animation_asset_timing(args: Array) -> void:
+	if args.size() < 2:
+		return
+	animation_asset_frame_count_spin.value = float(args[0])
+	animation_asset_fps_spin.value = float(args[1])
+	_on_animation_asset_timing_changed(0.0)
 
 func _web_set_audio_binding(args: Array) -> void:
 	if args.size() < 2:
@@ -989,6 +1230,17 @@ func _set_web_state(character_errors: PackedStringArray = PackedStringArray(), s
 		"document.documentElement.dataset.creatorAnimationDraftSemantic=%s;" % JSON.stringify(animation_semantic_select.get_item_text(animation_semantic_select.selected).strip_edges().to_lower() if animation_semantic_select != null and animation_semantic_select.selected >= 0 else "") +
 		"document.documentElement.dataset.creatorAnimationDraftAnimationId=%s;" % JSON.stringify(animation_id_edit.text if animation_id_edit != null else "") +
 		"document.documentElement.dataset.creatorAnimationDraftJson=%s;" % JSON.stringify(JSON.stringify(animation_draft.to_dictionary(), "", true)) +
+		"document.documentElement.dataset.creatorAnimationAssetRevision='%d';" % animation_asset_revision +
+		"document.documentElement.dataset.creatorAnimationAssetValid='%s';" % ("true" if not animation_asset_bytes.is_empty() and animation_asset_error.is_empty() else "false") +
+		"document.documentElement.dataset.creatorAnimationAssetError=%s;" % JSON.stringify(animation_asset_error) +
+		"document.documentElement.dataset.creatorAnimationAssetSemantic=%s;" % JSON.stringify(animation_asset_draft.semantic) +
+		"document.documentElement.dataset.creatorAnimationAssetAnimationId=%s;" % JSON.stringify(animation_asset_draft.animation_id) +
+		"document.documentElement.dataset.creatorAnimationAssetFile=%s;" % JSON.stringify(animation_asset_draft.file_name) +
+		"document.documentElement.dataset.creatorAnimationAssetBytes='%d';" % animation_asset_bytes.size() +
+		"document.documentElement.dataset.creatorAnimationAssetWidth='%d';" % animation_asset_draft.image_width +
+		"document.documentElement.dataset.creatorAnimationAssetHeight='%d';" % animation_asset_draft.image_height +
+		"document.documentElement.dataset.creatorAnimationAssetFrameCount='%d';" % animation_asset_draft.frame_count +
+		"document.documentElement.dataset.creatorAnimationAssetFps='%.3f';" % animation_asset_draft.fps +
 		"document.documentElement.dataset.creatorAudioDraftRevision='%d';" % audio_draft_revision +
 		"document.documentElement.dataset.creatorAudioDraftValid='%s';" % ("true" if audio_draft.validate().is_empty() else "false") +
 		"document.documentElement.dataset.creatorAudioDraftBinding=%s;" % JSON.stringify(audio_binding_select.get_item_text(audio_binding_select.selected).strip_edges().to_lower() if audio_binding_select != null and audio_binding_select.selected >= 0 else "") +
