@@ -128,8 +128,11 @@ try {
       document.documentElement.dataset.creatorAnimationDraftMapId === 'storm_duelist' &&
       document.documentElement.dataset.creatorAnimationDraftSemantic === 'ready' &&
       document.documentElement.dataset.creatorAnimationDraftAnimationId === 'package_ready_custom' &&
-      document.documentElement.dataset.creatorAnimationAssetValid === 'false' &&
-      document.documentElement.dataset.creatorAnimationAssetBytes === '0' &&
+      document.documentElement.dataset.creatorAnimationAssetValid === 'true' &&
+      document.documentElement.dataset.creatorAnimationAssetSemantic === 'ready' &&
+      document.documentElement.dataset.creatorAnimationAssetAnimationId === 'package_ready_custom' &&
+      document.documentElement.dataset.creatorAnimationAssetFile === 'package-ready.png' &&
+      Number(document.documentElement.dataset.creatorAnimationAssetBytes ?? '0') > 0 &&
       document.documentElement.dataset.creatorAnimationAssetError === '' &&
       document.documentElement.dataset.creatorAudioDraftValid === 'true' &&
       document.documentElement.dataset.creatorAudioDraftBinding === 'skill_cast' &&
@@ -391,6 +394,9 @@ try {
       document.documentElement.dataset.creatorDraftName === 'Package Nova' &&
       document.documentElement.dataset.creatorDraftAnimationMap === 'storm_duelist' &&
       document.documentElement.dataset.creatorAnimationDraftAnimationId === 'package_ready_custom' &&
+      document.documentElement.dataset.creatorAnimationAssetValid === 'false' &&
+      document.documentElement.dataset.creatorAnimationAssetBytes === '0' &&
+      document.documentElement.dataset.creatorAnimationAssetError === '' &&
       document.documentElement.dataset.creatorAudioDraftValid === 'true' &&
       document.documentElement.dataset.creatorAudioDraftBinding === 'skill_cast' &&
       document.documentElement.dataset.creatorAudioDraftCue === 'package_cast_custom' &&
