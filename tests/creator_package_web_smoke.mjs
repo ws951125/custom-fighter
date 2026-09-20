@@ -8,6 +8,30 @@ if (browserChannel) launchOptions.channel = browserChannel;
 console.log(`CREATOR_PACKAGE_BROWSER=${browserChannel || 'playwright-chromium'}`);
 console.log(`CREATOR_PACKAGE_BASE_URL=${baseUrl}`);
 
+function pcmWavDataUrl({ sampleRate = 8000, channels = 1, bits = 8, dataSize = 800 } = {}) {
+  const bytes = new Uint8Array(44 + dataSize);
+  const view = new DataView(bytes.buffer);
+  const ascii = (offset, text) => {
+    for (let i = 0; i < text.length; i += 1) bytes[offset + i] = text.charCodeAt(i);
+  };
+  ascii(0, 'RIFF');
+  view.setUint32(4, 36 + dataSize, true);
+  ascii(8, 'WAVE');
+  ascii(12, 'fmt ');
+  view.setUint32(16, 16, true);
+  view.setUint16(20, 1, true);
+  view.setUint16(22, channels, true);
+  view.setUint32(24, sampleRate, true);
+  const blockAlign = (channels * bits) / 8;
+  view.setUint32(28, sampleRate * blockAlign, true);
+  view.setUint16(32, blockAlign, true);
+  view.setUint16(34, bits, true);
+  ascii(36, 'data');
+  view.setUint32(40, dataSize, true);
+  bytes.fill(bits === 8 ? 128 : 0, 44);
+  return `data:audio/wav;base64,${Buffer.from(bytes).toString('base64')}`;
+}
+
 const browser = await chromium.launch(launchOptions);
 try {
   const creatorUrl = new URL(baseUrl);
@@ -27,6 +51,7 @@ try {
       typeof window.customFighterCreatorSetAnimationMap === 'function' &&
       typeof window.customFighterCreatorSetAnimationSemantic === 'function' &&
       typeof window.customFighterCreatorSetAudioBinding === 'function' &&
+      typeof window.customFighterCreatorImportWav === 'function' &&
       typeof window.customFighterCreatorPreview === 'function' &&
       typeof window.customFighterCreatorTimelineApplyComposition === 'function' &&
       typeof window.customFighterCreatorTimelineClear === 'function' &&
@@ -49,6 +74,22 @@ try {
     window.customFighterCreatorTimelineApplyComposition('guarded_impact', 0);
   });
 
+  const packageWavDataUrl = pcmWavDataUrl();
+  await page.evaluate(
+    ({ dataUrl }) => window.customFighterCreatorImportWav('package-cast.wav', 'audio/wav', dataUrl),
+    { dataUrl: packageWavDataUrl },
+  );
+
+  await page.waitForFunction(
+    () =>
+      document.documentElement.dataset.creatorAudioAssetValid === 'true' &&
+      document.documentElement.dataset.creatorAudioAssetBinding === 'skill_cast' &&
+      document.documentElement.dataset.creatorAudioAssetCue === 'package_cast_custom' &&
+      document.documentElement.dataset.creatorAudioAssetBytes === '844',
+    null,
+    { timeout: 5_000 },
+  );
+
   await page.waitForFunction(
     () =>
       document.documentElement.dataset.creatorPackageCanExport === 'true' &&
@@ -61,6 +102,9 @@ try {
       document.documentElement.dataset.creatorAudioDraftValid === 'true' &&
       document.documentElement.dataset.creatorAudioDraftBinding === 'skill_cast' &&
       document.documentElement.dataset.creatorAudioDraftCue === 'package_cast_custom' &&
+      document.documentElement.dataset.creatorAudioAssetValid === 'false' &&
+      document.documentElement.dataset.creatorAudioAssetBytes === '0' &&
+      document.documentElement.dataset.creatorAudioAssetError === '' &&
       document.documentElement.dataset.creatorDraftMaxHp === '222' &&
       document.documentElement.dataset.creatorSkillDraftName === 'Package Bolt' &&
       document.documentElement.dataset.creatorSkillDraftDamage === '41' &&
@@ -91,6 +135,7 @@ try {
   const exported = JSON.parse(exportedJson);
   if (exported.schema_version !== 2) throw new Error('Exported package schema_version mismatch');
   if ('vfx_asset' in exported) throw new Error('Package without authored VFX must not emit a vfx_asset');
+  if ('audio_asset' in exported || 'audio_assets' in exported) throw new Error('WU5 memory-only WAV must not be serialized into Character Package');
   if (exported.package_id !== 'my_fighter_001') throw new Error(`Unexpected package_id ${exported.package_id}`);
   if (exported.character?.name !== 'Package Nova') throw new Error('Exported character name mismatch');
   if (exported.character?.animation_map !== 'storm_duelist') throw new Error('Exported animation map mismatch');
@@ -150,6 +195,11 @@ try {
     window.customFighterCreatorSetSkillMpCost(3);
     window.customFighterCreatorTimelineClear();
   });
+  await page.evaluate(
+    ({ dataUrl }) => window.customFighterCreatorImportWav('transient-cast.wav', 'audio/wav', dataUrl),
+    { dataUrl: packageWavDataUrl },
+  );
+
   await page.waitForFunction(
     () =>
       document.documentElement.dataset.creatorDraftName === 'Mutated Draft' &&
@@ -160,6 +210,9 @@ try {
       document.documentElement.dataset.creatorAnimationDraftAnimationId === 'transient_ready_custom' &&
       document.documentElement.dataset.creatorAudioDraftValid === 'true' &&
       document.documentElement.dataset.creatorAudioDraftCue === 'transient_cast_custom' &&
+      document.documentElement.dataset.creatorAudioAssetValid === 'true' &&
+      document.documentElement.dataset.creatorAudioAssetCue === 'transient_cast_custom' &&
+      document.documentElement.dataset.creatorAudioAssetFile === 'transient-cast.wav' &&
       document.documentElement.dataset.creatorSkillDraftDamage === '7' &&
       document.documentElement.dataset.creatorSkillDraftMpCost === '3' &&
       document.documentElement.dataset.creatorTimelineCount === '0',
@@ -177,6 +230,8 @@ try {
       document.documentElement.dataset.creatorDraftAnimationMap === 'ember_vanguard' &&
       document.documentElement.dataset.creatorAnimationDraftAnimationId === 'transient_ready_custom' &&
       document.documentElement.dataset.creatorAudioDraftCue === 'transient_cast_custom' &&
+      document.documentElement.dataset.creatorAudioAssetValid === 'true' &&
+      document.documentElement.dataset.creatorAudioAssetCue === 'transient_cast_custom' &&
       document.documentElement.dataset.creatorSkillDraftDamage === '7' &&
       document.documentElement.dataset.creatorSkillDraftMpCost === '3',
     null,
@@ -234,7 +289,8 @@ try {
       document.documentElement.dataset.creatorPackageImportStatus === 'invalid' &&
       (document.documentElement.dataset.creatorPackageImportError ?? '').includes('audio cue for skill_cast must be a safe lowercase token') &&
       document.documentElement.dataset.creatorDraftName === 'Mutated Draft' &&
-      document.documentElement.dataset.creatorAudioDraftCue === 'transient_cast_custom',
+      document.documentElement.dataset.creatorAudioDraftCue === 'transient_cast_custom' &&
+      document.documentElement.dataset.creatorAudioAssetValid === 'true',
     null,
     { timeout: 5_000 },
   );
@@ -297,7 +353,7 @@ try {
     { timeout: 5_000 },
   );
 
-  console.log('WEB_CREATOR_PACKAGE_SMOKE_PASSED export=true schema=2 noVfxFallback=true animationMapRoundTrip=true animationPreview=true semanticInvalidExportBlocked=true semanticPackageRoundTrip=true semanticTransientReset=true audioBindingPackageRoundTrip=true unsafePackagedAudioBlocked=true unsafePackagedAnimationBlocked=true missingAnimationMapBlocked=true timelineRoundTrip=true compositionExpanded=true invalidPreserved=true import=true authoredHp=222 authoredDamage=41 authoredMpCost=19 previewCast=true');
+  console.log('WEB_CREATOR_PACKAGE_SMOKE_PASSED export=true schema=2 noVfxFallback=true animationMapRoundTrip=true animationPreview=true semanticInvalidExportBlocked=true semanticPackageRoundTrip=true semanticTransientReset=true audioBindingPackageRoundTrip=true wavMemoryOnly=true invalidImportPreservesWav=true validImportClearsWav=true unsafePackagedAudioBlocked=true unsafePackagedAnimationBlocked=true missingAnimationMapBlocked=true timelineRoundTrip=true compositionExpanded=true invalidPreserved=true import=true authoredHp=222 authoredDamage=41 authoredMpCost=19 previewCast=true');
   await page.close();
 } finally {
   await browser.close();
