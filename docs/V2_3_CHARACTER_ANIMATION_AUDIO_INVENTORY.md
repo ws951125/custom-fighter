@@ -142,13 +142,40 @@ Validation result:
 - Creator Studio proved safe/unsafe audio binding authoring; Creator Preview proved runtime `skill_cast` resolution plus serialized draft round-trip; Creator Package proved schema-v2 export/import, tamper rejection, and Training preservation.
 - CI #422/#424 failures were limited to the browser test treating a transient selector row as persisted model state. The product/runtime state was already correct; L-034 records the correction and CI #425 validates it cross-browser.
 
-## Deferred after WU4
+## Work Unit 4 production closeout
+
+- PR #166 squash-merged as `c326608f691129207d708cffbd339850308fedd6`.
+- Main CI #428 hit two different unchanged hosted-Edge timing windows after the WU4 product coverage had already passed in Chromium.
+- Test-only PR #167 hardened browser-side transient-state capture plus bounded Timeline observation timeouts; PR CI #429 passed Chromium + hosted Edge with no runtime/product changes.
+- PR #167 squash-merged as `66190eff50b60d4a11a57a702fc175accaf58634`.
+- Exact-main CI #430 (`35482812184`) passed the full production chain. Render reported exact revision `66190eff50b60d4a11a57a702fc175accaf58634`, and production Microsoft Edge finished `SMOKE_SUITE_PASSED count=24`.
+
+## Work Unit 5 — bounded PCM WAV import + memory-only persistence
+
+Scope:
+1. Accept one Creator WAV asset bound to one existing fixed character-audio binding + safe cue token.
+2. Require a safe `.wav` filename and canonicalize approved WAV MIME aliases to `audio/wav`.
+3. Accept only RIFF/WAVE uncompressed PCM, mono/stereo, 8/16-bit, 8–48 kHz, ≤3 seconds, and ≤512 KB.
+4. Validate RIFF length, chunk bounds, `fmt` and data chunks, PCM format code, byte rate, block alignment, complete PCM frames and derived duration.
+5. Transfer browser-selected bytes as a bounded base64 data URL only; do not persist a local path, URL, decoder command, callback or script.
+6. Store validated metadata + bytes only in `CreatorPreviewSession` memory and preserve them across Creator → Training Preview → Creator navigation.
+7. Clear the stored WAV if its bound Cue ID changes, on Character reset, or after a successful Character Package import.
+8. Keep invalid package imports non-mutating: an existing valid WAV remains intact when import validation fails.
+9. Keep WU5 intentionally memory-only: do not add WAV bytes to Character Package schema v2 and do not play audio yet.
+
+Validation result:
+- PR #168 head `133633cc8491049d83a43fdd30fe6335b939bbfa` passed PR CI #431 (`35485169214`).
+- Windows Native, Godot import/boot/domain/AI contracts, backend tests, Web export/size budget, Chromium `smoke:all`, and GitHub-hosted Microsoft Edge `smoke:all` all passed.
+- Domain tests emitted `CHARACTER_AUDIO_ASSET_DRAFT_TESTS_PASSED`; CreatorPreviewSession coverage proved valid WAV storage and tampered-byte fail-closed clearing.
+- Creator Studio proved real base64 PCM WAV import, cue-change stale clearing and reset clearing. Creator Preview proved Creator → Training → Creator memory round-trip. Creator Package proved WU5 remains memory-only, invalid imports preserve the current WAV, and successful package import clears it.
+
+## Deferred after WU5
 
 - creator-provided animation asset import;
 - animation asset packaging/self-contained transport;
-- approved audio-file import with bounded MIME/codec/size validation;
-- audio asset packaging and runtime playback;
-- broader character/basic-attack/hit/impact playback triggers backed by approved assets;
+- WAV/audio asset packaging and Character Package size-policy revision;
+- runtime WAV playback through the authored cue-binding layer;
+- broader ready/basic-attack/hit/skill-impact playback triggers backed by approved assets;
 - final V2-3 cross-machine/self-contained acceptance.
 
 V2 progress remains **25% (2/8 phases complete)** until the entire V2-3 acceptance criterion is satisfied and synchronized.

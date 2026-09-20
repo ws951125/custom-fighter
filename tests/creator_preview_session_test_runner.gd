@@ -4,6 +4,7 @@ const CreatorPreviewSession = preload("res://game/creator/preview/creator_previe
 const CharacterDraft = preload("res://game/creator/character_editor/character_draft.gd")
 const CharacterAnimationMap = preload("res://game/core/character/character_animation_map.gd")
 const CharacterAudioBindings = preload("res://game/core/character/character_audio_bindings.gd")
+const CharacterAudioAssetDraft = preload("res://game/creator/character_editor/character_audio_asset_draft.gd")
 const SkillDraft = preload("res://game/creator/skill_editor/skill_draft.gd")
 const VfxDraft = preload("res://game/creator/vfx_editor/vfx_draft.gd")
 
@@ -115,6 +116,28 @@ func _run() -> void:
 		authored_audio_data
 	)
 	_check(restore_audio_errors.is_empty() and session.has_active_audio_bindings_preview(), "valid audio preview restores after fail-closed case")
+
+	var wav_bytes := _pcm_wav(8000, 1, 8, 800)
+	var audio_asset := CharacterAudioAssetDraft.new()
+	var audio_asset_errors: PackedStringArray = audio_asset.configure_import(
+		"preview-cast.wav", "audio/wav", "skill_cast", "preview_cast_custom", wav_bytes
+	)
+	_check(audio_asset_errors.is_empty(), "test WAV asset validates before session storage")
+	var store_audio_asset_errors: PackedStringArray = session.store_audio_asset_draft(audio_asset.to_dictionary(), wav_bytes)
+	_check(store_audio_asset_errors.is_empty(), "validated WAV audio asset stores in preview session")
+	_check(session.has_stored_audio_asset(), "stored WAV audio asset is available across Creator/Preview navigation")
+	_check(str(session.stored_audio_asset_data().get("binding", "")) == "skill_cast", "stored WAV keeps binding metadata")
+	_check(str(session.stored_audio_asset_data().get("cue_id", "")) == "preview_cast_custom", "stored WAV keeps cue token metadata")
+	_check(session.stored_audio_asset_bytes().size() == wav_bytes.size(), "stored WAV keeps bytes in memory")
+
+	var tampered_wav := wav_bytes.duplicate()
+	tampered_wav[4] = 0
+	var tampered_store_errors: PackedStringArray = session.store_audio_asset_draft(audio_asset.to_dictionary(), tampered_wav)
+	_check(not tampered_store_errors.is_empty(), "tampered WAV bytes fail closed in preview session")
+	_check(not session.has_stored_audio_asset(), "invalid WAV clears stale stored audio asset")
+
+	var restore_asset_errors: PackedStringArray = session.store_audio_asset_draft(audio_asset.to_dictionary(), wav_bytes)
+	_check(restore_asset_errors.is_empty() and session.has_stored_audio_asset(), "valid WAV can be restored after fail-closed case")
 
 	var mismatched_animation_data: Dictionary = authored_animation_data.duplicate(true)
 	mismatched_animation_data["id"] = "storm_duelist"
@@ -262,6 +285,40 @@ func _test_all_family_slots(session: CreatorPreviewSession, character: Character
 		var stored_slots: Dictionary = session.stored_character_draft_data().get("skill_slots", {})
 		for slot_name in original_slots.keys():
 			_check(str(stored_slots.get(slot_name, "")) == str(original_slots.get(slot_name, "")), "stored CharacterDraft stays unchanged for %s/%s" % [family, slot_name])
+
+func _pcm_wav(sample_rate: int, channels: int, bits: int, data_size: int) -> PackedByteArray:
+	var bytes := PackedByteArray()
+	_append_ascii(bytes, "RIFF")
+	_append_u32(bytes, 36 + data_size)
+	_append_ascii(bytes, "WAVE")
+	_append_ascii(bytes, "fmt ")
+	_append_u32(bytes, 16)
+	_append_u16(bytes, 1)
+	_append_u16(bytes, channels)
+	_append_u32(bytes, sample_rate)
+	var block_align := channels * bits / 8
+	_append_u32(bytes, sample_rate * block_align)
+	_append_u16(bytes, block_align)
+	_append_u16(bytes, bits)
+	_append_ascii(bytes, "data")
+	_append_u32(bytes, data_size)
+	for index in range(data_size):
+		bytes.append(128 if bits == 8 else 0)
+	return bytes
+
+func _append_ascii(bytes: PackedByteArray, value: String) -> void:
+	for index in range(value.length()):
+		bytes.append(value.unicode_at(index))
+
+func _append_u16(bytes: PackedByteArray, value: int) -> void:
+	bytes.append(value & 0xff)
+	bytes.append((value >> 8) & 0xff)
+
+func _append_u32(bytes: PackedByteArray, value: int) -> void:
+	bytes.append(value & 0xff)
+	bytes.append((value >> 8) & 0xff)
+	bytes.append((value >> 16) & 0xff)
+	bytes.append((value >> 24) & 0xff)
 
 func _contains_fragment(errors: PackedStringArray, fragment: String) -> bool:
 	for error in errors:

@@ -244,6 +244,22 @@ Work unit 4 — **safe character/skill audio cue bindings — implementation com
 - PR #166 head `22c41b662a5753d59f47a3cd44bd20e63cfc975c` passed PR CI #425 (`35457465896`) across Windows Native, Godot import/boot/domain/backend, Web export/size budget, Chromium `smoke:all`, and GitHub-hosted Microsoft Edge `smoke:all`.
 - CI #422/#424 exposed only a browser-regression assertion that confused persisted draft data with transient editor selection. No runtime behavior change was required; L-034 records the prevention rule, and the corrected latest head passed both Chromium and hosted Edge.
 - WU4 deliberately does **not** accept or decode audio files yet. Audio bytes, approved MIME/codec import, package asset transport and real playback binding remain later V2-3 slices.
+- PR #166 squash-merged to `main` as `c326608f691129207d708cffbd339850308fedd6`.
+- Main CI #428 exposed two different unchanged hosted-Edge timing windows after Chromium/WU4 feature coverage had passed. PR #167 added test-only state-capture/timeout hardening, then passed CI #429 without changing runtime behavior.
+- PR #167 squash-merged as `66190eff50b60d4a11a57a702fc175accaf58634`; exact-main CI #430 (`35482812184`) passed Windows Native, Godot/domain/backend, Web/Chromium, hosted Edge, GitHub Pages deployment/public reachability, Render exact-revision readiness, and production Edge `SMOKE_SUITE_PASSED count=24`.
+- Render readiness confirmed `PRODUCTION_AI_BACKEND_READY provider=gemini model=gemini-3.6-flash billing_mode=free-tier-only revision=66190eff50b60d4a11a57a702fc175accaf58634`.
+- V2 remains **25% (2/8 phases complete)** until the full V2-3 phase acceptance criterion is satisfied.
+
+Work unit 5 — **bounded PCM WAV import + memory-only Creator persistence — implementation complete; PR validation passed**:
+- `CharacterAudioAssetDraft` accepts one short WAV asset bound to one existing fixed audio binding + safe cue token.
+- Accepted files are limited to safe `.wav` filenames, canonical `audio/wav`, RIFF/WAVE framing, uncompressed PCM, mono/stereo, 8/16-bit, 8–48 kHz, ≤3 seconds, and ≤512 KB.
+- The parser validates RIFF/chunk bounds, `fmt`/data presence, PCM format, byte rate, block alignment, complete PCM frames, payload length and derived duration. Compressed/non-PCM, malformed, oversized, path-like, or metadata-mismatched files fail closed.
+- Creator Character Editor adds `Choose WAV` / `Clear WAV` for the currently selected Audio Binding/Cue ID. The browser transfers bytes through a bounded base64 data URL; no filesystem path or remote URL is retained.
+- Validated metadata + bytes live only in `CreatorPreviewSession` memory and survive Creator → Training Preview → Creator navigation. WU5 does **not** play the WAV.
+- If the bound Cue ID changes, the stale WAV is cleared immediately. Character reset and successful package import also clear the memory-only WAV.
+- WU5 deliberately does **not** serialize WAV bytes into Character Package schema v2. Invalid package imports preserve the current WAV; a successful package import clears it so state cannot leak across package boundaries.
+- Domain/session/browser regressions cover valid PCM parsing, unsafe filename/non-PCM/duration rejection, metadata round-trip, tampered-byte fail-closed clearing, Creator import/stale-clear/reset, Preview memory round-trip, and package workflow isolation.
+- PR #168 head `133633cc8491049d83a43fdd30fe6335b939bbfa` passed PR CI #431 (`35485169214`): Windows Native, Godot import/boot/domain/AI contracts, backend tests, Web export/size budget, Chromium `smoke:all`, and GitHub-hosted Microsoft Edge `smoke:all` all succeeded.
 - V2 remains **25% (2/8 phases complete)** until the full V2-3 phase acceptance criterion is satisfied.
 
 ### V2-1 implementation checkpoints
@@ -362,4 +378,4 @@ AI VFX backend: `https://custom-fighter-ai-vfx.onrender.com`
 
 ## Next implementation target
 
-Validate V2-3 Work Unit 3 on GitHub: self-contained package domain tests, Godot import/boot, Web export/size budget, Creator Package Chromium regression, full Chromium `smoke:all`, Windows Native, and hosted Microsoft Edge `smoke:all`. After WU3 is production-validated, continue V2-3 with the next safe animation/audio authoring slice.
+Validate V2-3 Work Unit 5 on GitHub: PCM WAV domain tests, CreatorPreviewSession audio-asset safety coverage, Creator Studio/Preview/Package browser regressions, Godot import/boot, Web export/size budget, full Chromium `smoke:all`, Windows Native, and hosted Microsoft Edge `smoke:all`. After WU5 is production-validated, continue with the package-transport / runtime-playback slice while preserving the bounded audio safety contract.

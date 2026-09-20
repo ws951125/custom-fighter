@@ -5,6 +5,7 @@ const CharacterAnimationDraft = preload("res://game/creator/character_editor/cha
 const CharacterAnimationMap = preload("res://game/core/character/character_animation_map.gd")
 const CharacterAudioDraft = preload("res://game/creator/character_editor/character_audio_draft.gd")
 const CharacterAudioBindings = preload("res://game/core/character/character_audio_bindings.gd")
+const CharacterAudioAssetDraft = preload("res://game/creator/character_editor/character_audio_asset_draft.gd")
 const SkillDraft = preload("res://game/creator/skill_editor/skill_draft.gd")
 
 var character_draft := CharacterDraft.new()
@@ -13,6 +14,10 @@ var animation_draft := CharacterAnimationDraft.new()
 var animation_draft_revision := 0
 var audio_draft := CharacterAudioDraft.new()
 var audio_draft_revision := 0
+var audio_asset_draft := CharacterAudioAssetDraft.new()
+var audio_asset_bytes := PackedByteArray()
+var audio_asset_error := ""
+var audio_asset_revision := 0
 var skill_draft := SkillDraft.new()
 var skill_draft_revision := 0
 var current_editor := "character"
@@ -29,6 +34,7 @@ var animation_semantic_select: OptionButton
 var animation_id_edit: LineEdit
 var audio_binding_select: OptionButton
 var audio_cue_edit: LineEdit
+var audio_asset_status_label: Label
 var hp_spin: SpinBox
 var mp_spin: SpinBox
 var speed_spin: SpinBox
@@ -56,6 +62,9 @@ var _web_set_name_callback
 var _web_set_animation_map_callback
 var _web_set_animation_semantic_callback
 var _web_set_audio_binding_callback
+var _web_import_audio_wav_callback
+var _web_import_audio_error_callback
+var _web_clear_audio_asset_callback
 var _web_set_hp_callback
 var _web_reset_callback
 var _web_select_editor_callback
@@ -69,6 +78,7 @@ var _web_reset_skill_callback
 func _ready() -> void:
 	animation_draft.load_from_id(character_draft.animation_map)
 	_build_ui()
+	_restore_audio_asset_from_session()
 	_sync_character_controls_from_draft()
 	_sync_skill_controls_from_draft()
 	_refresh_character_validation(false)
@@ -186,6 +196,22 @@ func _build_character_panel() -> PanelContainer:
 	_add_heading(stats_column, "Audio Cue Bindings")
 	audio_binding_select = _add_option_field(stats_column, "Binding", CharacterAudioBindings.REQUIRED_BINDINGS)
 	audio_cue_edit = _add_text_field(stats_column, "Cue ID", "Safe token only, e.g. nova_skill_cast")
+	var audio_asset_actions := HBoxContainer.new()
+	audio_asset_actions.add_theme_constant_override("separation", 8)
+	stats_column.add_child(audio_asset_actions)
+	var choose_audio_button := Button.new()
+	choose_audio_button.text = "Choose WAV"
+	choose_audio_button.pressed.connect(_on_choose_audio_pressed)
+	audio_asset_actions.add_child(choose_audio_button)
+	var clear_audio_button := Button.new()
+	clear_audio_button.text = "Clear WAV"
+	clear_audio_button.pressed.connect(_on_clear_audio_asset_pressed)
+	audio_asset_actions.add_child(clear_audio_button)
+	audio_asset_status_label = Label.new()
+	audio_asset_status_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	audio_asset_status_label.modulate = Color("8292b3")
+	stats_column.add_child(audio_asset_status_label)
+	_refresh_audio_asset_status(false)
 
 	id_edit.text_changed.connect(_on_id_changed)
 	name_edit.text_changed.connect(_on_name_changed)
@@ -507,6 +533,7 @@ func _on_animation_id_changed(value: String) -> void:
 
 func _on_audio_binding_selected(_index: int) -> void:
 	_sync_audio_controls_from_draft()
+	_refresh_audio_asset_status(false)
 	_set_web_state()
 
 func _on_audio_cue_changed(value: String) -> void:
@@ -515,7 +542,136 @@ func _on_audio_cue_changed(value: String) -> void:
 	var binding := audio_binding_select.get_item_text(audio_binding_select.selected)
 	audio_draft.set_cue(binding, value)
 	audio_draft_revision += 1
+	_clear_audio_asset_if_binding_changed(binding)
 	_refresh_character_validation()
+
+func _on_choose_audio_pressed() -> void:
+	if not OS.has_feature("web"):
+		audio_asset_error = "WAV file picker is currently enabled for the Web build"
+		_refresh_audio_asset_status()
+		return
+	if audio_binding_select == null or audio_binding_select.selected < 0 or not audio_draft.validate().is_empty():
+		audio_asset_error = "Fix Audio Cue Bindings before importing WAV"
+		_refresh_audio_asset_status()
+		return
+	var script := """
+(() => {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = 'audio/wav,.wav';
+  input.style.display = 'none';
+  document.body.appendChild(input);
+  input.onchange = () => {
+    const file = input.files && input.files[0];
+    if (!file) { input.remove(); return; }
+    if (file.size > %d) {
+      window.customFighterCreatorAudioImportError('WAV exceeds 512 KB limit');
+      input.remove();
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      window.customFighterCreatorImportWav(file.name, file.type || 'audio/wav', String(reader.result || ''));
+      input.remove();
+    };
+    reader.onerror = () => {
+      window.customFighterCreatorAudioImportError('Browser could not read WAV');
+      input.remove();
+    };
+    reader.readAsDataURL(file);
+  };
+  input.click();
+})();
+""" % CharacterAudioAssetDraft.MAX_FILE_BYTES
+	JavaScriptBridge.eval(script)
+
+func _on_clear_audio_asset_pressed() -> void:
+	_clear_audio_asset("")
+
+func _restore_audio_asset_from_session() -> void:
+	var session: Variant = get_node_or_null("/root/CreatorPreviewSession")
+	if session == null or not session.has_method("has_stored_audio_asset") or not bool(session.call("has_stored_audio_asset")):
+		return
+	if not session.has_method("stored_audio_asset_data") or not session.has_method("stored_audio_asset_bytes"):
+		return
+	var metadata: Dictionary = session.call("stored_audio_asset_data")
+	var bytes: PackedByteArray = session.call("stored_audio_asset_bytes")
+	var errors: PackedStringArray = audio_asset_draft.load_from_dictionary(metadata)
+	if errors.is_empty():
+		errors = audio_asset_draft.validate_bytes(bytes)
+	if not errors.is_empty():
+		_clear_audio_asset("Stored WAV failed validation")
+		return
+	audio_asset_bytes = bytes.duplicate()
+	audio_asset_error = ""
+
+func _import_audio_wav_data(file_name: String, mime_type: String, data_url: String) -> void:
+	if data_url.length() > 768 * 1024:
+		_clear_audio_asset("WAV data URL exceeds safe transfer limit")
+		return
+	var marker := "base64,"
+	var marker_index := data_url.find(marker)
+	if marker_index < 0 or not data_url.begins_with("data:audio/"):
+		_clear_audio_asset("WAV import requires a base64 audio data URL")
+		return
+	var bytes := Marshalls.base64_to_raw(data_url.substr(marker_index + marker.length()))
+	if audio_binding_select == null or audio_binding_select.selected < 0:
+		_clear_audio_asset("Audio binding selection is unavailable")
+		return
+	var binding := audio_binding_select.get_item_text(audio_binding_select.selected).strip_edges().to_lower()
+	var cue := audio_draft.cue_for_binding(binding)
+	var errors: PackedStringArray = audio_asset_draft.configure_import(file_name, mime_type, binding, cue, bytes)
+	if not errors.is_empty():
+		_clear_audio_asset(" | ".join(errors))
+		return
+	var session: Variant = get_node_or_null("/root/CreatorPreviewSession")
+	if session == null or not session.has_method("store_audio_asset_draft"):
+		_clear_audio_asset("Creator preview session cannot store WAV")
+		return
+	var store_errors: PackedStringArray = session.call("store_audio_asset_draft", audio_asset_draft.to_dictionary(), bytes)
+	if not store_errors.is_empty():
+		_clear_audio_asset("Preview session rejected WAV: %s" % " | ".join(store_errors))
+		return
+	audio_asset_bytes = bytes.duplicate()
+	audio_asset_error = ""
+	audio_asset_revision += 1
+	_refresh_audio_asset_status(false)
+
+func _clear_audio_asset(message: String) -> void:
+	audio_asset_draft.reset()
+	audio_asset_bytes.clear()
+	audio_asset_error = message
+	audio_asset_revision += 1
+	var session: Variant = get_node_or_null("/root/CreatorPreviewSession")
+	if session != null and session.has_method("clear_audio_asset_draft"):
+		session.call("clear_audio_asset_draft")
+	_refresh_audio_asset_status(false)
+
+func _clear_audio_asset_if_binding_changed(binding_name: String) -> void:
+	if audio_asset_bytes.is_empty() or audio_asset_draft.binding != binding_name.strip_edges().to_lower():
+		return
+	var current_cue := audio_draft.cue_for_binding(binding_name)
+	if current_cue != audio_asset_draft.cue_id:
+		_clear_audio_asset("WAV cleared because its bound Cue ID changed")
+
+func _refresh_audio_asset_status(increment_revision: bool = true) -> void:
+	if increment_revision:
+		audio_asset_revision += 1
+	if audio_asset_status_label == null:
+		return
+	if not audio_asset_error.is_empty():
+		audio_asset_status_label.text = "WAV INVALID · %s" % audio_asset_error
+		audio_asset_status_label.modulate = Color("ff7b86")
+	elif not audio_asset_bytes.is_empty():
+		audio_asset_status_label.text = "WAV READY · %s → %s · %d ms · %d Hz · %d-bit · %d ch" % [
+			audio_asset_draft.binding, audio_asset_draft.cue_id, audio_asset_draft.duration_ms,
+			audio_asset_draft.sample_rate, audio_asset_draft.bits_per_sample, audio_asset_draft.channels
+		]
+		audio_asset_status_label.modulate = Color("7ff0b1")
+	else:
+		audio_asset_status_label.text = "Optional WAV · PCM only · ≤ 3 s · ≤ 512 KB · memory only"
+		audio_asset_status_label.modulate = Color("8292b3")
+	_set_web_state()
 
 func _on_hp_changed(value: float) -> void:
 	character_draft.max_hp = roundi(value)
@@ -536,6 +692,7 @@ func _on_reset_pressed() -> void:
 	animation_draft_revision += 1
 	audio_draft.reset()
 	audio_draft_revision += 1
+	_clear_audio_asset("")
 	_sync_character_controls_from_draft()
 	_refresh_character_validation(false)
 
@@ -663,6 +820,9 @@ func _install_web_bridge() -> void:
 	_web_set_animation_map_callback = JavaScriptBridge.create_callback(_web_set_animation_map)
 	_web_set_animation_semantic_callback = JavaScriptBridge.create_callback(_web_set_animation_semantic)
 	_web_set_audio_binding_callback = JavaScriptBridge.create_callback(_web_set_audio_binding)
+	_web_import_audio_wav_callback = JavaScriptBridge.create_callback(_web_import_audio_wav)
+	_web_import_audio_error_callback = JavaScriptBridge.create_callback(_web_import_audio_error)
+	_web_clear_audio_asset_callback = JavaScriptBridge.create_callback(_web_clear_audio_asset)
 	_web_set_hp_callback = JavaScriptBridge.create_callback(_web_set_hp)
 	_web_reset_callback = JavaScriptBridge.create_callback(_web_reset)
 	_web_select_editor_callback = JavaScriptBridge.create_callback(_web_select_editor)
@@ -677,6 +837,9 @@ func _install_web_bridge() -> void:
 	window.customFighterCreatorSetAnimationMap = _web_set_animation_map_callback
 	window.customFighterCreatorSetAnimationSemantic = _web_set_animation_semantic_callback
 	window.customFighterCreatorSetAudioBinding = _web_set_audio_binding_callback
+	window.customFighterCreatorImportWav = _web_import_audio_wav_callback
+	window.customFighterCreatorAudioImportError = _web_import_audio_error_callback
+	window.customFighterCreatorClearAudioAsset = _web_clear_audio_asset_callback
 	window.customFighterCreatorSetMaxHp = _web_set_hp_callback
 	window.customFighterCreatorResetDraft = _web_reset_callback
 	window.customFighterCreatorSelectEditor = _web_select_editor_callback
@@ -726,6 +889,18 @@ func _web_set_audio_binding(args: Array) -> void:
 	audio_cue_edit.text = str(args[1])
 	audio_cue_edit.set_block_signals(false)
 	_on_audio_cue_changed(audio_cue_edit.text)
+
+func _web_import_audio_wav(args: Array) -> void:
+	if args.size() < 3:
+		_clear_audio_asset("WAV bridge requires name, MIME type and data URL")
+		return
+	_import_audio_wav_data(str(args[0]), str(args[1]), str(args[2]))
+
+func _web_import_audio_error(args: Array) -> void:
+	_clear_audio_asset(str(args[0]) if not args.is_empty() else "Browser WAV import failed")
+
+func _web_clear_audio_asset(_args: Array) -> void:
+	_clear_audio_asset("")
 
 func _web_set_hp(args: Array) -> void:
 	if args.is_empty():
@@ -819,6 +994,17 @@ func _set_web_state(character_errors: PackedStringArray = PackedStringArray(), s
 		"document.documentElement.dataset.creatorAudioDraftBinding=%s;" % JSON.stringify(audio_binding_select.get_item_text(audio_binding_select.selected).strip_edges().to_lower() if audio_binding_select != null and audio_binding_select.selected >= 0 else "") +
 		"document.documentElement.dataset.creatorAudioDraftCue=%s;" % JSON.stringify(audio_cue_edit.text if audio_cue_edit != null else "") +
 		"document.documentElement.dataset.creatorAudioDraftJson=%s;" % JSON.stringify(JSON.stringify(audio_draft.to_dictionary(), "", true)) +
+		"document.documentElement.dataset.creatorAudioAssetRevision='%d';" % audio_asset_revision +
+		"document.documentElement.dataset.creatorAudioAssetValid='%s';" % ("true" if not audio_asset_bytes.is_empty() and audio_asset_error.is_empty() else "false") +
+		"document.documentElement.dataset.creatorAudioAssetError=%s;" % JSON.stringify(audio_asset_error) +
+		"document.documentElement.dataset.creatorAudioAssetBinding=%s;" % JSON.stringify(audio_asset_draft.binding) +
+		"document.documentElement.dataset.creatorAudioAssetCue=%s;" % JSON.stringify(audio_asset_draft.cue_id) +
+		"document.documentElement.dataset.creatorAudioAssetFile=%s;" % JSON.stringify(audio_asset_draft.file_name) +
+		"document.documentElement.dataset.creatorAudioAssetBytes='%d';" % audio_asset_bytes.size() +
+		"document.documentElement.dataset.creatorAudioAssetDurationMs='%d';" % audio_asset_draft.duration_ms +
+		"document.documentElement.dataset.creatorAudioAssetSampleRate='%d';" % audio_asset_draft.sample_rate +
+		"document.documentElement.dataset.creatorAudioAssetChannels='%d';" % audio_asset_draft.channels +
+		"document.documentElement.dataset.creatorAudioAssetBits='%d';" % audio_asset_draft.bits_per_sample +
 		"document.documentElement.dataset.creatorDraftMaxHp='%d';" % character_draft.max_hp +
 		"document.documentElement.dataset.creatorDraftMaxMp='%d';" % character_draft.max_mp +
 		"document.documentElement.dataset.creatorDraftMoveSpeed='%.3f';" % character_draft.move_speed +
