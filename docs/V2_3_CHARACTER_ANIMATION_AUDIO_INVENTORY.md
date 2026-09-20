@@ -241,27 +241,31 @@ Validation result:
 
 ## Work Unit 9 — skill-impact WAV runtime trigger
 
-Scope:
-1. Reuse the same one validated/staged WAV and fixed audio-binding contract; do not add another asset slot or any path/URL/external decoder/script/callback/native code.
-2. Observe skill impact only after the authoritative parent combat runtime increments its persistent skill-hit counters.
-3. Resolve fixed `skill_impact` through the authored binding map and play only on exact Cue match with the staged WAV.
-4. Advance the observed impact counter even when the staged WAV does not match, so an old hit cannot be replayed later after rebinding.
-5. Preserve WU7 timeline-driven `skill_cast` and WU8 J-triggered `basic_attack` behavior unchanged.
-6. Extend Creator Preview Chromium/hosted-Edge regression with a third Preview cycle: bind/import `skill_impact → preview_impact_custom`, cast U, require a real `skillHitCount` increment plus matching playback telemetry, then return to Creator.
-7. Keep `ready` and `hit_received` triggers deferred; `ready` remains isolated due to browser autoplay policy.
-
 Validation result:
-- PR #173 implementation head `44f3101ff66524b39ce26eb955c4a2f1dee900c1` passed PR CI #449 (`35516777928`) on attempt 1.
-- Windows Native, Godot import/boot/domain/AI contracts, trusted backend, Web export/size budget, Chromium `smoke:all`, and GitHub-hosted Microsoft Edge `smoke:all` all passed.
-- Both Chromium and hosted Edge preserved `wavRuntimePlayback=true` and `basicAttackWavRuntimePlayback=true`, then proved `skillImpactWavRuntimePlayback=true` only after Skill 1 registered a real hit through the authoritative combat counters.
-- Both browsers completed `SMOKE_SUITE_PASSED count=24`; no second WAV slot or unsafe resource/execution path was introduced.
-- Final documentation-sync latest-head validation remains required before merge.
+- PR #173 implementation head `44f3101ff66524b39ce26eb955c4a2f1dee900c1` passed PR CI #449 (`35516777928`).
+- Latest PR head `63bacdf39b44fad51f1ba64fe5d7542ec209f1ac` passed PR CI #451 (`35517485178`) across Windows Native, Godot/domain/backend, Web export/size budget, Chromium and hosted Edge.
+- PR #173 was squash-merged as `920ca4a237999856b8e06cf5fbb28b4c88cd4521`.
+- Exact-main CI #452 (`35518658940`) passed Windows Native, Godot/domain/backend/Web/Chromium, hosted Microsoft Edge, GitHub Pages deployment/public reachability, Render exact-revision readiness, and production Microsoft Edge full smoke.
+- Production Edge proved `wavRuntimePlayback=true basicAttackWavRuntimePlayback=true skillImpactWavRuntimePlayback=true` and completed `SMOKE_SUITE_PASSED count=24`; Render readiness matched exact revision `920ca4a237999856b8e06cf5fbb28b4c88cd4521`.
+- WU9 is accepted and production-validated.
 
-## Deferred after WU9
+## Work Unit 10 — hit-received WAV runtime trigger
+
+Scope:
+1. Reuse the same validated/staged single WAV and fixed audio-binding contract; do not add another asset slot, path/URL loading, external decoder, native library, script, callback or executable payload.
+2. Reuse the authoritative `receive_player_hit(...)` boundary rather than inventing a second damage/impact path.
+3. Delegate to the parent boundary first and request `hit_received` playback only when the returned dealt damage is greater than zero.
+4. Therefore Counter-intercepted, zero-damage, defeated-state and otherwise rejected hits remain silent for the hurt cue.
+5. Resolve fixed `hit_received` through the authored binding map and retain exact staged-WAV Cue matching as the final playback gate.
+6. Extend Creator Preview Chromium/hosted-Edge regression with a fourth Preview cycle: bind/import `hit_received → preview_hit_custom`, require the constrained Training incoming-hit bridge, deal 9 real damage, verify authoritative incoming-hit/damage telemetry plus WAV playback, then return to Creator.
+7. Preserve WU7 `skill_cast`, WU8 `basic_attack` and WU9 `skill_impact` behavior unchanged.
+8. Keep `ready` deferred because automatic playback still requires deliberate browser autoplay-policy handling.
+
+## Deferred after WU10
 
 - creator-provided animation asset import;
 - animation asset packaging/self-contained transport;
-- `ready` and `hit_received` playback triggers backed by approved assets;
+- `ready` playback trigger with browser autoplay-safe semantics;
 - final V2-3 cross-machine/self-contained acceptance.
 
 V2 progress remains **25% (2/8 phases complete)** until the entire V2-3 acceptance criterion is satisfied and synchronized.
