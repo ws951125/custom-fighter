@@ -547,7 +547,8 @@ func _on_archetype_changed(value: String) -> void:
 
 func _on_animation_map_changed(value: String) -> void:
 	character_draft.animation_map = value
-	_clear_animation_asset("Animation PNG cleared because the Animation Map changed")
+	if not animation_asset_bytes.is_empty():
+		_clear_animation_asset("Animation PNG cleared because the Animation Map changed")
 	var animation_errors: PackedStringArray = animation_draft.load_from_id(value)
 	if animation_errors.is_empty():
 		animation_draft_revision += 1
