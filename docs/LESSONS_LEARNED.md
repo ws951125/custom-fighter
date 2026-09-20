@@ -390,3 +390,15 @@
 - **Prevention Rule:** For one semantic runtime event, choose exactly one authoritative trigger boundary. Prefer the synchronous source-of-truth method when it exposes the accepted/result value; use frame polling only when no direct event boundary exists. Before combining parallel branch work, search for all producers/consumers of the semantic to prevent duplicate side effects.
 - **Validation:** PR #174 head `73e46478dbd9e4f7940c7908ac4cc1b621c6c133` passed CI #456 (`35519908707`) across Windows Native, Godot/domain/backend, Web export/size budget, Chromium `smoke:all`, and hosted Microsoft Edge `smoke:all`; both browsers emitted `hitReceivedWavRuntimePlayback=true` and `SMOKE_SUITE_PASSED count=24`. Latest docs-sync head `e246614d55aa68a59120a26af31e1b202d1a4474` then passed CI #457 (`35520826213`) across the same required PR gates. Production validation remains pending until the approved merge reaches exact-main CI.
 - **Status:** Verified cross-browser on PR #174; production validation pending
+
+
+## L-036 — Long browser regressions require unique-context edit anchors
+
+- **Date:** 2026-09-21
+- **Area:** GitHub-only source editing / Playwright regression maintenance
+- **Symptom:** WU11 PR CI #460 passed Windows Native, Godot/domain/backend, Web export/size budget, Creator Studio Animation-PNG coverage and Creator Preview Animation-PNG round-trip, then timed out in `creator_package_web_smoke.mjs` before export. The package test incorrectly required the freshly imported animation PNG to already be cleared.
+- **Root Cause:** A source-edit replacement targeted a short assertion sequence that appeared both before export and after successful package import. The first occurrence was replaced, so the post-import isolation assertion was inserted into the pre-export state.
+- **Fix:** Restore the pre-export assertion to require the authored Animation PNG to remain valid, and insert the clear-after-successful-import assertion using the unique `creatorPackageImportStatus === 'valid'` plus import-count context.
+- **Prevention Rule:** When editing a long E2E file through structured remote source replacement, never mutate a repeated short anchor when semantic placement matters. Use a unique stage/function/context block, inspect all matching occurrences first, and make occurrence-specific assertions explicit.
+- **Validation:** Fix commit `512381ef6e46ff7bc54c30c41f1e37cba6a20baa`; latest-head GitHub CI must pass Creator package isolation plus the full required PR gates.
+- **Status:** Fix committed; validation pending
