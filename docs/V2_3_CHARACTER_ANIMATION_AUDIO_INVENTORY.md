@@ -163,13 +163,11 @@ Scope:
 8. Keep invalid package imports non-mutating: an existing valid WAV remains intact when import validation fails.
 9. Keep WU5 intentionally memory-only: do not add WAV bytes to Character Package schema v2 and do not play audio yet.
 
-Validation target:
-- `CHARACTER_AUDIO_ASSET_DRAFT_TESTS_PASSED`;
-- Creator Preview session valid/tampered WAV storage coverage;
-- Creator Studio Chromium/hosted-Edge WAV import + cue-change stale clearing + reset clearing;
-- Creator Preview WAV memory round-trip;
-- Creator Package proof that WU5 does not serialize WAV, invalid import preserves WAV, and successful import clears it;
-- standard Windows Native, Godot import/boot/domain/backend, Web export/size budget, Chromium `smoke:all`, and hosted Microsoft Edge `smoke:all`.
+Validation result:
+- PR #168 head `133633cc8491049d83a43fdd30fe6335b939bbfa` passed PR CI #431 (`35485169214`).
+- Windows Native, Godot import/boot/domain/AI contracts, backend tests, Web export/size budget, Chromium `smoke:all`, and GitHub-hosted Microsoft Edge `smoke:all` all passed.
+- Domain tests emitted `CHARACTER_AUDIO_ASSET_DRAFT_TESTS_PASSED`; CreatorPreviewSession coverage proved valid WAV storage and tampered-byte fail-closed clearing.
+- Creator Studio proved real base64 PCM WAV import, cue-change stale clearing and reset clearing. Creator Preview proved Creator → Training → Creator memory round-trip. Creator Package proved WU5 remains memory-only, invalid imports preserve the current WAV, and successful package import clears it.
 
 ## Deferred after WU5
 
