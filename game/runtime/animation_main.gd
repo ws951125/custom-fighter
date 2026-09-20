@@ -20,7 +20,6 @@ var preview_audio_playback_count := 0
 var preview_audio_last_played_cue := ""
 var preview_audio_observed_basic_attack_step := 0
 var preview_audio_observed_skill_impact_count := 0
-var preview_audio_observed_player_hit_count := 0
 var preview_return_button: Button
 var _web_preview_return_callback
 
@@ -90,7 +89,6 @@ func _ready() -> void:
 func _process(delta: float) -> void:
 	super(delta)
 	_consume_creator_preview_skill_impact_audio()
-	_consume_creator_preview_hit_received_audio()
 	_consume_creator_preview_basic_attack_audio()
 	_consume_creator_preview_timeline_transitions()
 	_tick_creator_preview_timeline_pulses(delta)
@@ -156,7 +154,6 @@ func _load_creator_preview_audio_asset() -> void:
 	preview_audio_last_played_cue = ""
 	preview_audio_observed_basic_attack_step = 0
 	preview_audio_observed_skill_impact_count = 0
-	preview_audio_observed_player_hit_count = player_incoming_hit_count
 
 	var session: Variant = get_node_or_null("/root/CreatorPreviewSession")
 	if session == null or not session.has_method("has_active_audio_asset_preview") or not bool(session.call("has_active_audio_asset_preview")):
@@ -227,23 +224,6 @@ func _consume_creator_preview_skill_impact_audio() -> void:
 	if not player_audio_bindings.loaded:
 		return
 	var cue_id := player_audio_bindings.cue_for_binding("skill_impact")
-	var playback_before := preview_audio_playback_count
-	_play_creator_preview_audio_cue(cue_id)
-	if preview_audio_playback_count > playback_before:
-		_set_web_state()
-
-func _consume_creator_preview_hit_received_audio() -> void:
-	var current_hit_count := player_incoming_hit_count
-	var session: Variant = get_node_or_null("/root/CreatorPreviewSession")
-	if not _preview_session_active(session):
-		preview_audio_observed_player_hit_count = current_hit_count
-		return
-	if current_hit_count <= preview_audio_observed_player_hit_count:
-		return
-	preview_audio_observed_player_hit_count = current_hit_count
-	if last_player_damage_dealt <= 0 or not player_audio_bindings.loaded:
-		return
-	var cue_id := player_audio_bindings.cue_for_binding("hit_received")
 	var playback_before := preview_audio_playback_count
 	_play_creator_preview_audio_cue(cue_id)
 	if preview_audio_playback_count > playback_before:
