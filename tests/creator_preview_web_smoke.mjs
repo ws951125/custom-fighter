@@ -53,6 +53,7 @@ async function diagnosticSnapshot() {
         'creatorPreviewAudioBindingsActive',
         'playerAudioCueBasicAttack',
         'playerAudioCueSkillCast',
+        'playerAudioCueSkillImpact',
         'creatorPreviewAudioAssetActive',
         'creatorPreviewAudioAssetLoaded',
         'creatorPreviewAudioAssetCue',
@@ -402,8 +403,80 @@ try {
     { timeout: 10_000 },
   );
 
+  diagnosticStage = 'author-skill-impact-audio';
+  await page.evaluate(() => {
+    window.customFighterCreatorSetAudioBinding('skill_impact', 'preview_impact_custom');
+  });
+  const skillImpactWavDataUrl = pcmWavDataUrl();
+  await page.evaluate(
+    ({ dataUrl }) => window.customFighterCreatorImportWav('preview-impact.wav', 'audio/wav', dataUrl),
+    { dataUrl: skillImpactWavDataUrl },
+  );
+  await page.waitForFunction(
+    () =>
+      document.documentElement.dataset.creatorAudioDraftValid === 'true' &&
+      document.documentElement.dataset.creatorAudioAssetValid === 'true' &&
+      document.documentElement.dataset.creatorAudioAssetBinding === 'skill_impact' &&
+      document.documentElement.dataset.creatorAudioAssetCue === 'preview_impact_custom' &&
+      document.documentElement.dataset.creatorAudioAssetFile === 'preview-impact.wav' &&
+      document.documentElement.dataset.creatorPreviewCanLaunch === 'true',
+    null,
+    { timeout: 5_000 },
+  );
+
+  diagnosticStage = 'skill-impact-preview-launch';
+  await page.evaluate(() => window.customFighterCreatorPreview());
+  await page.waitForFunction(
+    () =>
+      document.documentElement.dataset.appMode === 'training' &&
+      document.documentElement.dataset.creatorPreviewActive === 'true' &&
+      document.documentElement.dataset.playerAudioBindingsLoaded === 'true' &&
+      document.documentElement.dataset.playerAudioCueSkillImpact === 'preview_impact_custom' &&
+      document.documentElement.dataset.creatorPreviewAudioAssetActive === 'true' &&
+      document.documentElement.dataset.creatorPreviewAudioAssetLoaded === 'true' &&
+      document.documentElement.dataset.creatorPreviewAudioAssetCue === 'preview_impact_custom' &&
+      document.documentElement.dataset.creatorPreviewAudioPlaybackCount === '0' &&
+      document.documentElement.dataset.creatorPreviewAudioLastPlayedCue === '',
+    null,
+    { timeout: 60_000 },
+  );
+
+  diagnosticStage = 'skill-impact-cast';
+  await page.keyboard.down('u');
+  await page.waitForFunction(
+    () => Number(document.documentElement.dataset.playerMp) === 83,
+    null,
+    { timeout: 3_000 },
+  );
+  await page.keyboard.up('u');
+
+  diagnosticStage = 'skill-impact-wav-playback';
+  await page.waitForFunction(
+    () =>
+      Number(document.documentElement.dataset.skillHitCount ?? '0') >= 1 &&
+      document.documentElement.dataset.lastSkillHit === 'true' &&
+      Number(document.documentElement.dataset.creatorPreviewAudioPlaybackCount ?? '0') >= 1 &&
+      document.documentElement.dataset.creatorPreviewAudioLastPlayedCue === 'preview_impact_custom',
+    null,
+    { timeout: 6_000 },
+  );
+
+  diagnosticStage = 'skill-impact-return';
+  await page.evaluate(() => window.customFighterPreviewReturnToCreator());
+  await page.waitForFunction(
+    () =>
+      document.documentElement.dataset.appMode === 'creator' &&
+      document.documentElement.dataset.creatorStudioReady === 'true' &&
+      document.documentElement.dataset.creatorAudioAssetValid === 'true' &&
+      document.documentElement.dataset.creatorAudioAssetBinding === 'skill_impact' &&
+      document.documentElement.dataset.creatorAudioAssetCue === 'preview_impact_custom' &&
+      document.documentElement.dataset.creatorAudioAssetFile === 'preview-impact.wav',
+    null,
+    { timeout: 10_000 },
+  );
+
   diagnosticStage = 'passed';
-  console.log('WEB_CREATOR_PREVIEW_SMOKE_PASSED invalidBlocked=true authoredHp=180 authoredDamage=33 authoredMpCost=17 authoredCooldown=2.4 semanticAnimationOverride=true semanticAnimationRoundTrip=true audioBindingOverride=true audioBindingRoundTrip=true wavMemoryRoundTrip=true wavRuntimePlayback=true basicAttackWavRuntimePlayback=true safeComposition=true timelineRoundTrip=true animationTiming=true vfxTiming=true audioTiming=true spatialHitbox=true spatialHurtbox=true cast=true draftsRestored=true');
+  console.log('WEB_CREATOR_PREVIEW_SMOKE_PASSED invalidBlocked=true authoredHp=180 authoredDamage=33 authoredMpCost=17 authoredCooldown=2.4 semanticAnimationOverride=true semanticAnimationRoundTrip=true audioBindingOverride=true audioBindingRoundTrip=true wavMemoryRoundTrip=true wavRuntimePlayback=true basicAttackWavRuntimePlayback=true skillImpactWavRuntimePlayback=true safeComposition=true timelineRoundTrip=true animationTiming=true vfxTiming=true audioTiming=true spatialHitbox=true spatialHurtbox=true cast=true draftsRestored=true');
   await page.close();
 } catch (error) {
   const snapshot = await diagnosticSnapshot();
