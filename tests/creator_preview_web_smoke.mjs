@@ -52,6 +52,13 @@ async function diagnosticSnapshot() {
         'playerAudioBindingsLoaded',
         'creatorPreviewAudioBindingsActive',
         'playerAudioCueSkillCast',
+        'creatorPreviewAudioAssetActive',
+        'creatorPreviewAudioAssetLoaded',
+        'creatorPreviewAudioAssetCue',
+        'creatorPreviewAudioAssetBytes',
+        'creatorPreviewAudioAssetLoadError',
+        'creatorPreviewAudioPlaybackCount',
+        'creatorPreviewAudioLastPlayedCue',
         'creatorPreviewTimelineRunning',
         'creatorPreviewTimelineElapsed',
         'creatorPreviewTimelineTransitionCount',
@@ -215,6 +222,13 @@ try {
       document.documentElement.dataset.playerAudioBindingsLoaded === 'true' &&
       document.documentElement.dataset.creatorPreviewAudioBindingsActive === 'true' &&
       document.documentElement.dataset.playerAudioCueSkillCast === 'preview_cast_custom' &&
+      document.documentElement.dataset.creatorPreviewAudioAssetActive === 'true' &&
+      document.documentElement.dataset.creatorPreviewAudioAssetLoaded === 'true' &&
+      document.documentElement.dataset.creatorPreviewAudioAssetCue === 'preview_cast_custom' &&
+      document.documentElement.dataset.creatorPreviewAudioAssetBytes === '844' &&
+      document.documentElement.dataset.creatorPreviewAudioAssetLoadError === '' &&
+      document.documentElement.dataset.creatorPreviewAudioPlaybackCount === '0' &&
+      document.documentElement.dataset.creatorPreviewAudioLastPlayedCue === '' &&
       document.documentElement.dataset.playerAnimationMapLoaded === 'true' &&
       document.documentElement.dataset.playerAnimationMapId === 'ember_vanguard' &&
       document.documentElement.dataset.playerAnimationSemantic === 'ready' &&
@@ -251,6 +265,8 @@ try {
       document.documentElement.dataset.creatorPreviewTimelineVfxActive === 'true' &&
       document.documentElement.dataset.creatorPreviewTimelineLastAudioCue === 'preview_cast_custom' &&
       Number(document.documentElement.dataset.creatorPreviewTimelineAudioEventCount ?? '0') >= 1 &&
+      Number(document.documentElement.dataset.creatorPreviewAudioPlaybackCount ?? '0') >= 1 &&
+      document.documentElement.dataset.creatorPreviewAudioLastPlayedCue === 'preview_cast_custom' &&
       Number(document.documentElement.dataset.creatorPreviewTimelineHitboxActiveCount ?? '0') >= 1 &&
       Number(document.documentElement.dataset.creatorPreviewTimelineHurtboxActiveCount ?? '0') >= 1,
     null,
@@ -324,7 +340,7 @@ try {
   }
 
   diagnosticStage = 'passed';
-  console.log('WEB_CREATOR_PREVIEW_SMOKE_PASSED invalidBlocked=true authoredHp=180 authoredDamage=33 authoredMpCost=17 authoredCooldown=2.4 semanticAnimationOverride=true semanticAnimationRoundTrip=true audioBindingOverride=true audioBindingRoundTrip=true wavMemoryRoundTrip=true safeComposition=true timelineRoundTrip=true animationTiming=true vfxTiming=true audioTiming=true spatialHitbox=true spatialHurtbox=true cast=true draftsRestored=true');
+  console.log('WEB_CREATOR_PREVIEW_SMOKE_PASSED invalidBlocked=true authoredHp=180 authoredDamage=33 authoredMpCost=17 authoredCooldown=2.4 semanticAnimationOverride=true semanticAnimationRoundTrip=true audioBindingOverride=true audioBindingRoundTrip=true wavMemoryRoundTrip=true wavRuntimePlayback=true safeComposition=true timelineRoundTrip=true animationTiming=true vfxTiming=true audioTiming=true spatialHitbox=true spatialHurtbox=true cast=true draftsRestored=true');
   await page.close();
 } catch (error) {
   const snapshot = await diagnosticSnapshot();

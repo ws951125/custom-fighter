@@ -263,17 +263,26 @@ Work unit 5 — **bounded PCM WAV import + memory-only Creator persistence — a
 - PR #168 was explicitly approved and squash-merged to `main` as `c5f7e68e919aa0be111c167696757722bf061c80`.
 - Exact-main CI #434 (`35493570174`) passed the complete production chain on that revision: Windows Native, Godot import/boot/domain/AI contracts, trusted backend, Web export/size budget, Chromium `smoke:all`, hosted Microsoft Edge `smoke:all`, GitHub Pages deployment/public reachability, Render exact-revision readiness, and production Microsoft Edge full smoke.
 
-Work unit 6 — **bounded WAV Character Package transport — implementation in progress**:
+Work unit 6 — **bounded WAV Character Package transport — accepted and production-validated**:
 - Schema-v2 self-contained packages may carry one optional `audio_asset`: validated `CharacterAudioAssetDraft` metadata plus bounded WAV bytes encoded as base64. Legacy schema v1 and schema-v2 packages without the field remain compatible.
 - Package validation reuses the WU5 PCM parser and byte/metadata contract; no second codec/parser path is introduced.
 - A packaged WAV is accepted only when its fixed binding exists in packaged `audio_bindings` and its Cue ID exactly matches that binding. Missing/mismatched bindings, malformed base64, tampered RIFF/WAVE bytes, unknown fields and oversized payloads fail closed.
-- Creator export/import now transports the one validated WAV and restores it through `CreatorPreviewSession.store_audio_asset_draft()`; failed package imports remain non-mutating.
-- Creator package JSON is bounded at 8 MB so the already-supported bounded VFX payload plus one ≤512 KB WAV can coexist without making package input unbounded.
-- Domain regressions cover deterministic WAV package round-trip, binding dependency/mismatch, tampered bytes and unknown fields. Creator Package browser regression now proves export/import restoration and tamper rejection.
-- WU6 remains **transport-only**: it does not add runtime WAV playback, arbitrary paths/URLs, scripts, callbacks, compressed audio, or an unbounded asset collection.
-- PR #169 implementation head `665d1965a23c9dbe7b33fd7eba8e3cf225e2da1d` passed PR CI #435 (`35494696068`): Windows Native, Godot import/boot/domain/AI contracts, trusted backend, Web export/size budget, Chromium `smoke:all`, and GitHub-hosted Microsoft Edge `smoke:all` all succeeded.
-- Chromium and hosted Edge both exercised the updated Creator Package regression, including WAV export/import restoration and tampered packaged-WAV fail-closed behavior.
-- Active branch: `feat/v2-3-wav-package-transport-wu6`; PR #169 is open and mergeable. Final documentation-sync HEAD validation is the remaining pre-merge gate.
+- Creator export/import transports the one validated WAV and restores it through `CreatorPreviewSession.store_audio_asset_draft()`; failed package imports remain non-mutating.
+- Creator package JSON remains bounded at 8 MB so the existing bounded VFX payload plus one ≤512 KB WAV can coexist without making package input unbounded.
+- PR #169 latest head `a6886daa27519346fd8d4f10f342e1939ccac50a` passed CI #436 after a same-SHA hosted-Edge retry of one unchanged Buff timing observation.
+- PR #169 was explicitly approved and squash-merged to `main` as `2335ef2351409d8e023f0884a2e55b176d45781c`.
+- Exact-main CI #437 (`35497667643`) passed the complete production chain: Windows Native, Godot/domain/backend, Web export/size budget, Chromium `smoke:all`, hosted Microsoft Edge `smoke:all`, GitHub Pages deployment/public reachability, Render exact-revision readiness, and production Microsoft Edge full smoke.
+
+Work unit 7 — **Creator Preview runtime WAV playback — implementation in progress**:
+- `CreatorPreviewSession` now stages the stored WAV into active Preview only when its validated binding/Cue ID exactly matches the active `audio_bindings`; a mismatch fails closed before Training Preview activates.
+- Training runtime revalidates the staged metadata + bytes and loads the bounded WAV through Godot `AudioStreamWAV.load_from_buffer()`; no filesystem path, URL, script, callback, external decoder, native library, or compressed user payload is introduced.
+- A timeline `audio` event still resolves through the authored fixed binding layer first. Playback occurs only when the resolved Cue ID exactly matches the one active staged WAV.
+- Runtime telemetry exposes active/loaded state, Cue ID, byte count, load error, playback count and last-played Cue for deterministic browser verification.
+- Creator Preview session tests cover active WAV staging, exact binding/Cue matching and fail-closed mismatch handling. Creator Preview browser smoke now requires the WAV to load and records a real runtime playback when the authored `skill_cast` timeline event fires.
+- WU7 is intentionally limited to the existing timeline-driven `skill_cast` path. Broader ready/basic-attack/hit/skill-impact triggers remain deferred.
+- PR #170 implementation head `a4289662a94be4423d389f45e5d86c5dad5d6380` passed PR CI #438 (`35498848537`): Windows Native, Godot import/boot/domain/AI contracts, trusted backend, Web export/size budget, Chromium `smoke:all`, and GitHub-hosted Microsoft Edge `smoke:all` all succeeded.
+- Chromium and hosted Edge both exercised the updated Creator Preview regression with `wavRuntimePlayback=true`: the staged WAV loaded with no runtime error and the authored `skill_cast` timeline event incremented playback telemetry for `preview_cast_custom`.
+- Active branch: `feat/v2-3-runtime-wav-playback-wu7`; PR #170 is open. Final documentation-sync HEAD validation is the remaining pre-merge gate.
 - V2 remains **25% (2/8 phases complete)** until the full V2-3 phase acceptance criterion is satisfied.
 
 ### V2-1 implementation checkpoints

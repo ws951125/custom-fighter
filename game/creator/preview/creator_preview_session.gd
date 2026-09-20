@@ -41,6 +41,8 @@ var _preview_character_data: Dictionary = {}
 var _preview_skill_data: Dictionary = {}
 var _preview_animation_map_data: Dictionary = {}
 var _preview_audio_bindings_data: Dictionary = {}
+var _preview_audio_asset_data: Dictionary = {}
+var _preview_audio_asset_bytes := PackedByteArray()
 var _preview_skill_slot := ""
 var _preview_vfx_data: Dictionary = {}
 var _preview_vfx_png_bytes := PackedByteArray()
@@ -97,6 +99,18 @@ func stage_preview(character_data: Dictionary, skill_data: Dictionary, animation
 			_deactivate_failed_preview()
 			return errors
 
+	if not audio_bindings_data.is_empty() and has_stored_audio_asset():
+		var audio_asset_errors: PackedStringArray = _validate_audio_asset_payload(
+			_stored_audio_asset_data,
+			_stored_audio_asset_bytes,
+			audio_bindings_data
+		)
+		for error in audio_asset_errors:
+			errors.append("character audio asset: %s" % error)
+		if not errors.is_empty():
+			_deactivate_failed_preview()
+			return errors
+
 	if preview_type == "projectile" and has_stored_vfx():
 		var vfx_errors: PackedStringArray = _validate_vfx_payload(_stored_vfx_data, _stored_vfx_png_bytes)
 		for error in vfx_errors:
@@ -119,6 +133,11 @@ func stage_preview(character_data: Dictionary, skill_data: Dictionary, animation
 	else:
 		_stored_audio_bindings_data = audio_bindings_data.duplicate(true)
 		_preview_audio_bindings_data = audio_bindings_data.duplicate(true)
+	if not audio_bindings_data.is_empty() and has_stored_audio_asset():
+		_preview_audio_asset_data = _stored_audio_asset_data.duplicate(true)
+		_preview_audio_asset_bytes = _stored_audio_asset_bytes.duplicate()
+	else:
+		_clear_preview_audio_asset()
 	_preview_character_data = preview_character
 	_preview_skill_data = preview_skill
 	_preview_skill_slot = preview_slot
@@ -148,6 +167,7 @@ func store_audio_bindings_draft(audio_bindings_data: Dictionary) -> PackedString
 	if not errors.is_empty():
 		_stored_audio_bindings_data.clear()
 		_preview_audio_bindings_data.clear()
+		_clear_preview_audio_asset()
 		return errors
 	_stored_audio_bindings_data = audio_bindings_data.duplicate(true)
 	if not _preview_active:
@@ -170,12 +190,15 @@ func store_audio_asset_draft(audio_asset_data: Dictionary, wav_bytes: PackedByte
 		return errors
 	_stored_audio_asset_data = draft.to_dictionary()
 	_stored_audio_asset_bytes = wav_bytes.duplicate()
+	if not _preview_active:
+		_clear_preview_audio_asset()
 	revision += 1
 	return PackedStringArray()
 
 func clear_audio_asset_draft() -> void:
 	_stored_audio_asset_data.clear()
 	_stored_audio_asset_bytes.clear()
+	_clear_preview_audio_asset()
 	revision += 1
 
 func store_vfx_draft(vfx_data: Dictionary, png_bytes: PackedByteArray) -> PackedStringArray:
@@ -267,6 +290,29 @@ func _validate_audio_bindings_payload(audio_bindings_data: Dictionary) -> Packed
 	var bindings := CharacterAudioBindings.new()
 	return bindings.load_from_dictionary(audio_bindings_data)
 
+func _validate_audio_asset_payload(audio_asset_data: Dictionary, wav_bytes: PackedByteArray, audio_bindings_data: Dictionary) -> PackedStringArray:
+	var errors := PackedStringArray()
+	var draft := CharacterAudioAssetDraft.new()
+	var metadata_errors: PackedStringArray = draft.load_from_dictionary(audio_asset_data)
+	for error in metadata_errors:
+		errors.append(error)
+	if metadata_errors.is_empty():
+		var byte_errors: PackedStringArray = draft.validate_bytes(wav_bytes)
+		for error in byte_errors:
+			errors.append(error)
+	if not errors.is_empty():
+		return errors
+
+	var bindings := CharacterAudioBindings.new()
+	var binding_errors: PackedStringArray = bindings.load_from_dictionary(audio_bindings_data)
+	for error in binding_errors:
+		errors.append("audio bindings: %s" % error)
+	if not errors.is_empty():
+		return errors
+	if bindings.cue_for_binding(draft.binding) != draft.cue_id:
+		errors.append("WAV cue_id must match the active audio binding")
+	return errors
+
 func _validate_vfx_payload(vfx_data: Dictionary, png_bytes: PackedByteArray) -> PackedStringArray:
 	var errors := PackedStringArray()
 	var draft := VfxDraft.new()
@@ -315,6 +361,9 @@ func has_active_audio_bindings_preview() -> bool:
 func has_stored_audio_asset() -> bool:
 	return not _stored_audio_asset_data.is_empty() and not _stored_audio_asset_bytes.is_empty()
 
+func has_active_audio_asset_preview() -> bool:
+	return has_active_preview() and not _preview_audio_asset_data.is_empty() and not _preview_audio_asset_bytes.is_empty()
+
 func has_stored_vfx() -> bool:
 	return not _stored_vfx_data.is_empty() and not _stored_vfx_png_bytes.is_empty()
 
@@ -340,6 +389,12 @@ func preview_animation_map_data() -> Dictionary:
 
 func preview_audio_bindings_data() -> Dictionary:
 	return _preview_audio_bindings_data.duplicate(true)
+
+func preview_audio_asset_data() -> Dictionary:
+	return _preview_audio_asset_data.duplicate(true)
+
+func preview_audio_asset_bytes() -> PackedByteArray:
+	return _preview_audio_asset_bytes.duplicate()
 
 func preview_vfx_data() -> Dictionary:
 	return _preview_vfx_data.duplicate(true)
@@ -376,6 +431,7 @@ func deactivate_preview() -> void:
 	_preview_skill_slot = ""
 	_preview_animation_map_data.clear()
 	_preview_audio_bindings_data.clear()
+	_clear_preview_audio_asset()
 	_clear_preview_vfx()
 
 func clear() -> void:
@@ -392,6 +448,8 @@ func clear() -> void:
 	_preview_skill_data.clear()
 	_preview_animation_map_data.clear()
 	_preview_audio_bindings_data.clear()
+	_preview_audio_asset_data.clear()
+	_preview_audio_asset_bytes.clear()
 	_preview_skill_slot = ""
 	_clear_preview_vfx()
 	_preview_active = false
@@ -402,7 +460,12 @@ func _deactivate_failed_preview() -> void:
 	_preview_skill_slot = ""
 	_preview_animation_map_data.clear()
 	_preview_audio_bindings_data.clear()
+	_clear_preview_audio_asset()
 	_clear_preview_vfx()
+
+func _clear_preview_audio_asset() -> void:
+	_preview_audio_asset_data.clear()
+	_preview_audio_asset_bytes.clear()
 
 func _clear_preview_vfx() -> void:
 	_preview_vfx_data.clear()
