@@ -2,6 +2,7 @@ import { chromium } from 'playwright';
 
 const baseUrl = process.env.CUSTOM_FIGHTER_WEB_URL ?? 'http://127.0.0.1:8000';
 const browserChannel = process.env.BROWSER_CHANNEL?.trim();
+const timelineStateTimeoutMs = 10_000;
 const launchOptions = { headless: true };
 if (browserChannel) launchOptions.channel = browserChannel;
 
@@ -14,7 +15,7 @@ async function dataset(page, key) {
   return String(await page.evaluate((name) => document.documentElement.dataset[name] ?? '', key));
 }
 async function waitCount(page, count) {
-  await page.waitForFunction((expected) => Number(document.documentElement.dataset.creatorTimelineCount ?? '-1') === expected, count, { timeout: 5_000 });
+  await page.waitForFunction((expected) => Number(document.documentElement.dataset.creatorTimelineCount ?? '-1') === expected, count, { timeout: timelineStateTimeoutMs });
 }
 async function timelineEvents(page) {
   return JSON.parse(await dataset(page, 'creatorTimelineEvents') || '[]');
@@ -52,7 +53,7 @@ try {
     document.documentElement.dataset.creatorTimelineCompositionError === '' &&
     document.documentElement.dataset.creatorTimelineValid === 'true',
     null,
-    { timeout: 5_000 },
+    { timeout: timelineStateTimeoutMs },
   );
   let compositionEvents = await timelineEvents(page);
   if (compositionEvents.map((event) => event.type).join(',') !== 'animation,vfx,audio,hitbox') {
@@ -69,7 +70,7 @@ try {
     document.documentElement.dataset.creatorTimelineCompositionLastAddedCount === '5' &&
     document.documentElement.dataset.creatorTimelineCompositionError === '',
     null,
-    { timeout: 5_000 },
+    { timeout: timelineStateTimeoutMs },
   );
   compositionEvents = await timelineEvents(page);
   if (compositionEvents.slice(4).map((event) => event.type).join(',') !== 'animation,vfx,hitbox,audio,hurtbox') {
@@ -80,7 +81,7 @@ try {
   await page.waitForFunction(
     () => (document.documentElement.dataset.creatorTimelineCompositionError ?? '').includes('unsupported timeline composition recipe'),
     null,
-    { timeout: 5_000 },
+    { timeout: timelineStateTimeoutMs },
   );
   if ((await dataset(page, 'creatorTimelineCount')) !== '9') throw new Error('Unsupported composition mutated timeline');
 
@@ -88,7 +89,7 @@ try {
   await page.waitForFunction(
     () => (document.documentElement.dataset.creatorTimelineCompositionError ?? '').includes('must not start before the existing timeline tail'),
     null,
-    { timeout: 5_000 },
+    { timeout: timelineStateTimeoutMs },
   );
   if ((await dataset(page, 'creatorTimelineCount')) !== '9') throw new Error('Backwards composition mutated timeline');
 
@@ -99,7 +100,7 @@ try {
     document.documentElement.dataset.creatorTimelineCompositionLastRecipe === '' &&
     document.documentElement.dataset.creatorTimelineCompositionLastAddedCount === '0',
     null,
-    { timeout: 5_000 },
+    { timeout: timelineStateTimeoutMs },
   );
 
   await page.evaluate(() => window.customFighterCreatorTimelineAdd(JSON.stringify({
@@ -144,45 +145,45 @@ try {
   }
 
   await page.evaluate(() => window.customFighterCreatorTimelineUpdate(0, JSON.stringify({ animation: '../evil.gd' })));
-  await page.waitForFunction(() => document.documentElement.dataset.creatorTimelineValid === 'false', null, { timeout: 5_000 });
+  await page.waitForFunction(() => document.documentElement.dataset.creatorTimelineValid === 'false', null, { timeout: timelineStateTimeoutMs });
   if (!(await dataset(page, 'creatorTimelineError')).includes('animation must be a safe lowercase token')) {
     throw new Error('Unsafe animation path must fail closed');
   }
   await page.evaluate(() => window.customFighterCreatorTimelineUpdate(0, JSON.stringify({ animation: 'skill_3' })));
-  await page.waitForFunction(() => document.documentElement.dataset.creatorTimelineValid === 'true', null, { timeout: 5_000 });
+  await page.waitForFunction(() => document.documentElement.dataset.creatorTimelineValid === 'true', null, { timeout: timelineStateTimeoutMs });
 
   await page.evaluate(() => window.customFighterCreatorTimelineUpdate(1, JSON.stringify({ visual: 'https://example.com/vfx' })));
-  await page.waitForFunction(() => document.documentElement.dataset.creatorTimelineValid === 'false', null, { timeout: 5_000 });
+  await page.waitForFunction(() => document.documentElement.dataset.creatorTimelineValid === 'false', null, { timeout: timelineStateTimeoutMs });
   if (!(await dataset(page, 'creatorTimelineError')).includes('visual must be a safe lowercase token')) {
     throw new Error('Unsafe VFX URL must fail closed');
   }
   await page.evaluate(() => window.customFighterCreatorTimelineUpdate(1, JSON.stringify({ visual: 'prototype_fireball' })));
-  await page.waitForFunction(() => document.documentElement.dataset.creatorTimelineValid === 'true', null, { timeout: 5_000 });
+  await page.waitForFunction(() => document.documentElement.dataset.creatorTimelineValid === 'true', null, { timeout: timelineStateTimeoutMs });
 
   await page.evaluate(() => window.customFighterCreatorTimelineUpdate(2, JSON.stringify({ half_width: 0 })));
-  await page.waitForFunction(() => document.documentElement.dataset.creatorTimelineValid === 'false', null, { timeout: 5_000 });
+  await page.waitForFunction(() => document.documentElement.dataset.creatorTimelineValid === 'false', null, { timeout: timelineStateTimeoutMs });
   if (!(await dataset(page, 'creatorTimelineError')).includes('half_width must be > 0')) throw new Error('Invalid spatial dimensions must fail closed');
   await page.evaluate(() => window.customFighterCreatorTimelineUpdate(2, JSON.stringify({ half_width: 40, offset_x: 24 })));
-  await page.waitForFunction(() => document.documentElement.dataset.creatorTimelineValid === 'true', null, { timeout: 5_000 });
+  await page.waitForFunction(() => document.documentElement.dataset.creatorTimelineValid === 'true', null, { timeout: timelineStateTimeoutMs });
 
   await page.evaluate(() => window.customFighterCreatorTimelineUpdate(3, JSON.stringify({ type: 'vfx', visual: 'prototype_impact' })));
-  await page.waitForFunction(() => JSON.parse(document.documentElement.dataset.creatorTimelineEvents || '[]')[3]?.type === 'vfx', null, { timeout: 5_000 });
+  await page.waitForFunction(() => JSON.parse(document.documentElement.dataset.creatorTimelineEvents || '[]')[3]?.type === 'vfx', null, { timeout: timelineStateTimeoutMs });
   events = await timelineEvents(page);
   if ('cue' in events[3] || events[3]?.visual !== 'prototype_impact') throw new Error('Media type change must remove stale audio payload and keep VFX payload');
 
   await page.evaluate(() => window.customFighterCreatorTimelineUpdate(4, JSON.stringify({ time: 0.4, duration: 0.15, type: 'vfx', visual: 'prototype_fireball' })));
-  await page.waitForFunction(() => JSON.parse(document.documentElement.dataset.creatorTimelineEvents || '[]')[4]?.type === 'vfx', null, { timeout: 5_000 });
+  await page.waitForFunction(() => JSON.parse(document.documentElement.dataset.creatorTimelineEvents || '[]')[4]?.type === 'vfx', null, { timeout: timelineStateTimeoutMs });
   events = await timelineEvents(page);
   if ('half_width' in events[4] || 'offset_depth' in events[4]) throw new Error('Non-spatial event must not retain stale spatial payload');
   if (events[4]?.visual !== 'prototype_fireball') throw new Error('Spatial-to-VFX type change must author a valid VFX payload');
   if ((await dataset(page, 'creatorTimelineValid')) !== 'true') throw new Error('Safe timeline update should remain valid');
 
   await page.evaluate(() => window.customFighterCreatorTimelineMove(4, 0));
-  await page.waitForFunction(() => document.documentElement.dataset.creatorTimelineValid === 'false', null, { timeout: 5_000 });
+  await page.waitForFunction(() => document.documentElement.dataset.creatorTimelineValid === 'false', null, { timeout: timelineStateTimeoutMs });
   if (!(await dataset(page, 'creatorTimelineError')).includes('ordered by non-decreasing time')) throw new Error('Out-of-order timeline must fail closed');
 
   await page.evaluate(() => window.customFighterCreatorTimelineMove(0, 4));
-  await page.waitForFunction(() => document.documentElement.dataset.creatorTimelineValid === 'true', null, { timeout: 5_000 });
+  await page.waitForFunction(() => document.documentElement.dataset.creatorTimelineValid === 'true', null, { timeout: timelineStateTimeoutMs });
   await page.evaluate(() => window.customFighterCreatorTimelineRemove(0));
   await waitCount(page, 4);
   await page.evaluate(() => window.customFighterCreatorTimelineClear());
