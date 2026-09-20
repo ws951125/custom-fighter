@@ -187,10 +187,12 @@ Scope:
 7. Add deterministic package-domain and Chromium/hosted-Edge Creator Package coverage for valid round-trip, malformed/tampered bytes, binding mismatch and unknown-field rejection.
 8. Keep WU6 transport-only. Runtime WAV playback is a separate follow-up slice.
 
-Validation target:
-- `SELF_CONTAINED_CHARACTER_PACKAGE_TESTS_PASSED` with WAV transport coverage;
-- Creator Package browser proof of WAV export/import restoration and tamper fail-closed behavior;
-- standard Windows Native, Godot import/boot/domain/backend, Web export/size budget, Chromium `smoke:all`, and hosted Microsoft Edge `smoke:all`.
+Validation result:
+- PR #169 implementation head `665d1965a23c9dbe7b33fd7eba8e3cf225e2da1d` passed PR CI #435 (`35494696068`).
+- Windows Native, Godot import/boot/domain/AI contracts, trusted backend, Web export/size budget, Chromium `smoke:all`, and GitHub-hosted Microsoft Edge `smoke:all` all passed.
+- Character Package domain coverage validates deterministic WAV round-trip, binding dependency/mismatch, tampered RIFF/WAVE bytes, and unknown-field rejection.
+- Creator Package browser coverage proves a real authored WAV is serialized into schema-v2, restored after successful import, preserved across invalid imports, and rejected when packaged bytes are tampered.
+- Latest documentation-sync HEAD validation remains required before merge.
 
 ## Deferred after WU6
 
