@@ -5,6 +5,7 @@ const CharacterDraft = preload("res://game/creator/character_editor/character_dr
 const CharacterAnimationMap = preload("res://game/core/character/character_animation_map.gd")
 const CharacterAudioBindings = preload("res://game/core/character/character_audio_bindings.gd")
 const CharacterAudioAssetDraft = preload("res://game/creator/character_editor/character_audio_asset_draft.gd")
+const CharacterAnimationAssetDraft = preload("res://game/creator/character_editor/character_animation_asset_draft.gd")
 const SkillDraft = preload("res://game/creator/skill_editor/skill_draft.gd")
 const VfxDraft = preload("res://game/creator/vfx_editor/vfx_draft.gd")
 
@@ -76,6 +77,28 @@ func _run() -> void:
 		str(session.preview_animation_map_data().get("animations", {}).get("ready", "")) == "preview_ready_custom",
 		"preview session preserves authored ready animation token"
 	)
+
+	var animation_image := Image.create(16, 4, false, Image.FORMAT_RGBA8)
+	animation_image.fill(Color("55aaff"))
+	var animation_png := animation_image.save_png_to_buffer()
+	var animation_asset := CharacterAnimationAssetDraft.new()
+	var animation_asset_errors: PackedStringArray = animation_asset.configure_import(
+		"ready", "preview_ready_custom", "preview-ready.png", "image/png", 16, 4, 4, 18.0
+	)
+	_check(animation_asset_errors.is_empty(), "test Animation PNG metadata validates before session storage")
+	_check(animation_asset.validate_bytes(animation_png).is_empty(), "test Animation PNG bytes validate before session storage")
+	var store_animation_asset_errors: PackedStringArray = session.store_animation_asset_draft(animation_asset.to_dictionary(), animation_png)
+	_check(store_animation_asset_errors.is_empty(), "validated Animation PNG stores in preview session")
+	_check(session.has_stored_animation_asset(), "stored Animation PNG survives Creator/Preview navigation")
+	_check(str(session.stored_animation_asset_data().get("semantic", "")) == "ready", "stored Animation PNG keeps semantic")
+	_check(str(session.stored_animation_asset_data().get("animation_id", "")) == "preview_ready_custom", "stored Animation PNG keeps animation id")
+	_check(session.stored_animation_asset_png_bytes().size() == animation_png.size(), "stored Animation PNG keeps bytes in memory")
+	var animation_asset_stage_errors: PackedStringArray = session.stage_preview(
+		character.to_dictionary(), skill.to_dictionary(), authored_animation_data
+	)
+	_check(animation_asset_stage_errors.is_empty(), "matching Animation PNG stages with authored semantic mapping")
+	_check(session.has_active_animation_asset_preview(), "matching Animation PNG becomes active Preview asset")
+	_check(session.preview_animation_asset_png_bytes().size() == animation_png.size(), "active Animation PNG exposes validated bytes")
 
 	var authored_audio_data: Dictionary = CharacterAudioBindings.default_dictionary()
 	var authored_audio_cues: Dictionary = authored_audio_data.get("cues", {}).duplicate(true)
@@ -208,6 +231,18 @@ func _run() -> void:
 		authored_animation_data
 	)
 	_check(restore_animation_errors.is_empty() and session.has_active_animation_preview(), "valid authored animation preview restores after fail-closed cases")
+
+	var changed_animation_data := authored_animation_data.duplicate(true)
+	var changed_animation_values: Dictionary = changed_animation_data.get("animations", {}).duplicate(true)
+	changed_animation_values["ready"] = "preview_ready_v2"
+	changed_animation_data["animations"] = changed_animation_values
+	var store_changed_map_errors: PackedStringArray = session.store_animation_map_draft(changed_animation_data)
+	_check(store_changed_map_errors.is_empty(), "changed valid animation map stores successfully")
+	_check(not session.has_stored_animation_asset(), "mapping change clears stale bound Animation PNG")
+	var restore_map_errors: PackedStringArray = session.store_animation_map_draft(authored_animation_data)
+	_check(restore_map_errors.is_empty(), "original animation map restores after stale-asset clear")
+	var restore_animation_asset_errors: PackedStringArray = session.store_animation_asset_draft(animation_asset.to_dictionary(), animation_png)
+	_check(restore_animation_asset_errors.is_empty() and session.has_stored_animation_asset(), "matching Animation PNG can be restored after mapping returns")
 
 	var restored_character := CharacterDraft.new()
 	var restore_character_errors: PackedStringArray = restored_character.load_from_dictionary(session.stored_character_draft_data())
