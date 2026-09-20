@@ -262,6 +262,13 @@ Scope:
 8. Keep `ready` deferred because automatic playback still requires deliberate browser autoplay-policy handling.
 9. Use only the synchronous `receive_player_hit(...)` override as the event owner. Do not also poll incoming-hit counters for playback; the duplicate polling path found during branch reconciliation was removed by `d78ede0e93b266e0708f92d3b582d5af01290ef0` to prevent double emission.
 
+Validation result:
+- PR #174 latest head `73e46478dbd9e4f7940c7908ac4cc1b621c6c133` completed required PR CI #456 (`35519908707`) successfully on attempt 2. Attempt 1 was cancelled by GitHub during Chromium installation without a product/test assertion failure.
+- Attempt 2 passed Windows Native, Godot import/boot/domain/AI contracts, trusted backend, Web export/size budget, Chromium `smoke:all`, and GitHub-hosted Microsoft Edge `smoke:all`.
+- Both Chromium and hosted Edge preserved WU7/WU8/WU9 playback telemetry and proved `hitReceivedWavRuntimePlayback=true` after the constrained Training incoming-hit bridge dealt 9 real damage through the authoritative `receive_player_hit(...)` path.
+- Both browsers completed `SMOKE_SUITE_PASSED count=24`; the reconciled runtime has one authoritative `hit_received` playback owner and no second polling consumer.
+- Final documentation-sync latest-head validation remains required before merge.
+
 ## Deferred after WU10
 
 - creator-provided animation asset import;
