@@ -117,6 +117,8 @@ func _run() -> void:
 	_check(_contains_fragment(mismatched_asset_errors, "animation_id must match the active semantic mapping"), "animation PNG/mapping mismatch fails closed")
 	_check(not session.has_active_preview(), "mismatched animation PNG cannot activate preview")
 	_check(not session.has_active_animation_asset_preview(), "mismatched animation PNG clears stale active asset")
+	_check(session.preview_animation_asset_data().is_empty(), "failed animation PNG preview clears stale active metadata")
+	_check(session.preview_animation_asset_bytes().is_empty(), "failed animation PNG preview clears stale active bytes")
 
 	var restore_animation_asset_errors: PackedStringArray = session.stage_preview(
 		character.to_dictionary(),
