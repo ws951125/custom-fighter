@@ -170,7 +170,7 @@ func _set_package_web_state() -> void:
 		"document.documentElement.dataset.creatorPackageFormatVersion='%d';" % SelfContainedPackageDefinition.CURRENT_SCHEMA_VERSION +
 		"document.documentElement.dataset.creatorPackageAudioBindings='%s';" % ("true" if audio_bound else "false") +
 		"document.documentElement.dataset.creatorPackageAudioAssetBound='%s';" % ("true" if audio_asset_bound else "false") +
-		"document.documentElement.dataset.creatorPackageAudioAssetBytes='%d';" % audio_asset_bytes +
+		"document.documentElement.dataset.creatorPackageAudioAssetBytes='%d';" % audio_asset_byte_count +
 		"document.documentElement.dataset.creatorPackageVfxBound='%s';" % ("true" if vfx_bound else "false") +
 		"document.documentElement.dataset.creatorPackageVfxBytes='%d';" % vfx_bytes
 	)
