@@ -310,6 +310,7 @@ Work unit 10 — **hit-received WAV runtime trigger — implementation in progre
 - `animation_main.gd` delegates every incoming hit to the existing authoritative `receive_player_hit(...)` boundary first. Audio is considered only after that parent boundary returns the actual dealt damage.
 - Playback occurs only when `dealt > 0`, so Counter-intercepted hits, zero-damage hits, defeated-state no-ops and other rejected hits do not produce a false hurt cue.
 - The existing authored `CharacterAudioBindings` and exact-Cue-match playback gate remain authoritative.
+- Branch reconciliation briefly exposed a duplicate second polling consumer for the same hit event. Commit `d78ede0e93b266e0708f92d3b582d5af01290ef0` removes that duplicate path and keeps only the synchronous authoritative `receive_player_hit(...)` override, preventing double playback from one hit; L-035 records the prevention rule.
 - Creator Preview regression preserves WU7/WU8/WU9 audio paths, then reauthors the one WAV to `hit_received → preview_hit_custom`, launches Preview, invokes the existing constrained Training incoming-hit bridge for 9 damage, and requires authoritative damage telemetry plus matching WAV playback before returning to Creator.
 - Active branch: `feat/v2-3-hit-received-wav-trigger-wu10`. GitHub-hosted validation is the next gate.
 - `ready` remains deferred because automatic playback still requires explicit browser autoplay-policy handling.
