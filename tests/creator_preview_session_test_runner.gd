@@ -130,6 +130,39 @@ func _run() -> void:
 	_check(str(session.stored_audio_asset_data().get("cue_id", "")) == "preview_cast_custom", "stored WAV keeps cue token metadata")
 	_check(session.stored_audio_asset_bytes().size() == wav_bytes.size(), "stored WAV keeps bytes in memory")
 
+	var audio_asset_stage_errors: PackedStringArray = session.stage_preview(
+		character.to_dictionary(),
+		skill.to_dictionary(),
+		authored_animation_data,
+		authored_audio_data
+	)
+	_check(audio_asset_stage_errors.is_empty(), "validated WAV stages with matching Creator Preview audio bindings")
+	_check(session.has_active_audio_asset_preview(), "matching WAV becomes active Creator Preview runtime asset")
+	_check(str(session.preview_audio_asset_data().get("cue_id", "")) == "preview_cast_custom", "active WAV keeps authored cue token")
+	_check(session.preview_audio_asset_bytes().size() == wav_bytes.size(), "active WAV preview exposes validated bytes")
+
+	var mismatched_audio_data: Dictionary = authored_audio_data.duplicate(true)
+	var mismatched_audio_cues: Dictionary = mismatched_audio_data.get("cues", {}).duplicate(true)
+	mismatched_audio_cues["skill_cast"] = "different_cast_cue"
+	mismatched_audio_data["cues"] = mismatched_audio_cues
+	var mismatched_audio_asset_stage_errors: PackedStringArray = session.stage_preview(
+		character.to_dictionary(),
+		skill.to_dictionary(),
+		authored_animation_data,
+		mismatched_audio_data
+	)
+	_check(_contains_fragment(mismatched_audio_asset_stage_errors, "WAV cue_id must match the active audio binding"), "WAV/audio-binding mismatch fails closed before runtime")
+	_check(not session.has_active_preview(), "mismatched WAV/audio binding cannot activate preview")
+	_check(not session.has_active_audio_asset_preview(), "mismatched WAV/audio binding clears stale active WAV")
+
+	var restore_audio_asset_stage_errors: PackedStringArray = session.stage_preview(
+		character.to_dictionary(),
+		skill.to_dictionary(),
+		authored_animation_data,
+		authored_audio_data
+	)
+	_check(restore_audio_asset_stage_errors.is_empty() and session.has_active_audio_asset_preview(), "matching WAV runtime preview restores after mismatch rejection")
+
 	var tampered_wav := wav_bytes.duplicate()
 	tampered_wav[4] = 0
 	var tampered_store_errors: PackedStringArray = session.store_audio_asset_draft(audio_asset.to_dictionary(), tampered_wav)
@@ -138,6 +171,13 @@ func _run() -> void:
 
 	var restore_asset_errors: PackedStringArray = session.store_audio_asset_draft(audio_asset.to_dictionary(), wav_bytes)
 	_check(restore_asset_errors.is_empty() and session.has_stored_audio_asset(), "valid WAV can be restored after fail-closed case")
+	var restore_asset_preview_errors: PackedStringArray = session.stage_preview(
+		character.to_dictionary(),
+		skill.to_dictionary(),
+		authored_animation_data,
+		authored_audio_data
+	)
+	_check(restore_asset_preview_errors.is_empty() and session.has_active_audio_asset_preview(), "restored WAV can be staged for runtime playback")
 
 	var mismatched_animation_data: Dictionary = authored_animation_data.duplicate(true)
 	mismatched_animation_data["id"] = "storm_duelist"
