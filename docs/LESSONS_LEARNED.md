@@ -414,3 +414,14 @@
 - **Validation:** PR #180 latest-head CI #497 (`35580807539`) passed Windows Native Release, Godot import/boot/domain/backend, Web export/size budget, Chromium `smoke:all`, and GitHub-hosted Windows Microsoft Edge `smoke:all` on head `f90a8928fe58e4d5bb35f45279b345d48a890f72`. The previously failing Buff cast-release observation and packaged-VFX `U`/MP acknowledgement path both completed without product/runtime changes.
 - **Status:** Verified on PR #180 CI #497
 
+## L-038 — GDScript test fixture helpers need explicit return types when callers rely on inferred locals
+
+- **Date:** 2026-09-21
+- **Area:** Godot / GDScript parser / V2-4 opponent behavior domain tests
+- **Symptom:** PR #181 CI #500 passed project import/boot and Windows export, then failed only when running `opponent_behavior_test_runner.gd`. Four locals using `:= _load_balanced()` produced `Cannot infer the type ... because the value doesn't have a set type`.
+- **Root Cause:** The fixture helper `_load_balanced()` had no declared return type. Under the project's warning-as-error parser rules, callers cannot use inferred local typing when the helper's return type is unresolved, even though the helper always returns `OpponentBehaviorProfile`.
+- **Fix:** Declare `_load_balanced() -> OpponentBehaviorProfile` and explicitly type the affected local variables as `OpponentBehaviorProfile`. No AI policy, profile data or decision behavior changed.
+- **Prevention Rule:** Domain-test fixture helpers that return a known script/class type should declare that return type. If a helper is intentionally dynamic/Variant, callers must use explicit `Variant` or concrete types instead of `:=`; do not rely on parser inference across helper boundaries.
+- **Validation:** Fix commit `9ade45c95059bca3c22eeda5f3714d951603435d`; PR #181 CI #501 (`35591729594`) passed Windows Native, Godot import/boot/domain/AI contracts, backend, Web export/size budget, Chromium `smoke:all`, and hosted Microsoft Edge `smoke:all`.
+- **Status:** Verified on PR #181 CI #501
+

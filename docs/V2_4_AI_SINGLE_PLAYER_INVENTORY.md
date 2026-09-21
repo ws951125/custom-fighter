@@ -126,6 +126,19 @@ Implement the first bounded gameplay-AI foundation without stage selection or fu
 - no production AI/LLM dependency,
 - no stochastic behavior.
 
+## Work Unit 1 implementation result
+
+Implementation branch: `feat/v2-4-wu1-opponent-decision-foundation`
+
+- `game/core/ai/opponent_behavior_profile.gd` provides the strict bounded profile contract.
+- `game/core/ai/opponent_behavior_profiles.gd` provides the initial allow-list: `training_balanced` and `training_pressure`.
+- `game/core/ai/opponent_decision_state.gd` converts validated profile + explicit runtime snapshot data into inert intents only.
+- Invalid profile/snapshot data returns idle; no runtime combat object is mutated by the decision layer.
+- `tests/opponent_behavior_test_runner.gd` proves fail-closed validation, distance/depth policy, disabled state, guard/attack/skill eligibility, determinism and no HP/MP mutation.
+- CI #500 caught a GDScript fixture return-type inference parser issue; explicit typing fixed it without changing the decision policy.
+- PR #181 head `9ade45c95059bca3c22eeda5f3714d951603435d` passed CI #501 (`35591729594`) across Windows Native, Godot/domain/AI contracts, backend, Web/Chromium and hosted Edge.
+- WU1 does **not** activate gameplay AI. Exact-main merge/production validation remains required before WU2 begins.
+
 ## Planned follow-up sequence
 
 ### Work Unit 2 — active opponent runtime adapter
