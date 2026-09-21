@@ -327,21 +327,39 @@ Work unit 11 — **bounded character animation PNG import + memory-only Creator 
 - Render readiness emitted `PRODUCTION_AI_BACKEND_READY provider=gemini model=gemini-3.6-flash billing_mode=free-tier-only revision=44466e43ddef4b6cd7f7dfef74f9c8a63347fd97`.
 - WU11 is therefore accepted and production-validated.
 
-Work unit 12 — **self-contained Character Package transport for character Animation PNG — implementation complete; PR validation passed**:
-- Schema-v2 gains one optional `animation_asset`: WU11 metadata plus bounded PNG bytes encoded as base64. Legacy schema v1 and schema-v2 packages without the field remain compatible.
-- Package validation reuses `CharacterAnimationAssetDraft`; no second PNG parser/decoder path is introduced.
-- `animation_asset` requires packaged `animation_map`, and its `semantic + animation_id` must exactly match that map. Malformed base64, tampered PNG bytes, unknown fields, unsafe metadata or mapping mismatch fail closed.
-- Creator export serializes the one stored Animation PNG; import restores packaged animation map first and then restores the PNG through `CreatorPreviewSession.store_animation_asset_draft()`.
-- Failed package imports remain non-mutating. Successful import of a package without `animation_asset` still clears any previous transient animation PNG through the existing ancestor flow; a package with `animation_asset` replaces it with the validated packaged asset.
-- The total Creator Package JSON ceiling increases from 8 MB to a fixed **16 MB** so one ≤5 MB VFX PNG, one ≤5 MB character Animation PNG and one ≤512 KB WAV can coexist after base64 expansion while the overall import remains bounded.
-- Browser coverage now proves normal export/import replacement plus a fresh-session export → reload → import flow with both embedded VFX and embedded character Animation PNG.
-- PR #176 implementation/docs head `b6b1410f649ca194dc92d92babbb8378e5d92e06` passed PR CI #467 (`35547604895`) across Windows Native, Godot import/boot/domain/AI contracts, trusted backend, Web export/size budget, Chromium `smoke:all`, and GitHub-hosted Microsoft Edge `smoke:all`.
-- Domain evidence emitted `SELF_CONTAINED_CHARACTER_PACKAGE_TESTS_PASSED`.
-- Chromium and Edge both emitted `WEB_CREATOR_PACKAGE_SMOKE_PASSED ... animationPngPackageRoundTrip=true invalidImportPreservesAnimationPng=true validImportRestoresAnimationPng=true tamperedPackagedAnimationPngBlocked=true`.
-- Chromium and Edge both emitted `WEB_CREATOR_PACKAGE_VFX_SMOKE_PASSED schema=2 embeddedVfx=true embeddedAnimationPng=true secondSessionImport=true secondSessionAnimationPngRestored=true runtimeLoaded=true cast=true`.
-- Both browsers completed `SMOKE_SUITE_PASSED count=24`.
-- Final documentation-sync latest-head validation remains required before merge.
-- Remaining after WU12: runtime rendering/use of imported character Animation PNG if required for final playable acceptance, autoplay-safe `ready` audio semantics, and final V2-3 cross-machine/self-contained acceptance.
+Work unit 12 — **self-contained Character Package transport for character Animation PNG — accepted and production-validated**:
+- Schema-v2 carries one optional bounded `animation_asset`: validated WU11 metadata plus PNG bytes encoded as base64. Legacy schema v1 and schema-v2 packages without the field remain compatible.
+- Package validation reuses `CharacterAnimationAssetDraft`, requires packaged `animation_map`, and requires exact `semantic + animation_id` agreement. Malformed base64, tampered PNG, unknown fields, unsafe metadata or mapping mismatch fail closed.
+- Creator export/import transports the one character Animation PNG. Fresh-session regression proves one package can restore both embedded VFX and embedded character Animation PNG.
+- The total Creator Package JSON ceiling is fixed at 16 MB; per-asset limits remain unchanged: VFX PNG ≤5 MB, character Animation PNG ≤5 MB, WAV ≤512 KB.
+- PR #176 latest head `a5b4d9311320aea5ec7e8cdb9075c3a23944e164` passed final PR CI #469 (`35549426373`) across Windows Native, Godot/domain/backend, Web export/size budget, Chromium `smoke:all`, and hosted Microsoft Edge `smoke:all`.
+- PR #176 was explicitly approved and squash-merged to `main` as `3975499d5c51297bf314dca3c7ccbc5c5964a977`.
+- Exact-main CI #470 (`35550689268`) passed the complete production chain: Windows Native, Godot import/boot/domain/AI contracts, trusted backend, Web export/size budget, Chromium `smoke:all`, hosted Microsoft Edge `smoke:all`, GitHub Pages deployment/public reachability, Render exact-revision readiness, and production Microsoft Edge full smoke.
+- Production Edge emitted `WEB_CREATOR_PACKAGE_SMOKE_PASSED ... animationPngPackageRoundTrip=true invalidImportPreservesAnimationPng=true validImportRestoresAnimationPng=true tamperedPackagedAnimationPngBlocked=true`, `WEB_CREATOR_PACKAGE_VFX_SMOKE_PASSED ... embeddedAnimationPng=true secondSessionImport=true secondSessionAnimationPngRestored=true`, and `SMOKE_SUITE_PASSED count=24`.
+- Render readiness emitted `PRODUCTION_AI_BACKEND_READY provider=gemini model=gemini-3.6-flash billing_mode=free-tier-only revision=3975499d5c51297bf314dca3c7ccbc5c5964a977`.
+- WU12 is therefore accepted and production-validated.
+
+Work unit 13 — **Creator Preview runtime rendering for the bounded character Animation PNG — implementation complete; PR validation passed**:
+- Training Preview revalidates the active WU11 Animation PNG metadata/bytes, rechecks exact active-map `semantic + animation_id` agreement, decodes via Godot `Image.load_png_from_buffer()`, and creates one in-memory `ImageTexture`.
+- The custom sprite strip replaces only the player geometry, only inside active Creator Preview, and only while the runtime semantic + animation ID exactly match the single authored asset. Ordinary Training, Dummy rendering and all non-matching semantics keep the existing procedural fallback.
+- Horizontal frames advance using the authored bounded FPS. Leaving the bound semantic resets the custom strip to frame 0; returning to that semantic resumes the bounded strip from frame 0.
+- Rendering fits each authored frame inside a fixed 160×128 visual box while preserving aspect ratio. Existing gameplay position, jump offset, guard overlay, combat boxes, collisions and combat authority remain unchanged.
+- Runtime telemetry exposes loaded/active state, semantic/animation ID, frame count/current/max frame, draw count, last drawn frame and load error.
+- Creator Preview browser coverage now requires runtime load, actual frame advance, actual draw count, semantic fallback during a non-matching timeline animation, and resume when returning to `ready`.
+- Fresh-session package regression now proves the packaged Animation PNG not only restores but is also runtime-rendered after import.
+- PR #177 implementation/docs head `346d2fe64855ba34b09eb3fa3f5d1bbeef906abe` passed Windows Native, Godot import/boot/domain/AI contracts, trusted backend, Web export/size budget and Chromium `smoke:all` in CI #471 (`35552084482`).
+- Hosted Edge attempt 1 passed the direct WU13 Creator Preview assertions — `animationPngRuntimeRendering=true animationPngRuntimeFrameAdvance=true animationPngSemanticFallback=true` — then timed out at the later 10-second fresh-session package-import convergence wait.
+- Per L-007, only the failed Hosted Edge job was retried on the exact same SHA with no code/test change. Attempt 2 passed `WEB_CREATOR_PREVIEW_SMOKE_PASSED ... animationPngRuntimeRendering=true animationPngRuntimeFrameAdvance=true animationPngSemanticFallback=true`, `WEB_CREATOR_PACKAGE_VFX_SMOKE_PASSED ... secondSessionAnimationPngRestored=true animationPngRuntimeRendering=true animationPngRuntimeFrameAdvance=true`, and `SMOKE_SUITE_PASSED count=24`.
+- The first Edge timeout is therefore classified as an isolated state-convergence/runner timing miss, not a runtime defect. L-007 has been updated with the same-SHA evidence.
+- Latest-head CI #475 then reproduced a separate pre-existing Heavy Strike positioning flake in unchanged `smoke:melee`: Hosted Edge overshot the authored corridor to `playerX=877.6 dummyX=860 gap=-17.6` while Chromium remained green. This matches L-017's deferred overshoot case.
+- Test-only hardening now preserves the same authored 18–105 px Heavy Strike corridor and stage-left/final-D facing, but adds bounded settle + re-stage/retry after overshoot. No WU13 runtime or melee gameplay behavior changed.
+- Latest-head CI #478 (`35554693089`) on head `783968c8208353e202b998059a8d77483fdebae0` then passed Windows Native, Godot import/boot/domain/AI contracts, trusted backend, Web export/size budget, Chromium `smoke:all`, and hosted Microsoft Edge `smoke:all`.
+- Hosted Edge emitted `WEB_MELEE_SKILL_SMOKE_PASSED ... hitGap=87.99 ... finalHp=76 hitCount=1`, proving the overshoot recovery retained the original Heavy Strike geometry/gameplay assertions.
+- Hosted Edge emitted `WEB_CREATOR_PREVIEW_SMOKE_PASSED ... animationPngRuntimeRendering=true animationPngRuntimeFrameAdvance=true animationPngSemanticFallback=true`.
+- Hosted Edge emitted `WEB_CREATOR_PACKAGE_VFX_SMOKE_PASSED ... secondSessionAnimationPngRestored=true animationPngRuntimeRendering=true animationPngRuntimeFrameAdvance=true` and `SMOKE_SUITE_PASSED count=24`.
+- Final validation-evidence docs sync requires one more latest-head CI before merge; no further runtime/test changes are planned.
+- Active branch: `feat/v2-3-animation-runtime-wu13`. Final docs-sync latest-head CI remains required before merge.
+- Deferred after WU13: browser-autoplay-safe `ready` WAV trigger and final V2-3 acceptance/phase closeout.
 - V2 remains **25% (2/8 phases complete)** until full V2-3 acceptance.
 
 ### V2-1 implementation checkpoints
@@ -460,4 +478,4 @@ AI VFX backend: `https://custom-fighter-ai-vfx.onrender.com`
 
 ## Next implementation target
 
-Validate V2-3 Work Unit 12 on GitHub: prove the one bounded character Animation PNG can be exported inside schema-v2 `animation_asset`, rejected fail-closed when bytes or semantic mapping are invalid, restored through package import and through a fresh Creator session, while preserving VFX/WAV/package compatibility. Require Godot import/boot/domain/backend, Web export/size budget, Chromium `smoke:all`, Windows Native, and hosted Microsoft Edge `smoke:all` before any merge.
+Validate V2-3 Work Unit 13 on GitHub: prove the one validated character Animation PNG is decoded into an in-memory runtime texture, advances frames at authored FPS, replaces only the Creator Preview player while its exact semantic + animation ID match, falls back safely for other semantics, and also renders after fresh-session package restore. Require Godot import/boot/domain/backend, Web export/size budget, Chromium `smoke:all`, Windows Native, and hosted Microsoft Edge `smoke:all` before any merge.

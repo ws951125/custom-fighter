@@ -164,4 +164,4 @@ The architecture previously allowed a future local/open-model AI provider such a
 
 ## Next implementation target
 
-Continue **V2-3 Character Animation & Audio Authoring** with Work Unit 12: transport the one bounded character Animation PNG inside the existing self-contained schema-v2 package, require exact semantic-map agreement, and prove fresh-session restore while keeping runtime rendering/use as a separate follow-up decision.
+Continue **V2-3 Character Animation & Audio Authoring** with Work Unit 13: render the one validated character Animation PNG inside Creator Preview only when its exact semantic + animation ID match, prove authored FPS/frame playback and safe fallback, then finish the remaining autoplay-safe `ready` audio slice before V2-3 acceptance.

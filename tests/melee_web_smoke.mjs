@@ -127,7 +127,7 @@ async function movementNudge(key, beforeX, holdMs) {
 async function approachDummy() {
   // Heavy Strike is centered 72 px in front of the cast origin with a 54 px half-width,
   // so the target center remains inside the authored hitbox down to an 18 px forward gap.
-  // Keep that runtime geometry as the lower bound instead of an arbitrary 40 px test corridor.
+  // Keep that runtime geometry as the lower bound instead of weakening gameplay assertions.
   const minGap = 18;
   const maxGap = 105;
   const stagingGap = maxGap + 55;
@@ -135,33 +135,44 @@ async function approachDummy() {
   let dummyX = await readNumber('dummyX');
   let gap = dummyX - playerX;
 
-  // Stage on the dummy's left, then make the final approach only with D. Heavy Strike
-  // captures player facing when it casts, so a last-moment A correction can put a valid
-  // in-range target behind the hitbox on slow hosted Edge runners.
-  for (let step = 0; step < 100 && gap < stagingGap; step += 1) {
-    await movementNudge('a', playerX, 28);
+  // Always stage on the dummy's left and finish with D so geometry + facing are both valid.
+  // Hosted Edge can occasionally overshoot even with runtime-observed pacing; if that occurs,
+  // re-stage and retry instead of lowering the authored 18 px invariant or changing gameplay.
+  for (let attempt = 0; attempt < 4; attempt += 1) {
+    for (let step = 0; step < 100 && gap < stagingGap; step += 1) {
+      await movementNudge('a', playerX, 28);
+      playerX = await readNumber('playerX');
+      dummyX = await readNumber('dummyX');
+      gap = dummyX - playerX;
+    }
+
+    if (gap < stagingGap) {
+      throw new Error(`Failed to stage left of dummy: playerX=${playerX} dummyX=${dummyX} gap=${gap}`);
+    }
+
+    for (let step = 0; step < 100 && gap > maxGap; step += 1) {
+      const distanceFromRange = gap - maxGap;
+      const holdMs = distanceFromRange > 220 ? 38 : distanceFromRange > 120 ? 28 : 20;
+      await movementNudge('d', playerX, holdMs);
+      playerX = await readNumber('playerX');
+      dummyX = await readNumber('dummyX');
+      gap = dummyX - playerX;
+    }
+
+    // Let the final runtime-observed movement settle before accepting/rejecting the corridor.
+    await page.waitForTimeout(90);
     playerX = await readNumber('playerX');
     dummyX = await readNumber('dummyX');
     gap = dummyX - playerX;
+
+    if (gap >= minGap && gap <= maxGap) return { playerX, dummyX, gap };
+
+    console.log(
+      `MELEE_APPROACH_RETRY attempt=${attempt + 1} minGap=${minGap} maxGap=${maxGap} playerX=${playerX} dummyX=${dummyX} gap=${gap}`,
+    );
   }
 
-  if (gap < stagingGap) {
-    throw new Error(`Failed to stage left of dummy: playerX=${playerX} dummyX=${dummyX} gap=${gap}`);
-  }
-
-  for (let step = 0; step < 100 && gap > maxGap; step += 1) {
-    const distanceFromRange = gap - maxGap;
-    const holdMs = distanceFromRange > 220 ? 38 : distanceFromRange > 120 ? 28 : 20;
-    await movementNudge('d', playerX, holdMs);
-    playerX = await readNumber('playerX');
-    dummyX = await readNumber('dummyX');
-    gap = dummyX - playerX;
-  }
-
-  if (gap < minGap || gap > maxGap) {
-    throw new Error(`Failed to enter Heavy Strike range while facing target: playerX=${playerX} dummyX=${dummyX} gap=${gap}`);
-  }
-  return { playerX, dummyX, gap };
+  throw new Error(`Failed to enter Heavy Strike range while facing target: playerX=${playerX} dummyX=${dummyX} gap=${gap}`);
 }
 
 try {
