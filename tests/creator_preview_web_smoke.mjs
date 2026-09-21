@@ -277,6 +277,12 @@ try {
       document.documentElement.dataset.playerAnimationMapId === 'ember_vanguard' &&
       document.documentElement.dataset.playerAnimationSemantic === 'ready' &&
       document.documentElement.dataset.playerAnimationId === 'preview_ready_custom' &&
+      document.documentElement.dataset.creatorPreviewAnimationAssetRuntimeLoaded === 'true' &&
+      document.documentElement.dataset.creatorPreviewAnimationAssetRuntimeActive === 'true' &&
+      document.documentElement.dataset.creatorPreviewAnimationAssetRuntimeSemantic === 'ready' &&
+      document.documentElement.dataset.creatorPreviewAnimationAssetRuntimeAnimationId === 'preview_ready_custom' &&
+      document.documentElement.dataset.creatorPreviewAnimationAssetRuntimeFrameCount === '4' &&
+      document.documentElement.dataset.creatorPreviewAnimationAssetRuntimeLoadError === '' &&
       document.documentElement.dataset.playerMaxHp === '180' &&
       document.documentElement.dataset.playerRuntimeSkill1 === 'my_projectile_001' &&
       document.documentElement.dataset.skillId === 'my_projectile_001' &&
@@ -287,6 +293,16 @@ try {
       typeof window.customFighterPreviewReturnToCreator === 'function',
     null,
     { timeout: 60_000 },
+  );
+
+  diagnosticStage = 'animation-png-runtime-render';
+  await page.waitForFunction(
+    () =>
+      Number(document.documentElement.dataset.creatorPreviewAnimationAssetRuntimeMaxFrameSeen ?? '0') >= 1 &&
+      Number(document.documentElement.dataset.creatorPreviewAnimationAssetRuntimeDrawCount ?? '0') > 0 &&
+      Number(document.documentElement.dataset.creatorPreviewAnimationAssetRuntimeLastDrawnFrame ?? '-1') >= 0,
+    null,
+    { timeout: 5_000 },
   );
 
   diagnosticStage = 'skill-cast';
@@ -305,6 +321,7 @@ try {
       Number(document.documentElement.dataset.creatorPreviewTimelineTransitionCount ?? '0') >= 5 &&
       document.documentElement.dataset.creatorPreviewTimelineAnimationSemantic === 'skill_3' &&
       document.documentElement.dataset.playerAnimationSemantic === 'skill_3' &&
+      document.documentElement.dataset.creatorPreviewAnimationAssetRuntimeActive === 'false' &&
       document.documentElement.dataset.creatorPreviewTimelineLastVfx === 'prototype_impact' &&
       document.documentElement.dataset.creatorPreviewTimelineVfxActive === 'true' &&
       document.documentElement.dataset.creatorPreviewTimelineLastAudioCue === 'preview_cast_custom' &&
@@ -344,6 +361,17 @@ try {
       Number(document.documentElement.dataset.creatorPreviewTimelineTransitionCount ?? '0') >= 9 &&
       Number(document.documentElement.dataset.creatorPreviewTimelineHitboxActiveCount ?? '-1') === 0 &&
       Number(document.documentElement.dataset.creatorPreviewTimelineHurtboxActiveCount ?? '-1') === 0,
+    null,
+    { timeout: 5_000 },
+  );
+
+  diagnosticStage = 'animation-png-runtime-resume';
+  await page.waitForFunction(
+    () =>
+      document.documentElement.dataset.playerAnimationSemantic === 'ready' &&
+      document.documentElement.dataset.playerAnimationId === 'preview_ready_custom' &&
+      document.documentElement.dataset.creatorPreviewAnimationAssetRuntimeActive === 'true' &&
+      Number(document.documentElement.dataset.creatorPreviewAnimationAssetRuntimeDrawCount ?? '0') > 0,
     null,
     { timeout: 5_000 },
   );
@@ -596,7 +624,7 @@ try {
   );
 
   diagnosticStage = 'passed';
-  console.log('WEB_CREATOR_PREVIEW_SMOKE_PASSED invalidBlocked=true authoredHp=180 authoredDamage=33 authoredMpCost=17 authoredCooldown=2.4 semanticAnimationOverride=true semanticAnimationRoundTrip=true audioBindingOverride=true audioBindingRoundTrip=true animationPngMemoryRoundTrip=true wavMemoryRoundTrip=true wavRuntimePlayback=true basicAttackWavRuntimePlayback=true skillImpactWavRuntimePlayback=true hitReceivedWavRuntimePlayback=true safeComposition=true timelineRoundTrip=true animationTiming=true vfxTiming=true audioTiming=true spatialHitbox=true spatialHurtbox=true cast=true draftsRestored=true');
+  console.log('WEB_CREATOR_PREVIEW_SMOKE_PASSED invalidBlocked=true authoredHp=180 authoredDamage=33 authoredMpCost=17 authoredCooldown=2.4 semanticAnimationOverride=true semanticAnimationRoundTrip=true audioBindingOverride=true audioBindingRoundTrip=true animationPngMemoryRoundTrip=true animationPngRuntimeRendering=true animationPngRuntimeFrameAdvance=true animationPngSemanticFallback=true wavMemoryRoundTrip=true wavRuntimePlayback=true basicAttackWavRuntimePlayback=true skillImpactWavRuntimePlayback=true hitReceivedWavRuntimePlayback=true safeComposition=true timelineRoundTrip=true animationTiming=true vfxTiming=true audioTiming=true spatialHitbox=true spatialHurtbox=true cast=true draftsRestored=true');
   await page.close();
 } catch (error) {
   const snapshot = await diagnosticSnapshot();
