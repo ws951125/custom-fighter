@@ -3,12 +3,23 @@ extends "res://game/runtime/preview_selectable_main.gd"
 const CharacterAnimationMap = preload("res://game/core/character/character_animation_map.gd")
 const CharacterAudioBindings = preload("res://game/core/character/character_audio_bindings.gd")
 const CharacterAudioAssetDraft = preload("res://game/creator/character_editor/character_audio_asset_draft.gd")
+const CharacterAnimationAssetDraft = preload("res://game/creator/character_editor/character_animation_asset_draft.gd")
 const VfxDraft = preload("res://game/creator/vfx_editor/vfx_draft.gd")
 const TimelineCombatBox = preload("res://game/core/combat/combat_box.gd")
 const TIMELINE_INSTANT_PULSE_SECONDS := 0.18
 
 var player_animation_map := CharacterAnimationMap.new()
 var player_animation_load_error := ""
+var preview_animation_asset_draft := CharacterAnimationAssetDraft.new()
+var preview_animation_asset_texture: ImageTexture
+var preview_animation_asset_loaded := false
+var preview_animation_asset_load_error := ""
+var preview_animation_asset_frame_index := 0
+var preview_animation_asset_max_frame_seen := 0
+var preview_animation_asset_elapsed := 0.0
+var preview_animation_asset_was_active := false
+var preview_animation_asset_draw_count := 0
+var preview_animation_asset_last_drawn_frame := -1
 var player_audio_bindings := CharacterAudioBindings.new()
 var player_audio_bindings_load_error := ""
 var preview_audio_asset_draft := CharacterAudioAssetDraft.new()
@@ -81,6 +92,7 @@ func _enter_tree() -> void:
 
 func _ready() -> void:
 	super()
+	_load_creator_preview_animation_asset()
 	_load_creator_preview_audio_asset()
 	_load_creator_preview_vfx()
 	_install_preview_return_path()
@@ -92,6 +104,7 @@ func _process(delta: float) -> void:
 	_consume_creator_preview_basic_attack_audio()
 	_consume_creator_preview_timeline_transitions()
 	_tick_creator_preview_timeline_pulses(delta)
+	_tick_creator_preview_animation_asset(delta)
 	_tick_creator_preview_vfx(delta)
 
 func _consume_creator_preview_timeline_transitions() -> void:
@@ -143,6 +156,88 @@ func _resolve_preview_audio_cue(raw_cue: String) -> String:
 	if player_audio_bindings.loaded and CharacterAudioBindings.REQUIRED_BINDINGS.has(normalized):
 		return player_audio_bindings.cue_for_binding(normalized)
 	return normalized
+
+func _load_creator_preview_animation_asset() -> void:
+	preview_animation_asset_draft.reset()
+	preview_animation_asset_texture = null
+	preview_animation_asset_loaded = false
+	preview_animation_asset_load_error = ""
+	preview_animation_asset_frame_index = 0
+	preview_animation_asset_max_frame_seen = 0
+	preview_animation_asset_elapsed = 0.0
+	preview_animation_asset_was_active = false
+	preview_animation_asset_draw_count = 0
+	preview_animation_asset_last_drawn_frame = -1
+
+	var session: Variant = get_node_or_null("/root/CreatorPreviewSession")
+	if (
+		session == null
+		or not session.has_method("has_active_animation_asset_preview")
+		or not bool(session.call("has_active_animation_asset_preview"))
+	):
+		return
+	if not session.has_method("preview_animation_asset_data") or not session.has_method("preview_animation_asset_png_bytes"):
+		preview_animation_asset_load_error = "Creator preview Animation PNG session accessors are unavailable"
+		return
+
+	var metadata: Dictionary = session.call("preview_animation_asset_data")
+	var png_bytes: PackedByteArray = session.call("preview_animation_asset_png_bytes")
+	var metadata_errors: PackedStringArray = preview_animation_asset_draft.load_from_dictionary(metadata)
+	if not metadata_errors.is_empty():
+		preview_animation_asset_load_error = " | ".join(metadata_errors)
+		return
+	var byte_errors: PackedStringArray = preview_animation_asset_draft.validate_bytes(png_bytes)
+	if not byte_errors.is_empty():
+		preview_animation_asset_load_error = " | ".join(byte_errors)
+		return
+	if (
+		not player_animation_map.loaded
+		or player_animation_map.animation_id_for_semantic(preview_animation_asset_draft.semantic) != preview_animation_asset_draft.animation_id
+	):
+		preview_animation_asset_load_error = "Creator preview Animation PNG does not match active animation map"
+		return
+
+	var image := Image.new()
+	var decode_error: Error = image.load_png_from_buffer(png_bytes)
+	if decode_error != OK:
+		preview_animation_asset_load_error = "Creator preview Animation PNG failed runtime decode"
+		return
+	preview_animation_asset_texture = ImageTexture.create_from_image(image)
+	preview_animation_asset_loaded = preview_animation_asset_texture != null
+	if not preview_animation_asset_loaded:
+		preview_animation_asset_load_error = "Creator preview Animation PNG texture creation failed"
+
+func _creator_preview_animation_asset_active() -> bool:
+	return (
+		preview_animation_asset_loaded
+		and preview_animation_asset_texture != null
+		and _animation_semantic_name() == preview_animation_asset_draft.semantic
+		and _current_animation_id() == preview_animation_asset_draft.animation_id
+	)
+
+func _tick_creator_preview_animation_asset(delta: float) -> void:
+	if not preview_animation_asset_loaded:
+		return
+	var active := _creator_preview_animation_asset_active()
+	if active and not preview_animation_asset_was_active:
+		preview_animation_asset_frame_index = 0
+		preview_animation_asset_elapsed = 0.0
+	elif active and preview_animation_asset_draft.frame_count > 1:
+		var seconds_per_frame := 1.0 / preview_animation_asset_draft.fps
+		preview_animation_asset_elapsed += maxf(0.0, delta)
+		while preview_animation_asset_elapsed >= seconds_per_frame:
+			preview_animation_asset_elapsed -= seconds_per_frame
+			preview_animation_asset_frame_index = (
+				preview_animation_asset_frame_index + 1
+			) % preview_animation_asset_draft.frame_count
+			preview_animation_asset_max_frame_seen = maxi(
+				preview_animation_asset_max_frame_seen,
+				preview_animation_asset_frame_index
+			)
+	elif not active:
+		preview_animation_asset_frame_index = 0
+		preview_animation_asset_elapsed = 0.0
+	preview_animation_asset_was_active = active
 
 func _load_creator_preview_audio_asset() -> void:
 	preview_audio_asset_draft.reset()
@@ -317,6 +412,57 @@ func _tick_creator_preview_vfx(delta: float) -> void:
 		preview_vfx_elapsed = 0.0
 	preview_vfx_projectile_was_active = projectile_active
 
+func _draw_fighter(
+	ground_feet: Vector2,
+	body_color: Color,
+	facing: float,
+	is_dummy: bool,
+	vertical_offset: float = 0.0,
+	guarding: bool = false
+) -> void:
+	if (
+		is_dummy
+		or not _creator_preview_animation_asset_active()
+		or preview_animation_asset_texture == null
+	):
+		super(ground_feet, body_color, facing, is_dummy, vertical_offset, guarding)
+		return
+
+	var frame_width := preview_animation_asset_draft.frame_width()
+	var frame_height := preview_animation_asset_draft.frame_height()
+	if frame_width < 1 or frame_height < 1:
+		super(ground_feet, body_color, facing, is_dummy, vertical_offset, guarding)
+		return
+
+	var shadow_scale := clampf(0.75 + ((ground_feet.y / maxf(size.y, 720.0)) * 0.35), 0.78, 1.08)
+	_draw_shadow_ellipse(
+		ground_feet + Vector2(0.0, 4.0),
+		Vector2(34.0, 10.0) * shadow_scale,
+		Color(0.02, 0.03, 0.06, 0.45)
+	)
+	var feet := ground_feet + Vector2(0.0, -vertical_offset)
+	var fit_scale := minf(128.0 / float(frame_height), 160.0 / float(frame_width))
+	var draw_size := Vector2(float(frame_width), float(frame_height)) * fit_scale
+	var source_region := Rect2(
+		preview_animation_asset_frame_index * frame_width,
+		0,
+		frame_width,
+		frame_height
+	)
+	var destination := Rect2(
+		feet + Vector2(-draw_size.x * 0.5, -draw_size.y),
+		draw_size
+	)
+	draw_texture_rect_region(preview_animation_asset_texture, destination, source_region)
+	preview_animation_asset_draw_count += 1
+	preview_animation_asset_last_drawn_frame = preview_animation_asset_frame_index
+
+	if guarding:
+		var direction := 1.0 if facing >= 0.0 else -1.0
+		var shield_center := feet + Vector2(direction * 34.0, -70.0)
+		var start_angle := -1.15 if direction > 0.0 else PI - 1.15
+		draw_arc(shield_center, 52.0, start_angle, start_angle + 2.30, 24, Color("9cf5d4"), 7.0)
+
 func _draw_fireball(arena_top: float, arena_bottom: float) -> void:
 	if not preview_vfx_loaded or preview_vfx_texture == null:
 		super(arena_top, arena_bottom)
@@ -467,6 +613,16 @@ func _set_web_state() -> void:
 		"document.documentElement.dataset.playerAnimationId=%s;" % JSON.stringify(_current_animation_id()) +
 		"document.documentElement.dataset.playerAnimationLoadError=%s;" % JSON.stringify(player_animation_load_error) +
 		"document.documentElement.dataset.creatorPreviewAnimationOverrideActive='%s';" % ("true" if preview_active and session != null and session.has_method("has_active_animation_preview") and bool(session.call("has_active_animation_preview")) else "false") +
+		"document.documentElement.dataset.creatorPreviewAnimationAssetRuntimeLoaded='%s';" % _bool_text(preview_animation_asset_loaded) +
+		"document.documentElement.dataset.creatorPreviewAnimationAssetRuntimeActive='%s';" % _bool_text(_creator_preview_animation_asset_active()) +
+		"document.documentElement.dataset.creatorPreviewAnimationAssetRuntimeSemantic=%s;" % JSON.stringify(preview_animation_asset_draft.semantic if preview_animation_asset_loaded else "") +
+		"document.documentElement.dataset.creatorPreviewAnimationAssetRuntimeAnimationId=%s;" % JSON.stringify(preview_animation_asset_draft.animation_id if preview_animation_asset_loaded else "") +
+		"document.documentElement.dataset.creatorPreviewAnimationAssetRuntimeFrameCount='%d';" % (preview_animation_asset_draft.frame_count if preview_animation_asset_loaded else 0) +
+		"document.documentElement.dataset.creatorPreviewAnimationAssetRuntimeCurrentFrame='%d';" % preview_animation_asset_frame_index +
+		"document.documentElement.dataset.creatorPreviewAnimationAssetRuntimeMaxFrameSeen='%d';" % preview_animation_asset_max_frame_seen +
+		"document.documentElement.dataset.creatorPreviewAnimationAssetRuntimeDrawCount='%d';" % preview_animation_asset_draw_count +
+		"document.documentElement.dataset.creatorPreviewAnimationAssetRuntimeLastDrawnFrame='%d';" % preview_animation_asset_last_drawn_frame +
+		"document.documentElement.dataset.creatorPreviewAnimationAssetRuntimeLoadError=%s;" % JSON.stringify(preview_animation_asset_load_error) +
 		"document.documentElement.dataset.playerAudioBindingsLoaded='%s';" % _bool_text(player_audio_bindings.loaded) +
 		"document.documentElement.dataset.creatorPreviewAudioBindingsActive='%s';" % ("true" if preview_active and session != null and session.has_method("has_active_audio_bindings_preview") and bool(session.call("has_active_audio_bindings_preview")) else "false") +
 		"document.documentElement.dataset.playerAudioCueReady=%s;" % JSON.stringify(player_audio_bindings.cue_for_binding("ready")) +
