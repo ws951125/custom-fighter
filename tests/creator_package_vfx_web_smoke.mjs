@@ -14,6 +14,30 @@ function creatorUrl() {
   return url.toString();
 }
 
+function pcmWavDataUrl({ sampleRate = 8000, channels = 1, bits = 8, dataSize = 800 } = {}) {
+  const bytes = new Uint8Array(44 + dataSize);
+  const view = new DataView(bytes.buffer);
+  const ascii = (offset, text) => {
+    for (let i = 0; i < text.length; i += 1) bytes[offset + i] = text.charCodeAt(i);
+  };
+  ascii(0, 'RIFF');
+  view.setUint32(4, 36 + dataSize, true);
+  ascii(8, 'WAVE');
+  ascii(12, 'fmt ');
+  view.setUint32(16, 16, true);
+  view.setUint16(20, 1, true);
+  view.setUint16(22, channels, true);
+  view.setUint32(24, sampleRate, true);
+  const blockAlign = (channels * bits) / 8;
+  view.setUint32(28, sampleRate * blockAlign, true);
+  view.setUint16(32, blockAlign, true);
+  view.setUint16(34, bits, true);
+  ascii(36, 'data');
+  view.setUint32(40, dataSize, true);
+  bytes.fill(bits === 8 ? 128 : 0, 44);
+  return `data:audio/wav;base64,${Buffer.from(bytes).toString('base64')}`;
+}
+
 async function waitCreator(page) {
   await page.waitForFunction(
     () =>
@@ -26,6 +50,8 @@ async function waitCreator(page) {
       typeof window.customFighterCreatorSetAnimationSemantic === 'function' &&
       typeof window.customFighterCreatorSetAnimationAssetTiming === 'function' &&
       typeof window.customFighterCreatorImportAnimationPng === 'function' &&
+      typeof window.customFighterCreatorSetAudioBinding === 'function' &&
+      typeof window.customFighterCreatorImportWav === 'function' &&
       typeof window.customFighterCreatorOpenVfx === 'function',
     null,
     { timeout: 60_000 },
@@ -46,7 +72,25 @@ try {
     window.customFighterCreatorSetSkillName('Package Prism Bolt');
     window.customFighterCreatorSetSkillDamage(33);
     window.customFighterCreatorSetSkillMpCost(17);
+    window.customFighterCreatorSetAudioBinding('basic_attack', 'package_attack_custom');
   });
+
+  const audioWavDataUrl = pcmWavDataUrl();
+  await page.evaluate(
+    ({ dataUrl }) => window.customFighterCreatorImportWav('package-attack.wav', 'audio/wav', dataUrl),
+    { dataUrl: audioWavDataUrl },
+  );
+  await page.waitForFunction(
+    () =>
+      document.documentElement.dataset.creatorAudioDraftValid === 'true' &&
+      document.documentElement.dataset.creatorAudioAssetValid === 'true' &&
+      document.documentElement.dataset.creatorAudioAssetBinding === 'basic_attack' &&
+      document.documentElement.dataset.creatorAudioAssetCue === 'package_attack_custom' &&
+      document.documentElement.dataset.creatorAudioAssetFile === 'package-attack.wav' &&
+      document.documentElement.dataset.creatorAudioAssetBytes === '844',
+    null,
+    { timeout: 5_000 },
+  );
   const animationPngDataUrl = await page.evaluate(() => {
     const canvas = document.createElement('canvas');
     canvas.width = 16;
@@ -123,6 +167,11 @@ try {
   if (exported.animation_asset?.metadata?.animation_id !== 'package_ready_custom') throw new Error('Animation PNG animation id missing from package');
   if (exported.animation_asset?.metadata?.frame_count !== 4) throw new Error('Animation PNG frame metadata missing from package');
   if (!String(exported.animation_asset?.png_base64 ?? '').length) throw new Error('Animation PNG payload missing from package');
+  if (exported.audio_asset?.metadata?.binding !== 'basic_attack') throw new Error('WAV binding missing from package');
+  if (exported.audio_asset?.metadata?.cue_id !== 'package_attack_custom') throw new Error('WAV cue missing from package');
+  if (exported.audio_asset?.metadata?.file_name !== 'package-attack.wav') throw new Error('WAV filename missing from package');
+  if (exported.audio_asset?.metadata?.byte_size !== 844) throw new Error('WAV byte metadata missing from package');
+  if (Buffer.from(exported.audio_asset?.wav_base64 ?? '', 'base64').length !== 844) throw new Error('WAV payload missing from package');
 
   response = await page.goto(creatorUrl(), { waitUntil: 'domcontentloaded', timeout: 60_000 });
   if (!response?.ok()) throw new Error(`Reloaded Creator URL returned HTTP ${response?.status() ?? 'unknown'}`);
@@ -141,6 +190,12 @@ try {
       document.documentElement.dataset.creatorAnimationAssetFps === '18.000' &&
       Number(document.documentElement.dataset.creatorAnimationAssetBytes ?? '0') > 0 &&
       document.documentElement.dataset.creatorPackageAnimationAssetBound === 'true' &&
+      document.documentElement.dataset.creatorAudioDraftValid === 'true' &&
+      document.documentElement.dataset.creatorAudioAssetValid === 'true' &&
+      document.documentElement.dataset.creatorAudioAssetBinding === 'basic_attack' &&
+      document.documentElement.dataset.creatorAudioAssetCue === 'package_attack_custom' &&
+      document.documentElement.dataset.creatorAudioAssetFile === 'package-attack.wav' &&
+      document.documentElement.dataset.creatorAudioAssetBytes === '844' &&
       document.documentElement.dataset.creatorSkillDraftName === 'Package Prism Bolt' &&
       document.documentElement.dataset.creatorPreviewVfxBound === 'true' &&
       document.documentElement.dataset.creatorPreviewVfxFrameCount === '4' &&
@@ -163,7 +218,12 @@ try {
       document.documentElement.dataset.creatorPreviewAnimationAssetRuntimeSemantic === 'ready' &&
       document.documentElement.dataset.creatorPreviewAnimationAssetRuntimeAnimationId === 'package_ready_custom' &&
       document.documentElement.dataset.creatorPreviewAnimationAssetRuntimeFrameCount === '4' &&
-      document.documentElement.dataset.creatorPreviewAnimationAssetRuntimeLoadError === '',
+      document.documentElement.dataset.creatorPreviewAnimationAssetRuntimeLoadError === '' &&
+      document.documentElement.dataset.playerAudioCueBasicAttack === 'package_attack_custom' &&
+      document.documentElement.dataset.creatorPreviewAudioAssetLoaded === 'true' &&
+      document.documentElement.dataset.creatorPreviewAudioAssetCue === 'package_attack_custom' &&
+      document.documentElement.dataset.creatorPreviewAudioPlaybackCount === '0' &&
+      document.documentElement.dataset.creatorPreviewAudioLastPlayedCue === '',
     null,
     { timeout: 60_000 },
   );
@@ -171,6 +231,15 @@ try {
     () =>
       Number(document.documentElement.dataset.creatorPreviewAnimationAssetRuntimeMaxFrameSeen ?? '0') >= 1 &&
       Number(document.documentElement.dataset.creatorPreviewAnimationAssetRuntimeDrawCount ?? '0') > 0,
+    null,
+    { timeout: 5_000 },
+  );
+
+  await page.keyboard.press('j');
+  await page.waitForFunction(
+    () =>
+      Number(document.documentElement.dataset.creatorPreviewAudioPlaybackCount ?? '0') === 1 &&
+      document.documentElement.dataset.creatorPreviewAudioLastPlayedCue === 'package_attack_custom',
     null,
     { timeout: 5_000 },
   );
@@ -189,7 +258,7 @@ try {
     { timeout: 5_000 },
   );
 
-  console.log('WEB_CREATOR_PACKAGE_VFX_SMOKE_PASSED schema=2 embeddedVfx=true embeddedAnimationPng=true secondSessionImport=true secondSessionAnimationPngRestored=true animationPngRuntimeRendering=true animationPngRuntimeFrameAdvance=true runtimeLoaded=true cast=true');
+  console.log('WEB_CREATOR_PACKAGE_VFX_SMOKE_PASSED schema=2 embeddedVfx=true embeddedAnimationPng=true embeddedWav=true secondSessionImport=true secondSessionAnimationPngRestored=true secondSessionWavRestored=true animationPngRuntimeRendering=true animationPngRuntimeFrameAdvance=true wavRuntimePlaybackAfterImport=true runtimeLoaded=true cast=true');
   await page.close();
 } finally {
   await browser.close();

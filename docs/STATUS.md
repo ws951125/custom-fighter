@@ -5,9 +5,9 @@
 **V1/MVP is complete; V2 roadmap is now active.**
 
 - V1 completion remains **100% (13/13 phases complete)**.
-- V2 completion is **25% (2/8 phases complete)**.
-- Completed V2 phases: **V2-1 Advanced Creator Timeline** and **V2-2 Extended Skill Families**.
-- Active V2 phase: **V2-3 Character Animation & Audio Authoring**.
+- V2 completion is **37.5% (3/8 phases complete)**.
+- Completed V2 phases: **V2-1 Advanced Creator Timeline**, **V2-2 Extended Skill Families**, and **V2-3 Character Animation & Audio Authoring**.
+- Active V2 phase: **V2-4 AI Opponents & Single-player Gameplay**.
 
 V1 roadmap:
 - M0–M8 MVP: 9/9 complete.
@@ -22,14 +22,14 @@ V2 roadmap is defined in `docs/V2_ROADMAP.md` and captures previously discussed/
 
 1. V2-1 Advanced Creator Timeline — **complete**.
 2. V2-2 Extended Skill Families — **complete**.
-3. V2-3 Character Animation & Audio Authoring — **in progress**.
-4. V2-4 AI Opponents & Single-player Gameplay — pending.
+3. V2-3 Character Animation & Audio Authoring — **complete**.
+4. V2-4 AI Opponents & Single-player Gameplay — **in progress**.
 5. V2-5 Game Modes, Balance & Competitive Foundation — pending.
 6. V2-6 Network PvP — pending.
 7. V2-7 Creator Sharing Ecosystem — pending.
 8. V2-8 Mobile Targets — pending.
 
-V2-1 delivered visual event timeline authoring, startup/active/recovery timing, animation/VFX/audio events, hitbox/hurtbox timing and spatial editing, safe multi-event compositions, validation, and Creator → Training preview round trip. V2-2 extended the data-driven skill engine beyond the six V1 families and is now accepted complete with bounded Beam/Trap/Aura/Teleport/Counter/Grab/Summon families plus safe declarative scripted compositions. V2-3 is now active.
+V2-1 delivered visual event timeline authoring, startup/active/recovery timing, animation/VFX/audio events, hitbox/hurtbox timing and spatial editing, safe multi-event compositions, validation, and Creator → Training preview round trip. V2-2 extended the data-driven skill engine beyond the six V1 families and is accepted complete with bounded Beam/Trap/Aura/Teleport/Counter/Grab/Summon families plus safe declarative scripted compositions. V2-3 is accepted complete with safe animation/audio authoring, self-contained package transport, fresh-session restore, runtime Animation PNG rendering, and packaged WAV playback. V2-4 AI Opponents & Single-player Gameplay is now active.
 
 ### V2-2 implementation checkpoints
 
@@ -351,7 +351,7 @@ Work unit 13 — **Creator Preview runtime rendering for the bounded character A
 - Render readiness emitted `PRODUCTION_AI_BACKEND_READY provider=gemini model=gemini-3.6-flash billing_mode=free-tier-only revision=594b9d6a22a136db61f61fab4a6cab1ba69b8228`.
 - WU13 is therefore accepted and production-validated.
 
-Work unit 14 — **browser-autoplay-safe `ready` WAV runtime trigger — implementation complete; PR validation passed**:
+Work unit 14 — **browser-autoplay-safe `ready` WAV runtime trigger — accepted and production-validated**:
 - Reuse the existing one validated WAV asset and the fixed `ready` binding; no schema/package change and no second audio asset slot are introduced.
 - A `ready` WAV loads normally into Creator Preview but starts only as an armed one-shot. It does not autoplay when Training Preview enters.
 - The first non-echo keyboard press, mouse-button press or screen touch records the browser audio-unlock gesture. Playback is deferred to the next process tick rather than attempted during scene load.
@@ -362,9 +362,25 @@ Work unit 14 — **browser-autoplay-safe `ready` WAV runtime trigger — impleme
 - PR #178 implementation/docs head `34aaf39eeea886ca3b3eb97c4c9a9ff5d3b00b25` passed PR CI #483 (`35561166681`) across Windows Native, Godot import/boot/domain/AI contracts, trusted backend, Web export/size budget, Chromium `smoke:all`, and hosted Microsoft Edge `smoke:all`.
 - Hosted Edge emitted `WEB_CREATOR_PREVIEW_SMOKE_PASSED ... readyWavAutoplaySafe=true readyWavFirstInputPlayback=true readyWavOneShot=true`.
 - The full hosted Edge suite completed `SMOKE_SUITE_PASSED count=24`.
-- Final documentation-sync latest-head validation remains required before merge.
+- PR #178 final head `552648d8c05a2a6b79c9aa3a0af0605034c9efdf` passed latest-head CI #485 (`35562239547`) and was explicitly approved and squash-merged to `main` as `831f3ec7f322e7b023cca0c0874b1f217d355a24`.
+- Exact-main CI #486 (`35563876523`) passed the complete production chain: Windows Native, Godot import/boot/domain/AI contracts, trusted backend, Web export/size budget, Chromium `smoke:all`, hosted Microsoft Edge `smoke:all`, GitHub Pages deployment/public reachability, Render exact-revision readiness, and production Microsoft Edge full smoke.
+- Production Edge emitted `readyWavAutoplaySafe=true readyWavFirstInputPlayback=true readyWavOneShot=true` while all existing WAV runtime trigger flags remained green, then completed `SMOKE_SUITE_PASSED count=24`.
+- Render readiness emitted `PRODUCTION_AI_BACKEND_READY provider=gemini model=gemini-3.6-flash billing_mode=free-tier-only revision=831f3ec7f322e7b023cca0c0874b1f217d355a24`.
+- WU14 is therefore accepted and production-validated.
 - After WU14, perform final V2-3 self-contained/playable acceptance and phase closeout.
 - V2 remains **25% (2/8 phases complete)** until full V2-3 acceptance.
+
+
+Work unit 15 — **final V2-3 self-contained playable acceptance — accepted; phase closeout synchronized**:
+- This is a test/documentation acceptance slice only; **this work unit has no product functionality change**.
+- The fresh-session Character Package browser regression authors one safe basic-attack WAV in the same schema-v2 package that already carries bounded VFX + Animation PNG.
+- The regression exports the package, reloads Creator to create a fresh browser session, imports the package, verifies the WAV metadata/bytes were restored, enters Training, proves Animation PNG runtime rendering/frame advance, presses J, and requires the restored WAV to play through the authoritative `basic_attack` trigger.
+- PR #179 head `8f42a1423a3027655d4090c8d316f5f8ad0fa0e2` passed PR CI #487 (`35566219175`) across Windows Native, Godot import/boot/domain/AI contracts, trusted backend, Web export/size budget, Chromium `smoke:all`, and hosted Microsoft Edge `smoke:all`.
+- Hosted Edge emitted `WEB_CREATOR_PACKAGE_VFX_SMOKE_PASSED ... embeddedVfx=true embeddedAnimationPng=true embeddedWav=true secondSessionImport=true secondSessionAnimationPngRestored=true secondSessionWavRestored=true animationPngRuntimeRendering=true animationPngRuntimeFrameAdvance=true wavRuntimePlaybackAfterImport=true runtimeLoaded=true cast=true`.
+- Hosted Edge completed `SMOKE_SUITE_PASSED count=24`.
+- This closes the V2-3 roadmap acceptance criterion: a Creator-authored animation/audio package can be exported, imported into a fresh session, and preserve the playable Animation PNG + WAV + VFX result without arbitrary executable/resource paths.
+- V2-3 is therefore accepted complete in this phase-closeout branch; V2 advances to **37.5% (3/8 phases complete)** and V2-4 becomes active.
+- PR #179 still requires latest-head docs-sync CI and explicit user approval before `main` reflects this 37.5% closeout.
 
 ### V2-1 implementation checkpoints
 
