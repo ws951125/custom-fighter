@@ -284,6 +284,14 @@ Scope:
 10. Extend the self-contained VFX package smoke so a fresh Creator session imports one package containing both embedded VFX and character Animation PNG before entering Training.
 11. Keep runtime rendering/use of the imported character sprite strip and `ready` audio autoplay semantics outside this transport-only slice.
 
+Validation result:
+- PR #176 head `b6b1410f649ca194dc92d92babbb8378e5d92e06` passed PR CI #467 (`35547604895`) across Windows Native, Godot import/boot/domain/AI contracts, trusted backend, Web export/size budget, Chromium `smoke:all`, and hosted Microsoft Edge `smoke:all`.
+- Domain evidence emitted `SELF_CONTAINED_CHARACTER_PACKAGE_TESTS_PASSED`.
+- Both browsers proved `animationPngPackageRoundTrip=true`, `invalidImportPreservesAnimationPng=true`, `validImportRestoresAnimationPng=true`, and `tamperedPackagedAnimationPngBlocked=true`.
+- The fresh-session package regression proved `embeddedVfx=true embeddedAnimationPng=true secondSessionImport=true secondSessionAnimationPngRestored=true runtimeLoaded=true cast=true`.
+- Both browsers completed `SMOKE_SUITE_PASSED count=24`.
+- Package schema remains v2 with one optional bounded `animation_asset`; the total JSON ceiling is 16 MB and per-asset limits remain unchanged.
+
 ## Deferred after WU12
 
 - runtime rendering/use of imported character Animation PNG if the final V2-3 playable acceptance requires visual replacement rather than package-preserved authoring state;
