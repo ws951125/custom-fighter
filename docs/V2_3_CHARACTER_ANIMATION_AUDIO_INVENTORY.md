@@ -304,6 +304,13 @@ Scope:
 9. Extend Creator Preview Chromium/hosted-Edge regression to prove no pre-input autoplay, first-input playback, and one-shot non-replay.
 10. After WU14, run final V2-3 package/playable acceptance and close the phase if all criteria remain green.
 
+Validation result:
+- PR #178 implementation/docs head `34aaf39eeea886ca3b3eb97c4c9a9ff5d3b00b25` passed PR CI #483 (`35561166681`) across Windows Native, Godot import/boot/domain/AI contracts, trusted backend, Web export/size budget, Chromium `smoke:all`, and hosted Microsoft Edge `smoke:all`.
+- Hosted Edge proved no scene-entry autoplay, first-input unlock playback and one-shot non-replay with `readyWavAutoplaySafe=true readyWavFirstInputPlayback=true readyWavOneShot=true`.
+- Existing WAV triggers remained green in the same Creator Preview regression: `wavRuntimePlayback=true basicAttackWavRuntimePlayback=true skillImpactWavRuntimePlayback=true hitReceivedWavRuntimePlayback=true`.
+- Hosted Edge completed `SMOKE_SUITE_PASSED count=24`.
+- Final docs-sync latest-head CI remains required before merge.
+
 ## Deferred after WU14
 
 - final V2-3 self-contained/playable acceptance and phase closeout.
