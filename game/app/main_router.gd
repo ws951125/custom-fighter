@@ -44,6 +44,8 @@ func _normalize_mode(requested_mode: String) -> String:
 		return "creator"
 	if requested == "vfx":
 		return "vfx"
+	if requested == "single_player":
+		return "single_player"
 	return "training"
 
 func _set_web_state() -> void:

@@ -3,6 +3,7 @@ import { spawnSync } from 'node:child_process';
 const smokeScripts = [
   'smoke:web',
   'smoke:match-restart',
+  'smoke:opponent-ai',
   'smoke:area',
   'smoke:formation',
   'smoke:buff',

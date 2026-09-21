@@ -37,6 +37,18 @@ func decide(profile, snapshot: Dictionary) -> Dictionary:
 	if absf(depth_delta) > profile.depth_tolerance:
 		return _movement_intent(0.0, _sign_axis(depth_delta))
 
+	# When a basic attack is currently eligible, close the remaining gap to the
+	# authored attack range even if the fighter has already entered the wider
+	# preferred spacing band. This keeps the policy deterministic while ensuring
+	# an active opponent can actually reach its authoritative attack boundary.
+	if (
+		profile.allow_basic_attack
+		and bool(snapshot.get("basic_attack_ready", false))
+		and profile.basic_attack_range > 0.0
+		and horizontal_distance > profile.basic_attack_range
+	):
+		return _movement_intent(_sign_axis(horizontal_delta), 0.0)
+
 	if horizontal_distance > profile.preferred_max_distance:
 		return _movement_intent(_sign_axis(horizontal_delta), 0.0)
 
