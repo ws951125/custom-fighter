@@ -309,10 +309,22 @@ Validation result:
 - Hosted Edge proved no scene-entry autoplay, first-input unlock playback and one-shot non-replay with `readyWavAutoplaySafe=true readyWavFirstInputPlayback=true readyWavOneShot=true`.
 - Existing WAV triggers remained green in the same Creator Preview regression: `wavRuntimePlayback=true basicAttackWavRuntimePlayback=true skillImpactWavRuntimePlayback=true hitReceivedWavRuntimePlayback=true`.
 - Hosted Edge completed `SMOKE_SUITE_PASSED count=24`.
-- Final docs-sync latest-head CI remains required before merge.
+- PR #178 final head `552648d8c05a2a6b79c9aa3a0af0605034c9efdf` passed latest-head CI #485 (`35562239547`) and was squash-merged as `831f3ec7f322e7b023cca0c0874b1f217d355a24`.
+- Exact-main CI #486 (`35563876523`) passed Windows Native, Godot/domain/backend/Web/Chromium, hosted Microsoft Edge, GitHub Pages deployment/public reachability, Render exact-revision readiness, and production Microsoft Edge full smoke.
+- Production Edge proved `readyWavAutoplaySafe=true readyWavFirstInputPlayback=true readyWavOneShot=true`, retained the prior WAV trigger flags, and completed `SMOKE_SUITE_PASSED count=24`.
+- Render readiness matched exact revision `831f3ec7f322e7b023cca0c0874b1f217d355a24`.
+- WU14 is accepted and production-validated.
 
-## Deferred after WU14
+## Work Unit 15 — final self-contained playable acceptance
 
-- final V2-3 self-contained/playable acceptance and phase closeout.
+Scope:
+1. Do not add new product behavior; use the existing schema-v2 Character Package, runtime Animation PNG path and existing WAV trigger ownership.
+2. Extend the existing fresh-session VFX/Animation package regression so the same exported package also contains one validated basic-attack WAV.
+3. Reload Creator before import so the acceptance path does not rely on same-session PreviewSession memory.
+4. After import, prove Animation PNG metadata/bytes and WAV metadata/bytes are restored in the fresh session.
+5. Enter Training and prove the packaged Animation PNG actually renders and advances frames.
+6. Press J and prove the packaged/restored WAV actually plays through the authoritative `basic_attack` trigger.
+7. Preserve the existing VFX runtime/cast/damage assertions so the one package demonstrates playable character media preservation, not isolated serialization.
+8. Require Chromium and hosted Microsoft Edge `smoke:all`; if green, synchronize final V2-3 acceptance and advance V2 from 2/8 to 3/8.
 
-V2 progress remains **25% (2/8 phases complete)** until the entire V2-3 acceptance criterion is satisfied and synchronized.
+V2 progress remains **25% (2/8 phases complete)** until WU15 acceptance passes and the phase-closeout evidence is synchronized.
