@@ -327,7 +327,7 @@ Work unit 11 — **bounded character animation PNG import + memory-only Creator 
 - Render readiness emitted `PRODUCTION_AI_BACKEND_READY provider=gemini model=gemini-3.6-flash billing_mode=free-tier-only revision=44466e43ddef4b6cd7f7dfef74f9c8a63347fd97`.
 - WU11 is therefore accepted and production-validated.
 
-Work unit 12 — **self-contained Character Package transport for character Animation PNG — implementation in progress**:
+Work unit 12 — **self-contained Character Package transport for character Animation PNG — implementation complete; PR validation passed**:
 - Schema-v2 gains one optional `animation_asset`: WU11 metadata plus bounded PNG bytes encoded as base64. Legacy schema v1 and schema-v2 packages without the field remain compatible.
 - Package validation reuses `CharacterAnimationAssetDraft`; no second PNG parser/decoder path is introduced.
 - `animation_asset` requires packaged `animation_map`, and its `semantic + animation_id` must exactly match that map. Malformed base64, tampered PNG bytes, unknown fields, unsafe metadata or mapping mismatch fail closed.
@@ -335,7 +335,12 @@ Work unit 12 — **self-contained Character Package transport for character Anim
 - Failed package imports remain non-mutating. Successful import of a package without `animation_asset` still clears any previous transient animation PNG through the existing ancestor flow; a package with `animation_asset` replaces it with the validated packaged asset.
 - The total Creator Package JSON ceiling increases from 8 MB to a fixed **16 MB** so one ≤5 MB VFX PNG, one ≤5 MB character Animation PNG and one ≤512 KB WAV can coexist after base64 expansion while the overall import remains bounded.
 - Browser coverage now proves normal export/import replacement plus a fresh-session export → reload → import flow with both embedded VFX and embedded character Animation PNG.
-- Active branch: `feat/v2-3-animation-asset-package-wu12`. GitHub-hosted validation is the next gate.
+- PR #176 implementation/docs head `b6b1410f649ca194dc92d92babbb8378e5d92e06` passed PR CI #467 (`35547604895`) across Windows Native, Godot import/boot/domain/AI contracts, trusted backend, Web export/size budget, Chromium `smoke:all`, and GitHub-hosted Microsoft Edge `smoke:all`.
+- Domain evidence emitted `SELF_CONTAINED_CHARACTER_PACKAGE_TESTS_PASSED`.
+- Chromium and Edge both emitted `WEB_CREATOR_PACKAGE_SMOKE_PASSED ... animationPngPackageRoundTrip=true invalidImportPreservesAnimationPng=true validImportRestoresAnimationPng=true tamperedPackagedAnimationPngBlocked=true`.
+- Chromium and Edge both emitted `WEB_CREATOR_PACKAGE_VFX_SMOKE_PASSED schema=2 embeddedVfx=true embeddedAnimationPng=true secondSessionImport=true secondSessionAnimationPngRestored=true runtimeLoaded=true cast=true`.
+- Both browsers completed `SMOKE_SUITE_PASSED count=24`.
+- Final documentation-sync latest-head validation remains required before merge.
 - Remaining after WU12: runtime rendering/use of imported character Animation PNG if required for final playable acceptance, autoplay-safe `ready` audio semantics, and final V2-3 cross-machine/self-contained acceptance.
 - V2 remains **25% (2/8 phases complete)** until full V2-3 acceptance.
 
