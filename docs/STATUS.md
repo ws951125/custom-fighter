@@ -31,6 +31,15 @@ V2 roadmap is defined in `docs/V2_ROADMAP.md` and captures previously discussed/
 
 V2-1 delivered visual event timeline authoring, startup/active/recovery timing, animation/VFX/audio events, hitbox/hurtbox timing and spatial editing, safe multi-event compositions, validation, and Creator → Training preview round trip. V2-2 extended the data-driven skill engine beyond the six V1 families and is accepted complete with bounded Beam/Trap/Aura/Teleport/Counter/Grab/Summon families plus safe declarative scripted compositions. V2-3 is accepted complete with safe animation/audio authoring, self-contained package transport, fresh-session restore, runtime Animation PNG rendering, and packaged WAV playback. V2-4 AI Opponents & Single-player Gameplay is now active.
 
+### V2-4 implementation checkpoints
+
+Architecture inventory checkpoint — **WU1 contract defined; no product functionality change yet**:
+- `docs/V2_4_AI_SINGLE_PLAYER_INVENTORY.md` records the existing passive Dummy, combat authority, `receive_player_hit(...)` incoming-damage boundary, `match_flow_main.gd` victory/defeat/restart/return flow, and the current absence of gameplay AI profiles and stage definitions.
+- The first implementation slice is constrained to a deterministic `OpponentBehaviorProfile` + pure opponent intent decision layer. AI may request movement/guard/basic-attack/validated-skill intents but may not directly mutate HP/MP/cooldowns/hitstun/knockback/match result.
+- Ordinary Training/Creator Preview must remain passive until a later runtime-integration work unit explicitly selects AI mode.
+- Stage schema/selection, difficulty UI, full single-player entry and production match acceptance remain later V2-4 work units.
+- V2 stays **37.5% (3/8 phases complete)** because no V2-4 phase acceptance criterion is complete yet.
+
 ### V2-2 implementation checkpoints
 
 Work unit 1 — **skill-family authoring foundation — accepted and production-validated**:
@@ -498,4 +507,4 @@ AI VFX backend: `https://custom-fighter-ai-vfx.onrender.com`
 
 ## Next implementation target
 
-Validate V2-3 Work Unit 14 on GitHub: prove a `ready`-bound validated WAV does not autoplay on Preview entry, arms a one-shot until the first browser keyboard/mouse/touch gesture, plays exactly once after that unlock gesture, and cannot replay on later inputs while all existing non-ready WAV triggers remain unchanged. Require Godot import/boot/domain/backend, Web export/size budget, Chromium `smoke:all`, Windows Native, and hosted Microsoft Edge `smoke:all` before any merge.
+Implement **V2-4 Work Unit 1 — deterministic opponent behavior foundation** from `docs/V2_4_AI_SINGLE_PLAYER_INVENTORY.md`: add the strict bounded `OpponentBehaviorProfile` contract, a pure deterministic opponent decision/intent state, allow-listed profile fixtures, dedicated Godot domain tests, and CI wiring. Do not activate AI in ordinary Training yet; do not introduce stage selection, direct HP/MP mutation, arbitrary code/callbacks or stochastic behavior in this slice.
