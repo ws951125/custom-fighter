@@ -164,4 +164,4 @@ The architecture previously allowed a future local/open-model AI provider such a
 
 ## Next implementation target
 
-Continue **V2-3 Character Animation & Audio Authoring** with Work Unit 13: render the one validated character Animation PNG inside Creator Preview only when its exact semantic + animation ID match, prove authored FPS/frame playback and safe fallback, then finish the remaining autoplay-safe `ready` audio slice before V2-3 acceptance.
+Continue **V2-3 Character Animation & Audio Authoring** with Work Unit 14: add browser-autoplay-safe one-shot `ready` WAV playback after the first keyboard/mouse/touch unlock gesture, preserve all existing WAV trigger ownership, then run final V2-3 self-contained/playable acceptance and phase closeout.
