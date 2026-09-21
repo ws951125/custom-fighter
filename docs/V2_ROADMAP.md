@@ -78,6 +78,8 @@ Acceptance evidence:
 - Final acceptance PR #179 extends the fresh-session package regression so one schema-v2 package carries VFX PNG + character Animation PNG + validated basic-attack WAV.
 - PR #179 CI #487 (`35566219175`) passed Windows Native, Godot/domain/backend, Web export/size budget, Chromium `smoke:all`, and hosted Microsoft Edge `smoke:all`.
 - Hosted Edge proved `embeddedWav=true secondSessionWavRestored=true wavRuntimePlaybackAfterImport=true` together with `secondSessionAnimationPngRestored=true animationPngRuntimeRendering=true animationPngRuntimeFrameAdvance=true`, existing VFX cast/damage behavior, and `SMOKE_SUITE_PASSED count=24`.
+- PR #179 latest head `3ef6df3f97c91cfb558ac2ab890c036931276d9e` passed PR CI #490 (`35568941052`) and squash-merged to `main` as `f4910ba1357157d41d371926cf75e61a94f0be00`.
+- Exact-main CI #491 (`35572244642`) attempt 2 passed the complete production chain on that revision: Windows Native, Godot/domain/backend, Web export/size budget, Chromium `smoke:all`, hosted Edge `smoke:all`, GitHub Pages deployment/public reachability, Render exact-revision readiness, and production Microsoft Edge full smoke. Attempt 1's production-Edge-only timeout occurred after the new fresh-session Animation PNG/WAV acceptance assertions and passed on same-revision retry without code changes.
 - No arbitrary executable/resource path was added; all imported assets remain bounded, validated and declarative.
 
 ## V2-4 — AI Opponents & Single-player Gameplay
