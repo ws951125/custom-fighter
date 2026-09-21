@@ -95,6 +95,14 @@ Scope:
 
 Acceptance: deployed Web build supports a complete single-player match against an active AI opponent on selectable stage content.
 
+Architecture checkpoint:
+- `docs/V2_4_AI_SINGLE_PLAYER_INVENTORY.md` inventories the existing Training/Match authority and defines the bounded implementation sequence.
+- Existing `match_flow_main.gd` remains authoritative for victory/defeat/restart/return.
+- Existing `receive_player_hit(...)` remains the formal opponent→player damage boundary.
+- Work Unit 1 is the deterministic behavior-profile + intent-decision foundation; it must not directly mutate combat state or activate AI in ordinary Training.
+- Later work units add active runtime integration, multiple difficulty profiles, validated stage definitions/selection, and final deployed single-player acceptance.
+- This checkpoint changes no product behavior and does not advance V2 beyond **37.5% (3/8)**.
+
 ## V2-5 — Game Modes, Balance & Competitive Foundation
 
 Goal: provide the safety/balance boundary needed before competitive play.
@@ -172,4 +180,4 @@ The architecture previously allowed a future local/open-model AI provider such a
 
 ## Next implementation target
 
-Begin **V2-4 AI Opponents & Single-player Gameplay** by inventorying the current Training dummy/match/runtime/stage architecture and defining the first bounded work unit for an active AI opponent controller, difficulty/behavior profile boundary, and single-player match flow without weakening existing data-driven combat authority.
+Implement **V2-4 Work Unit 1 — deterministic opponent behavior foundation** using the contract in `docs/V2_4_AI_SINGLE_PLAYER_INVENTORY.md`: strict bounded behavior-profile data, deterministic intent decisions, fail-closed validation, dedicated Godot domain regression coverage and CI wiring. Runtime activation of the opponent remains the following work unit.
