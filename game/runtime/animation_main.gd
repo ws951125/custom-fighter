@@ -31,6 +31,10 @@ var preview_audio_playback_count := 0
 var preview_audio_last_played_cue := ""
 var preview_audio_observed_basic_attack_step := 0
 var preview_audio_observed_skill_impact_count := 0
+var preview_ready_audio_armed := false
+var preview_ready_audio_unlock_observed := false
+var preview_ready_audio_played := false
+var preview_ready_audio_unlock_kind := ""
 var preview_return_button: Button
 var _web_preview_return_callback
 
@@ -100,6 +104,7 @@ func _ready() -> void:
 
 func _process(delta: float) -> void:
 	super(delta)
+	_consume_creator_preview_ready_audio()
 	_consume_creator_preview_skill_impact_audio()
 	_consume_creator_preview_basic_attack_audio()
 	_consume_creator_preview_timeline_transitions()
@@ -249,6 +254,10 @@ func _load_creator_preview_audio_asset() -> void:
 	preview_audio_last_played_cue = ""
 	preview_audio_observed_basic_attack_step = 0
 	preview_audio_observed_skill_impact_count = 0
+	preview_ready_audio_armed = false
+	preview_ready_audio_unlock_observed = false
+	preview_ready_audio_played = false
+	preview_ready_audio_unlock_kind = ""
 
 	var session: Variant = get_node_or_null("/root/CreatorPreviewSession")
 	if session == null or not session.has_method("has_active_audio_asset_preview") or not bool(session.call("has_active_audio_asset_preview")):
@@ -282,6 +291,48 @@ func _load_creator_preview_audio_asset() -> void:
 	preview_audio_player.max_polyphony = 4
 	add_child(preview_audio_player)
 	preview_audio_asset_loaded = true
+	preview_ready_audio_armed = preview_audio_asset_draft.binding == "ready"
+
+func _input(event: InputEvent) -> void:
+	if not preview_ready_audio_armed or preview_ready_audio_unlock_observed or preview_ready_audio_played:
+		return
+
+	var unlock_kind := ""
+	if event is InputEventKey:
+		var key_event := event as InputEventKey
+		if key_event.pressed and not key_event.echo:
+			unlock_kind = "key"
+	elif event is InputEventMouseButton:
+		var mouse_event := event as InputEventMouseButton
+		if mouse_event.pressed:
+			unlock_kind = "mouse"
+	elif event is InputEventScreenTouch:
+		var touch_event := event as InputEventScreenTouch
+		if touch_event.pressed:
+			unlock_kind = "touch"
+
+	if unlock_kind.is_empty():
+		return
+	preview_ready_audio_unlock_observed = true
+	preview_ready_audio_unlock_kind = unlock_kind
+	_set_web_state()
+
+func _consume_creator_preview_ready_audio() -> void:
+	if (
+		not preview_ready_audio_armed
+		or not preview_ready_audio_unlock_observed
+		or preview_ready_audio_played
+		or not player_audio_bindings.loaded
+	):
+		return
+	var cue_id := player_audio_bindings.cue_for_binding("ready")
+	var playback_before := preview_audio_playback_count
+	_play_creator_preview_audio_cue(cue_id)
+	if preview_audio_playback_count <= playback_before:
+		return
+	preview_ready_audio_played = true
+	preview_ready_audio_armed = false
+	_set_web_state()
 
 func _play_creator_preview_audio_cue(cue_id: String) -> void:
 	if not preview_audio_asset_loaded or preview_audio_player == null:
@@ -638,6 +689,10 @@ func _set_web_state() -> void:
 		"document.documentElement.dataset.creatorPreviewAudioAssetLoadError=%s;" % JSON.stringify(preview_audio_asset_load_error) +
 		"document.documentElement.dataset.creatorPreviewAudioPlaybackCount='%d';" % preview_audio_playback_count +
 		"document.documentElement.dataset.creatorPreviewAudioLastPlayedCue=%s;" % JSON.stringify(preview_audio_last_played_cue) +
+		"document.documentElement.dataset.creatorPreviewReadyAudioArmed='%s';" % _bool_text(preview_ready_audio_armed) +
+		"document.documentElement.dataset.creatorPreviewReadyAudioUnlockObserved='%s';" % _bool_text(preview_ready_audio_unlock_observed) +
+		"document.documentElement.dataset.creatorPreviewReadyAudioPlayed='%s';" % _bool_text(preview_ready_audio_played) +
+		"document.documentElement.dataset.creatorPreviewReadyAudioUnlockKind=%s;" % JSON.stringify(preview_ready_audio_unlock_kind) +
 		"document.documentElement.dataset.creatorPreviewReturnReady='%s';" % ("true" if preview_active else "false") +
 		"document.documentElement.dataset.creatorPreviewVfxRuntimeLoaded='%s';" % _bool_text(preview_vfx_loaded) +
 		"document.documentElement.dataset.creatorPreviewVfxRuntimeFrameCount='%d';" % (preview_vfx_draft.frame_count if preview_vfx_loaded else 0) +
