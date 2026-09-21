@@ -164,4 +164,4 @@ The architecture previously allowed a future local/open-model AI provider such a
 
 ## Next implementation target
 
-Continue **V2-3 Character Animation & Audio Authoring** with Work Unit 11: add one bounded creator-provided character Animation PNG/sprite-strip import bound to an exact required semantic + safe animation ID, preserve it through Creator Preview memory only, and keep package transport as a separate follow-up work unit.
+Continue **V2-3 Character Animation & Audio Authoring** with Work Unit 12: transport the one bounded character Animation PNG inside the existing self-contained schema-v2 package, require exact semantic-map agreement, and prove fresh-session restore while keeping runtime rendering/use as a separate follow-up decision.
