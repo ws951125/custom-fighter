@@ -171,8 +171,20 @@ try {
   const exported = JSON.parse(exportedJson);
   if (exported.schema_version !== 2) throw new Error('Exported package schema_version mismatch');
   if ('vfx_asset' in exported) throw new Error('Package without authored VFX must not emit a vfx_asset');
-  if ('animation_asset' in exported || 'animation_assets' in exported) {
-    throw new Error('WU11 animation PNG must remain memory-only and outside package schema');
+  if ('animation_assets' in exported) throw new Error('Character Package must not accept an unbounded animation asset collection');
+  if (exported.animation_asset?.metadata?.semantic !== 'ready') throw new Error('Packaged Animation PNG semantic mismatch');
+  if (exported.animation_asset?.metadata?.animation_id !== 'package_ready_custom') throw new Error('Packaged Animation PNG animation id mismatch');
+  if (exported.animation_asset?.metadata?.file_name !== 'package-ready.png') throw new Error('Packaged Animation PNG filename mismatch');
+  if (exported.animation_asset?.metadata?.mime_type !== 'image/png') throw new Error('Packaged Animation PNG MIME mismatch');
+  if (exported.animation_asset?.metadata?.image_width !== 16 || exported.animation_asset?.metadata?.image_height !== 4) {
+    throw new Error('Packaged Animation PNG dimensions mismatch');
+  }
+  if (exported.animation_asset?.metadata?.frame_count !== 4 || Math.abs(Number(exported.animation_asset?.metadata?.fps) - 18) > 0.001) {
+    throw new Error('Packaged Animation PNG timing mismatch');
+  }
+  if (Buffer.from(exported.animation_asset?.png_base64 ?? '', 'base64').length <= 0) throw new Error('Packaged Animation PNG bytes did not serialize');
+  if ('script' in (exported.animation_asset?.metadata ?? {}) || 'path' in (exported.animation_asset?.metadata ?? {}) || 'url' in (exported.animation_asset?.metadata ?? {})) {
+    throw new Error('Packaged Animation PNG metadata must remain declarative data only');
   }
   if ('audio_assets' in exported) throw new Error('Character Package must not accept an unbounded audio asset collection');
   if (exported.audio_asset?.metadata?.binding !== 'skill_cast') throw new Error('Packaged WAV binding mismatch');
@@ -305,7 +317,11 @@ try {
     { timeout: 5_000 },
   );
 
-  const { animation_map: _omittedAnimationMap, ...exportedWithoutAnimationPayload } = exported;
+  const {
+    animation_map: _omittedAnimationMap,
+    animation_asset: _omittedAnimationAsset,
+    ...exportedWithoutAnimationPayload
+  } = exported;
   const missingAnimationPackage = JSON.stringify({
     ...exportedWithoutAnimationPayload,
     character: { ...exported.character, animation_map: 'missing_animation_map' },
@@ -343,6 +359,29 @@ try {
       document.documentElement.dataset.creatorAnimationDraftAnimationId === 'transient_ready_custom' &&
       document.documentElement.dataset.creatorAnimationAssetValid === 'true' &&
       document.documentElement.dataset.creatorAnimationAssetAnimationId === 'transient_ready_custom',
+    null,
+    { timeout: 5_000 },
+  );
+
+  const tamperedAnimationBytes = Buffer.from(exported.animation_asset.png_base64, 'base64');
+  tamperedAnimationBytes[0] = 0;
+  const tamperedAnimationPackage = JSON.stringify({
+    ...exported,
+    animation_asset: {
+      ...exported.animation_asset,
+      png_base64: tamperedAnimationBytes.toString('base64'),
+    },
+  });
+  await page.evaluate((json) => window.customFighterCreatorImportPackageJson(json), tamperedAnimationPackage);
+  await page.waitForFunction(
+    () =>
+      document.documentElement.dataset.creatorPackageImportStatus === 'invalid' &&
+      (document.documentElement.dataset.creatorPackageImportError ?? '').includes('PNG bytes failed runtime decode') &&
+      document.documentElement.dataset.creatorDraftName === 'Mutated Draft' &&
+      document.documentElement.dataset.creatorAnimationDraftAnimationId === 'transient_ready_custom' &&
+      document.documentElement.dataset.creatorAnimationAssetValid === 'true' &&
+      document.documentElement.dataset.creatorAnimationAssetAnimationId === 'transient_ready_custom' &&
+      document.documentElement.dataset.creatorAnimationAssetFile === 'transient-ready.png',
     null,
     { timeout: 5_000 },
   );
@@ -394,9 +433,18 @@ try {
       document.documentElement.dataset.creatorDraftName === 'Package Nova' &&
       document.documentElement.dataset.creatorDraftAnimationMap === 'storm_duelist' &&
       document.documentElement.dataset.creatorAnimationDraftAnimationId === 'package_ready_custom' &&
-      document.documentElement.dataset.creatorAnimationAssetValid === 'false' &&
-      document.documentElement.dataset.creatorAnimationAssetBytes === '0' &&
+      document.documentElement.dataset.creatorAnimationAssetValid === 'true' &&
+      document.documentElement.dataset.creatorAnimationAssetSemantic === 'ready' &&
+      document.documentElement.dataset.creatorAnimationAssetAnimationId === 'package_ready_custom' &&
+      document.documentElement.dataset.creatorAnimationAssetFile === 'package-ready.png' &&
+      Number(document.documentElement.dataset.creatorAnimationAssetBytes ?? '0') > 0 &&
+      document.documentElement.dataset.creatorAnimationAssetFrameCount === '4' &&
+      document.documentElement.dataset.creatorAnimationAssetFps === '18.000' &&
       document.documentElement.dataset.creatorAnimationAssetError === '' &&
+      document.documentElement.dataset.creatorPackageAnimationAssetBound === 'true' &&
+      Number(document.documentElement.dataset.creatorPackageAnimationAssetBytes ?? '0') > 0 &&
+      document.documentElement.dataset.creatorPackageAnimationAssetSemantic === 'ready' &&
+      document.documentElement.dataset.creatorPackageAnimationAssetAnimationId === 'package_ready_custom' &&
       document.documentElement.dataset.creatorAudioDraftValid === 'true' &&
       document.documentElement.dataset.creatorAudioDraftBinding === 'skill_cast' &&
       document.documentElement.dataset.creatorAudioDraftCue === 'package_cast_custom' &&
@@ -455,7 +503,7 @@ try {
     { timeout: 5_000 },
   );
 
-  console.log('WEB_CREATOR_PACKAGE_SMOKE_PASSED export=true schema=2 noVfxFallback=true animationMapRoundTrip=true animationPreview=true animationPngMemoryOnly=true invalidImportPreservesAnimationPng=true validImportClearsAnimationPng=true semanticInvalidExportBlocked=true semanticPackageRoundTrip=true semanticTransientReset=true audioBindingPackageRoundTrip=true wavPackageRoundTrip=true invalidImportPreservesWav=true validImportRestoresWav=true tamperedPackagedWavBlocked=true unsafePackagedAudioBlocked=true unsafePackagedAnimationBlocked=true missingAnimationMapBlocked=true timelineRoundTrip=true compositionExpanded=true invalidPreserved=true import=true authoredHp=222 authoredDamage=41 authoredMpCost=19 previewCast=true');
+  console.log('WEB_CREATOR_PACKAGE_SMOKE_PASSED export=true schema=2 noVfxFallback=true animationMapRoundTrip=true animationPreview=true animationPngPackageRoundTrip=true invalidImportPreservesAnimationPng=true validImportRestoresAnimationPng=true tamperedPackagedAnimationPngBlocked=true semanticInvalidExportBlocked=true semanticPackageRoundTrip=true semanticTransientReset=true audioBindingPackageRoundTrip=true wavPackageRoundTrip=true invalidImportPreservesWav=true validImportRestoresWav=true tamperedPackagedWavBlocked=true unsafePackagedAudioBlocked=true unsafePackagedAnimationBlocked=true missingAnimationMapBlocked=true timelineRoundTrip=true compositionExpanded=true invalidPreserved=true import=true authoredHp=222 authoredDamage=41 authoredMpCost=19 previewCast=true');
   await page.close();
 } finally {
   await browser.close();
