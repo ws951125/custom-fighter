@@ -351,7 +351,7 @@ Work unit 13 — **Creator Preview runtime rendering for the bounded character A
 - Render readiness emitted `PRODUCTION_AI_BACKEND_READY provider=gemini model=gemini-3.6-flash billing_mode=free-tier-only revision=594b9d6a22a136db61f61fab4a6cab1ba69b8228`.
 - WU13 is therefore accepted and production-validated.
 
-Work unit 14 — **browser-autoplay-safe `ready` WAV runtime trigger — implementation complete; PR validation passed**:
+Work unit 14 — **browser-autoplay-safe `ready` WAV runtime trigger — accepted and production-validated**:
 - Reuse the existing one validated WAV asset and the fixed `ready` binding; no schema/package change and no second audio asset slot are introduced.
 - A `ready` WAV loads normally into Creator Preview but starts only as an armed one-shot. It does not autoplay when Training Preview enters.
 - The first non-echo keyboard press, mouse-button press or screen touch records the browser audio-unlock gesture. Playback is deferred to the next process tick rather than attempted during scene load.
@@ -362,9 +362,22 @@ Work unit 14 — **browser-autoplay-safe `ready` WAV runtime trigger — impleme
 - PR #178 implementation/docs head `34aaf39eeea886ca3b3eb97c4c9a9ff5d3b00b25` passed PR CI #483 (`35561166681`) across Windows Native, Godot import/boot/domain/AI contracts, trusted backend, Web export/size budget, Chromium `smoke:all`, and hosted Microsoft Edge `smoke:all`.
 - Hosted Edge emitted `WEB_CREATOR_PREVIEW_SMOKE_PASSED ... readyWavAutoplaySafe=true readyWavFirstInputPlayback=true readyWavOneShot=true`.
 - The full hosted Edge suite completed `SMOKE_SUITE_PASSED count=24`.
-- Final documentation-sync latest-head validation remains required before merge.
+- PR #178 final head `552648d8c05a2a6b79c9aa3a0af0605034c9efdf` passed latest-head CI #485 (`35562239547`) and was explicitly approved and squash-merged to `main` as `831f3ec7f322e7b023cca0c0874b1f217d355a24`.
+- Exact-main CI #486 (`35563876523`) passed the complete production chain: Windows Native, Godot import/boot/domain/AI contracts, trusted backend, Web export/size budget, Chromium `smoke:all`, hosted Microsoft Edge `smoke:all`, GitHub Pages deployment/public reachability, Render exact-revision readiness, and production Microsoft Edge full smoke.
+- Production Edge emitted `readyWavAutoplaySafe=true readyWavFirstInputPlayback=true readyWavOneShot=true` while all existing WAV runtime trigger flags remained green, then completed `SMOKE_SUITE_PASSED count=24`.
+- Render readiness emitted `PRODUCTION_AI_BACKEND_READY provider=gemini model=gemini-3.6-flash billing_mode=free-tier-only revision=831f3ec7f322e7b023cca0c0874b1f217d355a24`.
+- WU14 is therefore accepted and production-validated.
 - After WU14, perform final V2-3 self-contained/playable acceptance and phase closeout.
 - V2 remains **25% (2/8 phases complete)** until full V2-3 acceptance.
+
+
+Work unit 15 — **final V2-3 self-contained playable acceptance — validation in progress**:
+- This is a test/documentation acceptance slice only; there is no product functionality change.
+- The fresh-session Character Package browser regression now authors one safe basic-attack WAV in the same schema-v2 package that already carries bounded VFX + Animation PNG.
+- The regression exports the package, reloads Creator to create a fresh browser session, imports the package, verifies the WAV metadata/bytes were restored, enters Training, proves Animation PNG runtime rendering/frame advance, presses J, and requires the restored WAV to play through the authoritative `basic_attack` trigger.
+- The acceptance marker will require `embeddedWav=true secondSessionWavRestored=true wavRuntimePlaybackAfterImport=true` together with existing Animation PNG runtime flags and `SMOKE_SUITE_PASSED count=24`.
+- Active branch: `test/v2-3-final-acceptance-wu15`.
+- V2 remains **25% (2/8 phases complete)** until this final acceptance evidence passes Chromium + hosted Edge and the phase-closeout docs are synchronized.
 
 ### V2-1 implementation checkpoints
 
