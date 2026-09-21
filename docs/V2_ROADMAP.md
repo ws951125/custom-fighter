@@ -164,4 +164,4 @@ The architecture previously allowed a future local/open-model AI provider such a
 
 ## Next implementation target
 
-Continue **V2-3 Character Animation & Audio Authoring** with Work Unit 14: add browser-autoplay-safe one-shot `ready` WAV playback after the first keyboard/mouse/touch unlock gesture, preserve all existing WAV trigger ownership, then run final V2-3 self-contained/playable acceptance and phase closeout.
+Complete **V2-3 Character Animation & Audio Authoring** with Work Unit 15: prove one self-contained schema-v2 package survives a fresh-session import with playable Animation PNG rendering, packaged WAV runtime playback, and existing VFX gameplay behavior; if Chromium + hosted Edge pass, synchronize V2-3 acceptance and advance to V2-4.
