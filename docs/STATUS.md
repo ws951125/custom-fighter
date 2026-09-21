@@ -33,12 +33,15 @@ V2-1 delivered visual event timeline authoring, startup/active/recovery timing, 
 
 ### V2-4 implementation checkpoints
 
-Architecture inventory checkpoint — **WU1 contract defined; no product functionality change yet**:
-- `docs/V2_4_AI_SINGLE_PLAYER_INVENTORY.md` records the existing passive Dummy, combat authority, `receive_player_hit(...)` incoming-damage boundary, `match_flow_main.gd` victory/defeat/restart/return flow, and the current absence of gameplay AI profiles and stage definitions.
-- The first implementation slice is constrained to a deterministic `OpponentBehaviorProfile` + pure opponent intent decision layer. AI may request movement/guard/basic-attack/validated-skill intents but may not directly mutate HP/MP/cooldowns/hitstun/knockback/match result.
-- Ordinary Training/Creator Preview must remain passive until a later runtime-integration work unit explicitly selects AI mode.
-- Stage schema/selection, difficulty UI, full single-player entry and production match acceptance remain later V2-4 work units.
-- V2 stays **37.5% (3/8 phases complete)** because no V2-4 phase acceptance criterion is complete yet.
+Work Unit 1 — **deterministic opponent behavior foundation implemented and PR-validated; merge/production pending**:
+- `OpponentBehaviorProfile` defines a strict bounded declarative contract for reaction interval, preferred distance band, depth tolerance, basic-attack range, guard policy and one optional validated skill-slot preference. Unknown fields, executable-style fields, unsafe IDs, invalid ranges and unsupported slots fail closed.
+- `OpponentBehaviorProfiles` exposes the first allow-listed profiles: `training_balanced` and `training_pressure`.
+- `OpponentDecisionState` is a pure deterministic intent layer. It consumes explicit position/readiness/threat/snapshot data and returns only bounded movement, guard, basic-attack, validated-skill or idle intents. It does not mutate HP, MP, cooldowns, hitstun, knockback or match result.
+- Domain regression covers profile allow-listing, unknown/unsafe profile rejection, approach/retreat/hold/depth alignment, disabled state, guard-vs-attack priority, validated skill eligibility, invalid-snapshot fail-closed behavior, same-input determinism and no combat-state mutation.
+- Initial PR CI #500 exposed only a GDScript test-fixture type-inference parser error. Commit `9ade45c95059bca3c22eeda5f3714d951603435d` added explicit fixture return/local types without changing decision behavior.
+- PR #181 CI #501 (`35591729594`) passed Windows Native Release, Godot import/boot/domain/AI contracts including `OPPONENT_BEHAVIOR_TESTS_PASSED`, trusted backend, Web export/size budget, Chromium `smoke:all`, and GitHub-hosted Microsoft Edge `smoke:all`.
+- Ordinary Training/Creator Preview remains passive; runtime AI activation is intentionally deferred to Work Unit 2.
+- V2 remains **37.5% (3/8 phases complete)** until the full V2-4 phase acceptance criteria are complete.
 
 ### V2-2 implementation checkpoints
 
@@ -509,4 +512,4 @@ AI VFX backend: `https://custom-fighter-ai-vfx.onrender.com`
 
 ## Next implementation target
 
-Implement **V2-4 Work Unit 1 — deterministic opponent behavior foundation** from `docs/V2_4_AI_SINGLE_PLAYER_INVENTORY.md`: add the strict bounded `OpponentBehaviorProfile` contract, a pure deterministic opponent decision/intent state, allow-listed profile fixtures, dedicated Godot domain tests, and CI wiring. Do not activate AI in ordinary Training yet; do not introduce stage selection, direct HP/MP mutation, arbitrary code/callbacks or stochastic behavior in this slice.
+After PR #181 is approved/merged and exact-main production validation is green, implement **V2-4 Work Unit 2 — active opponent runtime adapter**: attach the validated deterministic decision layer to an explicitly selected AI mode, reuse existing movement/combat authority, route successful opponent damage through `receive_player_hit(...)`, preserve passive ordinary Training when AI mode is not selected, and add deterministic Chromium/Edge regression proving approach, attack and player-defeat flow without stage-selection work yet.

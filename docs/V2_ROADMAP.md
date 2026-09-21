@@ -101,9 +101,11 @@ Architecture checkpoint:
 - `docs/V2_4_AI_SINGLE_PLAYER_INVENTORY.md` inventories the existing Training/Match authority and defines the bounded implementation sequence.
 - Existing `match_flow_main.gd` remains authoritative for victory/defeat/restart/return.
 - Existing `receive_player_hit(...)` remains the formal opponent→player damage boundary.
-- Work Unit 1 is the deterministic behavior-profile + intent-decision foundation; it must not directly mutate combat state or activate AI in ordinary Training.
-- Later work units add active runtime integration, multiple difficulty profiles, validated stage definitions/selection, and final deployed single-player acceptance.
-- This checkpoint changes no product behavior and does not advance V2 beyond **37.5% (3/8)**.
+- Work Unit 1 now implements the bounded `OpponentBehaviorProfile`, allow-listed built-in profiles and pure deterministic `OpponentDecisionState` intent layer; it still does not mutate combat state or activate AI in ordinary Training.
+- PR #181 implementation head `9ade45c95059bca3c22eeda5f3714d951603435d` passed CI #501 (`35591729594`) across Windows Native, Godot/domain/AI contracts, trusted backend, Web export/size budget, Chromium `smoke:all`, and hosted Microsoft Edge `smoke:all`.
+- Work Unit 1 remains merge/production pending; Work Unit 2 is the active-opponent runtime adapter once WU1 reaches exact-main.
+- Later work units add multiple difficulty profiles, validated stage definitions/selection, and final deployed single-player acceptance.
+- V2 remains **37.5% (3/8)** until the full V2-4 acceptance criterion is complete.
 
 ## V2-5 — Game Modes, Balance & Competitive Foundation
 
@@ -182,4 +184,4 @@ The architecture previously allowed a future local/open-model AI provider such a
 
 ## Next implementation target
 
-Implement **V2-4 Work Unit 1 — deterministic opponent behavior foundation** using the contract in `docs/V2_4_AI_SINGLE_PLAYER_INVENTORY.md`: strict bounded behavior-profile data, deterministic intent decisions, fail-closed validation, dedicated Godot domain regression coverage and CI wiring. Runtime activation of the opponent remains the following work unit.
+After PR #181 merge and exact-main validation, implement **V2-4 Work Unit 2 — active opponent runtime adapter** using the WU1 deterministic intent layer. Activation must be explicit/mode-driven, ordinary Training must remain passive by default, opponent damage must route through `receive_player_hit(...)`, and browser regression must prove approach/attack/player-defeat behavior without introducing stage selection yet.
