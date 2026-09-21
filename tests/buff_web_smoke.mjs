@@ -165,6 +165,24 @@ async function assertBaselineMultipliers(label) {
   }
 }
 
+async function waitForActiveBuffAfterCast() {
+  // buffSkillPhase and buffActive are published atomically by the Buff controller.
+  // Observe that correlated transient state first, then wait for the coordinator's
+  // durable released state so hosted Edge scheduling cannot split the proof.
+  await page.waitForFunction(
+    () =>
+      document.documentElement.dataset.buffSkillPhase === 'READY' &&
+      document.documentElement.dataset.buffActive === 'true',
+    null,
+    { timeout: 6_000 },
+  );
+  await page.waitForFunction(
+    () => document.documentElement.dataset.skillCoordinatorBusy === 'false',
+    null,
+    { timeout: 3_000 },
+  );
+}
+
 try {
   const response = await page.goto(baseUrl, { waitUntil: 'domcontentloaded', timeout: 60_000 });
   if (!response?.ok()) {
@@ -221,13 +239,7 @@ try {
 
   // Wait until the cast animation releases the shared skill lock while the timed buff remains.
   // The runtime should now compose CharacterDefinition movement × 1.45 exactly once.
-  await page.waitForFunction(
-    () =>
-      document.documentElement.dataset.skillCoordinatorBusy === 'false' &&
-      document.documentElement.dataset.buffActive === 'true',
-    null,
-    { timeout: 2_500 },
-  );
+  await waitForActiveBuffAfterCast();
   const buffSample = await sampleHorizontalSpeed('Battle Focus movement', moveMultiplier, baseMoveSpeed);
 
   // Recast during the active/cooldown window must be sampled and rejected without spending MP.
@@ -269,13 +281,7 @@ try {
   // The shared coordinator intentionally blocks basic attacks while the buff cast animation
   // still owns the skill lock. Once the cast releases, the timed buff remains active and J
   // must be allowed, proving that the effect itself does not monopolize the coordinator.
-  await page.waitForFunction(
-    () =>
-      document.documentElement.dataset.skillCoordinatorBusy === 'false' &&
-      document.documentElement.dataset.buffActive === 'true',
-    null,
-    { timeout: 2_500 },
-  );
+  await waitForActiveBuffAfterCast();
 
   await holdKey('j');
   await page.waitForFunction(

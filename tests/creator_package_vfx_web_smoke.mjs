@@ -244,18 +244,28 @@ try {
     { timeout: 5_000 },
   );
 
+  // Godot Web input is frame-polled. Keep U held until the runtime acknowledges the
+  // authored 17 MP spend, then release it even if the observation times out. These
+  // state-driven windows match the stable Creator AI-VFX runtime regression.
   await page.keyboard.down('u');
-  await page.waitForFunction(() => Number(document.documentElement.dataset.playerMp) === 83, null, { timeout: 3_000 });
-  await page.keyboard.up('u');
+  try {
+    await page.waitForFunction(
+      () => Number(document.documentElement.dataset.playerMp) === 83,
+      null,
+      { timeout: 10_000 },
+    );
+  } finally {
+    await page.keyboard.up('u');
+  }
   await page.waitForFunction(
     () => document.documentElement.dataset.creatorPreviewVfxProjectileVisible === 'true',
     null,
-    { timeout: 3_000 },
+    { timeout: 10_000 },
   );
   await page.waitForFunction(
     () => Number(document.documentElement.dataset.dummyHp) === 67 && document.documentElement.dataset.lastSkillHit === 'true',
     null,
-    { timeout: 5_000 },
+    { timeout: 10_000 },
   );
 
   console.log('WEB_CREATOR_PACKAGE_VFX_SMOKE_PASSED schema=2 embeddedVfx=true embeddedAnimationPng=true embeddedWav=true secondSessionImport=true secondSessionAnimationPngRestored=true secondSessionWavRestored=true animationPngRuntimeRendering=true animationPngRuntimeFrameAdvance=true wavRuntimePlaybackAfterImport=true runtimeLoaded=true cast=true');

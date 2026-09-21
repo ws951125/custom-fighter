@@ -31,6 +31,15 @@ V2 roadmap is defined in `docs/V2_ROADMAP.md` and captures previously discussed/
 
 V2-1 delivered visual event timeline authoring, startup/active/recovery timing, animation/VFX/audio events, hitbox/hurtbox timing and spatial editing, safe multi-event compositions, validation, and Creator → Training preview round trip. V2-2 extended the data-driven skill engine beyond the six V1 families and is accepted complete with bounded Beam/Trap/Aura/Teleport/Counter/Grab/Summon families plus safe declarative scripted compositions. V2-3 is accepted complete with safe animation/audio authoring, self-contained package transport, fresh-session restore, runtime Animation PNG rendering, and packaged WAV playback. V2-4 AI Opponents & Single-player Gameplay is now active.
 
+### V2-4 implementation checkpoints
+
+Architecture inventory checkpoint — **WU1 contract defined; no product functionality change yet**:
+- `docs/V2_4_AI_SINGLE_PLAYER_INVENTORY.md` records the existing passive Dummy, combat authority, `receive_player_hit(...)` incoming-damage boundary, `match_flow_main.gd` victory/defeat/restart/return flow, and the current absence of gameplay AI profiles and stage definitions.
+- The first implementation slice is constrained to a deterministic `OpponentBehaviorProfile` + pure opponent intent decision layer. AI may request movement/guard/basic-attack/validated-skill intents but may not directly mutate HP/MP/cooldowns/hitstun/knockback/match result.
+- Ordinary Training/Creator Preview must remain passive until a later runtime-integration work unit explicitly selects AI mode.
+- Stage schema/selection, difficulty UI, full single-player entry and production match acceptance remain later V2-4 work units.
+- V2 stays **37.5% (3/8 phases complete)** because no V2-4 phase acceptance criterion is complete yet.
+
 ### V2-2 implementation checkpoints
 
 Work unit 1 — **skill-family authoring foundation — accepted and production-validated**:
@@ -379,8 +388,10 @@ Work unit 15 — **final V2-3 self-contained playable acceptance — accepted; p
 - Hosted Edge emitted `WEB_CREATOR_PACKAGE_VFX_SMOKE_PASSED ... embeddedVfx=true embeddedAnimationPng=true embeddedWav=true secondSessionImport=true secondSessionAnimationPngRestored=true secondSessionWavRestored=true animationPngRuntimeRendering=true animationPngRuntimeFrameAdvance=true wavRuntimePlaybackAfterImport=true runtimeLoaded=true cast=true`.
 - Hosted Edge completed `SMOKE_SUITE_PASSED count=24`.
 - This closes the V2-3 roadmap acceptance criterion: a Creator-authored animation/audio package can be exported, imported into a fresh session, and preserve the playable Animation PNG + WAV + VFX result without arbitrary executable/resource paths.
-- V2-3 is therefore accepted complete in this phase-closeout branch; V2 advances to **37.5% (3/8 phases complete)** and V2-4 becomes active.
-- PR #179 still requires latest-head docs-sync CI and explicit user approval before `main` reflects this 37.5% closeout.
+- PR #179 latest head `3ef6df3f97c91cfb558ac2ab890c036931276d9e` passed PR CI #490 (`35568941052`) and was explicitly approved and squash-merged to `main` as `f4910ba1357157d41d371926cf75e61a94f0be00`.
+- Exact-main CI #491 (`35572244642`) attempt 1 passed Windows Native, Godot/domain/backend, Web export/size budget, Chromium, hosted Edge, Pages deployment/public reachability and Render exact-revision readiness; production Edge then timed out in the changed fresh-session package smoke at the post-acceptance Skill 1 MP observation window.
+- The PR-head and merged-main `creator_package_vfx_web_smoke.mjs` blob SHA were identical, hosted Edge on exact main was already green, and production Edge had passed the new Animation PNG/WAV acceptance assertions before the timeout. A targeted same-revision retry (run attempt 2) then passed the complete production chain, including production Microsoft Edge full smoke, without product/test changes.
+- V2-3 is therefore accepted **and production-validated** on exact main revision `f4910ba1357157d41d371926cf75e61a94f0be00`; V2 is **37.5% (3/8 phases complete)** and V2-4 is active.
 
 ### V2-1 implementation checkpoints
 
@@ -498,4 +509,4 @@ AI VFX backend: `https://custom-fighter-ai-vfx.onrender.com`
 
 ## Next implementation target
 
-Validate V2-3 Work Unit 14 on GitHub: prove a `ready`-bound validated WAV does not autoplay on Preview entry, arms a one-shot until the first browser keyboard/mouse/touch gesture, plays exactly once after that unlock gesture, and cannot replay on later inputs while all existing non-ready WAV triggers remain unchanged. Require Godot import/boot/domain/backend, Web export/size budget, Chromium `smoke:all`, Windows Native, and hosted Microsoft Edge `smoke:all` before any merge.
+Implement **V2-4 Work Unit 1 — deterministic opponent behavior foundation** from `docs/V2_4_AI_SINGLE_PLAYER_INVENTORY.md`: add the strict bounded `OpponentBehaviorProfile` contract, a pure deterministic opponent decision/intent state, allow-listed profile fixtures, dedicated Godot domain tests, and CI wiring. Do not activate AI in ordinary Training yet; do not introduce stage selection, direct HP/MP mutation, arbitrary code/callbacks or stochastic behavior in this slice.
