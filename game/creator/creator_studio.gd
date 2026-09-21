@@ -754,7 +754,7 @@ func _refresh_animation_asset_status(increment_revision: bool = true) -> void:
 		]
 		animation_asset_status_label.modulate = Color("7ff0b1")
 	else:
-		animation_asset_status_label.text = "Optional Animation PNG · horizontal strip · ≤ 5 MB · ≤ 4096 px · ≤ 64 frames · memory only"
+		animation_asset_status_label.text = "Optional Animation PNG · horizontal strip · ≤ 5 MB · ≤ 4096 px · ≤ 64 frames · package-safe"
 		animation_asset_status_label.modulate = Color("8292b3")
 	_set_web_state()
 
