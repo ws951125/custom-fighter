@@ -347,7 +347,11 @@ Work unit 13 — **Creator Preview runtime rendering for the bounded character A
 - Runtime telemetry exposes loaded/active state, semantic/animation ID, frame count/current/max frame, draw count, last drawn frame and load error.
 - Creator Preview browser coverage now requires runtime load, actual frame advance, actual draw count, semantic fallback during a non-matching timeline animation, and resume when returning to `ready`.
 - Fresh-session package regression now proves the packaged Animation PNG not only restores but is also runtime-rendered after import.
-- Active branch: `feat/v2-3-animation-runtime-wu13`. GitHub-hosted validation is the next gate.
+- PR #177 implementation/docs head `346d2fe64855ba34b09eb3fa3f5d1bbeef906abe` passed Windows Native, Godot import/boot/domain/AI contracts, trusted backend, Web export/size budget and Chromium `smoke:all` in CI #471 (`35552084482`).
+- Hosted Edge attempt 1 passed the direct WU13 Creator Preview assertions — `animationPngRuntimeRendering=true animationPngRuntimeFrameAdvance=true animationPngSemanticFallback=true` — then timed out at the later 10-second fresh-session package-import convergence wait.
+- Per L-007, only the failed Hosted Edge job was retried on the exact same SHA with no code/test change. Attempt 2 passed `WEB_CREATOR_PREVIEW_SMOKE_PASSED ... animationPngRuntimeRendering=true animationPngRuntimeFrameAdvance=true animationPngSemanticFallback=true`, `WEB_CREATOR_PACKAGE_VFX_SMOKE_PASSED ... secondSessionAnimationPngRestored=true animationPngRuntimeRendering=true animationPngRuntimeFrameAdvance=true`, and `SMOKE_SUITE_PASSED count=24`.
+- The first Edge timeout is therefore classified as an isolated state-convergence/runner timing miss, not a runtime defect. L-007 has been updated with the same-SHA evidence.
+- Active branch: `feat/v2-3-animation-runtime-wu13`. Final docs-sync latest-head CI remains required before merge.
 - Deferred after WU13: browser-autoplay-safe `ready` WAV trigger and final V2-3 acceptance/phase closeout.
 - V2 remains **25% (2/8 phases complete)** until full V2-3 acceptance.
 
