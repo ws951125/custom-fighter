@@ -28,14 +28,14 @@ A basic MVP creation flow is:
 
 1. Open **Creator Studio**.
 2. Configure the character and Skill 1 values.
-3. Optionally create/import Skill 1 VFX in **VFX Creator** and bind it to the character.
+3. Optionally author a character Animation PNG/sprite strip in **Creator Studio** and/or create/import Skill 1 VFX in **VFX Creator**.
 4. Export the character package JSON.
 5. In another fresh browser context/session, open Creator Studio and import that package.
-6. Confirm the imported character, skill values and optional embedded VFX are restored.
+6. Confirm the imported character, skill values, optional character Animation PNG and optional embedded VFX are restored.
 7. Start the Creator preview / Training flow.
 8. Cast the authored skill and confirm the imported runtime behavior is active.
 
-Current package exports use schema v2. A package may embed one validated Skill 1 PNG/sprite-strip VFX asset. Legacy schema-v1 packages without embedded VFX remain supported. Package import is allow-listed and fail-closed; executable scripts, native binaries, arbitrary resource paths, external URLs and archive extraction are outside the package contract.
+Current package exports use schema v2. A package may embed one validated character Animation PNG/sprite strip, one validated Skill 1 PNG/sprite-strip VFX asset, and one bounded validated WAV asset. The total package JSON remains bounded at 16 MB; per-asset limits remain enforced. Legacy schema-v1 packages and schema-v2 packages without these optional assets remain supported. Package import is allow-listed and fail-closed; executable scripts, native binaries, arbitrary resource paths, external URLs and archive extraction are outside the package contract.
 
 ## Controls and mobile
 
@@ -54,7 +54,7 @@ All routine release validation stays on GitHub-hosted infrastructure. Required g
 - GitHub Pages deployment and public reachability,
 - production Microsoft Edge real-game flow.
 
-`smoke:all` includes the self-contained Creator package VFX regression (`creator_package_vfx_web_smoke.mjs`), which proves schema-v2 export, embedded VFX, import in a second browser session, transition to Training, runtime VFX loading and an actual cast.
+`smoke:all` includes the self-contained Creator package regression (`creator_package_vfx_web_smoke.mjs`), which proves schema-v2 export with embedded character Animation PNG plus VFX, import in a second browser session, restoration of both assets, transition to Training, runtime VFX loading and an actual cast.
 
 ## Current MVP boundaries
 
