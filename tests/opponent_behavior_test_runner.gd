@@ -65,7 +65,7 @@ func _test_profile_fail_closed() -> void:
 	_check(_contains_fragment(invalid_slot_errors, "unsupported preferred_skill_slot"), "unsupported preferred skill slot fails closed")
 
 func _test_distance_and_depth_decisions() -> void:
-	var profile := _load_balanced()
+	var profile: OpponentBehaviorProfile = _load_balanced()
 	var state := OpponentDecisionState.new()
 
 	var approach: Dictionary = state.decide(profile, _snapshot(100.0, 0.50, 400.0, 0.50))
@@ -81,7 +81,7 @@ func _test_distance_and_depth_decisions() -> void:
 	_check(bool(hold["idle"]), "opponent holds preferred band when no action is ready")
 
 func _test_guard_attack_and_skill_eligibility() -> void:
-	var balanced := _load_balanced()
+	var balanced: OpponentBehaviorProfile = _load_balanced()
 	var state := OpponentDecisionState.new()
 
 	var guard_snapshot := _snapshot(250.0, 0.50, 390.0, 0.50, true, true, true)
@@ -132,7 +132,7 @@ func _test_determinism_and_no_combat_mutation() -> void:
 	_check(player.hp == 100 and player.mp == 75, "decision layer does not mutate player combat state")
 	_check(opponent.hp == 120 and opponent.mp == 60, "decision layer does not mutate opponent combat state")
 
-func _load_balanced():
+func _load_balanced() -> OpponentBehaviorProfile:
 	var profile := OpponentBehaviorProfile.new()
 	var errors: PackedStringArray = OpponentBehaviorProfiles.load_profile("training_balanced", profile)
 	_check(errors.is_empty() and profile.loaded, "balanced fixture loads for decision tests")
