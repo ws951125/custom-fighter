@@ -339,7 +339,7 @@ Work unit 12 — **self-contained Character Package transport for character Anim
 - Render readiness emitted `PRODUCTION_AI_BACKEND_READY provider=gemini model=gemini-3.6-flash billing_mode=free-tier-only revision=3975499d5c51297bf314dca3c7ccbc5c5964a977`.
 - WU12 is therefore accepted and production-validated.
 
-Work unit 13 — **Creator Preview runtime rendering for the bounded character Animation PNG — implementation in progress**:
+Work unit 13 — **Creator Preview runtime rendering for the bounded character Animation PNG — implementation complete; PR validation passed**:
 - Training Preview revalidates the active WU11 Animation PNG metadata/bytes, rechecks exact active-map `semantic + animation_id` agreement, decodes via Godot `Image.load_png_from_buffer()`, and creates one in-memory `ImageTexture`.
 - The custom sprite strip replaces only the player geometry, only inside active Creator Preview, and only while the runtime semantic + animation ID exactly match the single authored asset. Ordinary Training, Dummy rendering and all non-matching semantics keep the existing procedural fallback.
 - Horizontal frames advance using the authored bounded FPS. Leaving the bound semantic resets the custom strip to frame 0; returning to that semantic resumes the bounded strip from frame 0.
@@ -353,6 +353,11 @@ Work unit 13 — **Creator Preview runtime rendering for the bounded character A
 - The first Edge timeout is therefore classified as an isolated state-convergence/runner timing miss, not a runtime defect. L-007 has been updated with the same-SHA evidence.
 - Latest-head CI #475 then reproduced a separate pre-existing Heavy Strike positioning flake in unchanged `smoke:melee`: Hosted Edge overshot the authored corridor to `playerX=877.6 dummyX=860 gap=-17.6` while Chromium remained green. This matches L-017's deferred overshoot case.
 - Test-only hardening now preserves the same authored 18–105 px Heavy Strike corridor and stage-left/final-D facing, but adds bounded settle + re-stage/retry after overshoot. No WU13 runtime or melee gameplay behavior changed.
+- Latest-head CI #478 (`35554693089`) on head `783968c8208353e202b998059a8d77483fdebae0` then passed Windows Native, Godot import/boot/domain/AI contracts, trusted backend, Web export/size budget, Chromium `smoke:all`, and hosted Microsoft Edge `smoke:all`.
+- Hosted Edge emitted `WEB_MELEE_SKILL_SMOKE_PASSED ... hitGap=87.99 ... finalHp=76 hitCount=1`, proving the overshoot recovery retained the original Heavy Strike geometry/gameplay assertions.
+- Hosted Edge emitted `WEB_CREATOR_PREVIEW_SMOKE_PASSED ... animationPngRuntimeRendering=true animationPngRuntimeFrameAdvance=true animationPngSemanticFallback=true`.
+- Hosted Edge emitted `WEB_CREATOR_PACKAGE_VFX_SMOKE_PASSED ... secondSessionAnimationPngRestored=true animationPngRuntimeRendering=true animationPngRuntimeFrameAdvance=true` and `SMOKE_SUITE_PASSED count=24`.
+- Final validation-evidence docs sync requires one more latest-head CI before merge; no further runtime/test changes are planned.
 - Active branch: `feat/v2-3-animation-runtime-wu13`. Final docs-sync latest-head CI remains required before merge.
 - Deferred after WU13: browser-autoplay-safe `ready` WAV trigger and final V2-3 acceptance/phase closeout.
 - V2 remains **25% (2/8 phases complete)** until full V2-3 acceptance.
