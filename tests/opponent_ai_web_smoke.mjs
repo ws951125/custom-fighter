@@ -48,15 +48,35 @@ try {
     { timeout: 8_000 },
   );
 
-  await page.waitForFunction(
-    () =>
-      Number(document.documentElement.dataset.opponentAiAttackCount) >= 1 &&
-      Number(document.documentElement.dataset.opponentAiHitCount) >= 1 &&
-      Number(document.documentElement.dataset.playerHp) < 100 &&
-      Number(document.documentElement.dataset.opponentAiLastDamage) > 0,
-    null,
-    { timeout: 10_000 },
-  );
+  try {
+    await page.waitForFunction(
+      () =>
+        Number(document.documentElement.dataset.opponentAiAttackCount) >= 1 &&
+        Number(document.documentElement.dataset.opponentAiHitCount) >= 1 &&
+        Number(document.documentElement.dataset.playerHp) < 100 &&
+        Number(document.documentElement.dataset.opponentAiLastDamage) > 0,
+      null,
+      { timeout: 10_000 },
+    );
+  } catch (error) {
+    const snapshot = await page.evaluate(() => ({
+      playerX: document.documentElement.dataset.playerX,
+      playerDepth: document.documentElement.dataset.playerDepth,
+      playerHp: document.documentElement.dataset.playerHp,
+      dummyX: document.documentElement.dataset.dummyX,
+      opponentAiActive: document.documentElement.dataset.opponentAiActive,
+      opponentAiIntent: document.documentElement.dataset.opponentAiIntent,
+      opponentAiDecisionTick: document.documentElement.dataset.opponentAiDecisionTick,
+      opponentAiAttackCount: document.documentElement.dataset.opponentAiAttackCount,
+      opponentAiHitCount: document.documentElement.dataset.opponentAiHitCount,
+      opponentAiLastDamage: document.documentElement.dataset.opponentAiLastDamage,
+      playerIncomingHitCount: document.documentElement.dataset.playerIncomingHitCount,
+      lastPlayerIncomingDamage: document.documentElement.dataset.lastPlayerIncomingDamage,
+      lastPlayerDamageDealt: document.documentElement.dataset.lastPlayerDamageDealt,
+      lastPlayerHitCountered: document.documentElement.dataset.lastPlayerHitCountered,
+    }));
+    throw new Error(`Opponent AI did not land a hit: ${JSON.stringify(snapshot)}; cause=${String(error)}`);
+  }
 
   await page.waitForFunction(
     () =>
