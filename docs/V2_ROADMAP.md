@@ -8,7 +8,7 @@ V2 captures previously discussed or explicitly deferred product capabilities tha
 
 ## V2 progress
 
-**25% (2/8 phases complete)** as of 2026-09-19.
+**37.5% (3/8 phases complete)** as of 2026-09-21.
 
 ## V2-1 — Advanced Creator Timeline — complete
 
@@ -58,7 +58,7 @@ Acceptance evidence:
 - The final deployed regression covers thirteen families and reports `summonPolicy=bounded-actor-single-hit`, timeline dispatch/round-trip success, and `SMOKE_SUITE_PASSED count=24`.
 - All added families remain data-driven and bounded; safe compositions expand only into allow-listed declarative events, and no arbitrary user code/runtime callback/path is executed.
 
-## V2-3 — Character Animation & Audio Authoring — active
+## V2-3 — Character Animation & Audio Authoring — complete
 
 Goal: make a complete character package authorable inside Creator.
 
@@ -71,6 +71,14 @@ Scope:
 - package import/export round-trip for the new assets.
 
 Acceptance: a creator can author character animation/audio mappings, export them, import the package elsewhere and preserve the playable result.
+
+Acceptance evidence:
+- Work Units 1–14 established safe semantic animation authoring, strict audio cue bindings, bounded Animation PNG and PCM WAV import, schema-v2 package transport, runtime Animation PNG rendering, timeline/basic-attack/skill-impact/hit-received WAV triggers, and browser-autoplay-safe `ready` WAV playback.
+- PR #178 merged WU14 to `main` as `831f3ec7f322e7b023cca0c0874b1f217d355a24`; exact-main CI #486 (`35563876523`) passed the complete production chain and Render exact-revision readiness.
+- Final acceptance PR #179 extends the fresh-session package regression so one schema-v2 package carries VFX PNG + character Animation PNG + validated basic-attack WAV.
+- PR #179 CI #487 (`35566219175`) passed Windows Native, Godot/domain/backend, Web export/size budget, Chromium `smoke:all`, and hosted Microsoft Edge `smoke:all`.
+- Hosted Edge proved `embeddedWav=true secondSessionWavRestored=true wavRuntimePlaybackAfterImport=true` together with `secondSessionAnimationPngRestored=true animationPngRuntimeRendering=true animationPngRuntimeFrameAdvance=true`, existing VFX cast/damage behavior, and `SMOKE_SUITE_PASSED count=24`.
+- No arbitrary executable/resource path was added; all imported assets remain bounded, validated and declarative.
 
 ## V2-4 — AI Opponents & Single-player Gameplay
 
@@ -164,4 +172,4 @@ The architecture previously allowed a future local/open-model AI provider such a
 
 ## Next implementation target
 
-Complete **V2-3 Character Animation & Audio Authoring** with Work Unit 15: prove one self-contained schema-v2 package survives a fresh-session import with playable Animation PNG rendering, packaged WAV runtime playback, and existing VFX gameplay behavior; if Chromium + hosted Edge pass, synchronize V2-3 acceptance and advance to V2-4.
+Begin **V2-4 AI Opponents & Single-player Gameplay** by inventorying the current Training dummy/match/runtime/stage architecture and defining the first bounded work unit for an active AI opponent controller, difficulty/behavior profile boundary, and single-player match flow without weakening existing data-driven combat authority.
