@@ -271,31 +271,31 @@ Validation result:
 
 ## Work Unit 12 — self-contained package transport for character Animation PNG
 
-Scope:
-1. Extend existing schema-v2 additively with one optional `animation_asset`; keep legacy schema v1 and schema-v2 without the field import-compatible.
-2. Serialize only WU11 `CharacterAnimationAssetDraft` metadata plus `png_base64`; do not introduce an asset collection.
-3. Require packaged `animation_map`; require the asset `semantic + animation_id` to exactly match the packaged semantic mapping.
-4. Reuse `CharacterAnimationAssetDraft.validate_bytes()` for decoded bytes/dimensions/safety instead of adding another decoder or parser.
-5. Reject malformed/oversized encoded input, empty/tampered PNG, metadata mismatch, unknown fields and mapping mismatch fail-closed.
-6. Creator export includes the currently stored Animation PNG; Creator import restores animation map first, then restores the validated PNG through PreviewSession.
-7. Raise the total package JSON ceiling from 8 MB to a fixed 16 MB. Per-asset limits remain unchanged: VFX PNG ≤5 MB, character Animation PNG ≤5 MB, WAV ≤512 KB.
-8. Update Creator status text from `memory only` to `package-safe`.
-9. Extend current Creator package regression to prove packaged Animation PNG export, invalid-import non-mutation, tampered-byte rejection and successful restore.
-10. Extend the self-contained VFX package smoke so a fresh Creator session imports one package containing both embedded VFX and character Animation PNG before entering Training.
-11. Keep runtime rendering/use of the imported character sprite strip and `ready` audio autoplay semantics outside this transport-only slice.
-
 Validation result:
-- PR #176 head `b6b1410f649ca194dc92d92babbb8378e5d92e06` passed PR CI #467 (`35547604895`) across Windows Native, Godot import/boot/domain/AI contracts, trusted backend, Web export/size budget, Chromium `smoke:all`, and hosted Microsoft Edge `smoke:all`.
-- Domain evidence emitted `SELF_CONTAINED_CHARACTER_PACKAGE_TESTS_PASSED`.
-- Both browsers proved `animationPngPackageRoundTrip=true`, `invalidImportPreservesAnimationPng=true`, `validImportRestoresAnimationPng=true`, and `tamperedPackagedAnimationPngBlocked=true`.
-- The fresh-session package regression proved `embeddedVfx=true embeddedAnimationPng=true secondSessionImport=true secondSessionAnimationPngRestored=true runtimeLoaded=true cast=true`.
-- Both browsers completed `SMOKE_SUITE_PASSED count=24`.
-- Package schema remains v2 with one optional bounded `animation_asset`; the total JSON ceiling is 16 MB and per-asset limits remain unchanged.
+- PR #176 latest head `a5b4d9311320aea5ec7e8cdb9075c3a23944e164` passed final PR CI #469 (`35549426373`).
+- PR #176 was squash-merged as `3975499d5c51297bf314dca3c7ccbc5c5964a977`.
+- Exact-main CI #470 (`35550689268`) passed Windows Native, Godot/domain/backend/Web/Chromium, hosted Microsoft Edge, GitHub Pages deployment/public reachability, Render exact-revision readiness, and production Microsoft Edge full smoke.
+- Production Edge proved `animationPngPackageRoundTrip=true`, `invalidImportPreservesAnimationPng=true`, `validImportRestoresAnimationPng=true`, `tamperedPackagedAnimationPngBlocked=true`, `embeddedAnimationPng=true`, and `secondSessionAnimationPngRestored=true`, then completed `SMOKE_SUITE_PASSED count=24`.
+- Render readiness matched exact revision `3975499d5c51297bf314dca3c7ccbc5c5964a977`.
+- WU12 is accepted and production-validated.
 
-## Deferred after WU12
+## Work Unit 13 — Creator Preview runtime rendering for character Animation PNG
 
-- runtime rendering/use of imported character Animation PNG if the final V2-3 playable acceptance requires visual replacement rather than package-preserved authoring state;
-- `ready` playback trigger with browser autoplay-safe semantics;
-- final V2-3 cross-machine/self-contained acceptance.
+Scope:
+1. Reuse the single active `CharacterAnimationAssetDraft` and PreviewSession bytes; do not add another asset slot, collection, filesystem/resource path, URL, native decoder, script or callback.
+2. Revalidate metadata + PNG bytes at Training runtime and require the asset's `semantic + animation_id` to still exactly match the active animation map.
+3. Decode with Godot `Image.load_png_from_buffer()` and create one in-memory `ImageTexture`.
+4. Replace only the Creator Preview player draw path, and only while current runtime semantic + animation ID exactly match the one asset. Ordinary Training, Dummy and unmatched semantics retain the procedural fighter fallback.
+5. Advance the bounded horizontal sprite strip using authored FPS; reset to frame 0 whenever the matching semantic becomes inactive.
+6. Fit the authored frame inside a fixed 160×128 visual box with aspect ratio preserved. Keep player coordinates, jump offset, guard overlay and all gameplay collision/state logic unchanged.
+7. Expose deterministic runtime telemetry for loaded/active state, exact binding, frame progression, draw count and load errors.
+8. Extend Creator Preview browser smoke to prove load, frame advance, actual draw execution, semantic fallback and resume.
+9. Extend fresh-session self-contained package smoke to prove restored Animation PNG bytes reach the runtime rendering path.
+10. Keep `ready` WAV autoplay-safe semantics for the next separate work unit.
+
+## Deferred after WU13
+
+- browser-autoplay-safe `ready` WAV trigger;
+- final V2-3 self-contained/playable acceptance and phase closeout.
 
 V2 progress remains **25% (2/8 phases complete)** until the entire V2-3 acceptance criterion is satisfied and synchronized.
