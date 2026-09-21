@@ -388,8 +388,10 @@ Work unit 15 — **final V2-3 self-contained playable acceptance — accepted; p
 - Hosted Edge emitted `WEB_CREATOR_PACKAGE_VFX_SMOKE_PASSED ... embeddedVfx=true embeddedAnimationPng=true embeddedWav=true secondSessionImport=true secondSessionAnimationPngRestored=true secondSessionWavRestored=true animationPngRuntimeRendering=true animationPngRuntimeFrameAdvance=true wavRuntimePlaybackAfterImport=true runtimeLoaded=true cast=true`.
 - Hosted Edge completed `SMOKE_SUITE_PASSED count=24`.
 - This closes the V2-3 roadmap acceptance criterion: a Creator-authored animation/audio package can be exported, imported into a fresh session, and preserve the playable Animation PNG + WAV + VFX result without arbitrary executable/resource paths.
-- V2-3 is therefore accepted complete in this phase-closeout branch; V2 advances to **37.5% (3/8 phases complete)** and V2-4 becomes active.
-- PR #179 still requires latest-head docs-sync CI and explicit user approval before `main` reflects this 37.5% closeout.
+- PR #179 latest head `3ef6df3f97c91cfb558ac2ab890c036931276d9e` passed PR CI #490 (`35568941052`) and was explicitly approved and squash-merged to `main` as `f4910ba1357157d41d371926cf75e61a94f0be00`.
+- Exact-main CI #491 (`35572244642`) attempt 1 passed Windows Native, Godot/domain/backend, Web export/size budget, Chromium, hosted Edge, Pages deployment/public reachability and Render exact-revision readiness; production Edge then timed out in the changed fresh-session package smoke at the post-acceptance Skill 1 MP observation window.
+- The PR-head and merged-main `creator_package_vfx_web_smoke.mjs` blob SHA were identical, hosted Edge on exact main was already green, and production Edge had passed the new Animation PNG/WAV acceptance assertions before the timeout. A targeted same-revision retry (run attempt 2) then passed the complete production chain, including production Microsoft Edge full smoke, without product/test changes.
+- V2-3 is therefore accepted **and production-validated** on exact main revision `f4910ba1357157d41d371926cf75e61a94f0be00`; V2 is **37.5% (3/8 phases complete)** and V2-4 is active.
 
 ### V2-1 implementation checkpoints
 
