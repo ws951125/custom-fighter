@@ -293,6 +293,14 @@ Scope:
 9. Extend fresh-session self-contained package smoke to prove restored Animation PNG bytes reach the runtime rendering path.
 10. Keep `ready` WAV autoplay-safe semantics for the next separate work unit.
 
+Validation result:
+- PR #177 runtime/test/docs head `783968c8208353e202b998059a8d77483fdebae0` passed latest-head CI #478 (`35554693089`) across Windows Native, Godot import/boot/domain/AI contracts, trusted backend, Web export/size budget, Chromium `smoke:all`, and hosted Microsoft Edge `smoke:all`.
+- Edge proved the direct Creator Preview path with `animationPngRuntimeRendering=true animationPngRuntimeFrameAdvance=true animationPngSemanticFallback=true`.
+- Edge proved the fresh-session self-contained package path with `secondSessionAnimationPngRestored=true animationPngRuntimeRendering=true animationPngRuntimeFrameAdvance=true`.
+- The same latest-head Edge run passed the test-only Heavy Strike overshoot hardening with `WEB_MELEE_SKILL_SMOKE_PASSED ... hitGap=87.99 ... finalHp=76 hitCount=1`.
+- The full browser suite completed `SMOKE_SUITE_PASSED count=24`.
+- Earlier Edge timing/positioning failures were handled under L-007/L-017: no WU13 runtime behavior was changed to mask runner observation timing; only the reproduced Heavy Strike test helper gained bounded overshoot recovery.
+
 ## Deferred after WU13
 
 - browser-autoplay-safe `ready` WAV trigger;
