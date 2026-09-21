@@ -5,6 +5,7 @@ const CharacterPackageDefinition = preload("res://game/core/package/character_pa
 const CharacterAnimationMap = preload("res://game/core/character/character_animation_map.gd")
 const CharacterAudioBindings = preload("res://game/core/character/character_audio_bindings.gd")
 const CharacterAudioAssetDraft = preload("res://game/creator/character_editor/character_audio_asset_draft.gd")
+const CharacterAnimationAssetDraft = preload("res://game/creator/character_editor/character_animation_asset_draft.gd")
 const VfxDraft = preload("res://game/creator/vfx_editor/vfx_draft.gd")
 
 const CURRENT_SCHEMA_VERSION := 2
@@ -12,9 +13,11 @@ const LEGACY_SCHEMA_VERSION := 1
 const MAX_VFX_PNG_BYTES := 5 * 1024 * 1024
 const MAX_VFX_BASE64_CHARS := 7 * 1024 * 1024
 const MAX_AUDIO_BASE64_CHARS := 700 * 1024
+const MAX_ANIMATION_ASSET_BASE64_CHARS := 7 * 1024 * 1024
 const ALLOWED_V2_TOP_LEVEL_FIELDS := [
-	"schema_version", "package_id", "package_version", "character", "skills", "animation_map", "audio_bindings", "audio_asset", "vfx_asset"
+	"schema_version", "package_id", "package_version", "character", "skills", "animation_map", "animation_asset", "audio_bindings", "audio_asset", "vfx_asset"
 ]
+const ALLOWED_ANIMATION_ASSET_FIELDS := ["metadata", "png_base64"]
 const ALLOWED_AUDIO_ASSET_FIELDS := ["metadata", "wav_base64"]
 const ALLOWED_VFX_ASSET_FIELDS := [
 	"skill_slot", "skill_id", "mime_type", "metadata", "png_base64"
@@ -26,6 +29,8 @@ var package_version := 1
 var character_data: Dictionary = {}
 var skill_data_by_id: Dictionary = {}
 var animation_map_data: Dictionary = {}
+var animation_asset_data: Dictionary = {}
+var animation_png_bytes := PackedByteArray()
 var audio_bindings_data: Dictionary = {}
 var audio_asset_data: Dictionary = {}
 var audio_wav_bytes := PackedByteArray()
@@ -40,6 +45,8 @@ func reset() -> void:
 	character_data.clear()
 	skill_data_by_id.clear()
 	animation_map_data.clear()
+	animation_asset_data.clear()
+	animation_png_bytes.clear()
 	audio_bindings_data.clear()
 	audio_asset_data.clear()
 	audio_wav_bytes.clear()
@@ -97,6 +104,15 @@ func _load_v2(data: Dictionary) -> PackedStringArray:
 		if not errors.is_empty():
 			return errors
 
+	if data.has("animation_asset"):
+		var animation_asset_value: Variant = data.get("animation_asset")
+		if not animation_asset_value is Dictionary:
+			errors.append("animation_asset must be an object")
+			return errors
+		_validate_animation_asset(animation_asset_value, errors)
+		if not errors.is_empty():
+			return errors
+
 	if data.has("audio_bindings"):
 		_validate_audio_bindings_payload(data.get("audio_bindings"), errors)
 		if not errors.is_empty():
@@ -122,6 +138,8 @@ func _load_v2(data: Dictionary) -> PackedStringArray:
 	loaded = errors.is_empty()
 	if not loaded:
 		animation_map_data.clear()
+		animation_asset_data.clear()
+		animation_png_bytes.clear()
 		audio_bindings_data.clear()
 		audio_asset_data.clear()
 		audio_wav_bytes.clear()
@@ -151,6 +169,52 @@ func _validate_animation_map_payload(value: Variant, errors: PackedStringArray) 
 		"id": animation_map.map_id,
 		"animations": canonical_animations
 	}
+
+func _validate_animation_asset(asset: Dictionary, errors: PackedStringArray) -> void:
+	_validate_allowed_fields(asset, ALLOWED_ANIMATION_ASSET_FIELDS, "animation_asset", errors)
+	for required_field in ALLOWED_ANIMATION_ASSET_FIELDS:
+		if not asset.has(required_field):
+			errors.append("missing required animation_asset field: %s" % required_field)
+	if not errors.is_empty():
+		return
+
+	if animation_map_data.is_empty():
+		errors.append("animation_asset requires packaged animation_map")
+		return
+
+	var metadata_value: Variant = asset.get("metadata")
+	if not metadata_value is Dictionary:
+		errors.append("animation_asset metadata must be an object")
+		return
+	var draft := CharacterAnimationAssetDraft.new()
+	var metadata_errors: PackedStringArray = draft.load_from_dictionary(metadata_value)
+	for error in metadata_errors:
+		errors.append("animation_asset metadata: %s" % error)
+	if not errors.is_empty():
+		return
+
+	var animations: Dictionary = animation_map_data.get("animations", {})
+	var expected_animation_id: String = str(animations.get(draft.semantic, "")).strip_edges().to_lower()
+	if expected_animation_id != draft.animation_id:
+		errors.append("animation_asset animation_id must match packaged animation_map semantic")
+		return
+
+	var encoded: String = str(asset.get("png_base64", "")).strip_edges()
+	if not _is_valid_base64_shape(encoded, MAX_ANIMATION_ASSET_BASE64_CHARS):
+		errors.append("animation_asset png_base64 is malformed or exceeds the encoded size limit")
+		return
+	var png_bytes: PackedByteArray = Marshalls.base64_to_raw(encoded)
+	if png_bytes.is_empty():
+		errors.append("animation_asset PNG bytes must not be empty")
+		return
+	var byte_errors: PackedStringArray = draft.validate_bytes(png_bytes)
+	for error in byte_errors:
+		errors.append("animation_asset PNG: %s" % error)
+	if not errors.is_empty():
+		return
+
+	animation_asset_data = draft.to_dictionary()
+	animation_png_bytes = png_bytes.duplicate()
 
 func _validate_audio_bindings_payload(value: Variant, errors: PackedStringArray) -> void:
 	if not value is Dictionary:
@@ -271,6 +335,9 @@ func _validate_vfx_asset(asset: Dictionary, errors: PackedStringArray) -> void:
 func has_animation_map() -> bool:
 	return loaded and not animation_map_data.is_empty()
 
+func has_animation_asset() -> bool:
+	return loaded and not animation_asset_data.is_empty() and not animation_png_bytes.is_empty()
+
 func has_audio_bindings() -> bool:
 	return loaded and not audio_bindings_data.is_empty()
 
@@ -290,6 +357,11 @@ func to_dictionary() -> Dictionary:
 	result["schema_version"] = CURRENT_SCHEMA_VERSION
 	if has_animation_map():
 		result["animation_map"] = animation_map_data.duplicate(true)
+	if has_animation_asset():
+		result["animation_asset"] = {
+			"metadata": animation_asset_data.duplicate(true),
+			"png_base64": Marshalls.raw_to_base64(animation_png_bytes)
+		}
 	if has_audio_bindings():
 		result["audio_bindings"] = audio_bindings_data.duplicate(true)
 	if has_audio_asset():

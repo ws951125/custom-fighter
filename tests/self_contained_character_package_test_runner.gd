@@ -7,6 +7,12 @@ func _init() -> void:
 	_test_accepts_legacy_v1(failures)
 	_test_valid_v2_vfx_round_trip(failures)
 	_test_valid_v2_animation_map_round_trip(failures)
+	_test_valid_v2_animation_asset_round_trip(failures)
+	_test_rejects_animation_asset_without_map(failures)
+	_test_rejects_animation_asset_mapping_mismatch(failures)
+	_test_rejects_tampered_animation_asset_bytes(failures)
+	_test_rejects_malformed_animation_asset_base64(failures)
+	_test_rejects_unknown_animation_asset_field(failures)
 	_test_valid_v2_audio_bindings_round_trip(failures)
 	_test_valid_v2_audio_asset_round_trip(failures)
 	_test_rejects_audio_asset_without_bindings(failures)
@@ -37,6 +43,7 @@ func _test_accepts_legacy_v1(failures: PackedStringArray) -> void:
 	_expect(errors.is_empty(), "schema-v1 package should remain import compatible", failures)
 	_expect(package.schema_version == 1, "legacy package should preserve schema version 1", failures)
 	_expect(not package.has_vfx_asset(), "legacy package should not invent a VFX asset", failures)
+	_expect(not package.has_animation_asset(), "legacy package should not invent a character Animation PNG", failures)
 	_expect(not package.has_audio_asset(), "legacy package should not invent a WAV audio asset", failures)
 
 func _test_valid_v2_vfx_round_trip(failures: PackedStringArray) -> void:
@@ -73,6 +80,64 @@ func _test_valid_v2_animation_map_round_trip(failures: PackedStringArray) -> voi
 	var reload_errors: PackedStringArray = reloaded.load_from_dictionary(serialized)
 	_expect(reload_errors.is_empty(), "serialized animation-map package should reload", failures)
 	_expect(JSON.stringify(serialized) == JSON.stringify(reloaded.to_dictionary()), "animation-map package round trip should be deterministic", failures)
+
+func _test_valid_v2_animation_asset_round_trip(failures: PackedStringArray) -> void:
+	var data := _v2_package_with_animation_asset()
+	var package := PackageDefinition.new()
+	var errors: PackedStringArray = package.load_from_dictionary(data)
+	_expect(errors.is_empty(), "schema-v2 package should accept a validated character Animation PNG", failures)
+	_expect(package.has_animation_asset(), "schema-v2 package should expose packaged character Animation PNG bytes", failures)
+	_expect(str(package.animation_asset_data.get("semantic", "")) == "ready", "packaged Animation PNG should retain semantic", failures)
+	_expect(str(package.animation_asset_data.get("animation_id", "")) == "package_ready_custom", "packaged Animation PNG should retain animation id", failures)
+	_expect(package.animation_png_bytes.size() > 0, "packaged Animation PNG should retain bytes", failures)
+
+	var serialized: Dictionary = package.to_dictionary()
+	_expect(serialized.has("animation_asset"), "schema-v2 serialization should retain animation_asset when present", failures)
+	var reloaded := PackageDefinition.new()
+	var reload_errors: PackedStringArray = reloaded.load_from_dictionary(serialized)
+	_expect(reload_errors.is_empty(), "serialized Animation PNG package should reload", failures)
+	_expect(reloaded.animation_png_bytes == package.animation_png_bytes, "Animation PNG bytes should round trip deterministically", failures)
+	_expect(JSON.stringify(serialized) == JSON.stringify(reloaded.to_dictionary()), "Animation PNG package round trip should be deterministic", failures)
+
+func _test_rejects_animation_asset_without_map(failures: PackedStringArray) -> void:
+	var data := _v2_package_with_animation_asset()
+	data.erase("animation_map")
+	var package := PackageDefinition.new()
+	var errors: PackedStringArray = package.load_from_dictionary(data)
+	_expect(_contains(errors, "animation_asset requires packaged animation_map"), "packaged Animation PNG must require packaged animation map", failures)
+
+func _test_rejects_animation_asset_mapping_mismatch(failures: PackedStringArray) -> void:
+	var data := _v2_package_with_animation_asset()
+	var asset: Dictionary = data.get("animation_asset", {})
+	var metadata: Dictionary = asset.get("metadata", {})
+	metadata["animation_id"] = "different_ready"
+	var package := PackageDefinition.new()
+	var errors: PackedStringArray = package.load_from_dictionary(data)
+	_expect(_contains(errors, "animation_id must match packaged animation_map semantic"), "packaged Animation PNG id must match authored semantic mapping", failures)
+
+func _test_rejects_tampered_animation_asset_bytes(failures: PackedStringArray) -> void:
+	var data := _v2_package_with_animation_asset()
+	var asset: Dictionary = data.get("animation_asset", {})
+	asset["png_base64"] = Marshalls.raw_to_base64("not a png".to_utf8_buffer())
+	var package := PackageDefinition.new()
+	var errors: PackedStringArray = package.load_from_dictionary(data)
+	_expect(_contains(errors, "PNG bytes failed runtime decode"), "tampered packaged Animation PNG bytes must fail closed", failures)
+
+func _test_rejects_malformed_animation_asset_base64(failures: PackedStringArray) -> void:
+	var data := _v2_package_with_animation_asset()
+	var asset: Dictionary = data.get("animation_asset", {})
+	asset["png_base64"] = "%%%not-base64%%%"
+	var package := PackageDefinition.new()
+	var errors: PackedStringArray = package.load_from_dictionary(data)
+	_expect(_contains(errors, "animation_asset png_base64 is malformed"), "malformed packaged Animation PNG base64 must fail closed", failures)
+
+func _test_rejects_unknown_animation_asset_field(failures: PackedStringArray) -> void:
+	var data := _v2_package_with_animation_asset()
+	var asset: Dictionary = data.get("animation_asset", {})
+	asset["script"] = "payload"
+	var package := PackageDefinition.new()
+	var errors: PackedStringArray = package.load_from_dictionary(data)
+	_expect(_contains(errors, "unsupported animation_asset field: script"), "unknown packaged Animation PNG fields must fail closed", failures)
 
 func _test_valid_v2_audio_bindings_round_trip(failures: PackedStringArray) -> void:
 	var data: Dictionary = _legacy_package()
@@ -256,6 +321,27 @@ func _v2_package_with_vfx() -> Dictionary:
 			"scale": 2.0,
 			"offset": {"x": 12.0, "y": -8.0},
 			"fps": 20.0
+		},
+		"png_base64": Marshalls.raw_to_base64(png_bytes)
+	}
+	return data
+
+func _v2_package_with_animation_asset() -> Dictionary:
+	var data: Dictionary = _legacy_package()
+	data["schema_version"] = 2
+	data["animation_map"] = _animation_map("package_ready_custom")
+	var png_bytes := _png_strip_bytes()
+	data["animation_asset"] = {
+		"metadata": {
+			"schema_version": 1,
+			"semantic": "ready",
+			"animation_id": "package_ready_custom",
+			"file_name": "package-ready.png",
+			"mime_type": "image/png",
+			"image_width": 16,
+			"image_height": 4,
+			"frame_count": 4,
+			"fps": 18.0
 		},
 		"png_base64": Marshalls.raw_to_base64(png_bytes)
 	}

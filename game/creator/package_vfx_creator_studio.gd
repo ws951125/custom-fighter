@@ -13,6 +13,13 @@ func _build_export_package() -> Dictionary:
 	package_input["animation_map"] = animation_draft.to_dictionary()
 	package_input["audio_bindings"] = audio_draft.to_dictionary()
 	var session: Variant = get_node_or_null("/root/CreatorPreviewSession")
+	if session != null and session.has_method("has_stored_animation_asset") and bool(session.call("has_stored_animation_asset")):
+		var animation_asset_data: Dictionary = session.call("stored_animation_asset_data")
+		var animation_png_bytes: PackedByteArray = session.call("stored_animation_asset_png_bytes")
+		package_input["animation_asset"] = {
+			"metadata": animation_asset_data.duplicate(true),
+			"png_base64": Marshalls.raw_to_base64(animation_png_bytes)
+		}
 	if session != null and session.has_method("has_stored_audio_asset") and bool(session.call("has_stored_audio_asset")):
 		var audio_asset_data: Dictionary = session.call("stored_audio_asset_data")
 		var wav_bytes: PackedByteArray = session.call("stored_audio_asset_bytes")
@@ -46,7 +53,7 @@ func _import_package_json(json_text: String) -> PackedStringArray:
 		errors.append("package JSON must not be empty")
 		return errors
 	if byte_count > MAX_PACKAGE_JSON_BYTES:
-		errors.append("package JSON exceeds 256 KB limit")
+		errors.append("package JSON exceeds 16 MB limit")
 		return errors
 
 	var parsed: Variant = JSON.parse_string(json_text)
@@ -130,6 +137,23 @@ func _import_package_json(json_text: String) -> PackedStringArray:
 		_refresh_character_validation(false)
 		_set_web_state()
 
+	if package.has_animation_asset():
+		var animation_asset_session: Variant = get_node_or_null("/root/CreatorPreviewSession")
+		if animation_asset_session == null or not animation_asset_session.has_method("store_animation_asset_draft"):
+			errors.append("Creator preview session cannot restore packaged Animation PNG")
+			return errors
+		var animation_asset_store_errors: PackedStringArray = animation_asset_session.call(
+			"store_animation_asset_draft",
+			package.animation_asset_data,
+			package.animation_png_bytes
+		)
+		for error in animation_asset_store_errors:
+			errors.append("packaged Animation PNG: %s" % error)
+		if not errors.is_empty():
+			return errors
+		_restore_animation_asset_from_session()
+		_refresh_animation_asset_status()
+
 	if package.has_vfx_asset():
 		var session: Variant = get_node_or_null("/root/CreatorPreviewSession")
 		if session == null or not session.has_method("store_vfx_draft"):
@@ -151,11 +175,23 @@ func _set_package_web_state() -> void:
 	var session: Variant = get_node_or_null("/root/CreatorPreviewSession")
 	var vfx_bound := false
 	var vfx_bytes := 0
+	var animation_asset_bound := false
+	var animation_asset_byte_count := 0
+	var animation_asset_semantic := ""
+	var animation_asset_animation_id := ""
 	var audio_bound := false
 	var audio_asset_bound := false
 	var audio_asset_byte_count := 0
 	if session != null and session.has_method("has_stored_vfx"):
 		vfx_bound = bool(session.call("has_stored_vfx"))
+	if session != null and session.has_method("has_stored_animation_asset"):
+		animation_asset_bound = bool(session.call("has_stored_animation_asset"))
+	if animation_asset_bound and session.has_method("stored_animation_asset_data") and session.has_method("stored_animation_asset_png_bytes"):
+		var animation_asset_data: Dictionary = session.call("stored_animation_asset_data")
+		var animation_png_bytes: PackedByteArray = session.call("stored_animation_asset_png_bytes")
+		animation_asset_byte_count = animation_png_bytes.size()
+		animation_asset_semantic = str(animation_asset_data.get("semantic", ""))
+		animation_asset_animation_id = str(animation_asset_data.get("animation_id", ""))
 	if session != null and session.has_method("has_stored_audio_bindings"):
 		audio_bound = bool(session.call("has_stored_audio_bindings"))
 	if session != null and session.has_method("has_stored_audio_asset"):
@@ -168,6 +204,10 @@ func _set_package_web_state() -> void:
 		vfx_bytes = bytes.size()
 	JavaScriptBridge.eval(
 		"document.documentElement.dataset.creatorPackageFormatVersion='%d';" % SelfContainedPackageDefinition.CURRENT_SCHEMA_VERSION +
+		"document.documentElement.dataset.creatorPackageAnimationAssetBound='%s';" % ("true" if animation_asset_bound else "false") +
+		"document.documentElement.dataset.creatorPackageAnimationAssetBytes='%d';" % animation_asset_byte_count +
+		"document.documentElement.dataset.creatorPackageAnimationAssetSemantic=%s;" % JSON.stringify(animation_asset_semantic) +
+		"document.documentElement.dataset.creatorPackageAnimationAssetAnimationId=%s;" % JSON.stringify(animation_asset_animation_id) +
 		"document.documentElement.dataset.creatorPackageAudioBindings='%s';" % ("true" if audio_bound else "false") +
 		"document.documentElement.dataset.creatorPackageAudioAssetBound='%s';" % ("true" if audio_asset_bound else "false") +
 		"document.documentElement.dataset.creatorPackageAudioAssetBytes='%d';" % audio_asset_byte_count +

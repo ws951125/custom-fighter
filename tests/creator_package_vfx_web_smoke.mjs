@@ -23,6 +23,9 @@ async function waitCreator(page) {
       document.documentElement.dataset.creatorPreviewReady === 'true' &&
       typeof window.customFighterCreatorExportPackage === 'function' &&
       typeof window.customFighterCreatorImportPackageJson === 'function' &&
+      typeof window.customFighterCreatorSetAnimationSemantic === 'function' &&
+      typeof window.customFighterCreatorSetAnimationAssetTiming === 'function' &&
+      typeof window.customFighterCreatorImportAnimationPng === 'function' &&
       typeof window.customFighterCreatorOpenVfx === 'function',
     null,
     { timeout: 60_000 },
@@ -37,12 +40,37 @@ try {
 
   await page.evaluate(() => {
     window.customFighterCreatorSetName('Packaged VFX Hero');
+    window.customFighterCreatorSetAnimationSemantic('ready', 'package_ready_custom');
+    window.customFighterCreatorSetAnimationAssetTiming(4, 18);
     window.customFighterCreatorSetMaxHp(180);
     window.customFighterCreatorSetSkillName('Package Prism Bolt');
     window.customFighterCreatorSetSkillDamage(33);
     window.customFighterCreatorSetSkillMpCost(17);
-    window.customFighterCreatorOpenVfx();
   });
+  const animationPngDataUrl = await page.evaluate(() => {
+    const canvas = document.createElement('canvas');
+    canvas.width = 16;
+    canvas.height = 4;
+    const context = canvas.getContext('2d');
+    ['#ff3355', '#33dd77', '#4477ff', '#ffee44'].forEach((color, index) => {
+      context.fillStyle = color;
+      context.fillRect(index * 4, 0, 4, 4);
+    });
+    return canvas.toDataURL('image/png');
+  });
+  await page.evaluate(
+    ({ dataUrl }) => window.customFighterCreatorImportAnimationPng('package-ready.png', 'image/png', dataUrl),
+    { dataUrl: animationPngDataUrl },
+  );
+  await page.waitForFunction(
+    () =>
+      document.documentElement.dataset.creatorAnimationAssetValid === 'true' &&
+      document.documentElement.dataset.creatorAnimationAssetAnimationId === 'package_ready_custom' &&
+      document.documentElement.dataset.creatorAnimationAssetFrameCount === '4',
+    null,
+    { timeout: 5_000 },
+  );
+  await page.evaluate(() => window.customFighterCreatorOpenVfx());
   await page.waitForFunction(
     () => document.documentElement.dataset.appMode === 'vfx' && document.documentElement.dataset.creatorVfxReady === 'true',
     null,
@@ -70,7 +98,12 @@ try {
   });
   await waitCreator(page);
   await page.waitForFunction(
-    () => document.documentElement.dataset.creatorPackageVfxBound === 'true',
+    () =>
+      document.documentElement.dataset.creatorPackageVfxBound === 'true' &&
+      document.documentElement.dataset.creatorPackageAnimationAssetBound === 'true' &&
+      document.documentElement.dataset.creatorPackageAnimationAssetSemantic === 'ready' &&
+      document.documentElement.dataset.creatorPackageAnimationAssetAnimationId === 'package_ready_custom' &&
+      Number(document.documentElement.dataset.creatorPackageAnimationAssetBytes ?? '0') > 0,
     null,
     { timeout: 10_000 },
   );
@@ -86,6 +119,10 @@ try {
   if (exported.schema_version !== 2) throw new Error(`Expected schema 2, got ${exported.schema_version}`);
   if (exported.vfx_asset?.metadata?.frame_count !== 4) throw new Error('VFX metadata missing from package');
   if (!String(exported.vfx_asset?.png_base64 ?? '').length) throw new Error('VFX PNG payload missing from package');
+  if (exported.animation_asset?.metadata?.semantic !== 'ready') throw new Error('Animation PNG semantic missing from package');
+  if (exported.animation_asset?.metadata?.animation_id !== 'package_ready_custom') throw new Error('Animation PNG animation id missing from package');
+  if (exported.animation_asset?.metadata?.frame_count !== 4) throw new Error('Animation PNG frame metadata missing from package');
+  if (!String(exported.animation_asset?.png_base64 ?? '').length) throw new Error('Animation PNG payload missing from package');
 
   response = await page.goto(creatorUrl(), { waitUntil: 'domcontentloaded', timeout: 60_000 });
   if (!response?.ok()) throw new Error(`Reloaded Creator URL returned HTTP ${response?.status() ?? 'unknown'}`);
@@ -95,6 +132,15 @@ try {
     () =>
       document.documentElement.dataset.creatorPackageImportStatus === 'valid' &&
       document.documentElement.dataset.creatorDraftName === 'Packaged VFX Hero' &&
+      document.documentElement.dataset.creatorAnimationDraftAnimationId === 'package_ready_custom' &&
+      document.documentElement.dataset.creatorAnimationAssetValid === 'true' &&
+      document.documentElement.dataset.creatorAnimationAssetSemantic === 'ready' &&
+      document.documentElement.dataset.creatorAnimationAssetAnimationId === 'package_ready_custom' &&
+      document.documentElement.dataset.creatorAnimationAssetFile === 'package-ready.png' &&
+      document.documentElement.dataset.creatorAnimationAssetFrameCount === '4' &&
+      document.documentElement.dataset.creatorAnimationAssetFps === '18.000' &&
+      Number(document.documentElement.dataset.creatorAnimationAssetBytes ?? '0') > 0 &&
+      document.documentElement.dataset.creatorPackageAnimationAssetBound === 'true' &&
       document.documentElement.dataset.creatorSkillDraftName === 'Package Prism Bolt' &&
       document.documentElement.dataset.creatorPreviewVfxBound === 'true' &&
       document.documentElement.dataset.creatorPreviewVfxFrameCount === '4' &&
@@ -109,7 +155,9 @@ try {
       document.documentElement.dataset.appMode === 'training' &&
       document.documentElement.dataset.creatorPreviewVfxRuntimeLoaded === 'true' &&
       document.documentElement.dataset.creatorPreviewVfxRuntimeFrameCount === '4' &&
-      document.documentElement.dataset.playerCharacterName === 'Packaged VFX Hero',
+      document.documentElement.dataset.playerCharacterName === 'Packaged VFX Hero' &&
+      document.documentElement.dataset.playerAnimationSemantic === 'ready' &&
+      document.documentElement.dataset.playerAnimationId === 'package_ready_custom',
     null,
     { timeout: 60_000 },
   );
@@ -127,7 +175,7 @@ try {
     { timeout: 5_000 },
   );
 
-  console.log('WEB_CREATOR_PACKAGE_VFX_SMOKE_PASSED schema=2 embeddedVfx=true secondSessionImport=true runtimeLoaded=true cast=true');
+  console.log('WEB_CREATOR_PACKAGE_VFX_SMOKE_PASSED schema=2 embeddedVfx=true embeddedAnimationPng=true secondSessionImport=true secondSessionAnimationPngRestored=true runtimeLoaded=true cast=true');
   await page.close();
 } finally {
   await browser.close();
