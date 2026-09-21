@@ -327,4 +327,10 @@ Scope:
 7. Preserve the existing VFX runtime/cast/damage assertions so the one package demonstrates playable character media preservation, not isolated serialization.
 8. Require Chromium and hosted Microsoft Edge `smoke:all`; if green, synchronize final V2-3 acceptance and advance V2 from 2/8 to 3/8.
 
-V2 progress remains **25% (2/8 phases complete)** until WU15 acceptance passes and the phase-closeout evidence is synchronized.
+Validation result:
+- PR #179 head `8f42a1423a3027655d4090c8d316f5f8ad0fa0e2` passed PR CI #487 (`35566219175`) across Windows Native, Godot import/boot/domain/AI contracts, trusted backend, Web export/size budget, Chromium `smoke:all`, and hosted Microsoft Edge `smoke:all`.
+- Hosted Edge emitted `WEB_CREATOR_PACKAGE_VFX_SMOKE_PASSED schema=2 embeddedVfx=true embeddedAnimationPng=true embeddedWav=true secondSessionImport=true secondSessionAnimationPngRestored=true secondSessionWavRestored=true animationPngRuntimeRendering=true animationPngRuntimeFrameAdvance=true wavRuntimePlaybackAfterImport=true runtimeLoaded=true cast=true`.
+- Hosted Edge completed `SMOKE_SUITE_PASSED count=24`.
+- This directly satisfies the V2-3 phase acceptance target: the Creator-authored animation/audio package survives export → fresh-session import and preserves the playable Animation PNG + WAV + VFX result while staying within bounded declarative asset contracts.
+- V2-3 is accepted complete in the phase-closeout branch. V2 advances to **37.5% (3/8 phases complete)**; V2-4 is the next active phase.
+- PR #179 still requires latest-head docs-sync validation and explicit merge approval before this closeout reaches `main`.
