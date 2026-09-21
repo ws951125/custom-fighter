@@ -27,7 +27,7 @@ The primary MVP targets are Web and Windows x86_64. The Windows native bundle is
 - Creator Studio for character and skill authoring without editing source code.
 - VFX Creator for PNG/sprite-strip import, crop/frame/FPS/scale/offset authoring and runtime binding.
 - Provider-neutral AI-assisted VFX generation workflow.
-- Versioned character package JSON export/import with optional self-contained Skill 1 VFX.
+- Versioned character package JSON export/import with optional self-contained character Animation PNG and Skill 1 VFX.
 - Creator → package → fresh-session import → Training preview flow.
 - Mobile Web touch controls.
 - Automated Web, Chromium, Microsoft Edge and Windows native release validation.
