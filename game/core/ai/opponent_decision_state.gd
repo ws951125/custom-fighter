@@ -37,10 +37,23 @@ func decide(profile, snapshot: Dictionary) -> Dictionary:
 	if absf(depth_delta) > profile.depth_tolerance:
 		return _movement_intent(0.0, _sign_axis(depth_delta))
 
-	# When a basic attack is currently eligible, close the remaining gap to the
-	# authored attack range even if the fighter has already entered the wider
-	# preferred spacing band. This keeps the policy deterministic while ensuring
-	# an active opponent can actually reach its authoritative attack boundary.
+	var ready_skill_slots: Array = snapshot.get("ready_skill_slots", [])
+	if not profile.preferred_skill_slot.is_empty() and ready_skill_slots.has(profile.preferred_skill_slot):
+		return _skill_intent(profile.preferred_skill_slot)
+
+	# An eligible attack inside its authoritative range takes precedence over
+	# spacing correction. This prevents a large browser frame from moving the
+	# opponent slightly inside preferred_min_distance and making it retreat past
+	# a valid attack window.
+	if (
+		profile.allow_basic_attack
+		and bool(snapshot.get("basic_attack_ready", false))
+		and horizontal_distance <= profile.basic_attack_range
+	):
+		return _basic_attack_intent()
+
+	# When an attack is ready but still out of range, close the remaining gap even
+	# after entering the wider preferred spacing band.
 	if (
 		profile.allow_basic_attack
 		and bool(snapshot.get("basic_attack_ready", false))
@@ -54,13 +67,6 @@ func decide(profile, snapshot: Dictionary) -> Dictionary:
 
 	if horizontal_distance < profile.preferred_min_distance:
 		return _movement_intent(-_sign_axis(horizontal_delta), 0.0)
-
-	var ready_skill_slots: Array = snapshot.get("ready_skill_slots", [])
-	if not profile.preferred_skill_slot.is_empty() and ready_skill_slots.has(profile.preferred_skill_slot):
-		return _skill_intent(profile.preferred_skill_slot)
-
-	if profile.allow_basic_attack and bool(snapshot.get("basic_attack_ready", false)) and horizontal_distance <= profile.basic_attack_range:
-		return _basic_attack_intent()
 
 	return idle_intent()
 

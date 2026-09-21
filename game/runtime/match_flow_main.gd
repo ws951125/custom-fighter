@@ -119,8 +119,11 @@ func _apply_opponent_movement(delta: float) -> void:
 		return
 	var move_x := float(opponent_current_intent.get("move_x", 0.0))
 	var move_depth := float(opponent_current_intent.get("move_depth", 0.0))
-	dummy_x += move_x * OPPONENT_MOVE_SPEED * delta
-	dummy_depth += move_depth * OPPONENT_DEPTH_SPEED * delta
+	# Bound one-frame displacement so hosted-browser stalls cannot make the
+	# adapter jump across both the preferred band and attack range in one frame.
+	var safe_delta := minf(maxf(delta, 0.0), 0.05)
+	dummy_x += move_x * OPPONENT_MOVE_SPEED * safe_delta
+	dummy_depth += move_depth * OPPONENT_DEPTH_SPEED * safe_delta
 	dummy_x = clampf(dummy_x, 90.0, maxf(size.x, 1280.0) - 90.0)
 	dummy_depth = clampf(dummy_depth, 0.0, 1.0)
 
