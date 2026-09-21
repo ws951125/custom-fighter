@@ -351,7 +351,7 @@ Work unit 13 — **Creator Preview runtime rendering for the bounded character A
 - Render readiness emitted `PRODUCTION_AI_BACKEND_READY provider=gemini model=gemini-3.6-flash billing_mode=free-tier-only revision=594b9d6a22a136db61f61fab4a6cab1ba69b8228`.
 - WU13 is therefore accepted and production-validated.
 
-Work unit 14 — **browser-autoplay-safe `ready` WAV runtime trigger — implementation in progress**:
+Work unit 14 — **browser-autoplay-safe `ready` WAV runtime trigger — implementation complete; PR validation passed**:
 - Reuse the existing one validated WAV asset and the fixed `ready` binding; no schema/package change and no second audio asset slot are introduced.
 - A `ready` WAV loads normally into Creator Preview but starts only as an armed one-shot. It does not autoplay when Training Preview enters.
 - The first non-echo keyboard press, mouse-button press or screen touch records the browser audio-unlock gesture. Playback is deferred to the next process tick rather than attempted during scene load.
@@ -359,7 +359,10 @@ Work unit 14 — **browser-autoplay-safe `ready` WAV runtime trigger — impleme
 - Non-`ready` WAV bindings keep their existing authoritative triggers: timeline/skill-cast, basic attack, skill impact and hit received.
 - Runtime telemetry exposes armed/unlock-observed/played state and unlock input kind for deterministic browser verification.
 - Creator Preview browser coverage proves: zero playback before user input, first key input unlocks and plays exactly once, and a second key input does not replay the cue.
-- Active branch: `feat/v2-3-ready-audio-wu14`. GitHub-hosted validation is the next gate.
+- PR #178 implementation/docs head `34aaf39eeea886ca3b3eb97c4c9a9ff5d3b00b25` passed PR CI #483 (`35561166681`) across Windows Native, Godot import/boot/domain/AI contracts, trusted backend, Web export/size budget, Chromium `smoke:all`, and hosted Microsoft Edge `smoke:all`.
+- Hosted Edge emitted `WEB_CREATOR_PREVIEW_SMOKE_PASSED ... readyWavAutoplaySafe=true readyWavFirstInputPlayback=true readyWavOneShot=true`.
+- The full hosted Edge suite completed `SMOKE_SUITE_PASSED count=24`.
+- Final documentation-sync latest-head validation remains required before merge.
 - After WU14, perform final V2-3 self-contained/playable acceptance and phase closeout.
 - V2 remains **25% (2/8 phases complete)** until full V2-3 acceptance.
 
