@@ -157,10 +157,24 @@ try {
       document.documentElement.dataset.creatorPreviewVfxRuntimeFrameCount === '4' &&
       document.documentElement.dataset.playerCharacterName === 'Packaged VFX Hero' &&
       document.documentElement.dataset.playerAnimationSemantic === 'ready' &&
-      document.documentElement.dataset.playerAnimationId === 'package_ready_custom',
+      document.documentElement.dataset.playerAnimationId === 'package_ready_custom' &&
+      document.documentElement.dataset.creatorPreviewAnimationAssetRuntimeLoaded === 'true' &&
+      document.documentElement.dataset.creatorPreviewAnimationAssetRuntimeActive === 'true' &&
+      document.documentElement.dataset.creatorPreviewAnimationAssetRuntimeSemantic === 'ready' &&
+      document.documentElement.dataset.creatorPreviewAnimationAssetRuntimeAnimationId === 'package_ready_custom' &&
+      document.documentElement.dataset.creatorPreviewAnimationAssetRuntimeFrameCount === '4' &&
+      document.documentElement.dataset.creatorPreviewAnimationAssetRuntimeLoadError === '',
     null,
     { timeout: 60_000 },
   );
+  await page.waitForFunction(
+    () =>
+      Number(document.documentElement.dataset.creatorPreviewAnimationAssetRuntimeMaxFrameSeen ?? '0') >= 1 &&
+      Number(document.documentElement.dataset.creatorPreviewAnimationAssetRuntimeDrawCount ?? '0') > 0,
+    null,
+    { timeout: 5_000 },
+  );
+
   await page.keyboard.down('u');
   await page.waitForFunction(() => Number(document.documentElement.dataset.playerMp) === 83, null, { timeout: 3_000 });
   await page.keyboard.up('u');
@@ -175,7 +189,7 @@ try {
     { timeout: 5_000 },
   );
 
-  console.log('WEB_CREATOR_PACKAGE_VFX_SMOKE_PASSED schema=2 embeddedVfx=true embeddedAnimationPng=true secondSessionImport=true secondSessionAnimationPngRestored=true runtimeLoaded=true cast=true');
+  console.log('WEB_CREATOR_PACKAGE_VFX_SMOKE_PASSED schema=2 embeddedVfx=true embeddedAnimationPng=true secondSessionImport=true secondSessionAnimationPngRestored=true animationPngRuntimeRendering=true animationPngRuntimeFrameAdvance=true runtimeLoaded=true cast=true');
   await page.close();
 } finally {
   await browser.close();
