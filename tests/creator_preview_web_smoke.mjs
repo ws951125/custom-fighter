@@ -623,8 +623,105 @@ try {
     { timeout: 10_000 },
   );
 
+  diagnosticStage = 'author-ready-audio';
+  await page.evaluate(() => {
+    window.customFighterCreatorSetAudioBinding('ready', 'preview_ready_audio_custom');
+  });
+  const readyWavDataUrl = pcmWavDataUrl();
+  await page.evaluate(
+    ({ dataUrl }) => window.customFighterCreatorImportWav('preview-ready.wav', 'audio/wav', dataUrl),
+    { dataUrl: readyWavDataUrl },
+  );
+  await page.waitForFunction(
+    () =>
+      document.documentElement.dataset.creatorAudioDraftValid === 'true' &&
+      document.documentElement.dataset.creatorAudioAssetValid === 'true' &&
+      document.documentElement.dataset.creatorAudioAssetBinding === 'ready' &&
+      document.documentElement.dataset.creatorAudioAssetCue === 'preview_ready_audio_custom' &&
+      document.documentElement.dataset.creatorAudioAssetFile === 'preview-ready.wav' &&
+      document.documentElement.dataset.creatorPreviewCanLaunch === 'true',
+    null,
+    { timeout: 5_000 },
+  );
+
+  diagnosticStage = 'ready-preview-launch';
+  await page.evaluate(() => window.customFighterCreatorPreview());
+  await page.waitForFunction(
+    () =>
+      document.documentElement.dataset.appMode === 'training' &&
+      document.documentElement.dataset.creatorPreviewActive === 'true' &&
+      document.documentElement.dataset.playerAudioBindingsLoaded === 'true' &&
+      document.documentElement.dataset.playerAudioCueReady === 'preview_ready_audio_custom' &&
+      document.documentElement.dataset.creatorPreviewAudioAssetActive === 'true' &&
+      document.documentElement.dataset.creatorPreviewAudioAssetLoaded === 'true' &&
+      document.documentElement.dataset.creatorPreviewAudioAssetCue === 'preview_ready_audio_custom' &&
+      document.documentElement.dataset.creatorPreviewReadyAudioArmed === 'true' &&
+      document.documentElement.dataset.creatorPreviewReadyAudioUnlockObserved === 'false' &&
+      document.documentElement.dataset.creatorPreviewReadyAudioPlayed === 'false' &&
+      document.documentElement.dataset.creatorPreviewReadyAudioUnlockKind === '' &&
+      document.documentElement.dataset.creatorPreviewAudioPlaybackCount === '0' &&
+      document.documentElement.dataset.creatorPreviewAudioLastPlayedCue === '',
+    null,
+    { timeout: 60_000 },
+  );
+
+  diagnosticStage = 'ready-autoplay-blocked-before-input';
+  await page.waitForTimeout(300);
+  const preUnlockReadyAudio = await page.evaluate(() => ({
+    count: Number(document.documentElement.dataset.creatorPreviewAudioPlaybackCount ?? '0'),
+    armed: document.documentElement.dataset.creatorPreviewReadyAudioArmed,
+    unlockObserved: document.documentElement.dataset.creatorPreviewReadyAudioUnlockObserved,
+    played: document.documentElement.dataset.creatorPreviewReadyAudioPlayed,
+  }));
+  if (
+    preUnlockReadyAudio.count !== 0 ||
+    preUnlockReadyAudio.armed !== 'true' ||
+    preUnlockReadyAudio.unlockObserved !== 'false' ||
+    preUnlockReadyAudio.played !== 'false'
+  ) {
+    throw new Error(`Ready WAV autoplay gate changed before user input: ${JSON.stringify(preUnlockReadyAudio)}`);
+  }
+
+  diagnosticStage = 'ready-first-input-unlock';
+  await page.keyboard.press('x');
+  await page.waitForFunction(
+    () =>
+      document.documentElement.dataset.creatorPreviewReadyAudioUnlockObserved === 'true' &&
+      document.documentElement.dataset.creatorPreviewReadyAudioUnlockKind === 'key' &&
+      document.documentElement.dataset.creatorPreviewReadyAudioPlayed === 'true' &&
+      document.documentElement.dataset.creatorPreviewReadyAudioArmed === 'false' &&
+      Number(document.documentElement.dataset.creatorPreviewAudioPlaybackCount ?? '0') === 1 &&
+      document.documentElement.dataset.creatorPreviewAudioLastPlayedCue === 'preview_ready_audio_custom',
+    null,
+    { timeout: 5_000 },
+  );
+
+  diagnosticStage = 'ready-one-shot';
+  await page.keyboard.press('x');
+  await page.waitForTimeout(250);
+  const readyReplayCount = Number(
+    await page.evaluate(() => document.documentElement.dataset.creatorPreviewAudioPlaybackCount ?? '0'),
+  );
+  if (readyReplayCount !== 1) {
+    throw new Error(`Ready WAV replayed after first unlock: count=${readyReplayCount}`);
+  }
+
+  diagnosticStage = 'ready-return';
+  await page.evaluate(() => window.customFighterPreviewReturnToCreator());
+  await page.waitForFunction(
+    () =>
+      document.documentElement.dataset.appMode === 'creator' &&
+      document.documentElement.dataset.creatorStudioReady === 'true' &&
+      document.documentElement.dataset.creatorAudioAssetValid === 'true' &&
+      document.documentElement.dataset.creatorAudioAssetBinding === 'ready' &&
+      document.documentElement.dataset.creatorAudioAssetCue === 'preview_ready_audio_custom' &&
+      document.documentElement.dataset.creatorAudioAssetFile === 'preview-ready.wav',
+    null,
+    { timeout: 10_000 },
+  );
+
   diagnosticStage = 'passed';
-  console.log('WEB_CREATOR_PREVIEW_SMOKE_PASSED invalidBlocked=true authoredHp=180 authoredDamage=33 authoredMpCost=17 authoredCooldown=2.4 semanticAnimationOverride=true semanticAnimationRoundTrip=true audioBindingOverride=true audioBindingRoundTrip=true animationPngMemoryRoundTrip=true animationPngRuntimeRendering=true animationPngRuntimeFrameAdvance=true animationPngSemanticFallback=true wavMemoryRoundTrip=true wavRuntimePlayback=true basicAttackWavRuntimePlayback=true skillImpactWavRuntimePlayback=true hitReceivedWavRuntimePlayback=true safeComposition=true timelineRoundTrip=true animationTiming=true vfxTiming=true audioTiming=true spatialHitbox=true spatialHurtbox=true cast=true draftsRestored=true');
+  console.log('WEB_CREATOR_PREVIEW_SMOKE_PASSED invalidBlocked=true authoredHp=180 authoredDamage=33 authoredMpCost=17 authoredCooldown=2.4 semanticAnimationOverride=true semanticAnimationRoundTrip=true audioBindingOverride=true audioBindingRoundTrip=true animationPngMemoryRoundTrip=true animationPngRuntimeRendering=true animationPngRuntimeFrameAdvance=true animationPngSemanticFallback=true wavMemoryRoundTrip=true wavRuntimePlayback=true basicAttackWavRuntimePlayback=true skillImpactWavRuntimePlayback=true hitReceivedWavRuntimePlayback=true readyWavAutoplaySafe=true readyWavFirstInputPlayback=true readyWavOneShot=true safeComposition=true timelineRoundTrip=true animationTiming=true vfxTiming=true audioTiming=true spatialHitbox=true spatialHurtbox=true cast=true draftsRestored=true');
   await page.close();
 } catch (error) {
   const snapshot = await diagnosticSnapshot();

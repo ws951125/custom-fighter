@@ -339,27 +339,31 @@ Work unit 12 — **self-contained Character Package transport for character Anim
 - Render readiness emitted `PRODUCTION_AI_BACKEND_READY provider=gemini model=gemini-3.6-flash billing_mode=free-tier-only revision=3975499d5c51297bf314dca3c7ccbc5c5964a977`.
 - WU12 is therefore accepted and production-validated.
 
-Work unit 13 — **Creator Preview runtime rendering for the bounded character Animation PNG — implementation complete; PR validation passed**:
-- Training Preview revalidates the active WU11 Animation PNG metadata/bytes, rechecks exact active-map `semantic + animation_id` agreement, decodes via Godot `Image.load_png_from_buffer()`, and creates one in-memory `ImageTexture`.
-- The custom sprite strip replaces only the player geometry, only inside active Creator Preview, and only while the runtime semantic + animation ID exactly match the single authored asset. Ordinary Training, Dummy rendering and all non-matching semantics keep the existing procedural fallback.
-- Horizontal frames advance using the authored bounded FPS. Leaving the bound semantic resets the custom strip to frame 0; returning to that semantic resumes the bounded strip from frame 0.
-- Rendering fits each authored frame inside a fixed 160×128 visual box while preserving aspect ratio. Existing gameplay position, jump offset, guard overlay, combat boxes, collisions and combat authority remain unchanged.
-- Runtime telemetry exposes loaded/active state, semantic/animation ID, frame count/current/max frame, draw count, last drawn frame and load error.
-- Creator Preview browser coverage now requires runtime load, actual frame advance, actual draw count, semantic fallback during a non-matching timeline animation, and resume when returning to `ready`.
-- Fresh-session package regression now proves the packaged Animation PNG not only restores but is also runtime-rendered after import.
-- PR #177 implementation/docs head `346d2fe64855ba34b09eb3fa3f5d1bbeef906abe` passed Windows Native, Godot import/boot/domain/AI contracts, trusted backend, Web export/size budget and Chromium `smoke:all` in CI #471 (`35552084482`).
-- Hosted Edge attempt 1 passed the direct WU13 Creator Preview assertions — `animationPngRuntimeRendering=true animationPngRuntimeFrameAdvance=true animationPngSemanticFallback=true` — then timed out at the later 10-second fresh-session package-import convergence wait.
-- Per L-007, only the failed Hosted Edge job was retried on the exact same SHA with no code/test change. Attempt 2 passed `WEB_CREATOR_PREVIEW_SMOKE_PASSED ... animationPngRuntimeRendering=true animationPngRuntimeFrameAdvance=true animationPngSemanticFallback=true`, `WEB_CREATOR_PACKAGE_VFX_SMOKE_PASSED ... secondSessionAnimationPngRestored=true animationPngRuntimeRendering=true animationPngRuntimeFrameAdvance=true`, and `SMOKE_SUITE_PASSED count=24`.
-- The first Edge timeout is therefore classified as an isolated state-convergence/runner timing miss, not a runtime defect. L-007 has been updated with the same-SHA evidence.
-- Latest-head CI #475 then reproduced a separate pre-existing Heavy Strike positioning flake in unchanged `smoke:melee`: Hosted Edge overshot the authored corridor to `playerX=877.6 dummyX=860 gap=-17.6` while Chromium remained green. This matches L-017's deferred overshoot case.
-- Test-only hardening now preserves the same authored 18–105 px Heavy Strike corridor and stage-left/final-D facing, but adds bounded settle + re-stage/retry after overshoot. No WU13 runtime or melee gameplay behavior changed.
-- Latest-head CI #478 (`35554693089`) on head `783968c8208353e202b998059a8d77483fdebae0` then passed Windows Native, Godot import/boot/domain/AI contracts, trusted backend, Web export/size budget, Chromium `smoke:all`, and hosted Microsoft Edge `smoke:all`.
-- Hosted Edge emitted `WEB_MELEE_SKILL_SMOKE_PASSED ... hitGap=87.99 ... finalHp=76 hitCount=1`, proving the overshoot recovery retained the original Heavy Strike geometry/gameplay assertions.
-- Hosted Edge emitted `WEB_CREATOR_PREVIEW_SMOKE_PASSED ... animationPngRuntimeRendering=true animationPngRuntimeFrameAdvance=true animationPngSemanticFallback=true`.
-- Hosted Edge emitted `WEB_CREATOR_PACKAGE_VFX_SMOKE_PASSED ... secondSessionAnimationPngRestored=true animationPngRuntimeRendering=true animationPngRuntimeFrameAdvance=true` and `SMOKE_SUITE_PASSED count=24`.
-- Final validation-evidence docs sync requires one more latest-head CI before merge; no further runtime/test changes are planned.
-- Active branch: `feat/v2-3-animation-runtime-wu13`. Final docs-sync latest-head CI remains required before merge.
-- Deferred after WU13: browser-autoplay-safe `ready` WAV trigger and final V2-3 acceptance/phase closeout.
+Work unit 13 — **Creator Preview runtime rendering for the bounded character Animation PNG — accepted and production-validated**:
+- Creator Preview revalidates the single bounded Animation PNG at runtime, requires exact active-map `semantic + animation_id` agreement, decodes it in memory with Godot, and renders the authored horizontal sprite strip only for the matching player semantic.
+- Ordinary Training, Dummy rendering and unmatched semantics keep the existing procedural fighter fallback. Gameplay position, jump offset, guard overlay, combat boxes, collision authority and combat state remain unchanged.
+- Authored FPS drives bounded frame progression. Leaving the bound semantic resets the custom strip; returning resumes from frame 0.
+- PR #177 final head `64402e56eef389aee5d36e490b1ff7826b91f092` passed latest-head CI #481 (`35555529407`) across Windows Native, Godot/domain/backend, Web export/size budget, Chromium `smoke:all`, and hosted Microsoft Edge `smoke:all`.
+- PR #177 was explicitly approved and squash-merged to `main` as `594b9d6a22a136db61f61fab4a6cab1ba69b8228`.
+- Exact-main CI #482 (`35559539587`) passed the complete production chain: Windows Native, Godot import/boot/domain/AI contracts, trusted backend, Web export/size budget, Chromium `smoke:all`, hosted Microsoft Edge `smoke:all`, GitHub Pages deployment/public reachability, Render exact-revision readiness, and production Microsoft Edge full smoke.
+- Production Edge emitted `WEB_CREATOR_PREVIEW_SMOKE_PASSED ... animationPngRuntimeRendering=true animationPngRuntimeFrameAdvance=true animationPngSemanticFallback=true`, `WEB_CREATOR_PACKAGE_VFX_SMOKE_PASSED ... secondSessionAnimationPngRestored=true animationPngRuntimeRendering=true animationPngRuntimeFrameAdvance=true`, and `SMOKE_SUITE_PASSED count=24`.
+- Heavy Strike test-only overshoot recovery also remained green in production with `WEB_MELEE_SKILL_SMOKE_PASSED ... hitGap=89.98 ... finalHp=76 hitCount=1`; no melee gameplay rule was changed.
+- Render readiness emitted `PRODUCTION_AI_BACKEND_READY provider=gemini model=gemini-3.6-flash billing_mode=free-tier-only revision=594b9d6a22a136db61f61fab4a6cab1ba69b8228`.
+- WU13 is therefore accepted and production-validated.
+
+Work unit 14 — **browser-autoplay-safe `ready` WAV runtime trigger — implementation complete; PR validation passed**:
+- Reuse the existing one validated WAV asset and the fixed `ready` binding; no schema/package change and no second audio asset slot are introduced.
+- A `ready` WAV loads normally into Creator Preview but starts only as an armed one-shot. It does not autoplay when Training Preview enters.
+- The first non-echo keyboard press, mouse-button press or screen touch records the browser audio-unlock gesture. Playback is deferred to the next process tick rather than attempted during scene load.
+- After the first successful `ready` cue playback, the one-shot disarms permanently for that Preview session. Later inputs cannot replay it.
+- Non-`ready` WAV bindings keep their existing authoritative triggers: timeline/skill-cast, basic attack, skill impact and hit received.
+- Runtime telemetry exposes armed/unlock-observed/played state and unlock input kind for deterministic browser verification.
+- Creator Preview browser coverage proves: zero playback before user input, first key input unlocks and plays exactly once, and a second key input does not replay the cue.
+- PR #178 implementation/docs head `34aaf39eeea886ca3b3eb97c4c9a9ff5d3b00b25` passed PR CI #483 (`35561166681`) across Windows Native, Godot import/boot/domain/AI contracts, trusted backend, Web export/size budget, Chromium `smoke:all`, and hosted Microsoft Edge `smoke:all`.
+- Hosted Edge emitted `WEB_CREATOR_PREVIEW_SMOKE_PASSED ... readyWavAutoplaySafe=true readyWavFirstInputPlayback=true readyWavOneShot=true`.
+- The full hosted Edge suite completed `SMOKE_SUITE_PASSED count=24`.
+- Final documentation-sync latest-head validation remains required before merge.
+- After WU14, perform final V2-3 self-contained/playable acceptance and phase closeout.
 - V2 remains **25% (2/8 phases complete)** until full V2-3 acceptance.
 
 ### V2-1 implementation checkpoints
@@ -478,4 +482,4 @@ AI VFX backend: `https://custom-fighter-ai-vfx.onrender.com`
 
 ## Next implementation target
 
-Validate V2-3 Work Unit 13 on GitHub: prove the one validated character Animation PNG is decoded into an in-memory runtime texture, advances frames at authored FPS, replaces only the Creator Preview player while its exact semantic + animation ID match, falls back safely for other semantics, and also renders after fresh-session package restore. Require Godot import/boot/domain/backend, Web export/size budget, Chromium `smoke:all`, Windows Native, and hosted Microsoft Edge `smoke:all` before any merge.
+Validate V2-3 Work Unit 14 on GitHub: prove a `ready`-bound validated WAV does not autoplay on Preview entry, arms a one-shot until the first browser keyboard/mouse/touch gesture, plays exactly once after that unlock gesture, and cannot replay on later inputs while all existing non-ready WAV triggers remain unchanged. Require Godot import/boot/domain/backend, Web export/size budget, Chromium `smoke:all`, Windows Native, and hosted Microsoft Edge `smoke:all` before any merge.

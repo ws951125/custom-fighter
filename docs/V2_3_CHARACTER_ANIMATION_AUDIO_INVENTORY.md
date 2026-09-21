@@ -281,29 +281,38 @@ Validation result:
 
 ## Work Unit 13 — Creator Preview runtime rendering for character Animation PNG
 
+Validation result:
+- PR #177 final head `64402e56eef389aee5d36e490b1ff7826b91f092` passed latest-head CI #481 (`35555529407`).
+- PR #177 was squash-merged as `594b9d6a22a136db61f61fab4a6cab1ba69b8228`.
+- Exact-main CI #482 (`35559539587`) passed Windows Native, Godot/domain/backend/Web/Chromium, hosted Microsoft Edge, GitHub Pages deployment/public reachability, Render exact-revision readiness, and production Microsoft Edge full smoke.
+- Production Edge proved `animationPngRuntimeRendering=true`, `animationPngRuntimeFrameAdvance=true`, `animationPngSemanticFallback=true`, `secondSessionAnimationPngRestored=true`, and the fresh-session runtime rendering path, then completed `SMOKE_SUITE_PASSED count=24`.
+- Heavy Strike overshoot hardening remained green with `WEB_MELEE_SKILL_SMOKE_PASSED ... hitGap=89.98 ... finalHp=76 hitCount=1`.
+- Render readiness matched exact revision `594b9d6a22a136db61f61fab4a6cab1ba69b8228`.
+- WU13 is accepted and production-validated.
+
+## Work Unit 14 — browser-autoplay-safe `ready` WAV runtime trigger
+
 Scope:
-1. Reuse the single active `CharacterAnimationAssetDraft` and PreviewSession bytes; do not add another asset slot, collection, filesystem/resource path, URL, native decoder, script or callback.
-2. Revalidate metadata + PNG bytes at Training runtime and require the asset's `semantic + animation_id` to still exactly match the active animation map.
-3. Decode with Godot `Image.load_png_from_buffer()` and create one in-memory `ImageTexture`.
-4. Replace only the Creator Preview player draw path, and only while current runtime semantic + animation ID exactly match the one asset. Ordinary Training, Dummy and unmatched semantics retain the procedural fighter fallback.
-5. Advance the bounded horizontal sprite strip using authored FPS; reset to frame 0 whenever the matching semantic becomes inactive.
-6. Fit the authored frame inside a fixed 160×128 visual box with aspect ratio preserved. Keep player coordinates, jump offset, guard overlay and all gameplay collision/state logic unchanged.
-7. Expose deterministic runtime telemetry for loaded/active state, exact binding, frame progression, draw count and load errors.
-8. Extend Creator Preview browser smoke to prove load, frame advance, actual draw execution, semantic fallback and resume.
-9. Extend fresh-session self-contained package smoke to prove restored Animation PNG bytes reach the runtime rendering path.
-10. Keep `ready` WAV autoplay-safe semantics for the next separate work unit.
+1. Reuse the single active WU7 WAV and existing fixed `CharacterAudioBindings.ready` cue; no schema, package or asset-count change.
+2. When the staged WAV binding is `ready`, arm a one-shot at Preview runtime load but do not autoplay during scene entry.
+3. Accept the first non-echo keyboard press, mouse-button press or screen touch as the browser audio-unlock gesture.
+4. Defer playback to the next runtime process tick so the playback request occurs after the input gesture has unlocked browser audio.
+5. Resolve `ready` through active `CharacterAudioBindings`; play only when the resolved cue exactly equals the staged WAV cue.
+6. After successful playback, disarm permanently for that Preview session. Repeated inputs must not replay `ready`.
+7. Keep timeline `skill_cast`, `basic_attack`, `skill_impact`, and `hit_received` trigger ownership unchanged.
+8. Expose deterministic Web telemetry for armed, unlock-observed, played and unlock-kind state.
+9. Extend Creator Preview Chromium/hosted-Edge regression to prove no pre-input autoplay, first-input playback, and one-shot non-replay.
+10. After WU14, run final V2-3 package/playable acceptance and close the phase if all criteria remain green.
 
 Validation result:
-- PR #177 runtime/test/docs head `783968c8208353e202b998059a8d77483fdebae0` passed latest-head CI #478 (`35554693089`) across Windows Native, Godot import/boot/domain/AI contracts, trusted backend, Web export/size budget, Chromium `smoke:all`, and hosted Microsoft Edge `smoke:all`.
-- Edge proved the direct Creator Preview path with `animationPngRuntimeRendering=true animationPngRuntimeFrameAdvance=true animationPngSemanticFallback=true`.
-- Edge proved the fresh-session self-contained package path with `secondSessionAnimationPngRestored=true animationPngRuntimeRendering=true animationPngRuntimeFrameAdvance=true`.
-- The same latest-head Edge run passed the test-only Heavy Strike overshoot hardening with `WEB_MELEE_SKILL_SMOKE_PASSED ... hitGap=87.99 ... finalHp=76 hitCount=1`.
-- The full browser suite completed `SMOKE_SUITE_PASSED count=24`.
-- Earlier Edge timing/positioning failures were handled under L-007/L-017: no WU13 runtime behavior was changed to mask runner observation timing; only the reproduced Heavy Strike test helper gained bounded overshoot recovery.
+- PR #178 implementation/docs head `34aaf39eeea886ca3b3eb97c4c9a9ff5d3b00b25` passed PR CI #483 (`35561166681`) across Windows Native, Godot import/boot/domain/AI contracts, trusted backend, Web export/size budget, Chromium `smoke:all`, and hosted Microsoft Edge `smoke:all`.
+- Hosted Edge proved no scene-entry autoplay, first-input unlock playback and one-shot non-replay with `readyWavAutoplaySafe=true readyWavFirstInputPlayback=true readyWavOneShot=true`.
+- Existing WAV triggers remained green in the same Creator Preview regression: `wavRuntimePlayback=true basicAttackWavRuntimePlayback=true skillImpactWavRuntimePlayback=true hitReceivedWavRuntimePlayback=true`.
+- Hosted Edge completed `SMOKE_SUITE_PASSED count=24`.
+- Final docs-sync latest-head CI remains required before merge.
 
-## Deferred after WU13
+## Deferred after WU14
 
-- browser-autoplay-safe `ready` WAV trigger;
 - final V2-3 self-contained/playable acceptance and phase closeout.
 
 V2 progress remains **25% (2/8 phases complete)** until the entire V2-3 acceptance criterion is satisfied and synchronized.
