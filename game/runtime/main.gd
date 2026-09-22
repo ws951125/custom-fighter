@@ -26,6 +26,9 @@ var player_depth := 0.58
 var player_facing := 1.0
 var dummy_x := 860.0
 var dummy_depth := 0.58
+var arena_margin_x := 90.0
+var arena_background_token := "training_blue"
+var arena_floor_token := "training_grid"
 
 var attack_visual_timer := 0.0
 var attack_latched := false
@@ -111,7 +114,7 @@ func _process(delta: float) -> void:
 		_resolve_dash_slash_collision()
 
 	dummy_x += dummy_knockback_state.tick(delta)
-	dummy_x = clampf(dummy_x, 90.0, maxf(size.x, 1280.0) - 90.0)
+	dummy_x = clampf(dummy_x, arena_left_x(), arena_right_x())
 
 	var move_vector := Vector2(
 		Input.get_axis("move_left", "move_right"),
@@ -149,7 +152,7 @@ func _process(delta: float) -> void:
 		player_x += move_vector.x * MOVE_SPEED * speed_multiplier * delta
 		player_depth += move_vector.y * DEPTH_SPEED * speed_multiplier * delta
 
-	player_x = clampf(player_x, 90.0, maxf(size.x, 1280.0) - 90.0)
+	player_x = clampf(player_x, arena_left_x(), arena_right_x())
 	if dash_slash_state.active:
 		dash_slash_state.x = player_x
 	player_depth = clampf(player_depth, 0.0, 1.0)
@@ -432,24 +435,50 @@ func _dummy_hurtbox() -> CombatBox:
 		Vector2(DUMMY_HURTBOX_HALF_WIDTH, DUMMY_HURTBOX_HALF_DEPTH)
 	)
 
+func arena_left_x() -> float:
+	return arena_margin_x
+
+func arena_right_x() -> float:
+	return maxf(size.x, 1280.0) - arena_margin_x
+
+func _stage_background_color() -> Color:
+	if arena_background_token == "sunset_court":
+		return Color("281923")
+	return Color("101522")
+
+func _stage_orb_color() -> Color:
+	if arena_background_token == "sunset_court":
+		return Color("e89a58")
+	return Color("27324d")
+
+func _stage_floor_color() -> Color:
+	if arena_floor_token == "stone_ring":
+		return Color("382b31")
+	return Color("182036")
+
+func _stage_lane_color() -> Color:
+	if arena_floor_token == "stone_ring":
+		return Color(0.72, 0.53, 0.40, 0.24)
+	return Color(0.32, 0.39, 0.55, 0.22)
+
 func _draw() -> void:
 	var canvas_width := maxf(size.x, 1280.0)
 	var canvas_height := maxf(size.y, 720.0)
 	var arena_top := canvas_height * 0.50
 	var arena_bottom := canvas_height * 0.86
 
-	draw_rect(Rect2(0.0, 0.0, canvas_width, canvas_height), Color("101522"))
-	draw_circle(Vector2(canvas_width * 0.80, canvas_height * 0.18), 78.0, Color("27324d"))
+	draw_rect(Rect2(0.0, 0.0, canvas_width, canvas_height), _stage_background_color())
+	draw_circle(Vector2(canvas_width * 0.80, canvas_height * 0.18), 78.0, _stage_orb_color())
 	draw_colored_polygon(PackedVector2Array([
 		Vector2(0.0, arena_top - 48.0),
 		Vector2(canvas_width, arena_top - 48.0),
 		Vector2(canvas_width, arena_bottom + 70.0),
 		Vector2(0.0, arena_bottom + 70.0)
-	]), Color("182036"))
+	]), _stage_floor_color())
 
 	for lane in range(5):
 		var lane_y := lerpf(arena_top, arena_bottom, float(lane) / 4.0)
-		draw_line(Vector2(0.0, lane_y), Vector2(canvas_width, lane_y), Color(0.32, 0.39, 0.55, 0.22), 2.0)
+		draw_line(Vector2(0.0, lane_y), Vector2(canvas_width, lane_y), _stage_lane_color(), 2.0)
 
 	var player_ground_feet := Vector2(player_x, lerpf(arena_top, arena_bottom, player_depth))
 	var dummy_feet := Vector2(dummy_x, lerpf(arena_top, arena_bottom, dummy_depth))
