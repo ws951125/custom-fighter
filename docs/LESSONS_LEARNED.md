@@ -469,3 +469,14 @@
 - **Prevention Rule:** Distinguish browser resource-exhaustion/network transport errors from deterministic product regressions. Preserve already-successful jobs, avoid blind full-workflow reruns, and require exact-head same-SHA evidence before classifying the failure. Never lower gameplay assertions or bypass console/network error monitoring merely to make the suite green.
 - **Validation:** PR #188 head `b77d8dede74caf3be9761e7e4769736b5caee182` CI #536 (`35720507663`) first failed only the hosted Edge job on `ERR_NO_BUFFER_SPACE`. Targeted retry job `106725353255` then passed Microsoft Edge `smoke:all` on the unchanged head with no product/test change.
 - **Status:** Verified by same-SHA targeted Edge retry on PR #188 CI #536
+
+## L-043 — Edge Creator VFX revision timeouts require same-SHA retry before product mutation
+
+- **Date:** 2026-09-22
+- **Area:** GitHub-hosted Windows / Microsoft Edge / Creator VFX runtime smoke
+- **Symptom:** PR #190 docs-sync head `2a6852e75003e09da44b1a3b5cf33d85bce8f6e3` CI #543 (`35737550864`) passed Windows Native, Godot/domain/backend, Web export/size budget and Chromium `smoke:all`. Hosted Edge passed Web, Match Restart, Opponent AI, Area, Formation, Buff, Melee, Coordination, Character, Character Selection, Character Animation, Creator, Creator Skill, Creator Timeline, Creator Preview, Creator Preview Family and Creator VFX, then `smoke:creator-vfx-runtime` timed out after 5 seconds waiting for the expected Creator VFX revision.
+- **Root Cause:** The failed wait occurred in an unchanged existing browser regression after all WU3 domain validation and Chromium acceptance had passed. A same-HEAD retry completed the full hosted Edge suite successfully without any product, test threshold, timeout or gameplay changes, classifying the first failure as a GitHub-hosted Edge timing transient rather than a deterministic WU3 regression.
+- **Fix / Operational Mitigation:** Preserve the unchanged head and retry only the failed Edge job/failed chain. Do not increase the wait timeout, weaken the revision assertion or modify unrelated Creator/VFX/runtime code unless the same-HEAD failure reproduces.
+- **Prevention Rule:** For isolated hosted-Edge `page.waitForFunction` timeouts in an already-covered regression, require same-SHA evidence before making product changes. If the same-SHA retry passes, record it as runner/timing transient; if it reproduces, inspect the exact wait condition, browser telemetry and lifecycle sequencing before changing implementation or timeout budgets.
+- **Validation:** CI #543 first failed only hosted Edge job `106782115749` at `creator_vfx_runtime_binding_web_smoke.mjs` revision wait. Same-head retry Edge job `106794918924` then passed the complete Microsoft Edge `smoke:all` suite with no code/test changes.
+- **Status:** Verified by same-SHA hosted Edge retry on PR #190
