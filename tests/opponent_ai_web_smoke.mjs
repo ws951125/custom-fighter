@@ -23,6 +23,78 @@ async function num(key) {
   return Number(await page.evaluate((k) => document.documentElement.dataset[k] ?? '0', key));
 }
 
+async function tap(key, ms = 90) {
+  await page.keyboard.down(key);
+  await page.waitForTimeout(ms);
+  await page.keyboard.up(key);
+  await page.waitForTimeout(25);
+}
+
+async function waitForOpponentInPlayerAttackRange(timeout = 10_000) {
+  try {
+    await page.waitForFunction(
+      () => {
+        const d = document.documentElement.dataset;
+        const gap = Number(d.dummyX) - Number(d.playerX);
+        return (
+          d.opponentAiActive === 'true' &&
+          d.matchOver === 'false' &&
+          d.dummyRecoveryState === 'READY' &&
+          Number(d.playerHp) > 0 &&
+          gap >= 40 &&
+          gap <= 160
+        );
+      },
+      null,
+      { timeout },
+    );
+  } catch (error) {
+    const snapshot = await page.evaluate(() => {
+      const d = document.documentElement.dataset;
+      return {
+        playerX: d.playerX,
+        playerDepth: d.playerDepth,
+        playerHp: d.playerHp,
+        dummyX: d.dummyX,
+        dummyHp: d.dummyHp,
+        dummyRecoveryState: d.dummyRecoveryState,
+        opponentAiActive: d.opponentAiActive,
+        opponentAiIntent: d.opponentAiIntent,
+        opponentAiDecisionTick: d.opponentAiDecisionTick,
+        opponentAiAttackCount: d.opponentAiAttackCount,
+        opponentAiHitCount: d.opponentAiHitCount,
+        stageId: d.stageId,
+        opponentAiProfile: d.opponentAiProfile,
+        matchOver: d.matchOver,
+        matchResult: d.matchResult,
+      };
+    });
+    throw new Error(`Opponent did not enter player attack range: ${JSON.stringify(snapshot)}; cause=${String(error)}`);
+  }
+}
+
+async function playerCombo(expectedHp) {
+  await waitForOpponentInPlayerAttackRange();
+  await tap('j');
+  await tap('j');
+  await tap('j');
+  await page.waitForFunction(
+    (hp) =>
+      Number(document.documentElement.dataset.lastHitStep) === 3 &&
+      Number(document.documentElement.dataset.dummyHp) === hp &&
+      document.documentElement.dataset.lastAttackHit === 'true' &&
+      document.documentElement.dataset.dummyRecoveryState === 'DOWN' &&
+      Number(document.documentElement.dataset.playerHp) > 0,
+    expectedHp,
+    { timeout: 6_000 },
+  );
+  await page.waitForFunction(
+    () => document.documentElement.dataset.dummyRecoveryState === 'READY',
+    null,
+    { timeout: 8_000 },
+  );
+}
+
 try {
   const singlePlayerUrl = withMode('single_player');
   const response = await page.goto(singlePlayerUrl, { waitUntil: 'domcontentloaded', timeout: 60_000 });
@@ -200,7 +272,58 @@ try {
       document.documentElement.dataset.stageId === 'sunset_court' &&
       document.documentElement.dataset.opponentAiActive === 'true' &&
       Math.abs(Number(document.documentElement.dataset.opponentAiReactionInterval) - 0.45) < 0.001 &&
-      Math.abs(Number(document.documentElement.dataset.opponentAiBasicAttackRange) - 150) < 0.1,
+      Math.abs(Number(document.documentElement.dataset.opponentAiBasicAttackRange) - 150) < 0.1 &&
+      Number(document.documentElement.dataset.playerHp) === 100 &&
+      Number(document.documentElement.dataset.dummyHp) === 100,
+    null,
+    { timeout: 60_000 },
+  );
+
+  // Full V2-4 acceptance: win a real single-player match on the selectable Sunset Court
+  // against an active opponent using the authoritative player melee path. No test-only
+  // damage bridge is used here.
+  await playerCombo(54);
+  await playerCombo(8);
+  await waitForOpponentInPlayerAttackRange();
+  await tap('j');
+  await page.waitForFunction(
+    () =>
+      document.documentElement.dataset.matchOver === 'true' &&
+      document.documentElement.dataset.matchResult === 'victory' &&
+      Number(document.documentElement.dataset.dummyHp) === 0 &&
+      Number(document.documentElement.dataset.playerHp) > 0 &&
+      document.documentElement.dataset.opponentAiActive === 'true' &&
+      document.documentElement.dataset.stageId === 'sunset_court' &&
+      document.documentElement.dataset.opponentAiProfile === 'training_cautious',
+    null,
+    { timeout: 8_000 },
+  );
+
+  await page.evaluate(() => window.customFighterRestartMatch());
+  await page.waitForFunction(
+    () =>
+      document.documentElement.dataset.appMode === 'single_player' &&
+      document.documentElement.dataset.appStage === 'sunset_court' &&
+      document.documentElement.dataset.stageId === 'sunset_court' &&
+      document.documentElement.dataset.appOpponentProfile === 'training_cautious' &&
+      document.documentElement.dataset.opponentAiProfile === 'training_cautious' &&
+      document.documentElement.dataset.opponentAiActive === 'true' &&
+      document.documentElement.dataset.matchOver === 'false' &&
+      document.documentElement.dataset.matchResult === '' &&
+      Number(document.documentElement.dataset.playerHp) === 100 &&
+      Number(document.documentElement.dataset.dummyHp) === 100 &&
+      Number(document.documentElement.dataset.opponentAiAttackCount) === 0 &&
+      Math.abs(Number(document.documentElement.dataset.playerX) - Number(document.documentElement.dataset.stagePlayerSpawnX)) < 0.1 &&
+      Math.abs(Number(document.documentElement.dataset.dummyX) - Number(document.documentElement.dataset.stageOpponentSpawnX)) < 0.1,
+    null,
+    { timeout: 60_000 },
+  );
+
+  await page.evaluate(() => window.customFighterReturnToCreator());
+  await page.waitForFunction(
+    () =>
+      document.documentElement.dataset.appMode === 'creator' &&
+      document.documentElement.dataset.creatorStudioReady === 'true',
     null,
     { timeout: 60_000 },
   );
@@ -236,7 +359,7 @@ try {
   }
 
   console.log(
-    `WEB_OPPONENT_AI_SMOKE_PASSED activeMode=true approach=true attack=true playerDefeat=true restartPreserved=true difficultySelection=true profileCount=3 stageSelection=true stageCount=2 stagePreservedAcrossProfileChange=true damageAuthorityStable=true balancedDamage=${balancedDamage} pressureDamage=${pressureDamage} passiveTraining=true`,
+    `WEB_OPPONENT_AI_SMOKE_PASSED activeMode=true approach=true attack=true playerDefeat=true restartPreserved=true difficultySelection=true profileCount=3 stageSelection=true stageCount=2 stagePreservedAcrossProfileChange=true playerVictory=true victoryStage=sunset_court victoryRestartPreserved=true returnCreator=true damageAuthorityStable=true balancedDamage=${balancedDamage} pressureDamage=${pressureDamage} passiveTraining=true`,
   );
 } finally {
   await browser.close();
