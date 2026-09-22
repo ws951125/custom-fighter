@@ -33,6 +33,17 @@ V2-1 delivered visual event timeline authoring, startup/active/recovery timing, 
 
 ### V2-5 implementation checkpoints
 
+Work Unit 3 — **deterministic competitive power-budget validator implemented; PR validation pending**:
+- `CompetitivePowerBudgetValidator` adds the first executable `competitive_standard_v1` eligibility layer without mutating stored Character/Skill definitions.
+- Competitive hard caps are materially narrower than the outer schema/safety envelope for character HP/MP/mobility and skill damage, MP floor, cooldown/startup/recovery, active time, speed/range, hitstun/knockback, hitbox coverage and family-specific Formation/Buff/Trap/Aura/Teleport/Counter/Grab/Summon dimensions.
+- The policy uses deterministic integer scores with frozen limits: character score `<= 3200`, per-skill score `<= 4500`, and occupied-slot aggregate loadout score `<= 18000`. Reusing one skill in multiple slots counts once per occupied slot, while its diagnostic is emitted only once.
+- Stable diagnostic codes distinguish hard-cap, missing/unreferenced/duplicate-skill, unsupported-budget, per-character, per-skill and aggregate-loadout failures.
+- The built-in reference characters remain eligible under the frozen v1 policy: Ember Vanguard character score `2683` / total `15649`; Storm Duelist character score `2787` / total `15426`.
+- `tests/competitive_power_budget_test_runner.gd` covers reference fixtures, same-input/order determinism, no authored-data mutation, unsupported budget, missing/unreferenced skills, hard caps, one-code-per-skill stability, repeated-slot aggregate pressure, inclusive boundary behavior and monotonic damage/cooldown/MP-cost scoring.
+- Required GitHub CI now executes the new competitive power-budget domain runner.
+- WU3 remains domain-only: no competitive UI/router mode is exposed yet, and current Training/Creator/VFX/Single-player controls remain unchanged.
+- V2 remains **50% (4/8 phases complete)** until the full V2-5 acceptance criterion is complete.
+
 Work Unit 2 — **bounded game-mode + versioned ruleset contracts implemented; PR validation pending**:
 - `GameModeDefinition` introduces a strict schema-v1 declarative contract for mode ID/display name, mode family, ruleset ID/version, power-budget ID, authority policy and custom-content policy. Unknown/missing fields fail closed.
 - Mode policy references are allow-listed rather than accepting arbitrary safe-looking tokens. Sandbox must use `sandbox_default` + `sandbox_safe_limits` and remain `local_authoritative`; single-player must use `single_player_default` + `sandbox_safe_limits` and remain local-authoritative; competitive modes must use `competitive_standard` + `competitive_standard_v1` and may declare only local- or host-authoritative policy.
