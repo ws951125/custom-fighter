@@ -92,7 +92,7 @@ Work Unit 5 — **bounded stage selection + runtime application merged; exact-ma
 - Initial PR #185 CI #518 exposed invalid GDScript constructor-based `const` arrays; commit `3fdc15f871b11c1b3bdb3431a597fd88020008bd` corrected them to literal constant arrays without semantic change and L-040 records the rule.
 - PR #185 CI #520 (`35699591932`) and final latest-head CI #524 (`35700904620`) passed Windows Native, Godot/domain/backend, Web/Chromium and hosted Microsoft Edge. Browser evidence includes `stageSelection=true stageCount=2 stagePreservedAcrossProfileChange=true` and `SMOKE_SUITE_PASSED count=25`.
 - PR #185 was explicitly approved and squash-merged to `main` as `26bf2a7ac845b90b715f216e9c207cd1e8e3b3af`.
-- Exact-main CI #525 (`35708039807`) is running on the merge revision.
+- Exact-main CI #525 (`35708039807`) passed Windows Native, Godot/domain/backend, Web export/size budget, Chromium `smoke:all`, hosted Microsoft Edge `smoke:all`, GitHub Pages deployment and public-Web reachability on merge revision `26bf2a7ac845b90b715f216e9c207cd1e8e3b3af`. The external Render AI backend again returned HTTP 503 for all 18 readiness attempts, so backend-dependent production Edge full smoke was skipped.
 - V2 remains **37.5% (3/8 phases complete)** until WU6 completes the V2-4 acceptance criterion.
 
 Work Unit 6 — **full single-player acceptance implemented; PR validation pending**:
@@ -102,7 +102,10 @@ Work Unit 6 — **full single-player acceptance implemented; PR validation pendi
 - The regression proves active AI remains enabled during the victory match, requires non-zero player HP at victory, verifies `dummyHp=0`, then restarts and proves `sunset_court` + `training_cautious` remain selected with full HP and clean opponent attack counters.
 - The same flow then invokes the existing Return-to-Creator path and requires Creator Studio readiness, before re-proving ordinary Training remains passive.
 - Together with the earlier default-stage defeat path, WU6 covers loss, restart, selectable stage/profile persistence, active-opponent victory, second restart and return-to-Creator across the two built-in stage configurations.
-- Branch `feat/v2-4-wu6-single-player-acceptance` carries the acceptance-only change; required PR CI and deployed exact-main production validation remain pending.
+- PR #186 CI #526 exposed one acceptance-test defect: the first player-victory range predicate referenced unpublished `dataset.dummyDepth`, so `Number(undefined)` became `NaN` and the wait could never pass. Commit `0b649b307352494b94b8fe5321d12a2666903081` removed the unpublished-field dependency and added a diagnostic timeout snapshot; L-041 records the durable rule.
+- PR #186 CI #528 (`35709409604`) passed Windows Native, Godot import/boot/domain/backend, Web export/size budget, Chromium `smoke:all` and hosted Microsoft Edge `smoke:all` on head `d8803fb533cc6dcd2182bddb39c974be9c148bd6`.
+- Chromium and Edge both emitted `playerDefeat=true playerVictory=true victoryStage=sunset_court victoryRestartPreserved=true returnCreator=true` and `SMOKE_SUITE_PASSED count=25`.
+- PR #186 remains open and mergeable. V2-4 still requires approved merge plus deployed exact-main acceptance before the phase can close.
 - V2 remains **37.5% (3/8 phases complete)** until the deployed V2-4 acceptance target is satisfied.
 
 ### V2-2 implementation checkpoints
