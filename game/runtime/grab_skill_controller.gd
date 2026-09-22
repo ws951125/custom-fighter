@@ -4,8 +4,6 @@ const SkillDefinition = preload("res://game/core/skills/skill_definition.gd")
 const SkillCastState = preload("res://game/core/skills/skill_cast_state.gd")
 const GrabState = preload("res://game/core/skills/grab_state.gd")
 
-const ARENA_MARGIN_X := 90.0
-
 var host
 var skill := SkillDefinition.new()
 var cast_state := SkillCastState.new()
@@ -91,7 +89,8 @@ func _attempt_grab() -> void:
 		last_grab_hit = false
 		_set_web_state()
 		return
-	var arena_right := maxf(host.size.x, 1280.0) - ARENA_MARGIN_X
+	var arena_left := float(host.arena_left_x()) if host.has_method("arena_left_x") else 90.0
+	var arena_right := float(host.arena_right_x()) if host.has_method("arena_right_x") else maxf(host.size.x, 1280.0) - 90.0
 	var hurtbox = host._dummy_hurtbox()
 	var captured := grab_state.try_capture(
 		Vector2(host.player_x, host.player_depth),
@@ -103,7 +102,7 @@ func _attempt_grab() -> void:
 		skill.hitbox_half_depth,
 		skill.active,
 		skill.knockback,
-		ARENA_MARGIN_X,
+		arena_left,
 		arena_right
 	)
 	if not captured:
@@ -126,12 +125,13 @@ func _hold_captured_target() -> void:
 	if host.dummy_state.is_defeated():
 		grab_state.cancel()
 		return
-	var arena_right := maxf(host.size.x, 1280.0) - ARENA_MARGIN_X
+	var arena_left := float(host.arena_left_x()) if host.has_method("arena_left_x") else 90.0
+	var arena_right := float(host.arena_right_x()) if host.has_method("arena_right_x") else maxf(host.size.x, 1280.0) - 90.0
 	var destination := grab_state.anchored_target_position(
 		Vector2(host.player_x, host.player_depth),
 		host.player_facing,
 		skill.knockback,
-		ARENA_MARGIN_X,
+		arena_left,
 		arena_right
 	)
 	host.dummy_x = destination.x
