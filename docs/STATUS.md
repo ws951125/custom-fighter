@@ -45,7 +45,7 @@ Work Unit 1 — **deterministic opponent behavior foundation accepted and produc
 - WU1 is therefore accepted and production-validated.
 - V2 remains **37.5% (3/8 phases complete)** until the full V2-4 phase acceptance criteria are complete.
 
-Work Unit 2 — **active deterministic single-player opponent implemented and PR-validated; merge/production pending**:
+Work Unit 2 — **active deterministic single-player opponent merged; exact-main Web validated, backend-dependent production completion blocked**:
 - Router mode `single_player` now mounts the existing Training scene with opponent AI explicitly enabled; ordinary `training` remains passive by default.
 - The runtime adapter consumes WU1 deterministic intents, moves the Dummy within existing arena bounds, reuses `AttackChainState` attack timing/damage/hitstun, and routes every successful opponent hit through the existing authoritative `receive_player_hit(...)` boundary.
 - Match defeat remains owned by `match_flow_main.gd`; restart preserves `single_player` mode, while return-to-Creator remains unchanged.
@@ -53,7 +53,21 @@ Work Unit 2 — **active deterministic single-player opponent implemented and PR
 - `tests/opponent_ai_web_smoke.mjs` proves single-player mode approaches, attacks, damages and defeats the player, then restarts into a fresh AI match; the same regression separately reloads ordinary Training and proves the Dummy remains passive with no opponent attacks.
 - Initial PR #182 CI #504 passed Windows Native, Godot/domain/backend and Web export, then Chromium timed out at the first new opponent-hit observation. Commit `3524ae4cbc1c98a51f3def27ca453f086b9c3096` added failure-only state diagnostics without changing runtime, timeout or acceptance conditions.
 - PR #182 CI #506 (`35605738012`) then passed Windows Native, Godot/domain/AI contracts, backend, Web export/size budget, Chromium `smoke:all` and hosted Microsoft Edge `smoke:all` on that same runtime implementation.
-- V2 remains **37.5% (3/8 phases complete)**; Work Unit 3 is the next difficulty/profile-selection slice after WU2 exact-main production validation.
+- PR #182 was explicitly approved and squash-merged to `main` as `c548cfb3c0e53d2b1170205c1f1948889845db22`.
+- Exact-main CI #508 attempt 1 passed Windows Native, Godot/domain/AI/backend, Web export and the new opponent-AI regression, then hit an unchanged `creator_package_vfx_web_smoke.mjs` U/MP observation timeout already covered by L-037. Same-SHA attempt 2 passed Chromium `smoke:all`, Windows Native, hosted Edge `smoke:all`, GitHub Pages deployment and public-Web reachability.
+- The remaining exact-main production chain is externally blocked: `https://custom-fighter-ai-vfx.onrender.com` returned HTTP 503 for all 18 readiness attempts, so the dependent production Edge full smoke was skipped. The currently connected Render workspace does not contain that backend service, so it cannot be restarted/redeployed from the available Render connector. WU2 gameplay/Web behavior is validated; full backend-dependent production acceptance remains `Blocked / Residual Risk`.
+- V2 remains **37.5% (3/8 phases complete)**.
+
+Work Unit 3 — **bounded difficulty/profile selector implemented and PR-validated; merge pending**:
+- Add third allow-listed profile `training_cautious` and stable user-facing labels: Easy/Cautious, Normal/Balanced and Hard/Pressure.
+- Profile selection is bounded to the existing allow-list. Invalid runtime selection requests are ignored; invalid URL profile input normalizes to the bounded default `training_balanced`.
+- Web single-player supports `?mode=single_player&opponent_profile=<allow-listed-id>`; the router owns the selected profile so restart/remount preserves it.
+- Single-player now exposes an on-canvas `AI Difficulty` selector. Ordinary `training` does not create or expose the selector and keeps the Dummy passive.
+- Difficulty changes only declarative decision policy (reaction interval, spacing, guard policy and validated eligible action preference). It does not modify `AttackChainState` damage/hitstun, player/opponent HP/MP, skill cooldowns or hit resolution.
+- Domain regression proves the deterministic profile allow-list/default/labels and a concrete policy difference: at the same 140px attack-ready snapshot, Balanced attacks while Pressure closes farther because its bounded basic-attack range is 120px.
+- Browser regression now changes profiles through the same runtime selection path, proves Balanced → Pressure → Cautious telemetry, rejects an unsafe profile token without changing the active profile, verifies authoritative opponent damage remains identical across Balanced and Pressure, and re-proves ordinary Training remains passive.
+- PR #183 CI #509 (`35680419513`) passed Godot import/boot/domain/AI contracts, trusted backend, Web export/size budget, Chromium `smoke:all`, Windows Native Release, and GitHub-hosted Microsoft Edge `smoke:all` on head `4571f15e5620662c5f6fa80e87a625d1dc5b3723`.
+- PR #183 is open and mergeable; merge still requires explicit user approval. V2 remains **37.5% (3/8 phases complete)** until the entire V2-4 phase is accepted.
 
 ### V2-2 implementation checkpoints
 
@@ -524,4 +538,4 @@ AI VFX backend: `https://custom-fighter-ai-vfx.onrender.com`
 
 ## Next implementation target
 
-After PR #182 is approved/merged and exact-main production validation is green, implement **V2-4 Work Unit 3 — difficulty profiles**: expose a bounded deterministic opponent-profile selector, add multiple validated difficulty/behavior profiles without modifying combat-authority damage/MP/cooldown values, preserve passive ordinary Training, and add domain + Chromium/Edge coverage for profile selection and behavior differences.
+Validate and merge **V2-4 Work Unit 3 — difficulty profiles**. After WU3 merge/exact-main validation, begin **Work Unit 4 — stage definition + registry** with strict bounded stage data for arena bounds, spawn points and presentation tokens.
