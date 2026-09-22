@@ -5,6 +5,8 @@ const OpponentBehaviorProfilesClass = preload("res://game/core/ai/opponent_behav
 const OpponentDecisionStateClass = preload("res://game/core/ai/opponent_decision_state.gd")
 const OpponentAttackChainState = preload("res://game/core/combat/attack_chain_state.gd")
 const OpponentCombatBox = preload("res://game/core/combat/combat_box.gd")
+const StageDefinitionClass = preload("res://game/core/stage/stage_definition.gd")
+const StageRegistryClass = preload("res://game/core/stage/stage_registry.gd")
 
 const SINGLE_PLAYER_MODE := "single_player"
 const OPPONENT_MOVE_SPEED := 300.0
@@ -19,9 +21,16 @@ var return_creator_button: Button
 var _web_restart_callback
 var _web_return_creator_callback
 var _web_select_opponent_profile_callback
+var _web_select_stage_callback
 var opponent_profile_panel: PanelContainer
 var opponent_profile_selector: OptionButton
+var stage_selector_panel: PanelContainer
+var stage_selector: OptionButton
 
+var stage_id := StageRegistryClass.DEFAULT_STAGE_ID
+var stage_definition = StageDefinitionClass.new()
+var stage_player_spawn_x := 280.0
+var stage_opponent_spawn_x := 860.0
 var opponent_ai_active := false
 var opponent_profile_id := OpponentBehaviorProfilesClass.DEFAULT_PROFILE_ID
 var opponent_behavior_profile = OpponentBehaviorProfileClass.new()
@@ -37,8 +46,10 @@ var opponent_last_damage := 0
 
 func _ready() -> void:
 	super()
+	_configure_stage()
 	_configure_opponent_ai()
 	_create_opponent_profile_selector()
+	_create_stage_selector()
 	_create_match_overlay()
 	_install_match_bridges()
 	_set_match_web_state()
@@ -53,6 +64,36 @@ func _process(delta: float) -> void:
 		_finish_match("victory")
 	elif player_state.is_defeated():
 		_finish_match("defeat")
+
+func _configure_stage() -> void:
+	stage_id = _router_stage_id()
+	var errors: PackedStringArray = StageRegistryClass.load_stage(stage_id, stage_definition)
+	if not errors.is_empty() or not stage_definition.loaded:
+		stage_id = StageRegistryClass.DEFAULT_STAGE_ID
+		errors = StageRegistryClass.load_stage(stage_id, stage_definition)
+	if not errors.is_empty() or not stage_definition.loaded:
+		push_error("Failed to load bounded stage: %s" % " | ".join(errors))
+		return
+
+	arena_margin_x = stage_definition.arena_margin_x
+	arena_background_token = stage_definition.background_token
+	arena_floor_token = stage_definition.floor_token
+	var canvas_width := maxf(size.x, 1280.0)
+	stage_player_spawn_x = clampf(
+		canvas_width * stage_definition.player_spawn_x_ratio,
+		arena_left_x(),
+		arena_right_x()
+	)
+	stage_opponent_spawn_x = clampf(
+		canvas_width * stage_definition.opponent_spawn_x_ratio,
+		arena_left_x(),
+		arena_right_x()
+	)
+	player_x = stage_player_spawn_x
+	player_depth = stage_definition.player_spawn_depth
+	dummy_x = stage_opponent_spawn_x
+	dummy_depth = stage_definition.opponent_spawn_depth
+	queue_redraw()
 
 func _configure_opponent_ai() -> void:
 	opponent_ai_active = _router_mode() == SINGLE_PLAYER_MODE
@@ -82,6 +123,12 @@ func _router_profile_id() -> String:
 	if router == null:
 		return OpponentBehaviorProfilesClass.DEFAULT_PROFILE_ID
 	return OpponentBehaviorProfilesClass.normalize_profile_id(str(router.get("opponent_profile_id")))
+
+func _router_stage_id() -> String:
+	var router: Variant = get_parent()
+	if router == null:
+		return StageRegistryClass.DEFAULT_STAGE_ID
+	return StageRegistryClass.normalize_stage_id(str(router.get("stage_id")))
 
 func _create_opponent_profile_selector() -> void:
 	if not opponent_ai_active:
@@ -126,6 +173,65 @@ func _create_opponent_profile_selector() -> void:
 	opponent_profile_selector.select(selected_index)
 	opponent_profile_selector.item_selected.connect(_on_opponent_profile_selected)
 	row.add_child(opponent_profile_selector)
+
+func _create_stage_selector() -> void:
+	if not opponent_ai_active:
+		return
+	stage_selector_panel = PanelContainer.new()
+	stage_selector_panel.name = "StageSelector"
+	stage_selector_panel.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	stage_selector_panel.offset_left = -330.0
+	stage_selector_panel.offset_top = 90.0
+	stage_selector_panel.offset_right = -18.0
+	stage_selector_panel.offset_bottom = 154.0
+	stage_selector_panel.z_index = 90
+	add_child(stage_selector_panel)
+
+	var margin := MarginContainer.new()
+	margin.add_theme_constant_override("margin_left", 12)
+	margin.add_theme_constant_override("margin_right", 12)
+	margin.add_theme_constant_override("margin_top", 8)
+	margin.add_theme_constant_override("margin_bottom", 8)
+	stage_selector_panel.add_child(margin)
+
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 10)
+	margin.add_child(row)
+
+	var label := Label.new()
+	label.text = "Stage"
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	row.add_child(label)
+
+	stage_selector = OptionButton.new()
+	stage_selector.custom_minimum_size = Vector2(190.0, 42.0)
+	stage_selector.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var selected_index := 0
+	var stage_ids: PackedStringArray = StageRegistryClass.stage_ids()
+	for index in range(stage_ids.size()):
+		var candidate_id := stage_ids[index]
+		stage_selector.add_item(StageRegistryClass.display_label(candidate_id))
+		stage_selector.set_item_metadata(index, candidate_id)
+		if candidate_id == stage_id:
+			selected_index = index
+	stage_selector.select(selected_index)
+	stage_selector.item_selected.connect(_on_stage_selected)
+	row.add_child(stage_selector)
+
+func _on_stage_selected(index: int) -> void:
+	if stage_selector == null or index < 0 or index >= stage_selector.item_count:
+		return
+	_request_stage(str(stage_selector.get_item_metadata(index)))
+
+func _request_stage(requested_stage_id: String) -> void:
+	var normalized := requested_stage_id.strip_edges().to_lower()
+	if not opponent_ai_active or not StageRegistryClass.is_supported(normalized):
+		return
+	if normalized == stage_id:
+		return
+	var router: Variant = get_parent()
+	if router != null and router.has_method("switch_stage"):
+		router.call_deferred("switch_stage", normalized)
 
 func _on_opponent_profile_selected(index: int) -> void:
 	if opponent_profile_selector == null or index < 0 or index >= opponent_profile_selector.item_count:
@@ -194,7 +300,7 @@ func _apply_opponent_movement(delta: float) -> void:
 	var safe_delta := minf(maxf(delta, 0.0), 0.05)
 	dummy_x += move_x * OPPONENT_MOVE_SPEED * safe_delta
 	dummy_depth += move_depth * OPPONENT_DEPTH_SPEED * safe_delta
-	dummy_x = clampf(dummy_x, 90.0, maxf(size.x, 1280.0) - 90.0)
+	dummy_x = clampf(dummy_x, arena_left_x(), arena_right_x())
 	dummy_depth = clampf(dummy_depth, 0.0, 1.0)
 
 func _try_opponent_basic_attack() -> void:
@@ -328,10 +434,12 @@ func _install_match_bridges() -> void:
 	_web_restart_callback = JavaScriptBridge.create_callback(_web_restart_match)
 	_web_return_creator_callback = JavaScriptBridge.create_callback(_web_return_to_creator)
 	_web_select_opponent_profile_callback = JavaScriptBridge.create_callback(_web_select_opponent_profile)
+	_web_select_stage_callback = JavaScriptBridge.create_callback(_web_select_stage)
 	var window = JavaScriptBridge.get_interface("window")
 	window.customFighterRestartMatch = _web_restart_callback
 	window.customFighterReturnToCreator = _web_return_creator_callback
 	window.customFighterSelectOpponentProfile = _web_select_opponent_profile_callback
+	window.customFighterSelectStage = _web_select_stage_callback
 
 func _web_restart_match(_args: Array) -> void:
 	_restart_match()
@@ -343,6 +451,11 @@ func _web_select_opponent_profile(args: Array) -> void:
 	if args.is_empty():
 		return
 	_request_opponent_profile(str(args[0]))
+
+func _web_select_stage(args: Array) -> void:
+	if args.is_empty():
+		return
+	_request_stage(str(args[0]))
 
 func _set_match_web_state() -> void:
 	if not OS.has_feature("web"):
@@ -365,6 +478,17 @@ func _set_opponent_ai_web_state() -> void:
 		"document.documentElement.dataset.opponentAiBasicAttackRange='%.1f';" % (opponent_behavior_profile.basic_attack_range if opponent_ai_active and opponent_behavior_profile.loaded else 0.0) +
 		"document.documentElement.dataset.opponentAiProfileSelectorVisible='%s';" % ("true" if opponent_profile_panel != null else "false") +
 		"document.documentElement.dataset.opponentAiProfileSelectorCount='%d';" % (opponent_profile_selector.item_count if opponent_profile_selector != null else 0) +
+		"document.documentElement.dataset.stageId=%s;" % JSON.stringify(stage_id if opponent_ai_active else "") +
+		"document.documentElement.dataset.stageDisplayName=%s;" % JSON.stringify(stage_definition.display_name if opponent_ai_active and stage_definition.loaded else "") +
+		"document.documentElement.dataset.stageSelectorVisible='%s';" % ("true" if stage_selector_panel != null else "false") +
+		"document.documentElement.dataset.stageSelectorCount='%d';" % (stage_selector.item_count if stage_selector != null else 0) +
+		"document.documentElement.dataset.stageArenaMargin='%.1f';" % (arena_margin_x if opponent_ai_active else 0.0) +
+		"document.documentElement.dataset.stagePlayerSpawnX='%.2f';" % (stage_player_spawn_x if opponent_ai_active else 0.0) +
+		"document.documentElement.dataset.stageOpponentSpawnX='%.2f';" % (stage_opponent_spawn_x if opponent_ai_active else 0.0) +
+		"document.documentElement.dataset.stagePlayerSpawnDepth='%.3f';" % (stage_definition.player_spawn_depth if opponent_ai_active and stage_definition.loaded else 0.0) +
+		"document.documentElement.dataset.stageOpponentSpawnDepth='%.3f';" % (stage_definition.opponent_spawn_depth if opponent_ai_active and stage_definition.loaded else 0.0) +
+		"document.documentElement.dataset.stageBackgroundToken=%s;" % JSON.stringify(arena_background_token if opponent_ai_active else "") +
+		"document.documentElement.dataset.stageFloorToken=%s;" % JSON.stringify(arena_floor_token if opponent_ai_active else "") +
 		"document.documentElement.dataset.opponentAiIntent=%s;" % JSON.stringify(_opponent_intent_name()) +
 		"document.documentElement.dataset.opponentAiDecisionTick='%d';" % opponent_decision_tick +
 		"document.documentElement.dataset.opponentAiGuarding='%s';" % ("true" if opponent_guarding else "false") +
