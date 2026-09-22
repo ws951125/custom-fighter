@@ -447,3 +447,14 @@
 - **Validation:** Fix commit `3fdc15f871b11c1b3bdb3431a597fd88020008bd` was included in PR #185 head `06d6c74379f02911e17da0361aa49d0065332b2e`; CI #520 (`35699591932`) passed Godot import/boot/domain/backend, Windows Native, Web export/size budget, Chromium `smoke:all`, and hosted Microsoft Edge `smoke:all`. Both browsers completed the new bounded stage-selection regression and the full 25-stage smoke suite.
 - **Status:** Verified on PR #185 CI #520
 
+## L-041 — Browser acceptance predicates must use telemetry that is actually published
+
+- **Date:** 2026-09-22
+- **Area:** V2-4 single-player acceptance / Web telemetry / Playwright
+- **Symptom:** PR #186 CI #526 passed Windows Native, Godot import/boot/domain/backend and Web export, then the new active-opponent victory acceptance timed out for 10 seconds in `waitForOpponentInPlayerAttackRange(...)` before the first player combo.
+- **Root Cause:** The helper required `Math.abs(Number(dataset.dummyDepth) - Number(dataset.playerDepth)) <= 0.14`. The runtime publishes `playerDepth` but does not publish `dummyDepth`; `Number(undefined)` became `NaN`, so the predicate could never become true even when the opponent was horizontally in range and the gameplay runtime was healthy.
+- **Fix:** Remove the dependency on the unpublished `dummyDepth` dataset field and keep the acceptance gate on durable published state: active AI, live match, Dummy recovery readiness, positive player HP, and authoritative horizontal coordinates. Add a timeout snapshot with player/dummy positions, HP, AI intent/ticks/hit counts, stage/profile and match state.
+- **Prevention Rule:** Every Playwright/Web acceptance predicate must be built only from telemetry explicitly published by the runtime or from browser APIs guaranteed by the product. Before adding a dataset field to a wait condition, verify the producer exists. If a bounded wait can fail, emit a diagnostic state tuple that distinguishes missing telemetry from real product behavior.
+- **Validation:** Fix commit `0b649b307352494b94b8fe5321d12a2666903081` is synchronized on PR #186. Latest-head CI must pass the full WU6 Chromium and hosted Edge acceptance before this lesson becomes Verified.
+- **Status:** Fix committed; verification pending
+
