@@ -31,6 +31,19 @@ V2 roadmap is defined in `docs/V2_ROADMAP.md` and captures previously discussed/
 
 V2-1 delivered visual event timeline authoring, startup/active/recovery timing, animation/VFX/audio events, hitbox/hurtbox timing and spatial editing, safe multi-event compositions, validation, and Creator → Training preview round trip. V2-2 extended the data-driven skill engine beyond the six V1 families and is accepted complete with bounded Beam/Trap/Aura/Teleport/Counter/Grab/Summon families plus safe declarative scripted compositions. V2-3 is accepted complete with safe animation/audio authoring, self-contained package transport, fresh-session restore, runtime Animation PNG rendering, and packaged WAV playback. V2-4 AI Opponents & Single-player Gameplay is accepted complete with deterministic active opponents, bounded difficulty profiles, validated selectable stages, and deployed win/loss/restart/return single-player acceptance. V2-5 Game Modes, Balance & Competitive Foundation is now active.
 
+### V2-5 implementation checkpoints
+
+Work Unit 1 — **competitive-foundation architecture inventory implemented; validation pending**:
+- `docs/V2_5_GAME_MODES_BALANCE_COMPETITIVE_INVENTORY.md` inventories the current router modes, combat authority, character/skill/package validators and the missing competitive trust boundary.
+- Existing `CharacterDefinition` and `SkillDefinition` checks are explicitly classified as safety/schema bounds rather than competitive balance guarantees; a safe package does not automatically become competitive-eligible.
+- The proposed architecture separates sandbox/single-player from competitive admission through strict `GameModeDefinition` / versioned ruleset contracts, deterministic competitive eligibility, and a derived authority-owned loadout snapshot.
+- Future clients are limited to content/input proposals; damage, HP/MP, cooldowns, hit confirmation, state transitions and match result remain authority-computed and are never accepted as trusted client facts.
+- WU1 defines the V2-5 sequence: bounded game-mode/ruleset contracts → deterministic power-budget validator → authoritative loadout snapshot/fingerprint → local competitive authority path → cross-browser phase acceptance.
+- Numeric power-budget weights are intentionally deferred until deterministic reference fixtures and monotonicity/boundary tests exist; WU1 does not introduce arbitrary tuning constants.
+- This work unit has **no product functionality change**.
+- Previous closeout PR #187 merged V2-4 status to `main` as `c4203dd25d0144c1ee7a7b53bdaf24ab813e72aa`. Exact-main CI #535 (`35718915645`) passed Windows Native, Godot/domain/backend tests, Web export/size budget, Chromium `smoke:all`, hosted Microsoft Edge `smoke:all`, GitHub Pages deployment and public-Web reachability. The external Render AI backend again returned HTTP 503 for all 18 readiness attempts, so backend-dependent production Edge full smoke was skipped; this remains an independent provider/backend residual risk.
+- V2 remains **50% (4/8 phases complete)** until the full V2-5 acceptance criterion is complete.
+
 ### V2-4 implementation checkpoints
 
 Work Unit 1 — **deterministic opponent behavior foundation accepted and production-validated**:

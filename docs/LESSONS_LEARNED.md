@@ -458,3 +458,14 @@
 - **Validation:** Fix commit `0b649b307352494b94b8fe5321d12a2666903081` is included in PR #186 head `d8803fb533cc6dcd2182bddb39c974be9c148bd6`; CI #528 (`35709409604`) passed Windows Native, Godot import/boot/domain/backend, Web export/size budget, Chromium `smoke:all`, and hosted Microsoft Edge `smoke:all`. Both browsers emitted the full WU6 loss/victory/restart/return acceptance marker and `SMOKE_SUITE_PASSED count=25`.
 - **Status:** Verified on PR #186 CI #528
 
+
+## L-042 — Hosted Edge resource-exhaustion failures require same-SHA targeted retry before product changes
+
+- **Date:** 2026-09-22
+- **Area:** GitHub-hosted Windows / Microsoft Edge smoke / Playwright artifact loading
+- **Symptom:** PR #188 CI #536 passed Windows Native, Godot/domain/backend, Web export/size budget and Chromium `smoke:all`. Hosted Microsoft Edge then failed during `smoke:formation` because the browser request for `http://127.0.0.1:8000/index.pck` failed with `net::ERR_NO_BUFFER_SPACE`; the page reported `Failed to load resource: net::ERR_NO_BUFFER_SPACE` before Formation assertions could run.
+- **Root Cause:** The failure occurred at browser/network resource loading on the GitHub-hosted Windows runner, not in Formation gameplay logic. Earlier Edge stages in the same job—Web, Match Restart, Opponent AI and Area—had already passed. A same-SHA targeted retry of only the failed Edge job completed successfully without any code, test-threshold or gameplay changes.
+- **Fix / Operational Mitigation:** Do not mutate product code for an isolated `ERR_NO_BUFFER_SPACE` resource-load failure. Re-run only the failed hosted Edge job/failed chain on the exact same head SHA. Treat the issue as runner/platform transient only if the same-SHA retry passes the unchanged acceptance suite; if it reproduces, investigate resource leakage/test cleanup before changing gameplay.
+- **Prevention Rule:** Distinguish browser resource-exhaustion/network transport errors from deterministic product regressions. Preserve already-successful jobs, avoid blind full-workflow reruns, and require exact-head same-SHA evidence before classifying the failure. Never lower gameplay assertions or bypass console/network error monitoring merely to make the suite green.
+- **Validation:** PR #188 head `b77d8dede74caf3be9761e7e4769736b5caee182` CI #536 (`35720507663`) first failed only the hosted Edge job on `ERR_NO_BUFFER_SPACE`. Targeted retry job `106725353255` then passed Microsoft Edge `smoke:all` on the unchanged head with no product/test change.
+- **Status:** Verified by same-SHA targeted Edge retry on PR #188 CI #536
