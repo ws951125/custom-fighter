@@ -288,6 +288,7 @@ Implemented on branch `feat/v2-5-wu2-game-mode-ruleset-contracts`:
 - `GameModeRegistry` exposes deterministic `sandbox`, `single_player`, `competitive_local` and `competitive_hosted` definitions and cross-checks ruleset version + power-budget agreement before loading.
 - `tests/game_mode_ruleset_test_runner.gd` proves canonical deterministic round trips, registry ordering, no partial load on failure, executable/unknown field rejection, external/unsafe reference rejection, competitive budget downgrade rejection and version compatibility failure.
 - The domain runner is part of the required GitHub CI contract.
+- PR #189 latest-head CI #539 passed the required PR gates and merged to `main` as `b939a3380a535511648d97af2056ec39b1eba246`; exact-main CI #540 then passed Windows Native, Godot/domain/backend, Web/Chromium, hosted Edge, Pages deployment and public reachability while the external Render backend remained HTTP 503.
 - `main_router.gd` is deliberately unchanged; WU2 adds policy contracts only and does not expose competitive mode to users yet.
 
 ### Work Unit 3 — competitive power-budget validator
