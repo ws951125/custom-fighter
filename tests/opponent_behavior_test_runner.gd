@@ -26,13 +26,22 @@ func _run() -> void:
 
 func _test_builtin_profiles() -> void:
 	var ids: PackedStringArray = OpponentBehaviorProfiles.profile_ids()
-	_check(ids == PackedStringArray(["training_balanced", "training_pressure"]), "built-in profile allow-list is deterministic")
+	_check(ids == PackedStringArray(["training_balanced", "training_cautious", "training_pressure"]), "built-in profile allow-list is deterministic")
+	_check(OpponentBehaviorProfiles.normalize_profile_id("TRAINING_PRESSURE") == "training_pressure", "profile normalization accepts an allow-listed id")
+	_check(OpponentBehaviorProfiles.normalize_profile_id("missing_profile") == OpponentBehaviorProfiles.DEFAULT_PROFILE_ID, "profile normalization falls back to the bounded default")
+	_check(OpponentBehaviorProfiles.display_label("training_cautious") == "Easy · Cautious", "profile exposes stable user-facing difficulty label")
 
 	var balanced := OpponentBehaviorProfile.new()
 	var balanced_errors: PackedStringArray = OpponentBehaviorProfiles.load_profile("training_balanced", balanced)
 	_check(balanced_errors.is_empty() and balanced.loaded, "balanced profile loads: %s" % " | ".join(balanced_errors))
 	_check(balanced.guard_policy == "when_threatened", "balanced profile guard policy loads")
 	_check(balanced.preferred_skill_slot.is_empty(), "balanced profile does not invent a skill preference")
+
+	var cautious := OpponentBehaviorProfile.new()
+	var cautious_errors: PackedStringArray = OpponentBehaviorProfiles.load_profile("training_cautious", cautious)
+	_check(cautious_errors.is_empty() and cautious.loaded, "cautious profile loads: %s" % " | ".join(cautious_errors))
+	_check(cautious.reaction_interval > balanced.reaction_interval, "cautious difficulty reacts more slowly without changing combat authority")
+	_check(is_equal_approx(cautious.basic_attack_range, balanced.basic_attack_range), "cautious difficulty does not inflate basic-attack range")
 
 	var pressure := OpponentBehaviorProfile.new()
 	var pressure_errors: PackedStringArray = OpponentBehaviorProfiles.load_profile("training_pressure", pressure)
@@ -109,6 +118,11 @@ func _test_guard_attack_and_skill_eligibility() -> void:
 	var pressure := OpponentBehaviorProfile.new()
 	var pressure_errors: PackedStringArray = OpponentBehaviorProfiles.load_profile("training_pressure", pressure)
 	_check(pressure_errors.is_empty(), "pressure profile available for skill decision")
+	var pressure_at_balanced_range: Dictionary = state.decide(pressure, attack_snapshot)
+	_check(
+		is_equal_approx(float(pressure_at_balanced_range["move_x"]), 1.0) and not bool(pressure_at_balanced_range["basic_attack"]),
+		"pressure profile closes farther before attacking while balanced attacks at the same snapshot"
+	)
 	var skill_snapshot := _snapshot(250.0, 0.50, 360.0, 0.50, true, false, false, ["skill_1"])
 	var skill: Dictionary = state.decide(pressure, skill_snapshot)
 	_check(str(skill["skill_slot"]) == "skill_1" and not bool(skill["basic_attack"]), "preferred validated skill slot is deterministic")
