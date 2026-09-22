@@ -15,6 +15,8 @@ const ALLOWED_FIELDS := [
 ]
 const MODE_FAMILIES := ["sandbox", "single_player", "competitive"]
 const AUTHORITY_POLICIES := ["local_authoritative", "host_authoritative"]
+const RULESET_IDS := ["sandbox_default", "single_player_default", "competitive_standard"]
+const POWER_BUDGET_IDS := ["sandbox_safe_limits", "competitive_standard_v1"]
 
 var loaded := false
 var mode_id := ""
@@ -68,16 +70,16 @@ func load_from_dictionary(raw: Dictionary) -> PackedStringArray:
 		errors.append("unsupported game mode family")
 
 	var candidate_ruleset_id := str(raw.get("ruleset_id", "")).strip_edges().to_lower()
-	if not _is_safe_token(candidate_ruleset_id, 48):
-		errors.append("invalid game mode ruleset_id")
+	if not RULESET_IDS.has(candidate_ruleset_id):
+		errors.append("unsupported game mode ruleset_id")
 
 	var candidate_ruleset_version := int(raw.get("ruleset_version", 0))
 	if candidate_ruleset_version < 1 or candidate_ruleset_version > 1000:
 		errors.append("game mode ruleset_version must be between 1 and 1000")
 
 	var candidate_budget_id := str(raw.get("power_budget_id", "")).strip_edges().to_lower()
-	if not _is_safe_token(candidate_budget_id, 48):
-		errors.append("invalid game mode power_budget_id")
+	if not POWER_BUDGET_IDS.has(candidate_budget_id):
+		errors.append("unsupported game mode power_budget_id")
 
 	var candidate_authority := str(raw.get("authority_policy", "")).strip_edges().to_lower()
 	if not AUTHORITY_POLICIES.has(candidate_authority):
@@ -85,6 +87,20 @@ func load_from_dictionary(raw: Dictionary) -> PackedStringArray:
 
 	if typeof(raw.get("allows_custom_content")) != TYPE_BOOL:
 		errors.append("allows_custom_content must be boolean")
+
+	if candidate_family == "sandbox":
+		if candidate_ruleset_id != "sandbox_default" or candidate_budget_id != "sandbox_safe_limits":
+			errors.append("sandbox mode must use sandbox_default ruleset and sandbox_safe_limits")
+		if candidate_authority != "local_authoritative":
+			errors.append("sandbox mode must remain local_authoritative")
+	elif candidate_family == "single_player":
+		if candidate_ruleset_id != "single_player_default" or candidate_budget_id != "sandbox_safe_limits":
+			errors.append("single_player mode must use single_player_default ruleset and sandbox_safe_limits")
+		if candidate_authority != "local_authoritative":
+			errors.append("single_player mode must remain local_authoritative")
+	elif candidate_family == "competitive":
+		if candidate_ruleset_id != "competitive_standard" or candidate_budget_id != "competitive_standard_v1":
+			errors.append("competitive mode must use competitive_standard ruleset and competitive_standard_v1 budget")
 
 	if not errors.is_empty():
 		return errors
