@@ -7,7 +7,6 @@ const OpponentAttackChainState = preload("res://game/core/combat/attack_chain_st
 const OpponentCombatBox = preload("res://game/core/combat/combat_box.gd")
 
 const SINGLE_PLAYER_MODE := "single_player"
-const OPPONENT_PROFILE_ID := "training_balanced"
 const OPPONENT_MOVE_SPEED := 300.0
 const OPPONENT_DEPTH_SPEED := 0.60
 
@@ -19,8 +18,12 @@ var restart_button: Button
 var return_creator_button: Button
 var _web_restart_callback
 var _web_return_creator_callback
+var _web_select_opponent_profile_callback
+var opponent_profile_panel: PanelContainer
+var opponent_profile_selector: OptionButton
 
 var opponent_ai_active := false
+var opponent_profile_id := OpponentBehaviorProfilesClass.DEFAULT_PROFILE_ID
 var opponent_behavior_profile = OpponentBehaviorProfileClass.new()
 var opponent_decision_state = OpponentDecisionStateClass.new()
 var opponent_attack_chain = OpponentAttackChainState.new()
@@ -35,6 +38,7 @@ var opponent_last_damage := 0
 func _ready() -> void:
 	super()
 	_configure_opponent_ai()
+	_create_opponent_profile_selector()
 	_create_match_overlay()
 	_install_match_bridges()
 	_set_match_web_state()
@@ -52,13 +56,14 @@ func _process(delta: float) -> void:
 
 func _configure_opponent_ai() -> void:
 	opponent_ai_active = _router_mode() == SINGLE_PLAYER_MODE
+	opponent_profile_id = _router_profile_id()
 	opponent_current_intent = opponent_decision_state.idle_intent()
 	if not opponent_ai_active:
 		_set_opponent_ai_web_state()
 		return
 
 	var errors: PackedStringArray = OpponentBehaviorProfilesClass.load_profile(
-		OPPONENT_PROFILE_ID,
+		opponent_profile_id,
 		opponent_behavior_profile
 	)
 	if not errors.is_empty() or not opponent_behavior_profile.loaded:
@@ -71,6 +76,71 @@ func _router_mode() -> String:
 	if router == null:
 		return "training"
 	return str(router.get("app_mode")).strip_edges().to_lower()
+
+func _router_profile_id() -> String:
+	var router: Variant = get_parent()
+	if router == null:
+		return OpponentBehaviorProfilesClass.DEFAULT_PROFILE_ID
+	return OpponentBehaviorProfilesClass.normalize_profile_id(str(router.get("opponent_profile_id")))
+
+func _create_opponent_profile_selector() -> void:
+	if not opponent_ai_active:
+		return
+	opponent_profile_panel = PanelContainer.new()
+	opponent_profile_panel.name = "OpponentProfileSelector"
+	opponent_profile_panel.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	opponent_profile_panel.offset_left = -330.0
+	opponent_profile_panel.offset_top = 18.0
+	opponent_profile_panel.offset_right = -18.0
+	opponent_profile_panel.offset_bottom = 82.0
+	opponent_profile_panel.z_index = 90
+	add_child(opponent_profile_panel)
+
+	var margin := MarginContainer.new()
+	margin.add_theme_constant_override("margin_left", 12)
+	margin.add_theme_constant_override("margin_right", 12)
+	margin.add_theme_constant_override("margin_top", 8)
+	margin.add_theme_constant_override("margin_bottom", 8)
+	opponent_profile_panel.add_child(margin)
+
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 10)
+	margin.add_child(row)
+
+	var label := Label.new()
+	label.text = "AI Difficulty"
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	row.add_child(label)
+
+	opponent_profile_selector = OptionButton.new()
+	opponent_profile_selector.custom_minimum_size = Vector2(190.0, 42.0)
+	opponent_profile_selector.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var selected_index := 0
+	var profile_ids: PackedStringArray = OpponentBehaviorProfilesClass.profile_ids()
+	for index in range(profile_ids.size()):
+		var profile_id := profile_ids[index]
+		opponent_profile_selector.add_item(OpponentBehaviorProfilesClass.display_label(profile_id))
+		opponent_profile_selector.set_item_metadata(index, profile_id)
+		if profile_id == opponent_profile_id:
+			selected_index = index
+	opponent_profile_selector.select(selected_index)
+	opponent_profile_selector.item_selected.connect(_on_opponent_profile_selected)
+	row.add_child(opponent_profile_selector)
+
+func _on_opponent_profile_selected(index: int) -> void:
+	if opponent_profile_selector == null or index < 0 or index >= opponent_profile_selector.item_count:
+		return
+	_request_opponent_profile(str(opponent_profile_selector.get_item_metadata(index)))
+
+func _request_opponent_profile(profile_id: String) -> void:
+	var normalized := profile_id.strip_edges().to_lower()
+	if not opponent_ai_active or not OpponentBehaviorProfilesClass.is_supported(normalized):
+		return
+	if normalized == opponent_profile_id:
+		return
+	var router: Variant = get_parent()
+	if router != null and router.has_method("switch_opponent_profile"):
+		router.call_deferred("switch_opponent_profile", normalized)
 
 func _process_opponent_ai(delta: float) -> void:
 	opponent_attack_chain.tick(delta)
@@ -257,15 +327,22 @@ func _install_match_bridges() -> void:
 		return
 	_web_restart_callback = JavaScriptBridge.create_callback(_web_restart_match)
 	_web_return_creator_callback = JavaScriptBridge.create_callback(_web_return_to_creator)
+	_web_select_opponent_profile_callback = JavaScriptBridge.create_callback(_web_select_opponent_profile)
 	var window = JavaScriptBridge.get_interface("window")
 	window.customFighterRestartMatch = _web_restart_callback
 	window.customFighterReturnToCreator = _web_return_creator_callback
+	window.customFighterSelectOpponentProfile = _web_select_opponent_profile_callback
 
 func _web_restart_match(_args: Array) -> void:
 	_restart_match()
 
 func _web_return_to_creator(_args: Array) -> void:
 	_return_to_creator()
+
+func _web_select_opponent_profile(args: Array) -> void:
+	if args.is_empty():
+		return
+	_request_opponent_profile(str(args[0]))
 
 func _set_match_web_state() -> void:
 	if not OS.has_feature("web"):
@@ -283,7 +360,11 @@ func _set_opponent_ai_web_state() -> void:
 		return
 	JavaScriptBridge.eval(
 		"document.documentElement.dataset.opponentAiActive='%s';" % ("true" if opponent_ai_active else "false") +
-		"document.documentElement.dataset.opponentAiProfile=%s;" % JSON.stringify(OPPONENT_PROFILE_ID if opponent_ai_active else "") +
+		"document.documentElement.dataset.opponentAiProfile=%s;" % JSON.stringify(opponent_profile_id if opponent_ai_active else "") +
+		"document.documentElement.dataset.opponentAiReactionInterval='%.3f';" % (opponent_behavior_profile.reaction_interval if opponent_ai_active and opponent_behavior_profile.loaded else 0.0) +
+		"document.documentElement.dataset.opponentAiBasicAttackRange='%.1f';" % (opponent_behavior_profile.basic_attack_range if opponent_ai_active and opponent_behavior_profile.loaded else 0.0) +
+		"document.documentElement.dataset.opponentAiProfileSelectorVisible='%s';" % ("true" if opponent_profile_panel != null else "false") +
+		"document.documentElement.dataset.opponentAiProfileSelectorCount='%d';" % (opponent_profile_selector.item_count if opponent_profile_selector != null else 0) +
 		"document.documentElement.dataset.opponentAiIntent=%s;" % JSON.stringify(_opponent_intent_name()) +
 		"document.documentElement.dataset.opponentAiDecisionTick='%d';" % opponent_decision_tick +
 		"document.documentElement.dataset.opponentAiGuarding='%s';" % ("true" if opponent_guarding else "false") +
