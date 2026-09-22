@@ -80,7 +80,7 @@ Work Unit 4 — **bounded stage definition + registry merged; exact-main validat
 - `stage_definition_test_runner.gd` covers deterministic registry ordering, canonical round-trip, unknown/executable fields, unsafe IDs, external/resource presentation tokens, arena-margin bounds, depth bounds and spawn-separation rules.
 - PR #184 latest-head CI #513 (`35692725368`) passed Godot/domain/backend, Web export/size budget, Chromium `smoke:all`, Windows Native Release and GitHub-hosted Microsoft Edge `smoke:all` on head `63cf37adbe2519ae41a473c6a55b87196fe68967`.
 - PR #184 was explicitly approved and squash-merged to `main` as `681f4ee8d84567ad963c669b90b0f1f92a11df21`.
-- Exact-main CI #514 (`35698779914`) is running on that exact merge revision. WU4 product/PR validation is complete; exact-main production evidence is pending.
+- Exact-main CI #514 (`35698779914`) passed Windows Native, Godot/domain/backend, Web export/size budget, Chromium `smoke:all`, hosted Microsoft Edge `smoke:all`, GitHub Pages deployment and public-Web reachability on exact merge revision `681f4ee8d84567ad963c669b90b0f1f92a11df21`. Render readiness remained externally blocked by HTTP 503 for all 18 attempts, so backend-dependent production Edge full smoke was skipped.
 - V2 remains **37.5% (3/8 phases complete)**.
 
 Work Unit 5 — **bounded stage selection + runtime application implemented; PR validation pending**:
@@ -91,7 +91,9 @@ Work Unit 5 — **bounded stage selection + runtime application implemented; PR 
 - Stage selection remains non-authoritative for combat values: damage, HP/MP, hit resolution, cooldowns and AI policy values are unchanged.
 - Unsafe runtime stage requests are ignored; startup URL values normalize through the StageRegistry bounded fallback.
 - Browser regression now proves default stage state, two-stage selector state, Sunset Court selection, stage-specific margin/spawn/presentation telemetry, unsafe selection rejection, stage preservation across difficulty changes and passive Training isolation.
-- PR #185 (`V2-4 WU5: selectable stages in single-player`) is open from `feat/v2-4-wu5-stage-selection-entry`; required latest-head CI is pending.
+- Initial PR #185 CI #518 exposed a GDScript compile-time constant defect in `StageDefinition`: constructor-based `PackedStringArray(...)` values were not valid `const` expressions once WU5 preloaded the stage contract into the main runtime graph. Commit `3fdc15f871b11c1b3bdb3431a597fd88020008bd` replaced them with literal constant arrays without changing stage semantics; the durable rule is recorded as L-040.
+- PR #185 CI #520 (`35699591932`) passed Windows Native, Godot import/boot/domain/backend, Web export/size budget, Chromium `smoke:all` and hosted Microsoft Edge `smoke:all` on head `06d6c74379f02911e17da0361aa49d0065332b2e`. Both browsers emitted `stageSelection=true stageCount=2 stagePreservedAcrossProfileChange=true`, identical authoritative opponent damage across Balanced/Pressure, passive-Training isolation, and `SMOKE_SUITE_PASSED count=25`.
+- PR #185 remains open and mergeable; merge still requires explicit user approval after the final documentation-sync latest-head CI gate.
 - V2 remains **37.5% (3/8 phases complete)** until the full V2-4 acceptance criterion is complete.
 
 ### V2-2 implementation checkpoints
