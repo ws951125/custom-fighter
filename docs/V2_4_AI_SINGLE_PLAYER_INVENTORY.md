@@ -195,7 +195,7 @@ Implementation result:
 - The runtime applies stage arena margin, player/opponent spawn X/depth and allow-listed background/floor presentation tokens; movement plus Teleport/Grab/Summon share the selected arena bounds.
 - PR #185 CI #520 (`35699591932`) passed Windows Native, Godot import/boot/domain/backend, Web/Chromium and hosted Edge after the L-040 constant-expression correction. Final latest-head CI #524 (`35700904620`) repeated the required PR pass.
 - PR #185 was explicitly approved and squash-merged to `main` as `26bf2a7ac845b90b715f216e9c207cd1e8e3b3af`.
-- Exact-main CI #525 (`35708039807`) is running.
+- Exact-main CI #525 (`35708039807`) passed Windows Native, Godot/domain/backend, Web/Chromium, hosted Edge, Pages deployment and public reachability on exact merge revision `26bf2a7ac845b90b715f216e9c207cd1e8e3b3af`; external Render readiness stayed HTTP 503 for all 18 attempts, so backend-dependent production Edge full smoke was skipped.
 
 ### Work Unit 6 — full single-player acceptance
 Validate win/loss/restart/return across selectable stage content against an active opponent in Chromium, hosted Microsoft Edge and deployed production Web.
@@ -208,7 +208,10 @@ Implementation result:
 - Restart after victory must restore full player/opponent HP, zero opponent attack count, selected Sunset Court/Cautious state, and exact stage spawn coordinates.
 - Return-to-Creator then must reach `appMode=creator` with Creator Studio ready. The regression finally re-opens ordinary Training and re-proves passive Dummy isolation.
 - This makes the automated acceptance path exercise loss → restart → stage/profile selection → active-opponent victory → restart/persistence → return-to-Creator across both built-in stages without a test-only combat bypass.
-- Required PR Chromium/hosted Edge validation and exact-main deployed Web production validation are pending.
+- PR #186 CI #526 caught an acceptance-test telemetry bug: `dataset.dummyDepth` was never published, so the new range predicate evaluated through `NaN` and could never pass. Commit `0b649b307352494b94b8fe5321d12a2666903081` removed the unpublished-field dependency and added a diagnostic state snapshot; L-041 records the rule.
+- PR #186 CI #528 (`35709409604`) passed Windows Native, Godot import/boot/domain/backend, Web export/size budget, Chromium `smoke:all` and hosted Microsoft Edge `smoke:all` on head `d8803fb533cc6dcd2182bddb39c974be9c148bd6`.
+- Chromium and Edge both emitted `playerDefeat=true playerVictory=true victoryStage=sunset_court victoryRestartPreserved=true returnCreator=true` and `SMOKE_SUITE_PASSED count=25`.
+- Approved merge plus deployed exact-main acceptance remain required before V2-4 can close.
 
 ## V2-4 acceptance target
 
