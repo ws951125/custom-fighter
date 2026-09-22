@@ -41,7 +41,7 @@ Work Unit 1 — **competitive-foundation architecture inventory implemented; val
 - WU1 defines the V2-5 sequence: bounded game-mode/ruleset contracts → deterministic power-budget validator → authoritative loadout snapshot/fingerprint → local competitive authority path → cross-browser phase acceptance.
 - Numeric power-budget weights are intentionally deferred until deterministic reference fixtures and monotonicity/boundary tests exist; WU1 does not introduce arbitrary tuning constants.
 - This work unit has **no product functionality change**.
-- Previous closeout PR #187 merged V2-4 status to `main` as `c4203dd25d0144c1ee7a7b53bdaf24ab813e72aa`. Exact-main CI #535 is being tracked separately before WU1 status is finalized.
+- Previous closeout PR #187 merged V2-4 status to `main` as `c4203dd25d0144c1ee7a7b53bdaf24ab813e72aa`. Exact-main CI #535 (`35718915645`) passed Windows Native, Godot/domain/backend tests, Web export/size budget, Chromium `smoke:all`, hosted Microsoft Edge `smoke:all`, GitHub Pages deployment and public-Web reachability. The external Render AI backend again returned HTTP 503 for all 18 readiness attempts, so backend-dependent production Edge full smoke was skipped; this remains an independent provider/backend residual risk.
 - V2 remains **50% (4/8 phases complete)** until the full V2-5 acceptance criterion is complete.
 
 ### V2-4 implementation checkpoints
