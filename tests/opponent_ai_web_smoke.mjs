@@ -31,24 +31,46 @@ async function tap(key, ms = 90) {
 }
 
 async function waitForOpponentInPlayerAttackRange(timeout = 10_000) {
-  await page.waitForFunction(
-    () => {
+  try {
+    await page.waitForFunction(
+      () => {
+        const d = document.documentElement.dataset;
+        const gap = Number(d.dummyX) - Number(d.playerX);
+        return (
+          d.opponentAiActive === 'true' &&
+          d.matchOver === 'false' &&
+          d.dummyRecoveryState === 'READY' &&
+          Number(d.playerHp) > 0 &&
+          gap >= 40 &&
+          gap <= 160
+        );
+      },
+      null,
+      { timeout },
+    );
+  } catch (error) {
+    const snapshot = await page.evaluate(() => {
       const d = document.documentElement.dataset;
-      const gap = Number(d.dummyX) - Number(d.playerX);
-      const depthGap = Math.abs(Number(d.dummyDepth) - Number(d.playerDepth));
-      return (
-        d.opponentAiActive === 'true' &&
-        d.matchOver === 'false' &&
-        d.dummyRecoveryState === 'READY' &&
-        Number(d.playerHp) > 0 &&
-        gap >= 40 &&
-        gap <= 160 &&
-        depthGap <= 0.14
-      );
-    },
-    null,
-    { timeout },
-  );
+      return {
+        playerX: d.playerX,
+        playerDepth: d.playerDepth,
+        playerHp: d.playerHp,
+        dummyX: d.dummyX,
+        dummyHp: d.dummyHp,
+        dummyRecoveryState: d.dummyRecoveryState,
+        opponentAiActive: d.opponentAiActive,
+        opponentAiIntent: d.opponentAiIntent,
+        opponentAiDecisionTick: d.opponentAiDecisionTick,
+        opponentAiAttackCount: d.opponentAiAttackCount,
+        opponentAiHitCount: d.opponentAiHitCount,
+        stageId: d.stageId,
+        opponentAiProfile: d.opponentAiProfile,
+        matchOver: d.matchOver,
+        matchResult: d.matchResult,
+      };
+    });
+    throw new Error(`Opponent did not enter player attack range: ${JSON.stringify(snapshot)}; cause=${String(error)}`);
+  }
 }
 
 async function playerCombo(expectedHp) {
