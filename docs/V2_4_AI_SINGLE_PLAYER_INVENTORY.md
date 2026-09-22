@@ -169,7 +169,8 @@ Implementation result:
 - Difficulty changes only decision policy. Opponent basic attacks still use the same `AttackChainState` damage/hitstun data and the same authoritative `receive_player_hit(...)` path.
 - Domain coverage proves profile ordering/default/labels and a deterministic same-snapshot policy difference between Balanced and Pressure.
 - Browser coverage switches Balanced → Pressure → Cautious, rejects an unsafe profile token, verifies Balanced and Pressure deal identical authoritative basic-attack damage, and re-proves passive ordinary Training.
-- PR validation remains pending.
+- PR #183 CI #509 (`35680419513`) passed Godot import/boot/domain/AI contracts, backend, Web export/size budget, Chromium `smoke:all`, Windows Native Release and hosted Microsoft Edge `smoke:all` on head `4571f15e5620662c5f6fa80e87a625d1dc5b3723`.
+- PR #183 is open and mergeable; merge remains gated on explicit user approval.
 
 ### Work Unit 4 — stage definition + registry
 Introduce safe stage data for arena bounds/spawns/presentation tokens with strict validation.

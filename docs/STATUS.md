@@ -58,7 +58,7 @@ Work Unit 2 — **active deterministic single-player opponent merged; exact-main
 - The remaining exact-main production chain is externally blocked: `https://custom-fighter-ai-vfx.onrender.com` returned HTTP 503 for all 18 readiness attempts, so the dependent production Edge full smoke was skipped. The currently connected Render workspace does not contain that backend service, so it cannot be restarted/redeployed from the available Render connector. WU2 gameplay/Web behavior is validated; full backend-dependent production acceptance remains `Blocked / Residual Risk`.
 - V2 remains **37.5% (3/8 phases complete)**.
 
-Work Unit 3 — **bounded difficulty/profile selector implemented; PR validation pending**:
+Work Unit 3 — **bounded difficulty/profile selector implemented and PR-validated; merge pending**:
 - Add third allow-listed profile `training_cautious` and stable user-facing labels: Easy/Cautious, Normal/Balanced and Hard/Pressure.
 - Profile selection is bounded to the existing allow-list. Invalid runtime selection requests are ignored; invalid URL profile input normalizes to the bounded default `training_balanced`.
 - Web single-player supports `?mode=single_player&opponent_profile=<allow-listed-id>`; the router owns the selected profile so restart/remount preserves it.
@@ -66,7 +66,8 @@ Work Unit 3 — **bounded difficulty/profile selector implemented; PR validation
 - Difficulty changes only declarative decision policy (reaction interval, spacing, guard policy and validated eligible action preference). It does not modify `AttackChainState` damage/hitstun, player/opponent HP/MP, skill cooldowns or hit resolution.
 - Domain regression proves the deterministic profile allow-list/default/labels and a concrete policy difference: at the same 140px attack-ready snapshot, Balanced attacks while Pressure closes farther because its bounded basic-attack range is 120px.
 - Browser regression now changes profiles through the same runtime selection path, proves Balanced → Pressure → Cautious telemetry, rejects an unsafe profile token without changing the active profile, verifies authoritative opponent damage remains identical across Balanced and Pressure, and re-proves ordinary Training remains passive.
-- PR/cloud validation is the next gate. V2 remains **37.5% (3/8 phases complete)** until the entire V2-4 phase is accepted.
+- PR #183 CI #509 (`35680419513`) passed Godot import/boot/domain/AI contracts, trusted backend, Web export/size budget, Chromium `smoke:all`, Windows Native Release, and GitHub-hosted Microsoft Edge `smoke:all` on head `4571f15e5620662c5f6fa80e87a625d1dc5b3723`.
+- PR #183 is open and mergeable; merge still requires explicit user approval. V2 remains **37.5% (3/8 phases complete)** until the entire V2-4 phase is accepted.
 
 ### V2-2 implementation checkpoints
 
