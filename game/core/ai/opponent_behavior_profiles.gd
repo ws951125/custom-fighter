@@ -3,7 +3,25 @@ extends RefCounted
 
 const OpponentBehaviorProfile = preload("res://game/core/ai/opponent_behavior_profile.gd")
 
+const DEFAULT_PROFILE_ID := "training_balanced"
+const PROFILE_LABELS := {
+	"training_cautious": "Easy · Cautious",
+	"training_balanced": "Normal · Balanced",
+	"training_pressure": "Hard · Pressure"
+}
 const BUILTIN_PROFILES := {
+	"training_cautious": {
+		"schema_version": 1,
+		"id": "training_cautious",
+		"reaction_interval": 0.45,
+		"preferred_min_distance": 150.0,
+		"preferred_max_distance": 240.0,
+		"depth_tolerance": 0.12,
+		"basic_attack_range": 150.0,
+		"guard_policy": "when_threatened",
+		"allow_basic_attack": true,
+		"preferred_skill_slot": ""
+	},
 	"training_balanced": {
 		"schema_version": 1,
 		"id": "training_balanced",
@@ -36,6 +54,19 @@ static func profile_ids() -> PackedStringArray:
 		ids.append(str(profile_id))
 	ids.sort()
 	return ids
+
+static func is_supported(profile_id: String) -> bool:
+	return BUILTIN_PROFILES.has(profile_id.strip_edges().to_lower())
+
+static func normalize_profile_id(profile_id: String) -> String:
+	var normalized := profile_id.strip_edges().to_lower()
+	if is_supported(normalized):
+		return normalized
+	return DEFAULT_PROFILE_ID
+
+static func display_label(profile_id: String) -> String:
+	var normalized := normalize_profile_id(profile_id)
+	return str(PROFILE_LABELS.get(normalized, normalized))
 
 static func load_profile(profile_id: String, target) -> PackedStringArray:
 	var errors := PackedStringArray()
