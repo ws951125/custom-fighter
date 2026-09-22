@@ -5,7 +5,7 @@ const SUPPORTED_BUDGET_ID := "competitive_standard_v1"
 const BUDGET_VERSION := 1
 
 const CHARACTER_SCORE_LIMIT := 3200
-const SKILL_SCORE_LIMIT := 3200
+const SKILL_SCORE_LIMIT := 4500
 const LOADOUT_SCORE_LIMIT := 18000
 
 const CHARACTER_MAX_HP := 160
@@ -77,6 +77,7 @@ static func evaluate(budget_id: String, character, skills: Array) -> Dictionary:
 	provided_ids.sort()
 
 	var referenced_ids := PackedStringArray()
+	var validated_skill_ids: Dictionary = {}
 	var slot_names := PackedStringArray()
 	var raw_slots: Dictionary = character.get("skill_slots")
 	for raw_slot in raw_slots.keys():
@@ -96,7 +97,9 @@ static func evaluate(budget_id: String, character, skills: Array) -> Dictionary:
 		var skill = skill_by_id[skill_id]
 		var one_score := score_skill(skill)
 		skill_scores[skill_id] = one_score
-		_append_skill_diagnostics(skill, one_score, diagnostics)
+		if not validated_skill_ids.has(skill_id):
+			_append_skill_diagnostics(skill, one_score, diagnostics)
+			validated_skill_ids[skill_id] = true
 		total_score += one_score
 
 	referenced_ids.sort()
