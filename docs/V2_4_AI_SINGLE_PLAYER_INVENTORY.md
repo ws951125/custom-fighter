@@ -154,10 +154,22 @@ Implementation result:
 - Domain coverage proves an attack-ready opponent deterministically closes from preferred spacing into basic-attack range.
 - `opponent_ai_web_smoke.mjs` proves approach → attack → player damage → defeat → restart and separately proves passive ordinary Training.
 - PR #182 CI #506 (`35605738012`) passed Windows Native, Godot/domain/AI contracts, backend, Web export/size budget, Chromium `smoke:all` and hosted Edge `smoke:all`.
-- Exact-main production validation remains pending until PR #182 is explicitly approved and merged.
+- PR #182 was explicitly approved and squash-merged to `main` as `c548cfb3c0e53d2b1170205c1f1948889845db22`.
+- Exact-main CI #508 attempt 2 passed Chromium `smoke:all`, Windows Native, hosted Edge `smoke:all`, GitHub Pages deployment and public reachability. The Render AI backend returned HTTP 503 for all readiness attempts, so backend-dependent production Edge full smoke remained blocked/skipped.
 
 ### Work Unit 3 — difficulty profiles
 Expose a bounded profile selector and add multiple deterministic behavior profiles without changing combat-authority values.
+
+Implementation result:
+- Added `training_cautious` beside `training_balanced` and `training_pressure`, with bounded Easy/Cautious, Normal/Balanced and Hard/Pressure labels.
+- Profile IDs remain allow-listed declarative data. Invalid runtime selections are ignored; invalid startup query values normalize to the bounded Balanced default.
+- `main_router.gd` owns `opponent_profile_id`, accepts `opponent_profile` only through the allow-list, and preserves the selected profile when the single-player scene remounts/restarts.
+- `match_flow_main.gd` loads the router-selected profile and exposes a single-player-only on-canvas `AI Difficulty` `OptionButton`; ordinary Training creates no selector and activates no opponent AI.
+- Web telemetry publishes the active profile, reaction interval, basic-attack policy range and selector state. A bounded bridge mirrors the selector path for cross-browser automation.
+- Difficulty changes only decision policy. Opponent basic attacks still use the same `AttackChainState` damage/hitstun data and the same authoritative `receive_player_hit(...)` path.
+- Domain coverage proves profile ordering/default/labels and a deterministic same-snapshot policy difference between Balanced and Pressure.
+- Browser coverage switches Balanced → Pressure → Cautious, rejects an unsafe profile token, verifies Balanced and Pressure deal identical authoritative basic-attack damage, and re-proves passive ordinary Training.
+- PR validation remains pending.
 
 ### Work Unit 4 — stage definition + registry
 Introduce safe stage data for arena bounds/spawns/presentation tokens with strict validation.
