@@ -425,3 +425,14 @@
 - **Validation:** Fix commit `9ade45c95059bca3c22eeda5f3714d951603435d`; PR #181 CI #501 (`35591729594`) passed Windows Native, Godot import/boot/domain/AI contracts, backend, Web export/size budget, Chromium `smoke:all`, and hosted Microsoft Edge `smoke:all`.
 - **Status:** Verified on PR #181 CI #501
 
+## L-039 — New autonomous-runtime browser regressions should emit a state snapshot on first acceptance timeout
+
+- **Date:** 2026-09-21
+- **Area:** V2-4 opponent AI / Playwright / GitHub Actions
+- **Symptom:** PR #182 CI #504 passed Windows Native, Godot/domain/backend, Web export and the pre-existing Chromium smoke stages, then the new opponent-AI smoke timed out while waiting for its first landed-hit acceptance tuple.
+- **Root Cause:** The original timeout reported only the wait location. For an autonomous runtime actor, that was insufficient to distinguish whether the opponent failed to approach, failed to choose an attack, attacked but missed collision, or reached `receive_player_hit(...)` but produced zero dealt damage. The next run passed without a runtime or acceptance-condition change, indicating an isolated browser observation/scheduling miss rather than a deterministic combat defect.
+- **Fix:** Keep the same 10-second acceptance condition, but on timeout emit the relevant runtime snapshot: player/dummy positions, AI active/intent/decision tick, attack/hit counts, player HP, last opponent damage, incoming-hit counters and Counter result. Do not change gameplay or silently widen the acceptance threshold merely to make the test pass.
+- **Prevention Rule:** Every new browser regression for autonomous agents/state machines should make its first bounded wait diagnostically complete. Capture the smallest state tuple that distinguishes decision, action, collision and authoritative-effect stages; use that evidence before deciding whether to retry, harden the harness or change product logic.
+- **Validation:** Diagnostic-only commit `3524ae4cbc1c98a51f3def27ca453f086b9c3096` did not change runtime behavior, timeout or acceptance predicates. PR #182 CI #506 (`35605738012`) then passed Windows Native, Godot/domain/AI contracts, backend, Web export/size budget, Chromium `smoke:all`, and hosted Microsoft Edge `smoke:all`.
+- **Status:** Verified on PR #182 CI #506
+

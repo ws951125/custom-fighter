@@ -88,9 +88,23 @@ func _test_guard_attack_and_skill_eligibility() -> void:
 	var guard: Dictionary = state.decide(balanced, guard_snapshot)
 	_check(bool(guard["guard"]) and not bool(guard["basic_attack"]), "threatened guard has priority over attack")
 
+	var close_to_attack_snapshot := _snapshot(100.0, 0.50, 270.0, 0.50, true, false, false)
+	var close_to_attack: Dictionary = state.decide(balanced, close_to_attack_snapshot)
+	_check(
+		is_equal_approx(float(close_to_attack["move_x"]), 1.0) and not bool(close_to_attack["basic_attack"]),
+		"attack-ready opponent closes from preferred band to basic-attack range"
+	)
+
 	var attack_snapshot := _snapshot(250.0, 0.50, 390.0, 0.50, true, false, false)
 	var attack: Dictionary = state.decide(balanced, attack_snapshot)
 	_check(bool(attack["basic_attack"]) and not bool(attack["guard"]), "basic attack requires readiness and in-range state")
+
+	var close_attack_snapshot := _snapshot(350.0, 0.50, 400.0, 0.50, true, false, false)
+	var close_attack: Dictionary = state.decide(balanced, close_attack_snapshot)
+	_check(
+		bool(close_attack["basic_attack"]) and is_equal_approx(float(close_attack["move_x"]), 0.0),
+		"ready attack inside range takes precedence over too-close spacing retreat"
+	)
 
 	var pressure := OpponentBehaviorProfile.new()
 	var pressure_errors: PackedStringArray = OpponentBehaviorProfiles.load_profile("training_pressure", pressure)

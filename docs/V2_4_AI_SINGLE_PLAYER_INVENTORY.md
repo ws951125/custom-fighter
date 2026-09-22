@@ -144,6 +144,18 @@ Implementation branch: `feat/v2-4-wu1-opponent-decision-foundation`
 ### Work Unit 2 — active opponent runtime adapter
 Attach the deterministic decision layer to an active opponent that uses existing movement/combat authority and calls `receive_player_hit(...)` for successful opponent hits. Add Web/Edge regression proving the opponent approaches, attacks and can cause player defeat while existing Training remains passive when AI mode is not selected.
 
+Implementation result:
+- Added explicit router mode `single_player`; the existing Training scene is reused, but opponent AI activates only when this mode is selected.
+- Ordinary `training` remains the backwards-compatible passive Dummy mode.
+- Runtime AI movement consumes WU1 movement intents and remains bounded by the existing arena coordinates.
+- Opponent basic attacks reuse `AttackChainState` timing/damage/hitstun data and must pass the existing combat-box overlap test before calling `receive_player_hit(...)`.
+- AI never writes player HP directly; `receive_player_hit(...)` remains the single opponent→player damage authority, including Counter/Guard handling.
+- Match defeat remains owned by `match_flow_main.gd`; restart remounts `single_player` when AI is active.
+- Domain coverage proves an attack-ready opponent deterministically closes from preferred spacing into basic-attack range.
+- `opponent_ai_web_smoke.mjs` proves approach → attack → player damage → defeat → restart and separately proves passive ordinary Training.
+- PR #182 CI #506 (`35605738012`) passed Windows Native, Godot/domain/AI contracts, backend, Web export/size budget, Chromium `smoke:all` and hosted Edge `smoke:all`.
+- Exact-main production validation remains pending until PR #182 is explicitly approved and merged.
+
 ### Work Unit 3 — difficulty profiles
 Expose a bounded profile selector and add multiple deterministic behavior profiles without changing combat-authority values.
 

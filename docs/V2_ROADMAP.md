@@ -101,9 +101,9 @@ Architecture checkpoint:
 - `docs/V2_4_AI_SINGLE_PLAYER_INVENTORY.md` inventories the existing Training/Match authority and defines the bounded implementation sequence.
 - Existing `match_flow_main.gd` remains authoritative for victory/defeat/restart/return.
 - Existing `receive_player_hit(...)` remains the formal opponent→player damage boundary.
-- Work Unit 1 now implements the bounded `OpponentBehaviorProfile`, allow-listed built-in profiles and pure deterministic `OpponentDecisionState` intent layer; it still does not mutate combat state or activate AI in ordinary Training.
-- PR #181 implementation head `9ade45c95059bca3c22eeda5f3714d951603435d` passed CI #501 (`35591729594`) across Windows Native, Godot/domain/AI contracts, trusted backend, Web export/size budget, Chromium `smoke:all`, and hosted Microsoft Edge `smoke:all`.
-- Work Unit 1 remains merge/production pending; Work Unit 2 is the active-opponent runtime adapter once WU1 reaches exact-main.
+- Work Unit 1 implements the bounded `OpponentBehaviorProfile`, allow-listed built-in profiles and pure deterministic `OpponentDecisionState` intent layer. PR #181 merged as `323e86a5445f6049f2b20ba788af2d373abc7b5b`; exact-main CI #503 (`35602570478`) passed the complete production chain.
+- Work Unit 2 adds explicit router mode `single_player`, activates the deterministic opponent only in that mode, reuses existing movement/combat authority, routes successful opponent damage through `receive_player_hit(...)`, preserves passive ordinary Training, and keeps match defeat/restart/return authority in the existing match flow.
+- PR #182 CI #506 (`35605738012`) passed Windows Native, Godot/domain/AI contracts, backend, Web export/size budget, Chromium `smoke:all`, and hosted Microsoft Edge `smoke:all`. WU2 remains merge/exact-main-production pending.
 - Later work units add multiple difficulty profiles, validated stage definitions/selection, and final deployed single-player acceptance.
 - V2 remains **37.5% (3/8)** until the full V2-4 acceptance criterion is complete.
 
@@ -184,4 +184,4 @@ The architecture previously allowed a future local/open-model AI provider such a
 
 ## Next implementation target
 
-After PR #181 merge and exact-main validation, implement **V2-4 Work Unit 2 — active opponent runtime adapter** using the WU1 deterministic intent layer. Activation must be explicit/mode-driven, ordinary Training must remain passive by default, opponent damage must route through `receive_player_hit(...)`, and browser regression must prove approach/attack/player-defeat behavior without introducing stage selection yet.
+After PR #182 merge and exact-main validation, implement **V2-4 Work Unit 3 — difficulty profiles**: add a bounded profile selector and multiple deterministic behavior profiles while keeping authored combat authority unchanged. Difficulty may change policy such as reaction interval, spacing, guard policy and eligible actions, but must not multiply damage, bypass MP/cooldowns, add stochastic behavior, or activate AI in ordinary Training.

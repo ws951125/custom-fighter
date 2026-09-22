@@ -33,15 +33,27 @@ V2-1 delivered visual event timeline authoring, startup/active/recovery timing, 
 
 ### V2-4 implementation checkpoints
 
-Work Unit 1 — **deterministic opponent behavior foundation implemented and PR-validated; merge/production pending**:
+Work Unit 1 — **deterministic opponent behavior foundation accepted and production-validated**:
 - `OpponentBehaviorProfile` defines a strict bounded declarative contract for reaction interval, preferred distance band, depth tolerance, basic-attack range, guard policy and one optional validated skill-slot preference. Unknown fields, executable-style fields, unsafe IDs, invalid ranges and unsupported slots fail closed.
 - `OpponentBehaviorProfiles` exposes the first allow-listed profiles: `training_balanced` and `training_pressure`.
 - `OpponentDecisionState` is a pure deterministic intent layer. It consumes explicit position/readiness/threat/snapshot data and returns only bounded movement, guard, basic-attack, validated-skill or idle intents. It does not mutate HP, MP, cooldowns, hitstun, knockback or match result.
 - Domain regression covers profile allow-listing, unknown/unsafe profile rejection, approach/retreat/hold/depth alignment, disabled state, guard-vs-attack priority, validated skill eligibility, invalid-snapshot fail-closed behavior, same-input determinism and no combat-state mutation.
 - Initial PR CI #500 exposed only a GDScript test-fixture type-inference parser error. Commit `9ade45c95059bca3c22eeda5f3714d951603435d` added explicit fixture return/local types without changing decision behavior.
 - PR #181 CI #501 (`35591729594`) passed Windows Native Release, Godot import/boot/domain/AI contracts including `OPPONENT_BEHAVIOR_TESTS_PASSED`, trusted backend, Web export/size budget, Chromium `smoke:all`, and GitHub-hosted Microsoft Edge `smoke:all`.
-- Ordinary Training/Creator Preview remains passive; runtime AI activation is intentionally deferred to Work Unit 2.
+- PR #181 was explicitly approved and squash-merged to `main` as `323e86a5445f6049f2b20ba788af2d373abc7b5b`.
+- Exact-main CI #503 (`35602570478`) passed the complete production chain: Windows Native, Godot/domain/AI contracts, backend, Web export/size budget, Chromium `smoke:all`, hosted Edge `smoke:all`, GitHub Pages deployment/public reachability, Render exact-revision readiness, and production Microsoft Edge full smoke.
+- WU1 is therefore accepted and production-validated.
 - V2 remains **37.5% (3/8 phases complete)** until the full V2-4 phase acceptance criteria are complete.
+
+Work Unit 2 — **active deterministic single-player opponent implemented and PR-validated; merge/production pending**:
+- Router mode `single_player` now mounts the existing Training scene with opponent AI explicitly enabled; ordinary `training` remains passive by default.
+- The runtime adapter consumes WU1 deterministic intents, moves the Dummy within existing arena bounds, reuses `AttackChainState` attack timing/damage/hitstun, and routes every successful opponent hit through the existing authoritative `receive_player_hit(...)` boundary.
+- Match defeat remains owned by `match_flow_main.gd`; restart preserves `single_player` mode, while return-to-Creator remains unchanged.
+- The WU1 decision layer now explicitly closes from the wider preferred-spacing band into the configured basic-attack range when a basic attack is eligible; domain coverage proves this deterministic close-in behavior.
+- `tests/opponent_ai_web_smoke.mjs` proves single-player mode approaches, attacks, damages and defeats the player, then restarts into a fresh AI match; the same regression separately reloads ordinary Training and proves the Dummy remains passive with no opponent attacks.
+- Initial PR #182 CI #504 passed Windows Native, Godot/domain/backend and Web export, then Chromium timed out at the first new opponent-hit observation. Commit `3524ae4cbc1c98a51f3def27ca453f086b9c3096` added failure-only state diagnostics without changing runtime, timeout or acceptance conditions.
+- PR #182 CI #506 (`35605738012`) then passed Windows Native, Godot/domain/AI contracts, backend, Web export/size budget, Chromium `smoke:all` and hosted Microsoft Edge `smoke:all` on that same runtime implementation.
+- V2 remains **37.5% (3/8 phases complete)**; Work Unit 3 is the next difficulty/profile-selection slice after WU2 exact-main production validation.
 
 ### V2-2 implementation checkpoints
 
@@ -512,4 +524,4 @@ AI VFX backend: `https://custom-fighter-ai-vfx.onrender.com`
 
 ## Next implementation target
 
-After PR #181 is approved/merged and exact-main production validation is green, implement **V2-4 Work Unit 2 — active opponent runtime adapter**: attach the validated deterministic decision layer to an explicitly selected AI mode, reuse existing movement/combat authority, route successful opponent damage through `receive_player_hit(...)`, preserve passive ordinary Training when AI mode is not selected, and add deterministic Chromium/Edge regression proving approach, attack and player-defeat flow without stage-selection work yet.
+After PR #182 is approved/merged and exact-main production validation is green, implement **V2-4 Work Unit 3 — difficulty profiles**: expose a bounded deterministic opponent-profile selector, add multiple validated difficulty/behavior profiles without modifying combat-authority damage/MP/cooldown values, preserve passive ordinary Training, and add domain + Chromium/Edge coverage for profile selection and behavior differences.

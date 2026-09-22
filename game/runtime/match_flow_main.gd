@@ -1,5 +1,16 @@
 extends "res://game/runtime/preview_family_animation_main.gd"
 
+const OpponentBehaviorProfileClass = preload("res://game/core/ai/opponent_behavior_profile.gd")
+const OpponentBehaviorProfilesClass = preload("res://game/core/ai/opponent_behavior_profiles.gd")
+const OpponentDecisionStateClass = preload("res://game/core/ai/opponent_decision_state.gd")
+const OpponentAttackChainState = preload("res://game/core/combat/attack_chain_state.gd")
+const OpponentCombatBox = preload("res://game/core/combat/combat_box.gd")
+
+const SINGLE_PLAYER_MODE := "single_player"
+const OPPONENT_PROFILE_ID := "training_balanced"
+const OPPONENT_MOVE_SPEED := 300.0
+const OPPONENT_DEPTH_SPEED := 0.60
+
 var match_over := false
 var match_result := ""
 var match_overlay: CenterContainer
@@ -9,8 +20,21 @@ var return_creator_button: Button
 var _web_restart_callback
 var _web_return_creator_callback
 
+var opponent_ai_active := false
+var opponent_behavior_profile = OpponentBehaviorProfileClass.new()
+var opponent_decision_state = OpponentDecisionStateClass.new()
+var opponent_attack_chain = OpponentAttackChainState.new()
+var opponent_current_intent: Dictionary = {}
+var opponent_decision_accumulator := 0.0
+var opponent_decision_tick := 0
+var opponent_guarding := false
+var opponent_attack_count := 0
+var opponent_hit_count := 0
+var opponent_last_damage := 0
+
 func _ready() -> void:
 	super()
+	_configure_opponent_ai()
 	_create_match_overlay()
 	_install_match_bridges()
 	_set_match_web_state()
@@ -19,10 +43,127 @@ func _process(delta: float) -> void:
 	if match_over:
 		return
 	super(delta)
+	if opponent_ai_active:
+		_process_opponent_ai(delta)
 	if dummy_state.is_defeated():
 		_finish_match("victory")
 	elif player_state.is_defeated():
 		_finish_match("defeat")
+
+func _configure_opponent_ai() -> void:
+	opponent_ai_active = _router_mode() == SINGLE_PLAYER_MODE
+	opponent_current_intent = opponent_decision_state.idle_intent()
+	if not opponent_ai_active:
+		_set_opponent_ai_web_state()
+		return
+
+	var errors: PackedStringArray = OpponentBehaviorProfilesClass.load_profile(
+		OPPONENT_PROFILE_ID,
+		opponent_behavior_profile
+	)
+	if not errors.is_empty() or not opponent_behavior_profile.loaded:
+		opponent_ai_active = false
+		push_error("Failed to load opponent behavior profile: %s" % " | ".join(errors))
+	_set_opponent_ai_web_state()
+
+func _router_mode() -> String:
+	var router: Variant = get_parent()
+	if router == null:
+		return "training"
+	return str(router.get("app_mode")).strip_edges().to_lower()
+
+func _process_opponent_ai(delta: float) -> void:
+	opponent_attack_chain.tick(delta)
+	if not _opponent_actionable():
+		opponent_current_intent = opponent_decision_state.idle_intent()
+		opponent_guarding = false
+		opponent_decision_accumulator = 0.0
+		_set_opponent_ai_web_state()
+		return
+
+	_apply_opponent_movement(delta)
+	opponent_decision_accumulator += maxf(0.0, delta)
+	if opponent_decision_accumulator + 0.0001 < opponent_behavior_profile.reaction_interval:
+		return
+
+	opponent_decision_accumulator = 0.0
+	opponent_decision_tick += 1
+	var snapshot := {
+		"decision_tick": opponent_decision_tick,
+		"opponent_x": dummy_x,
+		"opponent_depth": dummy_depth,
+		"player_x": player_x,
+		"player_depth": player_depth,
+		"opponent_actionable": _opponent_actionable(),
+		"guard_ready": not opponent_attack_chain.is_attacking(),
+		"threatened": false,
+		"basic_attack_ready": not opponent_attack_chain.is_attacking() and not player_state.is_defeated(),
+		"ready_skill_slots": []
+	}
+	opponent_current_intent = opponent_decision_state.decide(opponent_behavior_profile, snapshot)
+	opponent_guarding = bool(opponent_current_intent.get("guard", false))
+	if bool(opponent_current_intent.get("basic_attack", false)):
+		_try_opponent_basic_attack()
+	_set_opponent_ai_web_state()
+
+func _opponent_actionable() -> bool:
+	return (
+		not dummy_state.is_defeated()
+		and dummy_state.hitstun_remaining <= 0.0
+		and dummy_recovery_state.state_name() == "READY"
+		and not dummy_knockback_state.is_active()
+	)
+
+func _apply_opponent_movement(delta: float) -> void:
+	if opponent_attack_chain.is_attacking() or not _opponent_actionable():
+		return
+	var move_x := float(opponent_current_intent.get("move_x", 0.0))
+	var move_depth := float(opponent_current_intent.get("move_depth", 0.0))
+	# Bound one-frame displacement so hosted-browser stalls cannot make the
+	# adapter jump across both the preferred band and attack range in one frame.
+	var safe_delta := minf(maxf(delta, 0.0), 0.05)
+	dummy_x += move_x * OPPONENT_MOVE_SPEED * safe_delta
+	dummy_depth += move_depth * OPPONENT_DEPTH_SPEED * safe_delta
+	dummy_x = clampf(dummy_x, 90.0, maxf(size.x, 1280.0) - 90.0)
+	dummy_depth = clampf(dummy_depth, 0.0, 1.0)
+
+func _try_opponent_basic_attack() -> void:
+	if not _opponent_actionable() or player_state.is_defeated():
+		return
+	var step := opponent_attack_chain.try_start_attack()
+	if step <= 0:
+		return
+
+	opponent_attack_count += 1
+	var facing := -1.0 if player_x < dummy_x else 1.0
+	var hitbox := OpponentCombatBox.new(
+		Vector2(
+			dummy_x + facing * opponent_attack_chain.hitbox_offset_for_step(step),
+			dummy_depth
+		),
+		Vector2(
+			opponent_attack_chain.hitbox_half_width_for_step(step),
+			opponent_attack_chain.hitbox_half_depth_for_step(step)
+		)
+	)
+	var player_hurtbox := OpponentCombatBox.new(
+		Vector2(player_x, player_depth),
+		Vector2(DUMMY_HURTBOX_HALF_WIDTH, DUMMY_HURTBOX_HALF_DEPTH)
+	)
+	if not hitbox.overlaps(player_hurtbox):
+		_set_opponent_ai_web_state()
+		return
+
+	var dealt := receive_player_hit(
+		opponent_attack_chain.damage_for_step(step),
+		dummy_x,
+		dummy_depth,
+		opponent_attack_chain.hitstun_for_step(step)
+	)
+	opponent_last_damage = dealt
+	if dealt > 0:
+		opponent_hit_count += 1
+	_set_opponent_ai_web_state()
 
 func _create_match_overlay() -> void:
 	match_overlay = CenterContainer.new()
@@ -86,13 +227,16 @@ func _finish_match(result: String) -> void:
 	match_overlay.visible = true
 	player_guarding = false
 	player_running = false
+	opponent_guarding = false
+	opponent_current_intent = opponent_decision_state.idle_intent()
 	fireball_projectile.deactivate()
 	_set_runtime_controllers_processing(false)
+	_set_opponent_ai_web_state()
 	_set_match_web_state()
 	queue_redraw()
 
 func _restart_match() -> void:
-	_switch_router_mode("training")
+	_switch_router_mode(SINGLE_PLAYER_MODE if opponent_ai_active else "training")
 
 func _return_to_creator() -> void:
 	_switch_router_mode("creator")
@@ -132,3 +276,33 @@ func _set_match_web_state() -> void:
 		"document.documentElement.dataset.matchRestartReady='%s';" % ("true" if restart_button != null else "false") +
 		"document.documentElement.dataset.matchReturnCreatorReady='%s';" % ("true" if return_creator_button != null else "false")
 	)
+	_set_opponent_ai_web_state()
+
+func _set_opponent_ai_web_state() -> void:
+	if not OS.has_feature("web"):
+		return
+	JavaScriptBridge.eval(
+		"document.documentElement.dataset.opponentAiActive='%s';" % ("true" if opponent_ai_active else "false") +
+		"document.documentElement.dataset.opponentAiProfile=%s;" % JSON.stringify(OPPONENT_PROFILE_ID if opponent_ai_active else "") +
+		"document.documentElement.dataset.opponentAiIntent=%s;" % JSON.stringify(_opponent_intent_name()) +
+		"document.documentElement.dataset.opponentAiDecisionTick='%d';" % opponent_decision_tick +
+		"document.documentElement.dataset.opponentAiGuarding='%s';" % ("true" if opponent_guarding else "false") +
+		"document.documentElement.dataset.opponentAiAttackCount='%d';" % opponent_attack_count +
+		"document.documentElement.dataset.opponentAiHitCount='%d';" % opponent_hit_count +
+		"document.documentElement.dataset.opponentAiLastDamage='%d';" % opponent_last_damage
+	)
+
+func _opponent_intent_name() -> String:
+	if bool(opponent_current_intent.get("guard", false)):
+		return "guard"
+	if bool(opponent_current_intent.get("basic_attack", false)):
+		return "basic_attack"
+	var skill_slot := str(opponent_current_intent.get("skill_slot", ""))
+	if not skill_slot.is_empty():
+		return "skill:%s" % skill_slot
+	if (
+		absf(float(opponent_current_intent.get("move_x", 0.0))) > 0.01
+		or absf(float(opponent_current_intent.get("move_depth", 0.0))) > 0.01
+	):
+		return "move"
+	return "idle"
