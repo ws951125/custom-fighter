@@ -58,7 +58,7 @@ Work Unit 2 — **active deterministic single-player opponent merged; exact-main
 - The remaining exact-main production chain is externally blocked: `https://custom-fighter-ai-vfx.onrender.com` returned HTTP 503 for all 18 readiness attempts, so the dependent production Edge full smoke was skipped. The currently connected Render workspace does not contain that backend service, so it cannot be restarted/redeployed from the available Render connector. WU2 gameplay/Web behavior is validated; full backend-dependent production acceptance remains `Blocked / Residual Risk`.
 - V2 remains **37.5% (3/8 phases complete)**.
 
-Work Unit 3 — **bounded difficulty/profile selector implemented and PR-validated; merge pending**:
+Work Unit 3 — **bounded difficulty/profile selector merged; exact-main Web validated, backend-dependent production completion blocked**:
 - Add third allow-listed profile `training_cautious` and stable user-facing labels: Easy/Cautious, Normal/Balanced and Hard/Pressure.
 - Profile selection is bounded to the existing allow-list. Invalid runtime selection requests are ignored; invalid URL profile input normalizes to the bounded default `training_balanced`.
 - Web single-player supports `?mode=single_player&opponent_profile=<allow-listed-id>`; the router owns the selected profile so restart/remount preserves it.
@@ -67,7 +67,21 @@ Work Unit 3 — **bounded difficulty/profile selector implemented and PR-validat
 - Domain regression proves the deterministic profile allow-list/default/labels and a concrete policy difference: at the same 140px attack-ready snapshot, Balanced attacks while Pressure closes farther because its bounded basic-attack range is 120px.
 - Browser regression now changes profiles through the same runtime selection path, proves Balanced → Pressure → Cautious telemetry, rejects an unsafe profile token without changing the active profile, verifies authoritative opponent damage remains identical across Balanced and Pressure, and re-proves ordinary Training remains passive.
 - PR #183 CI #509 (`35680419513`) passed Godot import/boot/domain/AI contracts, trusted backend, Web export/size budget, Chromium `smoke:all`, Windows Native Release, and GitHub-hosted Microsoft Edge `smoke:all` on head `4571f15e5620662c5f6fa80e87a625d1dc5b3723`.
-- PR #183 is open and mergeable; merge still requires explicit user approval. V2 remains **37.5% (3/8 phases complete)** until the entire V2-4 phase is accepted.
+- PR #183 was explicitly approved and squash-merged to `main` as `1ae941dec82788a219073c831ebd36b657fd058d`.
+- Exact-main CI #511 attempt 1 passed Windows Native, Godot/domain/AI/backend, Web export/size budget and Chromium `smoke:all`, then hosted Edge timed out in unchanged `creator_package_vfx_web_smoke.mjs:252`. A same-SHA failed-chain retry passed hosted Edge `smoke:all`; GitHub Pages deployment and public-Web reachability then passed.
+- Render exact-revision readiness still returned HTTP 503, so backend-dependent production Edge full smoke remained skipped. WU3 gameplay/Web behavior is therefore exact-main validated while backend-dependent production acceptance remains `Blocked / Residual Risk`.
+- V2 remains **37.5% (3/8 phases complete)** until the entire V2-4 phase is accepted.
+
+Work Unit 4 — **bounded stage definition + registry implemented and PR-validated; merge pending**:
+- `StageDefinition` introduces a strict schema-v1 declarative stage contract for arena horizontal margin, normalized player/opponent spawn coordinates, normalized depth, display name and allow-listed presentation tokens.
+- Unknown fields fail closed, including executable-style fields such as `script` or `callback`. Stage IDs reject path traversal / URL-like values; presentation fields accept only allow-listed semantic tokens and never resource paths or URLs.
+- Arena margin is bounded to 60–240px; spawn X ratios must remain within 0.08–0.92 with at least 0.15 horizontal separation; depths are normalized to 0–1.
+- `StageRegistry` exposes two deterministic built-ins: `training_arena` (legacy-compatible defaults) and `sunset_court`, with `training_arena` as the bounded fallback/default.
+- `stage_definition_test_runner.gd` covers deterministic registry ordering, canonical round-trip, unknown/executable fields, unsafe IDs, external/resource presentation tokens, arena-margin bounds, depth bounds and spawn-separation rules.
+- The stage domain regression is wired into the required GitHub CI domain-test gate.
+- WU4 deliberately does not yet wire runtime stage selection or change the current Training arena. Runtime stage selection remains WU5 scope.
+- PR #184 CI #512 (`35691723517`) passed the stage domain runner, Godot import/boot/domain/backend gates, Web export/size budget, Chromium `smoke:all`, Windows Native Release and GitHub-hosted Microsoft Edge `smoke:all` on head `649d225f3399d3878a474c97697bc1bb5b9ba237`.
+- PR #184 is open and mergeable; merge still requires explicit user approval. V2 remains **37.5% (3/8 phases complete)**.
 
 ### V2-2 implementation checkpoints
 
@@ -538,4 +552,4 @@ AI VFX backend: `https://custom-fighter-ai-vfx.onrender.com`
 
 ## Next implementation target
 
-Validate and merge **V2-4 Work Unit 3 — difficulty profiles**. After WU3 merge/exact-main validation, begin **Work Unit 4 — stage definition + registry** with strict bounded stage data for arena bounds, spawn points and presentation tokens.
+Validate and merge **V2-4 Work Unit 4 — stage definition + registry**. After WU4 merge/exact-main validation, begin **Work Unit 5 — stage selection + single-player entry** using only validated stage IDs and existing bounded opponent profiles.

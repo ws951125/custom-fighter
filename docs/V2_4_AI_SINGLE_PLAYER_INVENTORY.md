@@ -170,10 +170,23 @@ Implementation result:
 - Domain coverage proves profile ordering/default/labels and a deterministic same-snapshot policy difference between Balanced and Pressure.
 - Browser coverage switches Balanced → Pressure → Cautious, rejects an unsafe profile token, verifies Balanced and Pressure deal identical authoritative basic-attack damage, and re-proves passive ordinary Training.
 - PR #183 CI #509 (`35680419513`) passed Godot import/boot/domain/AI contracts, backend, Web export/size budget, Chromium `smoke:all`, Windows Native Release and hosted Microsoft Edge `smoke:all` on head `4571f15e5620662c5f6fa80e87a625d1dc5b3723`.
-- PR #183 is open and mergeable; merge remains gated on explicit user approval.
+- PR #183 was explicitly approved and squash-merged to `main` as `1ae941dec82788a219073c831ebd36b657fd058d`.
+- Exact-main CI #511 passed Windows Native, Godot/domain/AI/backend, Web export/size budget and Chromium `smoke:all`; hosted Edge passed on a same-SHA failed-chain retry after an unchanged `creator_package_vfx_web_smoke.mjs:252` observation timeout. Pages deployment/public reachability passed. Render exact-revision readiness still returned HTTP 503, so backend-dependent production Edge full smoke remained blocked/skipped.
 
 ### Work Unit 4 — stage definition + registry
 Introduce safe stage data for arena bounds/spawns/presentation tokens with strict validation.
+
+Implementation result:
+- `StageDefinition` is a strict schema-v1 declarative contract. It accepts only stage ID/display name, bounded horizontal arena margin, normalized player/opponent spawn X/depth values, and allow-listed background/floor semantic tokens.
+- Unknown fields fail closed, including executable-style `script` / `callback` fields. Stage IDs reject traversal/URL-like syntax. Presentation data cannot contain arbitrary resource paths, URLs or executable references.
+- Horizontal margin is bounded to 60–240px; spawn X ratios stay within 0.08–0.92 with at least 0.15 separation; depth stays within 0–1.
+- `StageRegistry` supplies deterministic built-ins `training_arena` and `sunset_court`, with `training_arena` as the bounded default/fallback.
+- The Training preset preserves the current runtime's effective 90px arena margin and corresponding normalized legacy spawn positions; WU4 itself does not mutate runtime placement.
+- `stage_definition_test_runner.gd` proves canonical load/round-trip, deterministic registry behavior, fail-closed executable/unknown fields, unsafe IDs, path/URL presentation rejection, arena/spawn bounds and minimum separation.
+- The new domain runner is part of the required GitHub CI domain-test gate.
+- Runtime application and stage-selection UI remain intentionally deferred to Work Unit 5.
+- PR #184 CI #512 (`35691723517`) passed the stage domain runner, Godot import/boot/domain/backend gates, Web export/size budget, Chromium `smoke:all`, Windows Native Release and hosted Microsoft Edge `smoke:all` on head `649d225f3399d3878a474c97697bc1bb5b9ba237`.
+- PR #184 is open and mergeable; merge remains gated on explicit user approval.
 
 ### Work Unit 5 — stage selection + single-player entry
 Add a selectable single-player flow that chooses validated opponent profile + stage before match start.
