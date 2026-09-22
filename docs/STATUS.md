@@ -5,9 +5,9 @@
 **V1/MVP is complete; V2 roadmap is now active.**
 
 - V1 completion remains **100% (13/13 phases complete)**.
-- V2 completion is **37.5% (3/8 phases complete)**.
-- Completed V2 phases: **V2-1 Advanced Creator Timeline**, **V2-2 Extended Skill Families**, and **V2-3 Character Animation & Audio Authoring**.
-- Active V2 phase: **V2-4 AI Opponents & Single-player Gameplay**.
+- V2 completion is **50% (4/8 phases complete)**.
+- Completed V2 phases: **V2-1 Advanced Creator Timeline**, **V2-2 Extended Skill Families**, **V2-3 Character Animation & Audio Authoring**, and **V2-4 AI Opponents & Single-player Gameplay**.
+- Active V2 phase: **V2-5 Game Modes, Balance & Competitive Foundation**.
 
 V1 roadmap:
 - M0–M8 MVP: 9/9 complete.
@@ -23,13 +23,13 @@ V2 roadmap is defined in `docs/V2_ROADMAP.md` and captures previously discussed/
 1. V2-1 Advanced Creator Timeline — **complete**.
 2. V2-2 Extended Skill Families — **complete**.
 3. V2-3 Character Animation & Audio Authoring — **complete**.
-4. V2-4 AI Opponents & Single-player Gameplay — **in progress**.
-5. V2-5 Game Modes, Balance & Competitive Foundation — pending.
+4. V2-4 AI Opponents & Single-player Gameplay — **complete**.
+5. V2-5 Game Modes, Balance & Competitive Foundation — **in progress**.
 6. V2-6 Network PvP — pending.
 7. V2-7 Creator Sharing Ecosystem — pending.
 8. V2-8 Mobile Targets — pending.
 
-V2-1 delivered visual event timeline authoring, startup/active/recovery timing, animation/VFX/audio events, hitbox/hurtbox timing and spatial editing, safe multi-event compositions, validation, and Creator → Training preview round trip. V2-2 extended the data-driven skill engine beyond the six V1 families and is accepted complete with bounded Beam/Trap/Aura/Teleport/Counter/Grab/Summon families plus safe declarative scripted compositions. V2-3 is accepted complete with safe animation/audio authoring, self-contained package transport, fresh-session restore, runtime Animation PNG rendering, and packaged WAV playback. V2-4 AI Opponents & Single-player Gameplay is now active.
+V2-1 delivered visual event timeline authoring, startup/active/recovery timing, animation/VFX/audio events, hitbox/hurtbox timing and spatial editing, safe multi-event compositions, validation, and Creator → Training preview round trip. V2-2 extended the data-driven skill engine beyond the six V1 families and is accepted complete with bounded Beam/Trap/Aura/Teleport/Counter/Grab/Summon families plus safe declarative scripted compositions. V2-3 is accepted complete with safe animation/audio authoring, self-contained package transport, fresh-session restore, runtime Animation PNG rendering, and packaged WAV playback. V2-4 AI Opponents & Single-player Gameplay is accepted complete with deterministic active opponents, bounded difficulty profiles, validated selectable stages, and deployed win/loss/restart/return single-player acceptance. V2-5 Game Modes, Balance & Competitive Foundation is now active.
 
 ### V2-4 implementation checkpoints
 
@@ -95,7 +95,7 @@ Work Unit 5 — **bounded stage selection + runtime application merged; exact-ma
 - Exact-main CI #525 (`35708039807`) passed Windows Native, Godot/domain/backend, Web export/size budget, Chromium `smoke:all`, hosted Microsoft Edge `smoke:all`, GitHub Pages deployment and public-Web reachability on merge revision `26bf2a7ac845b90b715f216e9c207cd1e8e3b3af`. The external Render AI backend again returned HTTP 503 for all 18 readiness attempts, so backend-dependent production Edge full smoke was skipped.
 - V2 remains **37.5% (3/8 phases complete)** until WU6 completes the V2-4 acceptance criterion.
 
-Work Unit 6 — **full single-player acceptance implemented; PR validation pending**:
+Work Unit 6 — **full single-player acceptance accepted; exact-main Web production validated**:
 - This work unit has **no product functionality change**; it strengthens the required acceptance regression and phase-closeout documentation.
 - `opponent_ai_web_smoke.mjs` keeps the existing active-AI defeat/restart proof on `training_arena`, then runs a real player victory flow on selectable `sunset_court` against `training_cautious`.
 - The victory flow uses only normal J basic-attack inputs and the existing authoritative player→opponent combat path. It does not add a test-only damage bridge or bypass match authority.
@@ -105,8 +105,11 @@ Work Unit 6 — **full single-player acceptance implemented; PR validation pendi
 - PR #186 CI #526 exposed one acceptance-test defect: the first player-victory range predicate referenced unpublished `dataset.dummyDepth`, so `Number(undefined)` became `NaN` and the wait could never pass. Commit `0b649b307352494b94b8fe5321d12a2666903081` removed the unpublished-field dependency and added a diagnostic timeout snapshot; L-041 records the durable rule.
 - PR #186 CI #528 (`35709409604`) passed Windows Native, Godot import/boot/domain/backend, Web export/size budget, Chromium `smoke:all` and hosted Microsoft Edge `smoke:all` on head `d8803fb533cc6dcd2182bddb39c974be9c148bd6`.
 - Chromium and Edge both emitted `playerDefeat=true playerVictory=true victoryStage=sunset_court victoryRestartPreserved=true returnCreator=true` and `SMOKE_SUITE_PASSED count=25`.
-- PR #186 remains open and mergeable. V2-4 still requires approved merge plus deployed exact-main acceptance before the phase can close.
-- V2 remains **37.5% (3/8 phases complete)** until the deployed V2-4 acceptance target is satisfied.
+- PR #186 latest-head CI #532 (`35711354905`) passed Windows Native, Godot/domain/backend, Web export/size budget, Chromium `smoke:all`, and GitHub-hosted Microsoft Edge `smoke:all` on head `184b6caf2447550bf4e8c28426a48f100830c890`.
+- PR #186 was explicitly approved and squash-merged to `main` as `e6ce72c4ed675b519808a05184089c19edc0500b`.
+- Exact-main CI #533 (`35714388530`) passed Windows Native, Godot/domain/backend, Web export/size budget, Chromium `smoke:all`, hosted Microsoft Edge `smoke:all`, GitHub Pages deployment, and public-Web reachability on the exact merge revision.
+- The deployed artifact is therefore the same exact-main Web build that passed the complete single-player acceptance path. The external Render AI backend remained independently unavailable: all 18 readiness attempts returned HTTP 503, so the backend-dependent production Edge full-smoke job was skipped. This remains a provider/backend residual risk and does not reopen the backend-independent V2-4 single-player acceptance.
+- V2-4 is accepted complete. V2 advances to **50% (4/8 phases complete)** and V2-5 is now active.
 
 ### V2-2 implementation checkpoints
 
