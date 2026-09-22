@@ -280,7 +280,15 @@ Never trusted from the client as final:
 This document plus STATUS/roadmap synchronization. No product functionality change.
 
 ### Work Unit 2 — bounded game-mode + ruleset contracts
-Implement strict `GameModeDefinition`, registry and first versioned ruleset contract with deterministic domain tests. Preserve current router behavior while introducing an explicit policy layer.
+Implemented on branch `feat/v2-5-wu2-game-mode-ruleset-contracts`:
+- `GameModeDefinition` is schema-v1, unknown-field/missing-field fail-closed, and allow-lists mode families, ruleset IDs, power-budget IDs and authority policies.
+- Semantic combinations are fail-closed: sandbox and single-player retain their own bounded rulesets plus `sandbox_safe_limits` and must stay `local_authoritative`; competitive uses `competitive_standard@1` + `competitive_standard_v1` and may be local- or host-authoritative.
+- `CompetitiveRulesetDefinition` allow-lists power-budget, character-constraint, skill-constraint and determinism-policy IDs and rejects unsupported versions/policies.
+- `CompetitiveRulesetRegistry` exposes deterministic `sandbox_default@1`, `single_player_default@1` and `competitive_standard@1`.
+- `GameModeRegistry` exposes deterministic `sandbox`, `single_player`, `competitive_local` and `competitive_hosted` definitions and cross-checks ruleset version + power-budget agreement before loading.
+- `tests/game_mode_ruleset_test_runner.gd` proves canonical deterministic round trips, registry ordering, no partial load on failure, executable/unknown field rejection, external/unsafe reference rejection, competitive budget downgrade rejection and version compatibility failure.
+- The domain runner is part of the required GitHub CI contract.
+- `main_router.gd` is deliberately unchanged; WU2 adds policy contracts only and does not expose competitive mode to users yet.
 
 ### Work Unit 3 — competitive power-budget validator
 Implement hard caps + deterministic aggregate budget with stable diagnostics and reference fixtures. Keep stored authored data unchanged.
