@@ -4,8 +4,6 @@ const SkillDefinition = preload("res://game/core/skills/skill_definition.gd")
 const SkillCastState = preload("res://game/core/skills/skill_cast_state.gd")
 const TeleportState = preload("res://game/core/skills/teleport_state.gd")
 
-const ARENA_MARGIN_X := 90.0
-
 var host
 var skill := SkillDefinition.new()
 var cast_state := SkillCastState.new()
@@ -85,12 +83,13 @@ func _try_cast() -> void:
 func _perform_teleport() -> void:
 	if not skill.loaded or skill.skill_type != "teleport":
 		return
-	var arena_right := maxf(host.size.x, 1280.0) - ARENA_MARGIN_X
+	var arena_left := float(host.arena_left_x()) if host.has_method("arena_left_x") else 90.0
+	var arena_right := float(host.arena_right_x()) if host.has_method("arena_right_x") else maxf(host.size.x, 1280.0) - 90.0
 	if not teleport_state.resolve(
 		host.player_x,
 		host.player_facing,
 		skill.range,
-		ARENA_MARGIN_X,
+		arena_left,
 		arena_right
 	):
 		last_teleport_success = false
