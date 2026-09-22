@@ -6,7 +6,7 @@ Date: 2026-09-21
 
 This inventory defines the safe implementation boundary for V2-4 before active-opponent runtime code is added. The goal is to reuse the existing combat/match authority instead of creating a second combat engine or allowing AI behavior to mutate combat state directly.
 
-V2 progress remains **37.5% (3/8 phases complete)** until all V2-4 acceptance criteria are satisfied.
+V2-4 acceptance is now complete. V2 progress is **50% (4/8 phases complete)** and V2-5 is active.
 
 ## Existing runtime foundations
 
@@ -211,8 +211,11 @@ Implementation result:
 - PR #186 CI #526 caught an acceptance-test telemetry bug: `dataset.dummyDepth` was never published, so the new range predicate evaluated through `NaN` and could never pass. Commit `0b649b307352494b94b8fe5321d12a2666903081` removed the unpublished-field dependency and added a diagnostic state snapshot; L-041 records the rule.
 - PR #186 CI #528 (`35709409604`) passed Windows Native, Godot import/boot/domain/backend, Web export/size budget, Chromium `smoke:all` and hosted Microsoft Edge `smoke:all` on head `d8803fb533cc6dcd2182bddb39c974be9c148bd6`.
 - Chromium and Edge both emitted `playerDefeat=true playerVictory=true victoryStage=sunset_court victoryRestartPreserved=true returnCreator=true` and `SMOKE_SUITE_PASSED count=25`.
-- Approved merge plus deployed exact-main acceptance remain required before V2-4 can close.
+- PR #186 latest-head CI #532 (`35711354905`) passed Windows Native, Godot/domain/backend, Web/Chromium and hosted Microsoft Edge on head `184b6caf2447550bf4e8c28426a48f100830c890`.
+- PR #186 was explicitly approved and squash-merged to `main` as `e6ce72c4ed675b519808a05184089c19edc0500b`.
+- Exact-main CI #533 (`35714388530`) passed Windows Native, Godot/domain/backend, Web export/size budget, Chromium `smoke:all`, hosted Edge `smoke:all`, GitHub Pages deployment and public-Web reachability on the exact merge revision.
+- External Render backend readiness independently failed after 18 HTTP 503 responses, so backend-dependent production Edge full smoke was skipped; this residual provider/backend outage does not alter the backend-independent V2-4 single-player acceptance.
 
 ## V2-4 acceptance target
 
-V2-4 is complete only when the deployed Web build supports a complete single-player match against an active AI opponent on selectable validated stage content, including win/loss/restart/return flow and repeatable regression coverage.
+V2-4 is **accepted complete**: the deployed exact-main Web artifact supports the validated active-AI single-player loop across selectable stage content, including win/loss/restart/return flow with repeatable Chromium and hosted Microsoft Edge regression coverage. V2-5 is the next active phase.

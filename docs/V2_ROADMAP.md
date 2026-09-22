@@ -8,7 +8,7 @@ V2 captures previously discussed or explicitly deferred product capabilities tha
 
 ## V2 progress
 
-**37.5% (3/8 phases complete)** as of 2026-09-21.
+**50% (4/8 phases complete)** as of 2026-09-22.
 
 ## V2-1 — Advanced Creator Timeline — complete
 
@@ -82,7 +82,7 @@ Acceptance evidence:
 - Exact-main CI #491 (`35572244642`) attempt 2 passed the complete production chain on that revision: Windows Native, Godot/domain/backend, Web export/size budget, Chromium `smoke:all`, hosted Edge `smoke:all`, GitHub Pages deployment/public reachability, Render exact-revision readiness, and production Microsoft Edge full smoke. Attempt 1's production-Edge-only timeout occurred after the new fresh-session Animation PNG/WAV acceptance assertions and passed on same-revision retry without code changes.
 - No arbitrary executable/resource path was added; all imported assets remain bounded, validated and declarative.
 
-## V2-4 — AI Opponents & Single-player Gameplay
+## V2-4 — AI Opponents & Single-player Gameplay — complete
 
 Goal: move beyond Training dummy validation into an actual playable combat loop.
 
@@ -108,8 +108,10 @@ Architecture checkpoint:
 - Work Unit 3 adds a third bounded `training_cautious` profile plus stable Easy/Normal/Hard labels, a user-facing single-player `AI Difficulty` selector, allow-listed URL/runtime profile selection, deterministic policy-difference coverage and browser proof that difficulty does not change authoritative opponent damage. PR #183 merged to `main` as `1ae941dec82788a219073c831ebd36b657fd058d`; exact-main CI #511 validated Windows Native, Chromium, hosted Edge (same-SHA retry), Pages deployment and public reachability, while the external Render backend remained HTTP 503.
 - Work Unit 4 adds a strict declarative `StageDefinition` and built-in `StageRegistry` for bounded arena margin, normalized spawns/depth and allow-listed presentation tokens. Unknown/executable-style fields, unsafe IDs and arbitrary paths/URLs fail closed. PR #184 passed latest-head CI #513 and merged to `main` as `681f4ee8d84567ad963c669b90b0f1f92a11df21`; exact-main CI #514 then passed Windows Native, Chromium, hosted Edge, Pages deployment and public reachability, while external Render readiness remained HTTP 503.
 - Work Unit 5 wires validated stage selection into single-player: router-owned `stage_id`, bounded Stage selector, stage-specific arena/spawn/presentation runtime application, dynamic arena bounds for movement/Teleport/Grab/Summon, and Chromium/Edge regression for selection/fail-closed/persistence/passive-Training isolation. PR #185 CI #520 and final latest-head CI #524 passed the required PR gates; PR #185 then squash-merged to `main` as `26bf2a7ac845b90b715f216e9c207cd1e8e3b3af`. Exact-main CI #525 passed Windows Native, Chromium, hosted Edge, Pages deployment and public reachability while external Render readiness remained HTTP 503.
-- Work Unit 6 extends the active-opponent regression into the final acceptance path: default-stage loss/restart, selectable Sunset Court + Cautious active-AI victory using normal J inputs, restart with stage/profile/spawn persistence, return-to-Creator, and passive ordinary-Training isolation. CI #526 exposed an unpublished-Web-telemetry predicate defect; commit `0b649b307352494b94b8fe5321d12a2666903081` fixed the acceptance test only. PR #186 CI #528 then passed Windows Native, Godot/domain/backend, Chromium and hosted Edge with `playerDefeat=true playerVictory=true victoryStage=sunset_court victoryRestartPreserved=true returnCreator=true` and `SMOKE_SUITE_PASSED count=25`. Approved merge and deployed exact-main acceptance remain before V2-4 closes.
-- V2 remains **37.5% (3/8)** until the full V2-4 acceptance criterion is complete.
+- Work Unit 6 extends the active-opponent regression into the final acceptance path: default-stage loss/restart, selectable Sunset Court + Cautious active-AI victory using normal J inputs, restart with stage/profile/spawn persistence, return-to-Creator, and passive ordinary-Training isolation. CI #526 exposed an unpublished-Web-telemetry predicate defect; commit `0b649b307352494b94b8fe5321d12a2666903081` fixed the acceptance test only. PR #186 CI #528 then passed Windows Native, Godot/domain/backend, Chromium and hosted Edge with `playerDefeat=true playerVictory=true victoryStage=sunset_court victoryRestartPreserved=true returnCreator=true` and `SMOKE_SUITE_PASSED count=25`.
+- PR #186 latest-head CI #532 (`35711354905`) passed Windows Native, Godot/domain/backend, Web export/size budget, Chromium `smoke:all`, and hosted Microsoft Edge on head `184b6caf2447550bf4e8c28426a48f100830c890`; PR #186 then squash-merged to `main` as `e6ce72c4ed675b519808a05184089c19edc0500b`.
+- Exact-main CI #533 (`35714388530`) passed Windows Native, Godot/domain/backend, Web export/size budget, Chromium `smoke:all`, hosted Microsoft Edge `smoke:all`, GitHub Pages deployment, and public-Web reachability on the exact merge revision. The external Render AI backend independently remained HTTP 503 for all 18 readiness attempts, so backend-dependent production Edge full smoke was skipped.
+- V2-4 is accepted complete on the deployed exact-main Web artifact. The Render provider/backend outage remains a residual risk outside the backend-independent single-player acceptance. V2 advances to **50% (4/8)** and V2-5 becomes active.
 
 ## V2-5 — Game Modes, Balance & Competitive Foundation
 
@@ -188,4 +190,4 @@ The architecture previously allowed a future local/open-model AI provider such a
 
 ## Next implementation target
 
-Validate/merge **V2-4 Work Unit 6 — full selectable-stage single-player acceptance** on PR #186, then run deployed exact-main acceptance. Once V2-4 closes, advance to **V2-5 — Game Modes, Balance & Competitive Foundation**.
+Begin **V2-5 — Game Modes, Balance & Competitive Foundation** with an architecture/inventory work unit defining bounded game-mode rules, sandbox versus competitive authority, validated character/skill power-budget policy, deterministic rules/version compatibility, and the host/server-authoritative boundary before implementation.
