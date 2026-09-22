@@ -184,7 +184,7 @@ Implementation result:
 - The stage domain runner is part of the required GitHub CI domain-test gate.
 - PR #184 latest-head CI #513 (`35692725368`) passed all required PR jobs on head `63cf37adbe2519ae41a473c6a55b87196fe68967`.
 - PR #184 was explicitly approved and squash-merged to `main` as `681f4ee8d84567ad963c669b90b0f1f92a11df21`.
-- Exact-main CI #514 (`35698779914`) is running on the merge revision.
+- Exact-main CI #514 (`35698779914`) passed Windows Native, Godot/domain/backend, Web/Chromium, hosted Edge, Pages deployment and public reachability on the exact merge revision; Render readiness stayed HTTP 503, so backend-dependent production Edge full smoke was skipped.
 
 ### Work Unit 5 — stage selection + single-player entry
 Add a selectable single-player flow that chooses validated opponent profile + stage before/during the bounded single-player entry/remount path.
@@ -198,7 +198,9 @@ Implementation result:
 - Core player/opponent movement and the Teleport, Grab and Summon controllers consume the selected arena left/right bounds. No stage data changes damage, HP/MP, cooldowns, hit resolution or match authority.
 - Web telemetry exposes active stage ID/display name, selector state, margin, spawn coordinates/depth and presentation tokens. A bounded bridge mirrors Stage selection for Chromium/Edge regression.
 - `opponent_ai_web_smoke.mjs` now verifies default Training Arena, runtime Sunset Court selection, exact bounded Sunset spawn data, unsafe stage rejection, stage persistence across opponent-profile changes and ordinary Training isolation.
-- PR #185 is open; latest-head required PR validation is pending.
+- Initial PR #185 CI #518 caught invalid constructor-based `PackedStringArray(...)` constant expressions after WU5 made `StageDefinition` part of the main runtime preload graph. Commit `3fdc15f871b11c1b3bdb3431a597fd88020008bd` switched those collections to literal constant arrays; stage behavior/data did not change. L-040 records the parser rule.
+- PR #185 CI #520 (`35699591932`) passed Windows Native, Godot import/boot/domain/backend, Web export/size budget, Chromium `smoke:all` and hosted Microsoft Edge `smoke:all` on head `06d6c74379f02911e17da0361aa49d0065332b2e`. Chromium and Edge both emitted `stageSelection=true stageCount=2 stagePreservedAcrossProfileChange=true` and `SMOKE_SUITE_PASSED count=25`.
+- Final documentation-sync latest-head CI remains required before merge approval can be consumed.
 
 ### Work Unit 6 — full single-player acceptance
 Validate win/loss/restart/return across selectable stage content against an active opponent in Chromium, hosted Microsoft Edge and deployed production Web.
