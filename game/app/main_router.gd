@@ -3,12 +3,15 @@ extends Control
 const TRAINING_SCENE = preload("res://game/runtime/main.tscn")
 const CREATOR_SCENE = preload("res://game/creator/creator_studio.tscn")
 const VFX_SCENE = preload("res://game/creator/vfx_editor/vfx_studio.tscn")
+const OpponentBehaviorProfiles = preload("res://game/core/ai/opponent_behavior_profiles.gd")
 
 var app_mode := "training"
+var opponent_profile_id := OpponentBehaviorProfiles.DEFAULT_PROFILE_ID
 var active_instance: Node
 
 func _ready() -> void:
 	app_mode = _requested_mode()
+	opponent_profile_id = _requested_opponent_profile()
 	_mount_mode(app_mode)
 
 func switch_mode(requested_mode: String) -> void:
@@ -19,6 +22,17 @@ func switch_mode(requested_mode: String) -> void:
 	active_instance = null
 	app_mode = normalized_mode
 	_mount_mode(app_mode)
+
+func switch_opponent_profile(requested_profile: String) -> void:
+	if app_mode != "single_player":
+		return
+	var normalized := requested_profile.strip_edges().to_lower()
+	if not OpponentBehaviorProfiles.is_supported(normalized):
+		return
+	if normalized == opponent_profile_id:
+		return
+	opponent_profile_id = normalized
+	switch_mode("single_player")
 
 func _mount_mode(mode_name: String) -> void:
 	var selected_scene: PackedScene = TRAINING_SCENE
@@ -38,6 +52,12 @@ func _requested_mode() -> String:
 	var result = JavaScriptBridge.eval("new URLSearchParams(window.location.search).get('mode') || 'training'")
 	return _normalize_mode(str(result))
 
+func _requested_opponent_profile() -> String:
+	if not OS.has_feature("web"):
+		return OpponentBehaviorProfiles.DEFAULT_PROFILE_ID
+	var result = JavaScriptBridge.eval("new URLSearchParams(window.location.search).get('opponent_profile') || ''")
+	return OpponentBehaviorProfiles.normalize_profile_id(str(result))
+
 func _normalize_mode(requested_mode: String) -> String:
 	var requested := requested_mode.strip_edges().to_lower()
 	if requested == "creator":
@@ -51,7 +71,9 @@ func _normalize_mode(requested_mode: String) -> String:
 func _set_web_state() -> void:
 	if not OS.has_feature("web"):
 		return
+	var active_profile := opponent_profile_id if app_mode == "single_player" else ""
 	JavaScriptBridge.eval(
 		"document.documentElement.dataset.appMode=%s;" % JSON.stringify(app_mode) +
+		"document.documentElement.dataset.appOpponentProfile=%s;" % JSON.stringify(active_profile) +
 		"document.documentElement.dataset.appRouterReady='true';"
 	)
