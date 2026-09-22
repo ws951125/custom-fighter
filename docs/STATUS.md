@@ -33,7 +33,18 @@ V2-1 delivered visual event timeline authoring, startup/active/recovery timing, 
 
 ### V2-5 implementation checkpoints
 
-Work Unit 1 — **competitive-foundation architecture inventory implemented; validation pending**:
+Work Unit 2 — **bounded game-mode + versioned ruleset contracts implemented; PR validation pending**:
+- `GameModeDefinition` introduces a strict schema-v1 declarative contract for mode ID/display name, mode family, ruleset ID/version, power-budget ID, authority policy and custom-content policy. Unknown/missing fields fail closed.
+- Mode policy references are allow-listed rather than accepting arbitrary safe-looking tokens. Sandbox must use `sandbox_default` + `sandbox_safe_limits` and remain `local_authoritative`; single-player must use `single_player_default` + `sandbox_safe_limits` and remain local-authoritative; competitive modes must use `competitive_standard` + `competitive_standard_v1` and may declare only local- or host-authoritative policy.
+- `CompetitiveRulesetDefinition` adds a strict versioned contract for power-budget, character-constraint, skill-constraint and determinism-policy IDs. Unknown executable-style fields, unsupported policy IDs and invalid versions fail closed.
+- `CompetitiveRulesetRegistry` exposes deterministic allow-listed `sandbox_default@1`, `single_player_default@1` and `competitive_standard@1` contracts. Unknown IDs and version mismatches fail closed without partially loading the target.
+- `GameModeRegistry` exposes deterministic `sandbox`, `single_player`, `competitive_local` and `competitive_hosted` contracts and cross-checks the referenced ruleset/version plus power-budget agreement before loading the target.
+- Existing `main_router.gd` is intentionally unchanged in WU2. Current Training/Creator/VFX/Single-player behavior and controls are preserved; the new policy layer is not yet a user-selectable competitive mode.
+- `tests/game_mode_ruleset_test_runner.gd` covers registry ordering, canonical round trips, family/authority constraints, executable/unknown fields, external/unsafe references, competitive→sandbox budget downgrade rejection, ruleset-policy allow-lists, version mismatch, unloaded-on-failure behavior and same-input deterministic output.
+- CI now executes the new domain runner before existing timeline/character/skill tests.
+- V2 remains **50% (4/8 phases complete)** until the full V2-5 acceptance criterion is complete.
+
+Work Unit 1 — **competitive-foundation architecture inventory accepted; exact-main Web validated**:
 - `docs/V2_5_GAME_MODES_BALANCE_COMPETITIVE_INVENTORY.md` inventories the current router modes, combat authority, character/skill/package validators and the missing competitive trust boundary.
 - Existing `CharacterDefinition` and `SkillDefinition` checks are explicitly classified as safety/schema bounds rather than competitive balance guarantees; a safe package does not automatically become competitive-eligible.
 - The proposed architecture separates sandbox/single-player from competitive admission through strict `GameModeDefinition` / versioned ruleset contracts, deterministic competitive eligibility, and a derived authority-owned loadout snapshot.
@@ -42,7 +53,10 @@ Work Unit 1 — **competitive-foundation architecture inventory implemented; val
 - Numeric power-budget weights are intentionally deferred until deterministic reference fixtures and monotonicity/boundary tests exist; WU1 does not introduce arbitrary tuning constants.
 - This work unit has **no product functionality change**.
 - Previous closeout PR #187 merged V2-4 status to `main` as `c4203dd25d0144c1ee7a7b53bdaf24ab813e72aa`. Exact-main CI #535 (`35718915645`) passed Windows Native, Godot/domain/backend tests, Web export/size budget, Chromium `smoke:all`, hosted Microsoft Edge `smoke:all`, GitHub Pages deployment and public-Web reachability. The external Render AI backend again returned HTTP 503 for all 18 readiness attempts, so backend-dependent production Edge full smoke was skipped; this remains an independent provider/backend residual risk.
-- V2 remains **50% (4/8 phases complete)** until the full V2-5 acceptance criterion is complete.
+- PR #188 latest-head CI #537 (`35722359456`) passed Windows Native, Godot/domain/backend, Web export/size budget, Chromium `smoke:all`, and hosted Microsoft Edge `smoke:all` on head `00c4cfca869b26b09f17a7b2cc9fd3940a73a94d`.
+- PR #188 was explicitly approved and squash-merged to `main` as `c829175a4e84e0ee2b6cceef7f360e380444eefd`.
+- Exact-main CI #538 (`35726723857`) passed Windows Native, Godot/domain/backend, Web export/size budget, Chromium `smoke:all`, hosted Microsoft Edge `smoke:all`, GitHub Pages deployment and public-Web reachability. The external Render backend returned HTTP 503 for all 18 readiness attempts, so backend-dependent production Edge full smoke was skipped as the existing provider/backend residual risk.
+- WU1 is accepted. V2 remains **50% (4/8 phases complete)** until the full V2-5 acceptance criterion is complete.
 
 ### V2-4 implementation checkpoints
 
