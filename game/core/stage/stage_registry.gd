@@ -47,6 +47,11 @@ static func normalize_stage_id(stage_id: String) -> String:
 		return normalized
 	return DEFAULT_STAGE_ID
 
+static func display_label(stage_id: String) -> String:
+	var normalized := normalize_stage_id(stage_id)
+	var raw: Dictionary = BUILTIN_STAGES.get(normalized, {})
+	return str(raw.get("display_name", normalized))
+
 static func load_stage(stage_id: String, target) -> PackedStringArray:
 	var errors := PackedStringArray()
 	var normalized := stage_id.strip_edges().to_lower()
