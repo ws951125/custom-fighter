@@ -103,8 +103,10 @@ Architecture checkpoint:
 - Existing `receive_player_hit(...)` remains the formal opponent→player damage boundary.
 - Work Unit 1 implements the bounded `OpponentBehaviorProfile`, allow-listed built-in profiles and pure deterministic `OpponentDecisionState` intent layer. PR #181 merged as `323e86a5445f6049f2b20ba788af2d373abc7b5b`; exact-main CI #503 (`35602570478`) passed the complete production chain.
 - Work Unit 2 adds explicit router mode `single_player`, activates the deterministic opponent only in that mode, reuses existing movement/combat authority, routes successful opponent damage through `receive_player_hit(...)`, preserves passive ordinary Training, and keeps match defeat/restart/return authority in the existing match flow.
-- PR #182 CI #506 (`35605738012`) passed Windows Native, Godot/domain/AI contracts, backend, Web export/size budget, Chromium `smoke:all`, and hosted Microsoft Edge `smoke:all`. WU2 remains merge/exact-main-production pending.
-- Later work units add multiple difficulty profiles, validated stage definitions/selection, and final deployed single-player acceptance.
+- PR #182 CI #506 (`35605738012`) passed Windows Native, Godot/domain/AI contracts, backend, Web export/size budget, Chromium `smoke:all`, and hosted Microsoft Edge `smoke:all`; PR #182 then squash-merged to `main` as `c548cfb3c0e53d2b1170205c1f1948889845db22`.
+- Exact-main CI #508 attempt 2 passed Chromium `smoke:all`, Windows Native, hosted Edge `smoke:all`, GitHub Pages deployment and public reachability. Full backend-dependent production acceptance remains blocked because the external Render AI backend returned HTTP 503 for all readiness attempts; production Edge full smoke was therefore skipped.
+- Work Unit 3 adds a third bounded `training_cautious` profile plus stable Easy/Normal/Hard labels, a user-facing single-player `AI Difficulty` selector, allow-listed URL/runtime profile selection, deterministic policy-difference coverage and browser proof that difficulty does not change authoritative opponent damage. Ordinary Training remains passive.
+- Later work units add validated stage definitions/selection and final deployed single-player acceptance.
 - V2 remains **37.5% (3/8)** until the full V2-4 acceptance criterion is complete.
 
 ## V2-5 — Game Modes, Balance & Competitive Foundation
@@ -184,4 +186,4 @@ The architecture previously allowed a future local/open-model AI provider such a
 
 ## Next implementation target
 
-After PR #182 merge and exact-main validation, implement **V2-4 Work Unit 3 — difficulty profiles**: add a bounded profile selector and multiple deterministic behavior profiles while keeping authored combat authority unchanged. Difficulty may change policy such as reaction interval, spacing, guard policy and eligible actions, but must not multiply damage, bypass MP/cooldowns, add stochastic behavior, or activate AI in ordinary Training.
+Validate/merge **V2-4 Work Unit 3 — difficulty profiles**, then implement **V2-4 Work Unit 4 — stage definition + registry** with strict bounded arena/spawn/presentation data. Difficulty remains policy-only and must not multiply damage, bypass MP/cooldowns, add stochastic behavior, or activate AI in ordinary Training.
