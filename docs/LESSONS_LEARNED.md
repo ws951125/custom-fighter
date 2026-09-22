@@ -444,6 +444,6 @@
 - **Root Cause:** WU4 declared those constants using `PackedStringArray([...])` constructor calls. Constructor calls are runtime expressions rather than valid GDScript compile-time constant expressions. WU5 made the defect part of the main-scene import path by preloading `StageDefinition` from the match flow.
 - **Fix:** Replace the constructor-based constants with plain literal constant arrays. The stage allow-list contents and validation semantics are unchanged.
 - **Prevention Rule:** GDScript `const` declarations on runtime-preloaded scripts must be composed only from compile-time constant literals/expressions. Do not wrap constant collections in runtime constructors such as `PackedStringArray(...)`; use literal arrays and convert at runtime only when a packed type is actually required.
-- **Validation:** Fix committed on PR #185 after CI #518 import failure. Latest-head GitHub CI must pass Godot import/boot/domain tests, Web/Chromium, Windows Native and hosted Edge before this lesson becomes Verified.
-- **Status:** Fix committed; verification pending
+- **Validation:** Fix commit `3fdc15f871b11c1b3bdb3431a597fd88020008bd` was included in PR #185 head `06d6c74379f02911e17da0361aa49d0065332b2e`; CI #520 (`35699591932`) passed Godot import/boot/domain/backend, Windows Native, Web export/size budget, Chromium `smoke:all`, and hosted Microsoft Edge `smoke:all`. Both browsers completed the new bounded stage-selection regression and the full 25-stage smoke suite.
+- **Status:** Verified on PR #185 CI #520
 
