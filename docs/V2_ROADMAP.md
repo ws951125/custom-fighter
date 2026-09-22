@@ -128,6 +128,16 @@ Scope:
 
 Acceptance: competitive-mode content cannot bypass the validated power budget and the architecture does not trust client-authored combat authority.
 
+Architecture checkpoint:
+- `docs/V2_5_GAME_MODES_BALANCE_COMPETITIVE_INVENTORY.md` defines the V2-5 trust boundary before runtime implementation.
+- Existing character/skill/package validation remains the safety/schema layer; competitive eligibility is an additional deterministic ruleset/power-budget decision.
+- Proposed competitive admission derives an authority-owned loadout snapshot from validated content rather than trusting raw authored/client values.
+- Future clients may propose packages and input intents, but authority computes damage, HP/MP, cooldowns, hit results, state transitions and match result.
+- Ruleset ID/version and deterministic content compatibility/fingerprinting are explicit foundations for V2-6.
+- WU1 intentionally defers numeric balance weights until deterministic fixtures, hard-cap boundaries and monotonicity tests are defined.
+- Planned sequence: WU2 bounded game-mode/ruleset contracts; WU3 competitive power-budget validator; WU4 authoritative loadout snapshot/fingerprint; WU5 local competitive authority path; WU6 cross-browser phase acceptance.
+- V2 remains **50% (4/8)** until the complete V2-5 acceptance criterion is satisfied.
+
 Note: this phase establishes the competitive foundation; full network PvP is V2-6.
 
 ## V2-6 — Network PvP
@@ -190,4 +200,4 @@ The architecture previously allowed a future local/open-model AI provider such a
 
 ## Next implementation target
 
-Begin **V2-5 — Game Modes, Balance & Competitive Foundation** with an architecture/inventory work unit defining bounded game-mode rules, sandbox versus competitive authority, validated character/skill power-budget policy, deterministic rules/version compatibility, and the host/server-authoritative boundary before implementation.
+Validate/merge **V2-5 Work Unit 1 — competitive-foundation architecture inventory**, then implement **V2-5 Work Unit 2 — bounded GameModeDefinition + versioned ruleset registry** with deterministic domain tests and no change to existing sandbox/single-player combat authority.
