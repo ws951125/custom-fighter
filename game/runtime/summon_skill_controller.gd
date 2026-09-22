@@ -4,8 +4,6 @@ const SkillDefinition = preload("res://game/core/skills/skill_definition.gd")
 const SkillCastState = preload("res://game/core/skills/skill_cast_state.gd")
 const SummonState = preload("res://game/core/skills/summon_state.gd")
 
-const ARENA_MARGIN_X := 90.0
-
 var host
 var skill := SkillDefinition.new()
 var cast_state := SkillCastState.new()
@@ -85,13 +83,14 @@ func _try_cast() -> void:
 func _spawn_summon() -> void:
 	if not skill.loaded or skill.skill_type != "summon":
 		return
-	var arena_right := maxf(host.size.x, 1280.0) - ARENA_MARGIN_X
+	var arena_left := float(host.arena_left_x()) if host.has_method("arena_left_x") else 90.0
+	var arena_right := float(host.arena_right_x()) if host.has_method("arena_right_x") else maxf(host.size.x, 1280.0) - 90.0
 	last_summon_success = summon_state.start(
 		Vector2(host.player_x, host.player_depth),
 		host.player_facing,
 		skill.range,
 		skill.active,
-		ARENA_MARGIN_X,
+		arena_left,
 		arena_right
 	)
 	last_summon_hit = false
@@ -99,7 +98,8 @@ func _spawn_summon() -> void:
 	queue_redraw()
 
 func _tick_summon(delta: float) -> void:
-	var arena_right := maxf(host.size.x, 1280.0) - ARENA_MARGIN_X
+	var arena_left := float(host.arena_left_x()) if host.has_method("arena_left_x") else 90.0
+	var arena_right := float(host.arena_right_x()) if host.has_method("arena_right_x") else maxf(host.size.x, 1280.0) - 90.0
 	var hurtbox = host._dummy_hurtbox()
 	var target_eligible: bool = not host.dummy_state.is_defeated() and host.dummy_recovery_state.can_be_hit()
 	var hit := summon_state.tick(
@@ -110,7 +110,7 @@ func _tick_summon(delta: float) -> void:
 		skill.speed,
 		skill.hitbox_half_width,
 		skill.hitbox_half_depth,
-		ARENA_MARGIN_X,
+		arena_left,
 		arena_right
 	)
 	if not hit:

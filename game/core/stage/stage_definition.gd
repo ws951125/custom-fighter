@@ -2,7 +2,7 @@ class_name StageDefinition
 extends RefCounted
 
 const SUPPORTED_SCHEMA_VERSION := 1
-const ALLOWED_FIELDS := PackedStringArray([
+const ALLOWED_FIELDS := [
 	"schema_version",
 	"id",
 	"display_name",
@@ -13,9 +13,9 @@ const ALLOWED_FIELDS := PackedStringArray([
 	"opponent_spawn_depth",
 	"background_token",
 	"floor_token"
-])
-const BACKGROUND_TOKENS := PackedStringArray(["training_blue", "sunset_court"])
-const FLOOR_TOKENS := PackedStringArray(["training_grid", "stone_ring"])
+]
+const BACKGROUND_TOKENS := ["training_blue", "sunset_court"]
+const FLOOR_TOKENS := ["training_grid", "stone_ring"]
 
 var loaded := false
 var stage_id := ""

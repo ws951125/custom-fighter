@@ -436,3 +436,14 @@
 - **Validation:** Diagnostic-only commit `3524ae4cbc1c98a51f3def27ca453f086b9c3096` did not change runtime behavior, timeout or acceptance predicates. PR #182 CI #506 (`35605738012`) then passed Windows Native, Godot/domain/AI contracts, backend, Web export/size budget, Chromium `smoke:all`, and hosted Microsoft Edge `smoke:all`.
 - **Status:** Verified on PR #182 CI #506
 
+## L-040 — Runtime-preloaded GDScript constants must use compile-time constant expressions
+
+- **Date:** 2026-09-22
+- **Area:** V2-4 stage data / GDScript parser / main-scene import
+- **Symptom:** PR #185 CI #518 failed at `Import project headlessly` before Web export. The parser reported `Assigned value for constant ... isn't a constant expression` for `StageDefinition.ALLOWED_FIELDS`, `BACKGROUND_TOKENS`, and `FLOOR_TOKENS`, then `match_flow_main.gd` failed to compile because WU5 now preloads the stage contract into the runtime dependency graph.
+- **Root Cause:** WU4 declared those constants using `PackedStringArray([...])` constructor calls. Constructor calls are runtime expressions rather than valid GDScript compile-time constant expressions. WU5 made the defect part of the main-scene import path by preloading `StageDefinition` from the match flow.
+- **Fix:** Replace the constructor-based constants with plain literal constant arrays. The stage allow-list contents and validation semantics are unchanged.
+- **Prevention Rule:** GDScript `const` declarations on runtime-preloaded scripts must be composed only from compile-time constant literals/expressions. Do not wrap constant collections in runtime constructors such as `PackedStringArray(...)`; use literal arrays and convert at runtime only when a packed type is actually required.
+- **Validation:** Fix commit `3fdc15f871b11c1b3bdb3431a597fd88020008bd` was included in PR #185 head `06d6c74379f02911e17da0361aa49d0065332b2e`; CI #520 (`35699591932`) passed Godot import/boot/domain/backend, Windows Native, Web export/size budget, Chromium `smoke:all`, and hosted Microsoft Edge `smoke:all`. Both browsers completed the new bounded stage-selection regression and the full 25-stage smoke suite.
+- **Status:** Verified on PR #185 CI #520
+

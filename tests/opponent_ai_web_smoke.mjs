@@ -5,12 +5,14 @@ const channel = process.env.BROWSER_CHANNEL?.trim();
 const launchOptions = { headless: true };
 if (channel) launchOptions.channel = channel;
 
-function withMode(mode, opponentProfile = '') {
+function withMode(mode, opponentProfile = '', stage = '') {
   const url = new URL(baseUrl);
   if (mode) url.searchParams.set('mode', mode);
   else url.searchParams.delete('mode');
   if (opponentProfile) url.searchParams.set('opponent_profile', opponentProfile);
   else url.searchParams.delete('opponent_profile');
+  if (stage) url.searchParams.set('stage', stage);
+  else url.searchParams.delete('stage');
   return url.toString();
 }
 
@@ -35,6 +37,13 @@ try {
       document.documentElement.dataset.opponentAiActive === 'true' &&
       document.documentElement.dataset.opponentAiProfile === 'training_balanced' &&
       document.documentElement.dataset.appOpponentProfile === 'training_balanced' &&
+      document.documentElement.dataset.appStage === 'training_arena' &&
+      document.documentElement.dataset.stageId === 'training_arena' &&
+      document.documentElement.dataset.stageSelectorVisible === 'true' &&
+      document.documentElement.dataset.stageSelectorCount === '2' &&
+      document.documentElement.dataset.stageBackgroundToken === 'training_blue' &&
+      document.documentElement.dataset.stageFloorToken === 'training_grid' &&
+      Math.abs(Number(document.documentElement.dataset.stageArenaMargin) - 90) < 0.1 &&
       document.documentElement.dataset.opponentAiProfileSelectorVisible === 'true' &&
       document.documentElement.dataset.opponentAiProfileSelectorCount === '3' &&
       Math.abs(Number(document.documentElement.dataset.opponentAiReactionInterval) - 0.25) < 0.001 &&
@@ -113,12 +122,46 @@ try {
     { timeout: 60_000 },
   );
 
+  await page.evaluate(() => window.customFighterSelectStage('sunset_court'));
+  await page.waitForFunction(
+    () =>
+      document.documentElement.dataset.appMode === 'single_player' &&
+      document.documentElement.dataset.appStage === 'sunset_court' &&
+      document.documentElement.dataset.stageId === 'sunset_court' &&
+      document.documentElement.dataset.stageDisplayName === 'Sunset Court' &&
+      document.documentElement.dataset.stageSelectorVisible === 'true' &&
+      document.documentElement.dataset.stageSelectorCount === '2' &&
+      document.documentElement.dataset.stageBackgroundToken === 'sunset_court' &&
+      document.documentElement.dataset.stageFloorToken === 'stone_ring' &&
+      Math.abs(Number(document.documentElement.dataset.stageArenaMargin) - 120) < 0.1 &&
+      Number(document.documentElement.dataset.playerHp) === 100,
+    null,
+    { timeout: 60_000 },
+  );
+
+  const sunsetPlayerSpawnX = await num('stagePlayerSpawnX');
+  const sunsetOpponentSpawnX = await num('stageOpponentSpawnX');
+  if (Math.abs(sunsetPlayerSpawnX - 256) > 0.2 || Math.abs(sunsetOpponentSpawnX - 921.6) > 0.2) {
+    throw new Error(
+      'Sunset stage did not apply bounded spawns: player=' + sunsetPlayerSpawnX + ' opponent=' + sunsetOpponentSpawnX,
+    );
+  }
+
+  await page.evaluate(() => window.customFighterSelectStage('../unsafe-stage'));
+  await page.waitForTimeout(300);
+  const rejectedStage = await page.evaluate(() => document.documentElement.dataset.stageId);
+  if (rejectedStage !== 'sunset_court') {
+    throw new Error('Unsafe stage selection did not fail closed: stage=' + rejectedStage);
+  }
+
   await page.evaluate(() => window.customFighterSelectOpponentProfile('training_pressure'));
   await page.waitForFunction(
     () =>
       document.documentElement.dataset.appMode === 'single_player' &&
       document.documentElement.dataset.appOpponentProfile === 'training_pressure' &&
       document.documentElement.dataset.opponentAiProfile === 'training_pressure' &&
+      document.documentElement.dataset.appStage === 'sunset_court' &&
+      document.documentElement.dataset.stageId === 'sunset_court' &&
       document.documentElement.dataset.opponentAiActive === 'true' &&
       Math.abs(Number(document.documentElement.dataset.opponentAiReactionInterval) - 0.15) < 0.001 &&
       Math.abs(Number(document.documentElement.dataset.opponentAiBasicAttackRange) - 120) < 0.1 &&
@@ -153,6 +196,8 @@ try {
     () =>
       document.documentElement.dataset.appOpponentProfile === 'training_cautious' &&
       document.documentElement.dataset.opponentAiProfile === 'training_cautious' &&
+      document.documentElement.dataset.appStage === 'sunset_court' &&
+      document.documentElement.dataset.stageId === 'sunset_court' &&
       document.documentElement.dataset.opponentAiActive === 'true' &&
       Math.abs(Number(document.documentElement.dataset.opponentAiReactionInterval) - 0.45) < 0.001 &&
       Math.abs(Number(document.documentElement.dataset.opponentAiBasicAttackRange) - 150) < 0.1,
@@ -172,6 +217,9 @@ try {
       document.documentElement.dataset.godotReady === 'true' &&
       document.documentElement.dataset.opponentAiActive === 'false' &&
       document.documentElement.dataset.opponentAiProfileSelectorVisible === 'false' &&
+      document.documentElement.dataset.stageSelectorVisible === 'false' &&
+      document.documentElement.dataset.appStage === '' &&
+      document.documentElement.dataset.stageId === '' &&
       document.documentElement.dataset.matchOver === 'false',
     null,
     { timeout: 60_000 },
@@ -188,7 +236,7 @@ try {
   }
 
   console.log(
-    `WEB_OPPONENT_AI_SMOKE_PASSED activeMode=true approach=true attack=true playerDefeat=true restartPreserved=true difficultySelection=true profileCount=3 damageAuthorityStable=true balancedDamage=${balancedDamage} pressureDamage=${pressureDamage} passiveTraining=true`,
+    `WEB_OPPONENT_AI_SMOKE_PASSED activeMode=true approach=true attack=true playerDefeat=true restartPreserved=true difficultySelection=true profileCount=3 stageSelection=true stageCount=2 stagePreservedAcrossProfileChange=true damageAuthorityStable=true balancedDamage=${balancedDamage} pressureDamage=${pressureDamage} passiveTraining=true`,
   );
 } finally {
   await browser.close();

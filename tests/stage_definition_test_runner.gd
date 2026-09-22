@@ -27,6 +27,7 @@ func _test_builtin_registry() -> void:
 	_check(StageRegistry.DEFAULT_STAGE_ID == "training_arena", "training arena remains bounded default")
 	_check(StageRegistry.normalize_stage_id("SUNSET_COURT") == "sunset_court", "allow-listed stage id normalizes")
 	_check(StageRegistry.normalize_stage_id("missing_stage") == "training_arena", "unknown stage id falls back to bounded default")
+	_check(StageRegistry.display_label("sunset_court") == "Sunset Court", "stage registry exposes stable display label")
 
 	var training := StageDefinition.new()
 	var training_errors: PackedStringArray = StageRegistry.load_stage("training_arena", training)
