@@ -185,7 +185,8 @@ Implementation result:
 - `stage_definition_test_runner.gd` proves canonical load/round-trip, deterministic registry behavior, fail-closed executable/unknown fields, unsafe IDs, path/URL presentation rejection, arena/spawn bounds and minimum separation.
 - The new domain runner is part of the required GitHub CI domain-test gate.
 - Runtime application and stage-selection UI remain intentionally deferred to Work Unit 5.
-- PR validation remains pending.
+- PR #184 CI #512 (`35691723517`) passed the stage domain runner, Godot import/boot/domain/backend gates, Web export/size budget, Chromium `smoke:all`, Windows Native Release and hosted Microsoft Edge `smoke:all` on head `649d225f3399d3878a474c97697bc1bb5b9ba237`.
+- PR #184 is open and mergeable; merge remains gated on explicit user approval.
 
 ### Work Unit 5 — stage selection + single-player entry
 Add a selectable single-player flow that chooses validated opponent profile + stage before match start.

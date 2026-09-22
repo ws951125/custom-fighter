@@ -72,7 +72,7 @@ Work Unit 3 — **bounded difficulty/profile selector merged; exact-main Web val
 - Render exact-revision readiness still returned HTTP 503, so backend-dependent production Edge full smoke remained skipped. WU3 gameplay/Web behavior is therefore exact-main validated while backend-dependent production acceptance remains `Blocked / Residual Risk`.
 - V2 remains **37.5% (3/8 phases complete)** until the entire V2-4 phase is accepted.
 
-Work Unit 4 — **bounded stage definition + registry implemented; PR validation pending**:
+Work Unit 4 — **bounded stage definition + registry implemented and PR-validated; merge pending**:
 - `StageDefinition` introduces a strict schema-v1 declarative stage contract for arena horizontal margin, normalized player/opponent spawn coordinates, normalized depth, display name and allow-listed presentation tokens.
 - Unknown fields fail closed, including executable-style fields such as `script` or `callback`. Stage IDs reject path traversal / URL-like values; presentation fields accept only allow-listed semantic tokens and never resource paths or URLs.
 - Arena margin is bounded to 60–240px; spawn X ratios must remain within 0.08–0.92 with at least 0.15 horizontal separation; depths are normalized to 0–1.
@@ -80,7 +80,8 @@ Work Unit 4 — **bounded stage definition + registry implemented; PR validation
 - `stage_definition_test_runner.gd` covers deterministic registry ordering, canonical round-trip, unknown/executable fields, unsafe IDs, external/resource presentation tokens, arena-margin bounds, depth bounds and spawn-separation rules.
 - The stage domain regression is wired into the required GitHub CI domain-test gate.
 - WU4 deliberately does not yet wire runtime stage selection or change the current Training arena. Runtime stage selection remains WU5 scope.
-- PR/cloud validation is the next gate; V2 remains **37.5% (3/8 phases complete)**.
+- PR #184 CI #512 (`35691723517`) passed the stage domain runner, Godot import/boot/domain/backend gates, Web export/size budget, Chromium `smoke:all`, Windows Native Release and GitHub-hosted Microsoft Edge `smoke:all` on head `649d225f3399d3878a474c97697bc1bb5b9ba237`.
+- PR #184 is open and mergeable; merge still requires explicit user approval. V2 remains **37.5% (3/8 phases complete)**.
 
 ### V2-2 implementation checkpoints
 
