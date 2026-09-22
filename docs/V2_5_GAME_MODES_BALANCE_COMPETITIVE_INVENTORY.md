@@ -291,7 +291,16 @@ Implemented on branch `feat/v2-5-wu2-game-mode-ruleset-contracts`:
 - `main_router.gd` is deliberately unchanged; WU2 adds policy contracts only and does not expose competitive mode to users yet.
 
 ### Work Unit 3 — competitive power-budget validator
-Implement hard caps + deterministic aggregate budget with stable diagnostics and reference fixtures. Keep stored authored data unchanged.
+Implemented on branch `feat/v2-5-wu3-competitive-power-budget`:
+- `CompetitivePowerBudgetValidator` binds eligibility to exact budget ID `competitive_standard_v1`; sandbox/unknown budget IDs fail closed.
+- Character and skill hard caps are intentionally narrower than the outer safety/schema bounds and include family-specific competitive ceilings/floors.
+- Deterministic integer scoring freezes character `<= 3200`, per-skill `<= 4500`, and occupied-slot aggregate loadout `<= 18000`.
+- Reusing the same strong skill in multiple character slots counts once per occupied slot, preventing duplicate-slot budget bypass while emitting one stable per-skill diagnostic.
+- Stable diagnostics distinguish unsupported budget, unloaded/missing/unreferenced/duplicate skills, character hard/score caps, skill hard/score caps and aggregate loadout cap.
+- Existing authored definitions are read-only inputs; evaluation never normalizes or rewrites Creator/package source data.
+- Reference fixtures freeze Ember Vanguard at `2683 / 15649` and Storm Duelist at `2787 / 15426` (character / total), both eligible.
+- Domain tests cover exact-reference scores, skill-order determinism, no mutation, hard caps, aggregate repeated-slot pressure, inclusive boundaries and monotonic score increases for stronger damage, shorter cooldown and cheaper MP cost.
+- WU3 remains domain-only; router/UI/runtime combat do not consume the validator until later work units.
 
 ### Work Unit 4 — authoritative loadout snapshot + fingerprint
 Build the derived competitive snapshot only from schema-valid, registry-resolved, budget-valid content. Add deterministic canonical fingerprint/version compatibility coverage.
