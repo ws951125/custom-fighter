@@ -105,8 +105,9 @@ Architecture checkpoint:
 - Work Unit 2 adds explicit router mode `single_player`, activates the deterministic opponent only in that mode, reuses existing movement/combat authority, routes successful opponent damage through `receive_player_hit(...)`, preserves passive ordinary Training, and keeps match defeat/restart/return authority in the existing match flow.
 - PR #182 CI #506 (`35605738012`) passed Windows Native, Godot/domain/AI contracts, backend, Web export/size budget, Chromium `smoke:all`, and hosted Microsoft Edge `smoke:all`; PR #182 then squash-merged to `main` as `c548cfb3c0e53d2b1170205c1f1948889845db22`.
 - Exact-main CI #508 attempt 2 passed Chromium `smoke:all`, Windows Native, hosted Edge `smoke:all`, GitHub Pages deployment and public reachability. Full backend-dependent production acceptance remains blocked because the external Render AI backend returned HTTP 503 for all readiness attempts; production Edge full smoke was therefore skipped.
-- Work Unit 3 adds a third bounded `training_cautious` profile plus stable Easy/Normal/Hard labels, a user-facing single-player `AI Difficulty` selector, allow-listed URL/runtime profile selection, deterministic policy-difference coverage and browser proof that difficulty does not change authoritative opponent damage. Ordinary Training remains passive.
-- Later work units add validated stage definitions/selection and final deployed single-player acceptance.
+- Work Unit 3 adds a third bounded `training_cautious` profile plus stable Easy/Normal/Hard labels, a user-facing single-player `AI Difficulty` selector, allow-listed URL/runtime profile selection, deterministic policy-difference coverage and browser proof that difficulty does not change authoritative opponent damage. PR #183 merged to `main` as `1ae941dec82788a219073c831ebd36b657fd058d`; exact-main CI #511 validated Windows Native, Chromium, hosted Edge (same-SHA retry), Pages deployment and public reachability, while the external Render backend remained HTTP 503.
+- Work Unit 4 adds a strict declarative `StageDefinition` and built-in `StageRegistry` for bounded arena margin, normalized spawns/depth and allow-listed presentation tokens. Unknown/executable-style fields, unsafe IDs and arbitrary paths/URLs fail closed. Runtime stage selection is intentionally deferred to WU5.
+- Later work units add validated stage selection and final deployed single-player acceptance.
 - V2 remains **37.5% (3/8)** until the full V2-4 acceptance criterion is complete.
 
 ## V2-5 — Game Modes, Balance & Competitive Foundation
@@ -186,4 +187,4 @@ The architecture previously allowed a future local/open-model AI provider such a
 
 ## Next implementation target
 
-Validate/merge **V2-4 Work Unit 3 — difficulty profiles**, then implement **V2-4 Work Unit 4 — stage definition + registry** with strict bounded arena/spawn/presentation data. Difficulty remains policy-only and must not multiply damage, bypass MP/cooldowns, add stochastic behavior, or activate AI in ordinary Training.
+Validate/merge **V2-4 Work Unit 4 — stage definition + registry**, then implement **V2-4 Work Unit 5 — stage selection + single-player entry** using only validated stage IDs and bounded opponent profiles. Runtime stage application must reuse existing combat authority and must not introduce arbitrary resource paths or executable stage content.
