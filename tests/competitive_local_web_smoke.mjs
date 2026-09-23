@@ -101,7 +101,7 @@ try {
     emberSnapshot.authorityCharacter !== 'ember_vanguard_001' ||
     emberSnapshot.selectedCharacter !== 'ember_vanguard_001' ||
     !emberSnapshot.source.startsWith('competitive_authority_snapshot:') ||
-    emberSnapshot.maxHp !== 110 ||
+    emberSnapshot.maxHp !== 100 ||
     emberSnapshot.maxMp !== 100 ||
     emberSnapshot.runtimeSkill1 !== 'fireball_001' ||
     !emberSnapshot.runtimeSkill1Source.startsWith('competitive_authority_snapshot:') ||
