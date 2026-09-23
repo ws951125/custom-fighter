@@ -62,6 +62,7 @@ jobs:
           godot --headless --path . --script res://tests/game_mode_ruleset_test_runner.gd
           godot --headless --path . --script res://tests/competitive_power_budget_test_runner.gd
           godot --headless --path . --script res://tests/competitive_loadout_snapshot_test_runner.gd
+          godot --headless --path . --script res://tests/competitive_runtime_authority_test_runner.gd
           godot --headless --path . --script res://tests/skill_timeline_test_runner.gd
           godot --headless --path . --script res://tests/skill_timeline_runtime_test_runner.gd
           godot --headless --path . --script res://tests/skill_timeline_composition_test_runner.gd
