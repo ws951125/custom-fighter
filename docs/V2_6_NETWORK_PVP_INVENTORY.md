@@ -34,7 +34,7 @@ Any client message that attempts to smuggle unsupported combat-state fields must
 
 ### Work Unit 1 — session/lobby + authority admission contract
 
-Status: **implemented; required PR validation pending**.
+Status: **implemented; required PR validation passed on implementation head**.
 
 Deliverables:
 - transport-neutral two-player lobby lifecycle;
@@ -45,6 +45,8 @@ Deliverables:
 - ready/start gates;
 - authority-contract compatibility check before match start;
 - no WebSocket/UI yet.
+
+Validation: PR #197 implementation head `c0831496552bd95104333b19abd60643103777f5` passed CI #566 (`35862684985`): Windows Native, Godot/domain/AI, trusted backend including the WU1 session contract test, Web export/size, Chromium `smoke:all`, and hosted Microsoft Edge `smoke:all`.
 
 Current client loadout claim is intentionally narrow:
 - `character_id`
