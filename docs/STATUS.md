@@ -33,7 +33,19 @@ V2-1 delivered visual event timeline authoring, startup/active/recovery timing, 
 
 ### V2-5 implementation checkpoints
 
-Work Unit 2 — **bounded game-mode + versioned ruleset contracts implemented; PR validation pending**:
+Work Unit 3 — **deterministic competitive power-budget validator implemented; implementation CI passed, awaiting approved merge**:
+- `CompetitivePowerBudgetValidator` adds the first executable `competitive_standard_v1` eligibility layer without mutating stored Character/Skill definitions.
+- Competitive hard caps are materially narrower than the outer schema/safety envelope for character HP/MP/mobility and skill damage, MP floor, cooldown/startup/recovery, active time, speed/range, hitstun/knockback, hitbox coverage and family-specific Formation/Buff/Trap/Aura/Teleport/Counter/Grab/Summon dimensions.
+- The policy uses deterministic integer scores with frozen limits: character score `<= 3200`, per-skill score `<= 4500`, and occupied-slot aggregate loadout score `<= 18000`. Reusing one skill in multiple slots counts once per occupied slot, while its diagnostic is emitted only once.
+- Stable diagnostic codes distinguish hard-cap, missing/unreferenced/duplicate-skill, unsupported-budget, per-character, per-skill and aggregate-loadout failures.
+- The built-in reference characters remain eligible under the frozen v1 policy: Ember Vanguard character score `2683` / total `15649`; Storm Duelist character score `2787` / total `15426`.
+- `tests/competitive_power_budget_test_runner.gd` covers reference fixtures, same-input/order determinism, no authored-data mutation, unsupported budget, missing/unreferenced skills, hard caps, one-code-per-skill stability, repeated-slot aggregate pressure, inclusive boundary behavior and monotonic damage/cooldown/MP-cost scoring.
+- Required GitHub CI now executes the new competitive power-budget domain runner.
+- PR #190 implementation head `9fd110e2039f232371e0b18512522eed7c017bd9` passed CI #541 (`35735654240`) across Windows Native, Godot import/boot/domain/backend including the new power-budget runner, Web export/size budget, Chromium `smoke:all`, and hosted Microsoft Edge `smoke:all`.
+- WU3 remains domain-only: no competitive UI/router mode is exposed yet, and current Training/Creator/VFX/Single-player controls remain unchanged.
+- V2 remains **50% (4/8 phases complete)** until the full V2-5 acceptance criterion is complete.
+
+Work Unit 2 — **bounded game-mode + versioned ruleset contracts accepted; exact-main Web validated**:
 - `GameModeDefinition` introduces a strict schema-v1 declarative contract for mode ID/display name, mode family, ruleset ID/version, power-budget ID, authority policy and custom-content policy. Unknown/missing fields fail closed.
 - Mode policy references are allow-listed rather than accepting arbitrary safe-looking tokens. Sandbox must use `sandbox_default` + `sandbox_safe_limits` and remain `local_authoritative`; single-player must use `single_player_default` + `sandbox_safe_limits` and remain local-authoritative; competitive modes must use `competitive_standard` + `competitive_standard_v1` and may declare only local- or host-authoritative policy.
 - `CompetitiveRulesetDefinition` adds a strict versioned contract for power-budget, character-constraint, skill-constraint and determinism-policy IDs. Unknown executable-style fields, unsupported policy IDs and invalid versions fail closed.
@@ -42,7 +54,9 @@ Work Unit 2 — **bounded game-mode + versioned ruleset contracts implemented; P
 - Existing `main_router.gd` is intentionally unchanged in WU2. Current Training/Creator/VFX/Single-player behavior and controls are preserved; the new policy layer is not yet a user-selectable competitive mode.
 - `tests/game_mode_ruleset_test_runner.gd` covers registry ordering, canonical round trips, family/authority constraints, executable/unknown fields, external/unsafe references, competitive→sandbox budget downgrade rejection, ruleset-policy allow-lists, version mismatch, unloaded-on-failure behavior and same-input deterministic output.
 - CI now executes the new domain runner before existing timeline/character/skill tests.
-- V2 remains **50% (4/8 phases complete)** until the full V2-5 acceptance criterion is complete.
+- PR #189 latest-head CI #539 (`35728595324`) passed Windows Native, Godot/domain/backend, Web export/size budget, Chromium `smoke:all`, and hosted Microsoft Edge `smoke:all` on head `3249164d205b7614a057c293c7e824a8748d07d4`; PR #189 was explicitly approved and squash-merged to `main` as `b939a3380a535511648d97af2056ec39b1eba246`.
+- Exact-main CI #540 (`35733671081`) passed Windows Native, Godot/domain/backend, Web export/size budget, Chromium `smoke:all`, hosted Microsoft Edge `smoke:all`, GitHub Pages deployment, and public-Web reachability. The external Render AI backend again returned HTTP 503 for all 18 readiness attempts, so backend-dependent production Edge full smoke was skipped as the existing provider/backend residual risk.
+- WU2 is accepted. V2 remains **50% (4/8 phases complete)** until the full V2-5 acceptance criterion is complete.
 
 Work Unit 1 — **competitive-foundation architecture inventory accepted; exact-main Web validated**:
 - `docs/V2_5_GAME_MODES_BALANCE_COMPETITIVE_INVENTORY.md` inventories the current router modes, combat authority, character/skill/package validators and the missing competitive trust boundary.

@@ -139,7 +139,12 @@ Architecture checkpoint:
 - Exact-main CI #538 (`35726723857`) passed Windows Native, Godot/domain/backend, Web export/size budget, Chromium, hosted Edge, Pages deployment and public reachability. External Render readiness remained HTTP 503 for all 18 attempts, so backend-dependent production Edge full smoke was skipped as the existing provider/backend residual risk.
 - WU2 implements strict declarative `GameModeDefinition` / `CompetitiveRulesetDefinition` contracts plus deterministic allow-listed registries. Sandbox/single-player policy remains local-authoritative and separate from competitive `competitive_standard_v1`; unknown fields, unsafe/unknown policy references and ruleset-version mismatches fail closed.
 - WU2 intentionally does not wire the new policy layer into `main_router.gd`, so current user-facing Training/Creator/VFX/Single-player behavior remains unchanged while the competitive authority contract is established.
-- Planned sequence after WU2: WU3 competitive power-budget validator; WU4 authoritative loadout snapshot/fingerprint; WU5 local competitive authority path; WU6 cross-browser phase acceptance.
+- PR #189 latest-head CI #539 (`35728595324`) passed Windows Native, Godot/domain/backend, Web export/size budget, Chromium and hosted Microsoft Edge on head `3249164d205b7614a057c293c7e824a8748d07d4`; PR #189 then squash-merged to `main` as `b939a3380a535511648d97af2056ec39b1eba246`.
+- Exact-main CI #540 (`35733671081`) passed Windows Native, Godot/domain/backend, Web export/size budget, Chromium, hosted Edge, GitHub Pages deployment and public reachability. External Render readiness remained HTTP 503 for all 18 attempts, so backend-dependent production Edge full smoke was skipped as the existing provider/backend residual risk.
+- WU3 implements `CompetitivePowerBudgetValidator` for `competitive_standard_v1` with narrower hard caps plus deterministic integer character/skill/loadout scores, stable diagnostics, repeated-slot aggregate accounting and no authored-data mutation.
+- Reference fixtures freeze Ember Vanguard at character score `2683` / total `15649` and Storm Duelist at `2787` / `15426`; boundary and monotonicity regressions guard future policy edits.
+- PR #190 implementation head `9fd110e2039f232371e0b18512522eed7c017bd9` passed CI #541 (`35735654240`) across Windows Native, Godot/domain/backend, Web export/size budget, Chromium and hosted Microsoft Edge.
+- Planned sequence after WU3: WU4 authoritative loadout snapshot/fingerprint; WU5 local competitive authority path; WU6 cross-browser phase acceptance.
 - V2 remains **50% (4/8)** until the complete V2-5 acceptance criterion is satisfied.
 
 Note: this phase establishes the competitive foundation; full network PvP is V2-6.
@@ -204,4 +209,4 @@ The architecture previously allowed a future local/open-model AI provider such a
 
 ## Next implementation target
 
-Validate/merge **V2-5 Work Unit 2 — bounded game-mode + versioned ruleset contracts**, then implement **V2-5 Work Unit 3 — deterministic competitive power-budget validator** with hard caps, stable diagnostics, reference fixtures, boundary cases and monotonicity coverage while leaving stored authored data unchanged.
+Validate/merge **V2-5 Work Unit 3 — deterministic competitive power-budget validator**, then implement **V2-5 Work Unit 4 — authoritative competitive loadout snapshot + deterministic content fingerprint** using only schema-valid, registry-resolved, budget-valid content.
