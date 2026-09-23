@@ -331,12 +331,23 @@ Implemented on branch `feat/v2-5-wu5-competitive-local-authority`:
 This remains a local/host-authoritative foundation, not network PvP.
 
 ### Work Unit 6 — full V2-5 acceptance
-Cross-browser regression proves:
+Implemented on branch `feat/v2-5-wu6-full-acceptance`; required PR validation passed on implementation head:
+- `tests/v2_5_competitive_acceptance_test_runner.gd` formalizes the phase acceptance contract and reuses the actual production mode/ruleset/budget/authority classes rather than a parallel test policy.
+- A schema-valid sandbox fixture uses HP `222`, damage `41`, MP cost `4`, cooldown `0.25s`: the definitions load inside the outer safety envelope, while `competitive_standard_v1` deterministically rejects them with HP/damage/MP/cooldown policy diagnostics.
+- Ruleset `competitive_standard@2` fails closed and cannot mint an authority snapshot.
+- Exact fingerprints are frozen as cross-browser fixtures: Ember `56451d3bdf1c7bf74852a3620894667730ddb088f350eb598badfa74c6d3c28e`; Storm `5822c6cfb4737c29007f2450a598c501b79c17d8ed9a432e4327976cc6a7026e`.
+- Runtime authority regression begins with forged overspec values and proves materialization replaces them with admitted Ember HP `100`, damage `18`, MP cost `25`, cooldown `1.8s`.
+- `tests/competitive_local_web_smoke.mjs` now proves the sandbox/competitive split through normal Creator preview plus Competitive Local, and requires the exact frozen fingerprints and authority skill values in both Chromium and hosted Edge.
+- Competitive runtime publishes diagnostic-only admitted Skill 1 authority telemetry for browser acceptance; it does not change combat decisions or player controls.
+- The existing browser smoke stage is strengthened in place, so WU6 does not add another Playwright process/job.
+- PR #195 implementation head `e0a65026ea5cafb9561e9650f7c9c33254746a76` passed CI #561 (`35823214802`) across Windows Native, Godot/domain/backend, Web export/size budget and Chromium. Hosted Edge attempt 1 timed out in unchanged `match_restart_web_smoke.mjs:100`; targeted same-SHA retry of only the failed Edge job passed the complete Edge suite in attempt 2 with no product/test change. Final docs-sync HEAD validation remains required before merge.
+
+Cross-browser regression therefore covers:
 - sandbox remains permissive within existing safe schema limits;
 - competitive rejects/normalizes only according to the frozen ruleset;
-- over-budget packages cannot control authoritative damage/cooldown;
+- over-budget authored values cannot control authoritative damage/cooldown;
 - ruleset/version mismatch fails closed;
-- the same accepted content yields deterministic authority values across Chromium and hosted Edge.
+- the same accepted content must yield the exact deterministic authority values/fingerprints across Chromium and hosted Edge.
 
 ## Non-goals for V2-5
 
