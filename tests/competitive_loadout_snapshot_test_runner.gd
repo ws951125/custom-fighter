@@ -104,7 +104,9 @@ func _test_canonical_fingerprint_ordering() -> void:
 	var second_hash := CompetitiveLoadoutSnapshotBuilder._sha256_canonical(second)
 	_check(first_hash == second_hash, "dictionary insertion order does not change canonical fingerprint")
 
-	second["a"]["y"] = [3, 2, 0]
+	var changed_nested: Dictionary = second.get("a", {})
+	changed_nested["y"] = [3, 2, 0]
+	second["a"] = changed_nested
 	var changed_hash := CompetitiveLoadoutSnapshotBuilder._sha256_canonical(second)
 	_check(changed_hash != first_hash, "authoritative value change changes canonical fingerprint")
 
