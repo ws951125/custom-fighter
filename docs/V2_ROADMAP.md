@@ -152,8 +152,10 @@ Architecture checkpoint:
 - WU5 implements the local competitive authority path: `competitive_local` router support, fingerprint-validated authority snapshot materialization, authority-registry reload, raw Creator combat-override blocking, fail-closed rejection and competitive-mode restart preservation.
 - WU5 domain regression proves forged runtime targets cannot bypass admitted HP/MP/damage/cooldown values, wrong local/host authority mode fails closed, unknown characters are rejected, and post-admission snapshot tampering invalidates runtime materialization.
 - WU5 browser regression is part of shared Chromium/hosted-Edge `smoke:all`; PR #193 implementation head `9a4c13905fa4307de929f94de952c1896ddb11a0` passed CI #556 (`35815833880`) across Windows Native, Godot/domain/backend, Web export/size budget, Chromium and hosted Microsoft Edge.
-- Planned sequence after WU5 validation: WU6 full V2-5 cross-browser phase acceptance.
-- V2 remains **50% (4/8)** until the complete V2-5 acceptance criterion is satisfied.
+- PR #193 latest head `e3999e785a9d540c5a1e032474a9fe40ac0ca3ae` passed required PR CI #557 (`35817088723`) and was explicitly approved/squash-merged to `main` as `5204a3f8a04beada0e21eac1a238ee2286bfbc66`. Exact-main CI #558 (`35818795131`) passed all backend-independent product gates, Pages deployment and public reachability; only the external Render AI backend readiness failed after 18 HTTP 503 responses.
+- WU6 adds the final V2-5 acceptance contract: schema-safe sandbox content outside the competitive envelope remains loadable, competitive budget rejection is stable, raw over-budget runtime values are replaced by admitted authority values, unsupported ruleset versions fail closed, and Ember/Storm authority fingerprints are frozen across Chromium and hosted Edge.
+- WU6 implementation is on `feat/v2-5-wu6-cross-browser-acceptance`; required PR validation is pending.
+- V2 remains **50% (4/8)** until WU6 is accepted and merged; V2-5 completion then advances V2 to **62.5% (5/8)**.
 
 Note: this phase establishes the competitive foundation; full network PvP is V2-6.
 
@@ -217,4 +219,4 @@ The architecture previously allowed a future local/open-model AI provider such a
 
 ## Next implementation target
 
-Validate **V2-5 Work Unit 5 — local competitive authority path**, then execute **V2-5 Work Unit 6 — full cross-browser phase acceptance** proving sandbox/competitive separation, over-budget rejection, ruleset/version fail-closed behavior and deterministic authority values.
+Validate **V2-5 Work Unit 6 — full cross-browser phase acceptance**. After WU6 passes required GitHub CI and merges, mark V2-5 complete and begin **V2-6 Network PvP** architecture/inventory.
