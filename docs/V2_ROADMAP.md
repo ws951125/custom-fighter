@@ -143,8 +143,12 @@ Architecture checkpoint:
 - Exact-main CI #540 (`35733671081`) passed Windows Native, Godot/domain/backend, Web export/size budget, Chromium, hosted Edge, GitHub Pages deployment and public reachability. External Render readiness remained HTTP 503 for all 18 attempts, so backend-dependent production Edge full smoke was skipped as the existing provider/backend residual risk.
 - WU3 implements `CompetitivePowerBudgetValidator` for `competitive_standard_v1` with narrower hard caps plus deterministic integer character/skill/loadout scores, stable diagnostics, repeated-slot aggregate accounting and no authored-data mutation.
 - Reference fixtures freeze Ember Vanguard at character score `2683` / total `15649` and Storm Duelist at `2787` / `15426`; boundary and monotonicity regressions guard future policy edits.
-- PR #190 implementation head `9fd110e2039f232371e0b18512522eed7c017bd9` passed CI #541 (`35735654240`) across Windows Native, Godot/domain/backend, Web export/size budget, Chromium and hosted Microsoft Edge.
-- Planned sequence after WU3: WU4 authoritative loadout snapshot/fingerprint; WU5 local competitive authority path; WU6 cross-browser phase acceptance.
+- PR #190 latest head `3624eed4a1b166f44975a146d06dd14a827342b1` passed CI #544 (`35743432893`) across Windows Native, Godot/domain/backend, Web export/size budget, Chromium and hosted Microsoft Edge; PR #190 then squash-merged to `main` as `ec68a7ef73464846594b7447c9b447c7917ed253`.
+- WU4 implements an authority-derived `CompetitiveLoadoutSnapshot` that accepts only a versioned competitive ruleset, character ID and trusted registries; character and skills are re-resolved before the frozen competitive budget is evaluated.
+- WU4 successful admission emits versioned authoritative stats/skill values, budget evidence and a deterministic SHA-256 content fingerprint. Canonical fingerprint input uses fixed field ordering plus integer-scaled floats and includes combat-relevant hitbox/hurtbox timeline geometry/timing while excluding presentation/runtime telemetry.
+- WU4 fail-closed coverage rejects wrong/noncompetitive rulesets, unregistered characters, missing trusted skill registry entries and over-budget content; rejected proposals receive no authoritative values or fingerprint.
+- WU4 remains domain-only and does not expose a competitive router/UI mode yet.
+- Planned sequence after WU4: WU5 local competitive authority path; WU6 cross-browser phase acceptance.
 - V2 remains **50% (4/8)** until the complete V2-5 acceptance criterion is satisfied.
 
 Note: this phase establishes the competitive foundation; full network PvP is V2-6.
@@ -209,4 +213,4 @@ The architecture previously allowed a future local/open-model AI provider such a
 
 ## Next implementation target
 
-Validate/merge **V2-5 Work Unit 3 — deterministic competitive power-budget validator**, then implement **V2-5 Work Unit 4 — authoritative competitive loadout snapshot + deterministic content fingerprint** using only schema-valid, registry-resolved, budget-valid content.
+Validate **V2-5 Work Unit 4 — authoritative competitive loadout snapshot + deterministic content fingerprint** on GitHub-hosted CI, then proceed to **V2-5 Work Unit 5 — local competitive authority path** after WU4 merge approval.
