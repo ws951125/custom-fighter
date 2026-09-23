@@ -115,3 +115,13 @@ V2 remains **62.5% (5/8 phases complete)** throughout partial V2-6 work. It adva
 - The client fingerprint is equality evidence only: the server resolves and validates trusted package data, computes the authoritative fingerprint, and never accepts client damage/cooldown as authority.
 - Backend regression coverage is wired into the existing trusted-backend CI gate; no extra browser process/job is added.
 - V2 remains 62.5% (5/8) until full V2-6 acceptance.
+
+
+## V2-6 WU3 — authoritative input/tick/state model (2026-09-24)
+- Added a transport-neutral server-authoritative match core with a fixed 60 Hz authority tick contract.
+- Client input is an exact allow-listed intent envelope only: monotonic sequence, bounded -1/0/1 movement axes, boolean run/jump/guard, and allow-listed action intent.
+- Unsupported fields such as client-authored damage/HP/cooldown fail closed before state mutation.
+- Duplicate/out-of-order sequences are rejected per participant; accepted intents are consumed once on the next authority step.
+- Server snapshots own tick, HP/MP, position, guard state, cooldown state and last accepted input sequence; returned snapshots are detached copies.
+- Backend regression coverage is wired into the existing trusted-backend CI gate. Transport, hit/damage resolution and browser wiring remain later WU3/WU4 scope.
+- V2 remains 62.5% (5/8) until full V2-6 acceptance.
