@@ -5,6 +5,9 @@ const browserChannel = process.env.BROWSER_CHANNEL?.trim();
 const launchOptions = { headless: true };
 if (browserChannel) launchOptions.channel = browserChannel;
 
+const EMBER_FINGERPRINT = '56451d3bdf1c7bf74852a3620894667730ddb088f350eb598badfa74c6d3c28e';
+const STORM_FINGERPRINT = '5822c6cfb4737c29007f2450a598c501b79c17d8ed9a432e4327976cc6a7026e';
+
 console.log(`COMPETITIVE_LOCAL_BROWSER=${browserChannel || 'playwright-chromium'}`);
 console.log(`COMPETITIVE_LOCAL_BASE_URL=${baseUrl}`);
 
@@ -94,7 +97,7 @@ try {
   if (
     emberSnapshot.mode !== 'competitive_local' ||
     emberSnapshot.admitted !== 'true' ||
-    emberSnapshot.fingerprint.length !== 64 ||
+    emberSnapshot.fingerprint !== EMBER_FINGERPRINT ||
     emberSnapshot.ruleset !== 'competitive_standard' ||
     emberSnapshot.rulesetVersion !== 1 ||
     emberSnapshot.budget !== 'competitive_standard_v1' ||
@@ -135,7 +138,7 @@ try {
     stormSnapshot.maxMp !== 120 ||
     stormSnapshot.runtimeSkill1 !== 'training_bolt_001' ||
     stormSnapshot.inputEnabled !== 'true' ||
-    stormFingerprint.length !== 64 ||
+    stormFingerprint !== STORM_FINGERPRINT ||
     stormFingerprint === emberSnapshot.fingerprint
   ) {
     throw new Error(`Storm competitive authority mismatch: ${JSON.stringify({ ...stormSnapshot, stormFingerprint })}`);
@@ -177,7 +180,7 @@ try {
   await rejected.page.close();
 
   console.log(
-    `COMPETITIVE_LOCAL_WEB_SMOKE_PASSED emberFingerprint=${emberSnapshot.fingerprint} stormFingerprint=${stormFingerprint} invalidFailClosed=true`,
+    `COMPETITIVE_LOCAL_WEB_SMOKE_PASSED emberFingerprint=${emberSnapshot.fingerprint} stormFingerprint=${stormFingerprint} deterministicAcrossBrowserContract=true invalidFailClosed=true`,
   );
 } finally {
   await browser.close();
