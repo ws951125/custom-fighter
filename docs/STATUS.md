@@ -33,14 +33,15 @@ V2-1 delivered visual event timeline authoring, startup/active/recovery timing, 
 
 ### V2-5 implementation checkpoints
 
-Work Unit 6 — **full V2-5 acceptance regression implemented; PR validation pending**:
+Work Unit 6 — **full V2-5 acceptance regression implemented; required PR validation passed on implementation head**:
 - New `tests/v2_5_competitive_acceptance_test_runner.gd` treats the acceptance target as one contract: schema-safe sandbox content remains loadable, the same over-budget values are rejected by `competitive_standard_v1`, ruleset version mismatch emits no authority snapshot, frozen reference fingerprints are exact, and runtime materialization replaces forged HP/damage/MP/cooldown with admitted authority values.
 - The overspec acceptance fixture intentionally stays inside the existing schema/safety envelope while exceeding competitive bounds: HP `222`, Skill 1 damage `41`, MP cost `4`, cooldown `0.25s`.
 - `tests/competitive_local_web_smoke.mjs` now uses the normal Creator preview bridge to prove those overspec values remain usable in Training/sandbox behavior, then verifies Competitive Local uses authority-owned Ember values HP `100`, damage `18`, MP cost `25`, cooldown `1.8s`.
 - Cross-browser acceptance freezes the exact known-good authority fingerprints observed identically in prior Chromium/Edge validation: Ember `56451d3bdf1c7bf74852a3620894667730ddb088f350eb598badfa74c6d3c28e`; Storm `5822c6cfb4737c29007f2450a598c501b79c17d8ed9a432e4327976cc6a7026e`.
 - Competitive runtime publishes diagnostic-only admitted Skill 1 ID/damage/MP/cooldown telemetry so browser acceptance can verify authority values directly without timing-dependent combat inference.
 - The existing `smoke:competitive-local` stage is strengthened in place rather than adding another browser stage, preserving the current Chromium/hosted-Edge CI call budget.
-- Required CI now runs the WU6 acceptance domain runner; full PR validation is pending.
+- Required CI now runs the WU6 acceptance domain runner. PR #195 implementation head `e0a65026ea5cafb9561e9650f7c9c33254746a76` passed CI #561 (`35823214802`): Windows Native, Godot import/boot/domain/backend including `V2_5_COMPETITIVE_ACCEPTANCE_TESTS_PASSED`, Web export/size budget, Chromium `smoke:all`, and hosted Microsoft Edge `smoke:all`. Hosted Edge attempt 1 timed out only in unchanged `match_restart_web_smoke.mjs:100`; a targeted same-SHA retry of only the failed Edge job passed the complete Edge suite in attempt 2 with no product/test change, consistent with L-037/L-043.
+- A final docs-sync HEAD is validated separately before merge.
 - V2 remains **50% (4/8 phases complete)** until WU6 passes required PR validation and V2-5 is accepted.
 
 Work Unit 5 — **local competitive authority runtime implemented; required PR validation passed on implementation head**:
