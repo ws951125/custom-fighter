@@ -202,23 +202,26 @@ static func _canonical_string(value: Variant) -> String:
 		TYPE_NIL, TYPE_BOOL, TYPE_INT, TYPE_FLOAT, TYPE_STRING:
 			return JSON.stringify(value)
 		TYPE_PACKED_STRING_ARRAY:
-			var string_items: Array[String] = []
-			for item in value:
-				string_items.append(_canonical_string(str(item)))
+			var packed_values: PackedStringArray = value
+			var string_items := PackedStringArray()
+			for item in packed_values:
+				string_items.append(_canonical_string(item))
 			return "[" + ",".join(string_items) + "]"
 		TYPE_ARRAY:
-			var array_items: Array[String] = []
-			for item in value:
+			var array_values: Array = value
+			var array_items := PackedStringArray()
+			for item in array_values:
 				array_items.append(_canonical_string(item))
 			return "[" + ",".join(array_items) + "]"
 		TYPE_DICTIONARY:
+			var dictionary: Dictionary = value
 			var keys := PackedStringArray()
-			for raw_key in value.keys():
+			for raw_key in dictionary.keys():
 				keys.append(str(raw_key))
 			keys.sort()
-			var dictionary_items: Array[String] = []
+			var dictionary_items := PackedStringArray()
 			for key in keys:
-				dictionary_items.append(JSON.stringify(key) + ":" + _canonical_string(value.get(key)))
+				dictionary_items.append(JSON.stringify(key) + ":" + _canonical_string(dictionary.get(key)))
 			return "{" + ",".join(dictionary_items) + "}"
 		_:
 			return JSON.stringify(str(value))
