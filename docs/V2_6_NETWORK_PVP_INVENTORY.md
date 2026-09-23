@@ -106,3 +106,12 @@ Planned cross-browser/online proof:
 ## Progress rule
 
 V2 remains **62.5% (5/8 phases complete)** throughout partial V2-6 work. It advances to **75% (6/8)** only after the complete V2-6 acceptance criterion passes and evidence is synchronized.
+
+
+## V2-6 WU2 — server-side package authority admission (2026-09-24)
+- Added a server-owned PvP package authority adapter for built-in and bounded custom loadouts.
+- Built-in competitive characters are admitted only when the client claim matches the server-frozen V2-5 fingerprint.
+- Custom package admission fails closed on unsupported schema/ruleset/budget, unknown fields, unresolved skill slots/types, duplicate skills, and bounded combat-value violations.
+- The client fingerprint is equality evidence only: the server resolves and validates trusted package data, computes the authoritative fingerprint, and never accepts client damage/cooldown as authority.
+- Backend regression coverage is wired into the existing trusted-backend CI gate; no extra browser process/job is added.
+- V2 remains 62.5% (5/8) until full V2-6 acceptance.
