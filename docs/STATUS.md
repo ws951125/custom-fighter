@@ -33,6 +33,19 @@ V2-1 delivered visual event timeline authoring, startup/active/recovery timing, 
 
 ### V2-5 implementation checkpoints
 
+Work Unit 6 — **full V2-5 acceptance contract implemented; required PR validation passed**:
+- New `tests/v2_5_acceptance_test_runner.gd` turns the final V2-5 acceptance conditions into one deterministic domain gate.
+- A schema-valid sandbox fixture deliberately uses values outside the competitive envelope (`max_hp=180`, `damage=41`, `mp_cost=4`, `cooldown=0.49`) and must still load through the normal declarative Character/Skill schemas.
+- The same fixture must fail `competitive_standard_v1` with stable HP/damage/MP/cooldown diagnostics; an unregistered custom character ID cannot mint a competitive authority snapshot.
+- A forged runtime target carrying those over-budget values is replaced by the admitted Ember authority snapshot, proving raw authored/client damage, MP cost, cooldown and HP cannot control competitive runtime authority.
+- Unsupported `competitive_standard@2` must fail closed with no snapshot.
+- Ember and Storm SHA-256 authority fingerprints are now frozen to `56451d3bdf1c7bf74852a3620894667730ddb088f350eb598badfa74c6d3c28e` and `5822c6cfb4737c29007f2450a598c501b79c17d8ed9a432e4327976cc6a7026e`.
+- `competitive_local_web_smoke.mjs` now requires those exact fingerprints. Because the same `smoke:all` runs under Chromium and GitHub-hosted Microsoft Edge, a browser-specific authority serialization drift fails the required PR gate.
+- Existing Creator Preview browser smoke already proves sandbox/training remains permissive for schema-valid authored HP `180`; WU6 does not tighten sandbox behavior.
+- Required CI executes the WU6 acceptance runner. PR #194 implementation head `84aa674367bd7e94dad16c98b6070f8abc92a216` passed CI #559 (`35821603413`): Windows Native, Godot import/boot/domain/backend including `V2_5_ACCEPTANCE_TESTS_PASSED`, Web export/size budget, Chromium `smoke:all` 26/26, and GitHub-hosted Microsoft Edge `smoke:all` 26/26.
+- This round adds no new player-facing gameplay/UI controls; it is acceptance/regression hardening only.
+- Required PR acceptance is satisfied; merge approval for PR #194 is the remaining gate. Before merge V2 remains **50% (4/8)**; once PR #194 is merged, V2-5 is complete and V2 advances to **62.5% (5/8)**.
+
 Work Unit 5 — **local competitive authority runtime implemented; required PR validation passed on implementation head**:
 - New `CompetitiveRuntimeAuthority` resolves only `competitive_local`, requires its frozen `competitive_standard@1` / `competitive_standard_v1` contract, consumes the WU4 authority snapshot, re-validates its SHA-256 fingerprint before runtime materialization, and fails closed on mode/policy/snapshot mismatch.
 - `main_router.gd` now recognizes `?mode=competitive_local` and mounts the existing combat runtime without adding network PvP.
@@ -43,6 +56,8 @@ Work Unit 5 — **local competitive authority runtime implemented; required PR v
 - New `tests/competitive_runtime_authority_test_runner.gd` proves forged pre-existing character/skill values cannot bypass the authority snapshot, wrong authority modes and unknown characters fail closed, and post-admission snapshot tampering is rejected.
 - New `tests/competitive_local_web_smoke.mjs` covers accepted Ember/Storm authority state, deterministic ruleset/budget/fingerprint exposure, authority-owned runtime skill sources and invalid-character fail-closed behavior in Chromium/hosted Edge. It is included in `smoke:all`.
 - Required CI now executes the WU5 domain runner. PR #193 implementation head `9a4c13905fa4307de929f94de952c1896ddb11a0` passed CI #556 (`35815833880`): Windows Native, Godot import/boot/domain/backend including the new authority runner, Web export/size budget, Chromium `smoke:all`, and GitHub-hosted Microsoft Edge `smoke:all`.
+- PR #193 latest docs-sync head `e3999e785a9d540c5a1e032474a9fe40ac0ca3ae` passed required PR CI #557 (`35817088723`) and was explicitly approved/squash-merged to `main` as `5204a3f8a04beada0e21eac1a238ee2286bfbc66`.
+- Exact-main CI #558 (`35818795131`) passed Windows Native, Godot/domain/backend, Web export/size budget, Chromium `smoke:all`, hosted Microsoft Edge `smoke:all`, GitHub Pages deployment and public-Web reachability. Only external Render AI backend readiness failed after 18 HTTP 503 responses, so production Edge full smoke was skipped as the existing provider/backend residual risk rather than a WU5 regression.
 - V2 remains **50% (4/8 phases complete)** until WU6 completes the full V2-5 cross-browser acceptance.
 
 Work Unit 4 — **authoritative loadout snapshot + deterministic content fingerprint implemented; required PR validation passed**:
