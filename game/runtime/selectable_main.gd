@@ -154,6 +154,10 @@ func _set_web_state() -> void:
 	if not OS.has_feature("web"):
 		return
 	var authority_snapshot: Dictionary = competitive_runtime_authority.snapshot if competitive_authority_admitted else {}
+	var authority_slots: Dictionary = authority_snapshot.get("resolved_skill_slots", {})
+	var authority_skill_values: Dictionary = authority_snapshot.get("normalized_skill_values", {})
+	var authority_skill_1_id := str(authority_slots.get("skill_1", ""))
+	var authority_skill_1: Dictionary = authority_skill_values.get(authority_skill_1_id, {})
 	JavaScriptBridge.eval(
 		"document.documentElement.dataset.playerCharacterRegistryLoaded='%s';" % _bool_text(player_character_registry.loaded) +
 		"document.documentElement.dataset.playerCharacterRegistryDefault=%s;" % JSON.stringify(player_character_registry.default_character_id) +
@@ -169,5 +173,9 @@ func _set_web_state() -> void:
 		"document.documentElement.dataset.competitiveAuthorityRulesetVersion='%d';" % int(authority_snapshot.get("ruleset_version", 0)) +
 		"document.documentElement.dataset.competitiveAuthorityPowerBudgetId=%s;" % JSON.stringify(str(authority_snapshot.get("power_budget_id", ""))) +
 		"document.documentElement.dataset.competitiveAuthorityCharacterId=%s;" % JSON.stringify(str(authority_snapshot.get("character_id", ""))) +
+		"document.documentElement.dataset.competitiveAuthoritySkill1Id=%s;" % JSON.stringify(authority_skill_1_id) +
+		"document.documentElement.dataset.competitiveAuthoritySkill1Damage='%d';" % int(authority_skill_1.get("damage", 0)) +
+		"document.documentElement.dataset.competitiveAuthoritySkill1MpCost='%d';" % int(authority_skill_1.get("mp_cost", 0)) +
+		"document.documentElement.dataset.competitiveAuthoritySkill1Cooldown='%.3f';" % float(authority_skill_1.get("cooldown", 0.0)) +
 		"document.documentElement.dataset.competitiveAuthorityDiagnostics=%s;" % JSON.stringify(",".join(competitive_authority_diagnostic_codes))
 	)
