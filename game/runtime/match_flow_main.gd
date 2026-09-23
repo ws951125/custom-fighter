@@ -46,6 +46,8 @@ var opponent_last_damage := 0
 
 func _ready() -> void:
 	super()
+	if _competitive_authority_mode_active() and not competitive_authority_admitted:
+		_set_runtime_controllers_processing(false)
 	_configure_stage()
 	_configure_opponent_ai()
 	_create_opponent_profile_selector()
@@ -415,7 +417,7 @@ func _finish_match(result: String) -> void:
 	queue_redraw()
 
 func _restart_match() -> void:
-	_switch_router_mode(SINGLE_PLAYER_MODE if opponent_ai_active else "training")
+	_switch_router_mode(_router_mode())
 
 func _return_to_creator() -> void:
 	_switch_router_mode("creator")
