@@ -22,6 +22,7 @@
     "smoke:coordination": "node tests/skill_coordination_web_smoke.mjs",
     "smoke:character": "node tests/character_web_smoke.mjs",
     "smoke:character-selection": "node tests/character_selection_web_smoke.mjs",
+    "smoke:competitive-local": "node tests/competitive_local_web_smoke.mjs",
     "smoke:character-animation": "node tests/character_animation_web_smoke.mjs",
     "smoke:creator": "node tests/creator_studio_web_smoke.mjs",
     "smoke:creator-skill": "node tests/creator_skill_editor_web_smoke.mjs",
