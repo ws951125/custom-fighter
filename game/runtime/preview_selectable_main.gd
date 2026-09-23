@@ -5,6 +5,8 @@ const PreviewCombatantState = preload("res://game/core/combat/combatant_state.gd
 
 func _enter_tree() -> void:
 	super()
+	if _competitive_authority_mode_active():
+		return
 	var session: Variant = _creator_preview_session()
 	if not _preview_session_active(session):
 		return
@@ -36,6 +38,8 @@ func _enter_tree() -> void:
 	player_state = PreviewCombatantState.new(player_character.max_hp, player_character.max_mp)
 
 func load_character_skill_for_slot(slot_name: String, expected_type: String, target_skill) -> PackedStringArray:
+	if _competitive_authority_mode_active():
+		return super(slot_name, expected_type, target_skill)
 	var session: Variant = _creator_preview_session()
 	var preview_slot := _preview_skill_slot(session)
 	if not _preview_session_active(session) or preview_slot.is_empty() or slot_name != preview_slot:
@@ -70,10 +74,12 @@ func _set_web_state() -> void:
 		return
 	var session: Variant = _creator_preview_session()
 	var active: bool = _preview_session_active(session)
-	var skill_data: Dictionary = _preview_skill_data(session) if active else {}
+	var competitive_combat_override_blocked := _competitive_authority_mode_active() and active
+	var skill_data: Dictionary = _preview_skill_data(session) if active and not competitive_combat_override_blocked else {}
 	var preview_slot := _preview_skill_slot(session) if active else ""
 	JavaScriptBridge.eval(
 		"document.documentElement.dataset.creatorPreviewActive='%s';" % ("true" if active else "false") +
+		"document.documentElement.dataset.competitiveAuthorityCreatorCombatOverrideBlocked='%s';" % ("true" if competitive_combat_override_blocked else "false") +
 		"document.documentElement.dataset.creatorPreviewRuntimeSkillId=%s;" % JSON.stringify(str(skill_data.get("id", ""))) +
 		"document.documentElement.dataset.creatorPreviewRuntimeSkillType=%s;" % JSON.stringify(str(skill_data.get("type", "")).strip_edges().to_lower()) +
 		"document.documentElement.dataset.creatorPreviewRuntimeSkillSlot=%s;" % JSON.stringify(preview_slot) +
