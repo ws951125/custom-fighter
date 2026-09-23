@@ -43,6 +43,7 @@ Work Unit 1 — **network protocol + session authority contract implemented; PR 
 - New `tests/network_protocol_session_test_runner.gd` covers forged combat fields, exact Ember/Storm fingerprints, readiness/start gating, capacity, ruleset mismatch, unsafe IDs, valid current input vocabulary and monotonic sequencing.
 - `docs/V2_6_NETWORK_PVP_INVENTORY.md` records the trust boundary and bounded WU1–WU8 implementation sequence.
 - This WU intentionally has no network socket, deployed multiplayer service or user-facing lobby UI yet; those begin in later V2-6 work units.
+- PR #196 CI #564 (`35849819253`) passed Windows Native and all pre-existing V2-5/domain gates, then the new network runner failed four capacity assertions because its test helper hard-coded `room_alpha` while that scenario intentionally created `room_capacity`. Product/session logic correctly returned `SESSION_ID_MISMATCH`; the fixture is corrected on the same PR per L-045.
 
 ### V2-5 implementation checkpoints
 

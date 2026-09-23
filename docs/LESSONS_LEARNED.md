@@ -492,3 +492,15 @@
 - **Prevention Rule:** For fail-closed authority modes, inventory every independently processing child node. Security/authority shutdown helpers must disable the complete set rather than assuming the root node controls all execution.
 - **Validation:** PR #193 implementation head `9a4c13905fa4307de929f94de952c1896ddb11a0` passed CI #556 (`35815833880`), including the new authority domain runner plus Chromium and hosted Microsoft Edge `smoke:all`.
 - **Status:** Verified on PR #193 CI #556
+
+
+## L-045 — Scenario helpers must not hide fixed identifiers when the scenario is testing another identity
+
+- **Date:** 2026-09-23
+- **Area:** V2-6 network session domain regression / test fixtures
+- **Symptom:** PR #196 CI #564 passed Windows Native and every existing domain test, but the new network runner reported four failures in the capacity/duplicate-client scenario.
+- **Root Cause:** The shared `_join_message()` helper silently hard-coded `session_id=room_alpha`. The capacity scenario correctly created `room_capacity`, so the production session authority rejected all helper-generated joins with `SESSION_ID_MISMATCH` before the intended capacity assertions could execute.
+- **Fix:** Make the message fixture helpers accept an explicit session ID with `room_alpha` only as a convenience default, and pass `room_capacity` in the capacity scenario.
+- **Prevention Rule:** Test helpers that construct identity-scoped protocol messages must expose scenario-relevant identifiers as parameters. Do not hide fixed room/session/client/version identifiers when another scenario intentionally varies that identity; otherwise correct fail-closed behavior can masquerade as a product failure.
+- **Validation:** Pending replacement CI on PR #196 after the fixture-only correction.
+- **Status:** Pending

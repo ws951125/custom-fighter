@@ -158,36 +158,49 @@ func _test_session_ruleset_and_capacity_fail_closed() -> void:
 
 	var session := NetworkSessionState.new()
 	_check(session.create("room_capacity").is_empty(), "capacity session creates")
-	_check(session.admit_client_message(_join_message("client_a", "ember_vanguard_001")).is_empty(), "capacity client A joins")
-	_check(session.admit_client_message(_join_message("client_b", "storm_duelist_001")).is_empty(), "capacity client B joins")
-	var third_errors: PackedStringArray = session.admit_client_message(_join_message("client_c", "ember_vanguard_001"))
+	_check(session.admit_client_message(_join_message("client_a", "ember_vanguard_001", "room_capacity")).is_empty(), "capacity client A joins")
+	_check(session.admit_client_message(_join_message("client_b", "storm_duelist_001", "room_capacity")).is_empty(), "capacity client B joins")
+	var third_errors: PackedStringArray = session.admit_client_message(_join_message("client_c", "ember_vanguard_001", "room_capacity"))
 	_check(_contains(third_errors, "SESSION_FULL"), "third client is rejected by two-player session capacity")
 
 	var duplicate_errors: PackedStringArray = session.join_registry_character("client_a", "ember_vanguard_001")
 	_check(_contains(duplicate_errors, "CLIENT_ALREADY_JOINED"), "duplicate client id fails closed")
 
-func _base_message(client_id: String, message_type: String) -> Dictionary:
+func _base_message(client_id: String, message_type: String, requested_session_id: String = "room_alpha") -> Dictionary:
 	return {
 		"schema_version": 1,
 		"protocol_id": "network_pvp_v1",
 		"protocol_version": 1,
 		"type": message_type,
-		"session_id": "room_alpha",
+		"session_id": requested_session_id,
 		"client_id": client_id
 	}
 
-func _join_message(client_id: String, character_id: String) -> Dictionary:
-	var message := _base_message(client_id, "join_session")
+func _join_message(
+	client_id: String,
+	character_id: String,
+	requested_session_id: String = "room_alpha"
+) -> Dictionary:
+	var message := _base_message(client_id, "join_session", requested_session_id)
 	message["character_id"] = character_id
 	return message
 
-func _ready_message(client_id: String, ready: bool) -> Dictionary:
-	var message := _base_message(client_id, "set_ready")
+func _ready_message(
+	client_id: String,
+	ready: bool,
+	requested_session_id: String = "room_alpha"
+) -> Dictionary:
+	var message := _base_message(client_id, "set_ready", requested_session_id)
 	message["ready"] = ready
 	return message
 
-func _input_message(client_id: String, sequence: int, actions: Array) -> Dictionary:
-	var message := _base_message(client_id, "input_intent")
+func _input_message(
+	client_id: String,
+	sequence: int,
+	actions: Array,
+	requested_session_id: String = "room_alpha"
+) -> Dictionary:
+	var message := _base_message(client_id, "input_intent", requested_session_id)
 	message["sequence"] = sequence
 	message["client_tick"] = sequence
 	message["actions"] = actions
