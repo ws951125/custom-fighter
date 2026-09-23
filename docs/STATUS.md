@@ -676,3 +676,12 @@ AI VFX backend: `https://custom-fighter-ai-vfx.onrender.com`
 ## Next implementation target
 
 Validate and merge **V2-4 Work Unit 4 — stage definition + registry**. After WU4 merge/exact-main validation, begin **Work Unit 5 — stage selection + single-player entry** using only validated stage IDs and existing bounded opponent profiles.
+
+
+## V2-6 WU2 — server-side package authority admission (2026-09-24)
+- Added a server-owned PvP package authority adapter for built-in and bounded custom loadouts.
+- Built-in competitive characters are admitted only when the client claim matches the server-frozen V2-5 fingerprint.
+- Custom package admission fails closed on unsupported schema/ruleset/budget, unknown fields, unresolved skill slots/types, duplicate skills, and bounded combat-value violations.
+- The client fingerprint is equality evidence only: the server resolves and validates trusted package data, computes the authoritative fingerprint, and never accepts client damage/cooldown as authority.
+- Backend regression coverage is wired into the existing trusted-backend CI gate; no extra browser process/job is added.
+- V2 remains 62.5% (5/8) until full V2-6 acceptance.
