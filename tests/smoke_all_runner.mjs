@@ -11,6 +11,7 @@ const smokeScripts = [
   'smoke:coordination',
   'smoke:character',
   'smoke:character-selection',
+  'smoke:competitive-local',
   'smoke:character-animation',
   'smoke:creator',
   'smoke:creator-skill',

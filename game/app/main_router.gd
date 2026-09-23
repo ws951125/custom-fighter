@@ -86,6 +86,8 @@ func _normalize_mode(requested_mode: String) -> String:
 		return "vfx"
 	if requested == "single_player":
 		return "single_player"
+	if requested == "competitive_local":
+		return "competitive_local"
 	return "training"
 
 func _set_web_state() -> void:

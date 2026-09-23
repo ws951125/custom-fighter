@@ -317,7 +317,18 @@ Implemented on branch `feat/v2-5-wu4-authoritative-loadout-fingerprint`:
 - WU4 remains domain-only; local competitive runtime consumption begins in WU5.
 
 ### Work Unit 5 — competitive local simulation boundary
-Route a local competitive mode through the authoritative snapshot/ruleset path and prove raw authored values cannot bypass admitted values. This remains local/host-authoritative foundation, not network PvP.
+Implemented on branch `feat/v2-5-wu5-competitive-local-authority`:
+- `CompetitiveRuntimeAuthority` admits only `competitive_local` under the allow-listed mode/ruleset/budget contract and validates the WU4 fingerprint before every character/skill materialization.
+- The runtime reloads the admitted character/skills through authority registries, then applies the snapshot-owned combat values. Pre-existing/forged runtime target values are not trusted.
+- `main_router.gd` exposes `competitive_local` as a local simulation route; networking remains out of scope until V2-6.
+- Creator preview raw character/skill combat overrides are blocked in competitive mode. Presentation preview data may remain presentation-only.
+- Rejected admission is fail-closed: no fallback character, root combat input disabled, every skill controller disabled, fingerprint cleared and stable diagnostics published.
+- Competitive restart preserves `competitive_local` instead of silently switching to Training.
+- `tests/competitive_runtime_authority_test_runner.gd` covers admitted materialization, forged target replacement, wrong-mode/unknown-character rejection and post-admission snapshot tamper rejection.
+- `tests/competitive_local_web_smoke.mjs` proves the router/runtime uses admitted Ember/Storm authority state and that invalid character requests cannot enable combat. It runs in the shared Chromium/hosted Edge smoke suite.
+- PR #193 implementation head `9a4c13905fa4307de929f94de952c1896ddb11a0` passed required CI #556 (`35815833880`) on Windows Native, Godot/domain/backend, Web export/size budget, Chromium `smoke:all`, and hosted Microsoft Edge `smoke:all`. A final docs-sync head is validated separately before merge.
+
+This remains a local/host-authoritative foundation, not network PvP.
 
 ### Work Unit 6 — full V2-5 acceptance
 Cross-browser regression proves:

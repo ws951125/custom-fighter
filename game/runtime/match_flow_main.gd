@@ -46,6 +46,8 @@ var opponent_last_damage := 0
 
 func _ready() -> void:
 	super()
+	if _competitive_authority_mode_active() and not competitive_authority_admitted:
+		_set_runtime_controllers_processing(false)
 	_configure_stage()
 	_configure_opponent_ai()
 	_create_opponent_profile_selector()
@@ -56,6 +58,9 @@ func _ready() -> void:
 
 func _process(delta: float) -> void:
 	if match_over:
+		return
+	if _competitive_authority_mode_active() and not competitive_authority_admitted:
+		_set_match_web_state()
 		return
 	super(delta)
 	if opponent_ai_active:
@@ -412,7 +417,7 @@ func _finish_match(result: String) -> void:
 	queue_redraw()
 
 func _restart_match() -> void:
-	_switch_router_mode(SINGLE_PLAYER_MODE if opponent_ai_active else "training")
+	_switch_router_mode(_router_mode())
 
 func _return_to_creator() -> void:
 	_switch_router_mode("creator")
@@ -423,7 +428,7 @@ func _switch_router_mode(mode_name: String) -> void:
 		router.call_deferred("switch_mode", mode_name)
 
 func _set_runtime_controllers_processing(enabled: bool) -> void:
-	for node_name in ["AreaSkillController", "FormationSkillController", "BuffSkillController", "MeleeSkillController", "BeamSkillController", "TrapSkillController", "AuraSkillController", "TeleportSkillController", "CounterSkillController"]:
+	for node_name in ["AreaSkillController", "FormationSkillController", "BuffSkillController", "MeleeSkillController", "BeamSkillController", "TrapSkillController", "AuraSkillController", "TeleportSkillController", "CounterSkillController", "GrabSkillController", "SummonSkillController"]:
 		var controller := get_node_or_null(node_name)
 		if controller != null:
 			controller.set_process(enabled)
@@ -464,7 +469,8 @@ func _set_match_web_state() -> void:
 		"document.documentElement.dataset.matchOver='%s';" % ("true" if match_over else "false") +
 		"document.documentElement.dataset.matchResult=%s;" % JSON.stringify(match_result) +
 		"document.documentElement.dataset.matchRestartReady='%s';" % ("true" if restart_button != null else "false") +
-		"document.documentElement.dataset.matchReturnCreatorReady='%s';" % ("true" if return_creator_button != null else "false")
+		"document.documentElement.dataset.matchReturnCreatorReady='%s';" % ("true" if return_creator_button != null else "false") +
+		"document.documentElement.dataset.competitiveRuntimeInputEnabled='%s';" % ("true" if not _competitive_authority_mode_active() or competitive_authority_admitted else "false")
 	)
 	_set_opponent_ai_web_state()
 

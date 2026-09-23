@@ -480,3 +480,15 @@
 - **Prevention Rule:** For isolated hosted-Edge `page.waitForFunction` timeouts in an already-covered regression, require same-SHA evidence before making product changes. If the same-SHA retry passes, record it as runner/timing transient; if it reproduces, inspect the exact wait condition, browser telemetry and lifecycle sequencing before changing implementation or timeout budgets.
 - **Validation:** CI #543 first failed only hosted Edge job `106782115749` at `creator_vfx_runtime_binding_web_smoke.mjs` revision wait. Same-head retry Edge job `106794918924` then passed the complete Microsoft Edge `smoke:all` suite with no code/test changes.
 - **Status:** Verified by same-SHA hosted Edge retry on PR #190
+
+
+## L-044 — Competitive fail-closed gates must disable every independent child combat processor
+
+- **Date:** 2026-09-23
+- **Area:** V2-5 competitive authority / Godot runtime processing boundary
+- **Symptom:** WU5 initially blocked the root match/runtime process after competitive admission failure, but the existing controller shutdown helper omitted the independently processing Grab and Summon controllers.
+- **Root Cause:** Returning early from the root runtime process is not sufficient when child nodes own their own `_process` loops. A partial controller list can leave an unintended execution path alive even though the authority admission itself failed.
+- **Fix:** Rejected `competitive_local` admission now disables the root combat path and the complete skill-controller set, including Grab and Summon.
+- **Prevention Rule:** For fail-closed authority modes, inventory every independently processing child node. Security/authority shutdown helpers must disable the complete set rather than assuming the root node controls all execution.
+- **Validation:** PR #193 implementation head `9a4c13905fa4307de929f94de952c1896ddb11a0` passed CI #556 (`35815833880`), including the new authority domain runner plus Chromium and hosted Microsoft Edge `smoke:all`.
+- **Status:** Verified on PR #193 CI #556
