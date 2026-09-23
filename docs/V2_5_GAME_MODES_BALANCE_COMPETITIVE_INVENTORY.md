@@ -331,7 +331,7 @@ Implemented on branch `feat/v2-5-wu5-competitive-local-authority`:
 This remains a local/host-authoritative foundation, not network PvP.
 
 ### Work Unit 6 — full V2-5 acceptance
-Implemented on branch `feat/v2-5-wu6-cross-browser-acceptance`; required PR validation is pending:
+Implemented on branch `feat/v2-5-wu6-cross-browser-acceptance`; required PR validation passed:
 - `tests/v2_5_acceptance_test_runner.gd` creates a deliberately over-budget but schema-valid sandbox fixture: HP `180`, damage `41`, MP cost `4`, cooldown `0.49`.
 - The sandbox mode contract remains `sandbox_safe_limits` + custom-content enabled, and the same declarative Character/Skill schemas continue loading that fixture without competitive normalization.
 - `competitive_standard_v1` rejects the fixture with stable HP/damage/MP/cooldown diagnostics, while an unregistered package character cannot mint an authority snapshot through `CompetitiveRuntimeAuthority`.
@@ -341,7 +341,7 @@ Implemented on branch `feat/v2-5-wu6-cross-browser-acceptance`; required PR vali
 - `competitive_local_web_smoke.mjs` requires those exact fingerprints. The shared `smoke:all` executes this under Chromium and hosted Microsoft Edge, so both browsers must resolve identical authority content.
 - Existing Creator Preview smoke remains part of the same cross-browser suite and proves schema-valid authored HP `180` still runs in Training/preview, preserving sandbox permissiveness.
 
-Acceptance remains pending until the WU6 PR passes required GitHub CI.
+PR #194 implementation head `84aa674367bd7e94dad16c98b6070f8abc92a216` passed required CI #559 (`35821603413`): Windows Native, Godot/domain/backend including the WU6 acceptance runner, Web export/size budget, Chromium `smoke:all` 26/26, and hosted Microsoft Edge `smoke:all` 26/26. Required PR acceptance is satisfied; merge is the remaining V2-5 completion gate.
 
 ## Non-goals for V2-5
 

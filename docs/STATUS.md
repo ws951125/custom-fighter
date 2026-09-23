@@ -33,7 +33,7 @@ V2-1 delivered visual event timeline authoring, startup/active/recovery timing, 
 
 ### V2-5 implementation checkpoints
 
-Work Unit 6 — **full V2-5 acceptance contract implemented; PR validation pending**:
+Work Unit 6 — **full V2-5 acceptance contract implemented; required PR validation passed**:
 - New `tests/v2_5_acceptance_test_runner.gd` turns the final V2-5 acceptance conditions into one deterministic domain gate.
 - A schema-valid sandbox fixture deliberately uses values outside the competitive envelope (`max_hp=180`, `damage=41`, `mp_cost=4`, `cooldown=0.49`) and must still load through the normal declarative Character/Skill schemas.
 - The same fixture must fail `competitive_standard_v1` with stable HP/damage/MP/cooldown diagnostics; an unregistered custom character ID cannot mint a competitive authority snapshot.
@@ -42,9 +42,9 @@ Work Unit 6 — **full V2-5 acceptance contract implemented; PR validation pendi
 - Ember and Storm SHA-256 authority fingerprints are now frozen to `56451d3bdf1c7bf74852a3620894667730ddb088f350eb598badfa74c6d3c28e` and `5822c6cfb4737c29007f2450a598c501b79c17d8ed9a432e4327976cc6a7026e`.
 - `competitive_local_web_smoke.mjs` now requires those exact fingerprints. Because the same `smoke:all` runs under Chromium and GitHub-hosted Microsoft Edge, a browser-specific authority serialization drift fails the required PR gate.
 - Existing Creator Preview browser smoke already proves sandbox/training remains permissive for schema-valid authored HP `180`; WU6 does not tighten sandbox behavior.
-- Required CI now executes the WU6 acceptance runner. Full PR validation is pending.
+- Required CI executes the WU6 acceptance runner. PR #194 implementation head `84aa674367bd7e94dad16c98b6070f8abc92a216` passed CI #559 (`35821603413`): Windows Native, Godot import/boot/domain/backend including `V2_5_ACCEPTANCE_TESTS_PASSED`, Web export/size budget, Chromium `smoke:all` 26/26, and GitHub-hosted Microsoft Edge `smoke:all` 26/26.
 - This round adds no new player-facing gameplay/UI controls; it is acceptance/regression hardening only.
-- V2 remains **50% (4/8 phases complete)** until WU6 required validation and merge complete V2-5.
+- Required PR acceptance is satisfied; merge approval for PR #194 is the remaining gate. Before merge V2 remains **50% (4/8)**; once PR #194 is merged, V2-5 is complete and V2 advances to **62.5% (5/8)**.
 
 Work Unit 5 — **local competitive authority runtime implemented; required PR validation passed on implementation head**:
 - New `CompetitiveRuntimeAuthority` resolves only `competitive_local`, requires its frozen `competitive_standard@1` / `competitive_standard_v1` contract, consumes the WU4 authority snapshot, re-validates its SHA-256 fingerprint before runtime materialization, and fails closed on mode/policy/snapshot mismatch.
