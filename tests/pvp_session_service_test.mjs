@@ -151,4 +151,20 @@ assert.equal(badAdmission.ok, false);
 assert.equal(badAdmission.code, 'LOADOUT_AUTHORITY_REJECTED');
 assert.equal(badAdmission.errors.includes('AUTHORITY_FINGERPRINT_MISMATCH'), true);
 
+const throwingService = createPvpSessionService({
+  admitLoadout: async () => {
+    throw new Error('authority unavailable');
+  }
+});
+const throwingLobby = throwingService.createLobby({ client_id: 'host4' }).lobby.lobby_id;
+const adapterFailure = await throwingService.negotiateLoadout(throwingLobby, 'host4', {
+  character_id: 'ember_vanguard_001',
+  content_fingerprint: EMBER,
+  package_schema_version: 1
+});
+assert.equal(adapterFailure.ok, false);
+assert.equal(adapterFailure.code, 'AUTHORITY_ADMISSION_ERROR');
+assert.equal(throwingService.getLobby(throwingLobby).lobby.participants[0].authority, null);
+assert.equal(throwingService.setReady(throwingLobby, 'host4', true).code, 'LOADOUT_NOT_ADMITTED');
+
 console.log('PVP_SESSION_SERVICE_TESTS_PASSED');
