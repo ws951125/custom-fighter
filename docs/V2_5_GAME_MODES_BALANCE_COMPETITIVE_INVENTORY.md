@@ -313,6 +313,7 @@ Implemented on branch `feat/v2-5-wu4-authoritative-loadout-fingerprint`:
 - Stable fail-closed diagnostics cover ruleset resolution, noncompetitive policy, character/skill registry resolution and budget rejection.
 - `tests/competitive_loadout_snapshot_test_runner.gd` covers deterministic reference snapshots, version/registry rejection, canonical key ordering, presentation-only exclusion and authoritative-value fingerprint sensitivity.
 - The required CI domain gate executes the new runner.
+- PR #192 initial head `2699f8f1e2a7dffc50710a783e80c51cf478ca52` passed Windows Native, Godot/domain/backend, Web export/size budget and Chromium in CI #547 (`35809096254`); an isolated hosted Edge `creator_package_vfx_web_smoke.mjs:252` U/MP timeout passed on a targeted same-SHA Edge retry in attempt 2 without code/test changes.
 - WU4 remains domain-only; local competitive runtime consumption begins in WU5.
 
 ### Work Unit 5 — competitive local simulation boundary
