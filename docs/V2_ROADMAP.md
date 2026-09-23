@@ -148,6 +148,7 @@ Architecture checkpoint:
 - WU4 successful admission emits versioned authoritative stats/skill values, budget evidence and a deterministic SHA-256 content fingerprint. Canonical fingerprint input uses fixed field ordering plus integer-scaled floats and includes combat-relevant hitbox/hurtbox timeline geometry/timing while excluding presentation/runtime telemetry.
 - WU4 fail-closed coverage rejects wrong/noncompetitive rulesets, unregistered characters, missing trusted skill registry entries and over-budget content; rejected proposals receive no authoritative values or fingerprint.
 - WU4 remains domain-only and does not expose a competitive router/UI mode yet.
+- WU4 implementation head `fc7ec73030e699cab2ff469a8d6a466b70bad83c` passed PR #191 CI #546 (`35808988376`) on final attempt 3 across Windows Native, Godot/domain/backend, Web export/size budget, Chromium and hosted Microsoft Edge. Earlier same-SHA retries isolated one Godot Web-export exit-139 crash and the already-documented L-037 Edge U/MP observation timeout as transient harness/runner failures; no product/runtime code was changed for either.
 - Planned sequence after WU4: WU5 local competitive authority path; WU6 cross-browser phase acceptance.
 - V2 remains **50% (4/8)** until the complete V2-5 acceptance criterion is satisfied.
 
@@ -213,4 +214,4 @@ The architecture previously allowed a future local/open-model AI provider such a
 
 ## Next implementation target
 
-Validate **V2-5 Work Unit 4 — authoritative competitive loadout snapshot + deterministic content fingerprint** on GitHub-hosted CI, then proceed to **V2-5 Work Unit 5 — local competitive authority path** after WU4 merge approval.
+Obtain explicit merge approval for **PR #191 / V2-5 Work Unit 4 — authoritative competitive loadout snapshot + deterministic content fingerprint** after latest-head GitHub-hosted CI, then proceed to **V2-5 Work Unit 5 — local competitive authority path**.
