@@ -180,6 +180,8 @@ Acceptance: two supported clients can complete an authoritative online match usi
 
 Implementation sequence is frozen in `docs/V2_6_NETWORK_PVP_INVENTORY.md`. WU1 establishes a transport-neutral server-authoritative lobby/admission contract; later work units add trusted package authority, authoritative input/tick/state, duplex transport/client integration, reconnect/forfeit/latency behavior and final two-client online acceptance.
 
+WU1 PR #197 implementation head `c0831496552bd95104333b19abd60643103777f5` passed CI #566 (`35862684985`) across Windows Native, Godot/domain/AI, trusted backend, Web export/size, Chromium and hosted Edge.
+
 ## V2-7 — Creator Sharing Ecosystem
 
 Goal: complete the original portable/shareable creator vision beyond local package files.
