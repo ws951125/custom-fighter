@@ -213,4 +213,4 @@ The architecture previously allowed a future local/open-model AI provider such a
 
 ## Next implementation target
 
-Validate/merge **V2-5 Work Unit 4 — authoritative competitive loadout snapshot + deterministic content fingerprint**, then implement **V2-5 Work Unit 5 — local competitive authority path** so runtime combat consumes admitted snapshot values instead of trusting raw authored/client values.
+Validate **V2-5 Work Unit 5 — local competitive authority path**, then execute **V2-5 Work Unit 6 — full cross-browser phase acceptance** proving sandbox/competitive separation, over-budget rejection, ruleset/version fail-closed behavior and deterministic authority values.
