@@ -38,7 +38,8 @@ Work Unit 1 — **session/lobby + authority admission contract implemented; requ
 - New `backend/pvp/session_service.mjs` provides a transport-neutral two-player lobby: host/create, join, server-owned async loadout admission, ready, host-only start, immutable public snapshots and authority-contract compatibility gating.
 - Client loadout negotiation is intentionally limited to `character_id`, `content_fingerprint`, and `package_schema_version`; direct or disguised top-level client combat fields such as `damage` / `cooldown` are rejected before the server-owned admission adapter is called.
 - A match cannot start until exactly two participants have server-admitted loadouts, are both ready, and share protocol/authority/schema/ruleset/version/power-budget compatibility.
-- New `tests/pvp_session_service_test.mjs` covers lobby capacity, pre-admission ready rejection, forged combat-field rejection, authority callback isolation, fingerprint mismatch fail-closed, host-only start, compatibility mismatch, immutable returned state and post-start mutation rejection.
+- Authority-adapter exceptions fail closed as `AUTHORITY_ADMISSION_ERROR`; the participant remains without authority and cannot become ready.
+- New `tests/pvp_session_service_test.mjs` covers lobby capacity, pre-admission ready rejection, forged combat-field rejection, authority callback isolation, fingerprint mismatch fail-closed, host-only start, compatibility mismatch, immutable returned state, post-start mutation rejection, and authority-adapter exception fail-closed behavior.
 - `package.json test:backend` now runs the new PvP session contract test, so the existing required backend CI gate validates WU1 without adding a new browser/process job.
 - New `docs/V2_6_NETWORK_PVP_INVENTORY.md` freezes the six-work-unit V2-6 sequence through two-client online acceptance.
 - V2 remains **62.5% (5/8 phases complete)** until all V2-6 acceptance criteria pass.
