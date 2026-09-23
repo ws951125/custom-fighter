@@ -149,6 +149,10 @@ Architecture checkpoint:
 - WU4 tests freeze deterministic reference snapshots/fingerprints, canonical key-order independence, presentation-only exclusion and combat-value fingerprint sensitivity; required CI executes the new runner.
 - PR #192 initial head `2699f8f1e2a7dffc50710a783e80c51cf478ca52` passed Windows Native, Godot/domain/backend, Web export/size budget and Chromium in CI #547 (`35809096254`). Hosted Edge attempt 1 hit the existing `creator_package_vfx_web_smoke.mjs:252` U/MP observation timeout; targeted same-SHA Edge retry passed the complete suite in attempt 2 without product/test changes.
 - Planned sequence after WU4: WU5 local competitive authority path; WU6 cross-browser phase acceptance.
+- WU5 implements the local competitive authority path: `competitive_local` router support, fingerprint-validated authority snapshot materialization, authority-registry reload, raw Creator combat-override blocking, fail-closed rejection and competitive-mode restart preservation.
+- WU5 domain regression proves forged runtime targets cannot bypass admitted HP/MP/damage/cooldown values, wrong local/host authority mode fails closed, unknown characters are rejected, and post-admission snapshot tampering invalidates runtime materialization.
+- WU5 browser regression is part of shared Chromium/hosted-Edge `smoke:all`; PR #193 implementation head `9a4c13905fa4307de929f94de952c1896ddb11a0` passed CI #556 (`35815833880`) across Windows Native, Godot/domain/backend, Web export/size budget, Chromium and hosted Microsoft Edge.
+- Planned sequence after WU5 validation: WU6 full V2-5 cross-browser phase acceptance.
 - V2 remains **50% (4/8)** until the complete V2-5 acceptance criterion is satisfied.
 
 Note: this phase establishes the competitive foundation; full network PvP is V2-6.

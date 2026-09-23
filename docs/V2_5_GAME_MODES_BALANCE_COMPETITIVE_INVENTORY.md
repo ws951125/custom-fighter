@@ -326,7 +326,7 @@ Implemented on branch `feat/v2-5-wu5-competitive-local-authority`:
 - Competitive restart preserves `competitive_local` instead of silently switching to Training.
 - `tests/competitive_runtime_authority_test_runner.gd` covers admitted materialization, forged target replacement, wrong-mode/unknown-character rejection and post-admission snapshot tamper rejection.
 - `tests/competitive_local_web_smoke.mjs` proves the router/runtime uses admitted Ember/Storm authority state and that invalid character requests cannot enable combat. It runs in the shared Chromium/hosted Edge smoke suite.
-- PR validation is pending before WU5 can be accepted.
+- PR #193 implementation head `9a4c13905fa4307de929f94de952c1896ddb11a0` passed required CI #556 (`35815833880`) on Windows Native, Godot/domain/backend, Web export/size budget, Chromium `smoke:all`, and hosted Microsoft Edge `smoke:all`. A final docs-sync head is validated separately before merge.
 
 This remains a local/host-authoritative foundation, not network PvP.
 
