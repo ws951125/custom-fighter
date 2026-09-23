@@ -366,3 +366,12 @@ Those belong to V2-6 or later.
 ## V2-5 acceptance target
 
 V2-5 is complete only when competitive-mode content cannot bypass the validated power budget, game/rules versions fail closed deterministically, and the architecture/runtime path does not trust client-authored combat authority. The resulting foundation must be directly reusable by V2-6 Network PvP.
+
+
+## Final V2-5 acceptance evidence
+
+- PR #195 latest docs-sync head `a939a102e4a70e8cd667c73119bd85d0361d600c` passed required PR CI #562 (`35830131868`) across Windows Native, Godot/domain/backend, Web export/size budget, Chromium `smoke:all`, and hosted Microsoft Edge `smoke:all`.
+- PR #195 was explicitly approved and squash-merged to `main` as `d2fa89d7d20cf9f98917b6e57e38057751c9bd1a`.
+- Exact-main CI #563 (`35834994468`) passed Windows Native, Godot/domain/backend including the full V2-5 acceptance contract, Web export/size budget, Chromium, hosted Edge, GitHub Pages deployment and public reachability.
+- Production AI backend readiness independently failed because the external Render endpoint returned HTTP 503 on all 18 attempts; production Edge full smoke was skipped. This is the existing external AI-provider/backend residual risk and does not invalidate the backend-independent V2-5 competitive acceptance.
+- V2-5 is therefore accepted complete and its authority/fingerprint foundation is the input to V2-6 Network PvP.
