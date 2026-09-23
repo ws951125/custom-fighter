@@ -33,6 +33,18 @@ V2-1 delivered visual event timeline authoring, startup/active/recovery timing, 
 
 ### V2-5 implementation checkpoints
 
+Work Unit 5 — **local competitive authority runtime implemented; PR validation pending**:
+- New `CompetitiveRuntimeAuthority` resolves only `competitive_local`, requires its frozen `competitive_standard@1` / `competitive_standard_v1` contract, consumes the WU4 authority snapshot, re-validates its SHA-256 fingerprint before runtime materialization, and fails closed on mode/policy/snapshot mismatch.
+- `main_router.gd` now recognizes `?mode=competitive_local` and mounts the existing combat runtime without adding network PvP.
+- Competitive runtime character HP/MP/mobility and skill damage/MP/cooldown/timing/range/hitbox-family values are materialized through the admitted authority snapshot path; runtime targets are first reloaded through authority registries and then overwritten with admitted snapshot combat values.
+- Creator Preview may continue to provide presentation preview state, but its raw character/skill combat payload is blocked from replacing competitive runtime combat definitions.
+- Admission failure leaves the character unloaded, disables root combat input and all skill controllers (including Grab/Summon), publishes diagnostics, and never falls back to sandbox/training combat authority.
+- Restart now preserves the active router mode, so `competitive_local` restarts remain competitive instead of silently returning to Training.
+- New `tests/competitive_runtime_authority_test_runner.gd` proves forged pre-existing character/skill values cannot bypass the authority snapshot, wrong authority modes and unknown characters fail closed, and post-admission snapshot tampering is rejected.
+- New `tests/competitive_local_web_smoke.mjs` covers accepted Ember/Storm authority state, deterministic ruleset/budget/fingerprint exposure, authority-owned runtime skill sources and invalid-character fail-closed behavior in Chromium/hosted Edge. It is included in `smoke:all`.
+- Required CI now executes the WU5 domain runner. Full PR validation is pending.
+- V2 remains **50% (4/8 phases complete)** until WU6 completes the full V2-5 cross-browser acceptance.
+
 Work Unit 4 — **authoritative loadout snapshot + deterministic content fingerprint implemented; required PR validation passed**:
 - `CompetitiveLoadoutSnapshotBuilder` mints competitive snapshots only by authority-side resolution of `competitive_standard@1`, the default Character/Skill registries, schema-valid definitions and the WU3 `competitive_standard_v1` budget validator.
 - Client-supplied snapshot data is not accepted. Ruleset/version mismatch, noncompetitive rulesets, unknown registry characters/skills, registry load failures and budget rejection fail closed before any snapshot is emitted.
@@ -42,7 +54,9 @@ Work Unit 4 — **authoritative loadout snapshot + deterministic content fingerp
 - New `tests/competitive_loadout_snapshot_test_runner.gd` covers deterministic Ember/Storm snapshots, SHA-256 stability, ruleset/version and unknown-character fail-closed behavior, canonical dictionary ordering, presentation-only exclusion and authoritative-value sensitivity.
 - Required GitHub CI now executes the new snapshot/fingerprint domain runner.
 - PR #192 initial head `2699f8f1e2a7dffc50710a783e80c51cf478ca52` passed Windows Native, Godot import/boot/domain/backend including `COMPETITIVE_LOADOUT_SNAPSHOT_TESTS_PASSED`, Web export/size budget and Chromium `smoke:all` in CI #547 (`35809096254`). Hosted Edge attempt 1 timed out only in unchanged `creator_package_vfx_web_smoke.mjs:252` while waiting for the existing frame-polled U/MP acknowledgement; a targeted same-SHA retry of only the failed Edge job passed the complete Microsoft Edge `smoke:all` suite in attempt 2 without code/test changes, consistent with L-037/L-043 hosted-Edge timing-transient policy.
-- WU4 remains domain-only; no competitive router/UI mode is exposed yet. Runtime admission through the authoritative snapshot is deferred to WU5.
+- PR #192 was explicitly approved and squash-merged to `main` as `75ae1d0444c0b89f180370b0f417edda23cf796c`.
+- Exact-main CI #555 (`35813442860`) passed Windows Native, Godot/domain/backend, Web export/size budget, Chromium `smoke:all`, hosted Microsoft Edge `smoke:all`, GitHub Pages deployment and public-Web reachability. The external Render AI backend returned HTTP 503 for all 18 readiness attempts, so backend-dependent production Edge full smoke was skipped; this remains the existing provider/backend residual risk rather than a WU4 product regression.
+- WU4 is merged; runtime admission through the authoritative snapshot is implemented by WU5 on its feature branch.
 - V2 remains **50% (4/8 phases complete)** until the full V2-5 acceptance criterion is complete.
 
 Work Unit 3 — **deterministic competitive power-budget validator merged; exact-main Web validated, backend-dependent production completion blocked**:
