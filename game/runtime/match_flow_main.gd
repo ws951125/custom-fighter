@@ -57,6 +57,9 @@ func _ready() -> void:
 func _process(delta: float) -> void:
 	if match_over:
 		return
+	if _competitive_authority_mode_active() and not competitive_authority_admitted:
+		_set_match_web_state()
+		return
 	super(delta)
 	if opponent_ai_active:
 		_process_opponent_ai(delta)
@@ -464,7 +467,8 @@ func _set_match_web_state() -> void:
 		"document.documentElement.dataset.matchOver='%s';" % ("true" if match_over else "false") +
 		"document.documentElement.dataset.matchResult=%s;" % JSON.stringify(match_result) +
 		"document.documentElement.dataset.matchRestartReady='%s';" % ("true" if restart_button != null else "false") +
-		"document.documentElement.dataset.matchReturnCreatorReady='%s';" % ("true" if return_creator_button != null else "false")
+		"document.documentElement.dataset.matchReturnCreatorReady='%s';" % ("true" if return_creator_button != null else "false") +
+		"document.documentElement.dataset.competitiveRuntimeInputEnabled='%s';" % ("true" if not _competitive_authority_mode_active() or competitive_authority_admitted else "false")
 	)
 	_set_opponent_ai_web_state()
 
