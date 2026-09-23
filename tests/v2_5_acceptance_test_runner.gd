@@ -76,8 +76,16 @@ func _test_overbudget_raw_values_cannot_control_admitted_runtime() -> void:
 	_check(admission_errors.is_empty() and authority.admitted, "reference authority loadout admits")
 
 	var forged_character := CharacterDefinition.new()
+	var forged_ids := PackedStringArray([
+		"overbudget_melee_001",
+		"safe_melee_002",
+		"safe_melee_003",
+		"safe_melee_004",
+		"safe_melee_005",
+		"safe_melee_006"
+	])
 	var forged_character_errors: PackedStringArray = forged_character.load_from_dictionary(
-		_character_raw("forged_client_fighter", 180)
+		_character_raw("forged_client_fighter", 180, forged_ids)
 	)
 	_check(forged_character_errors.is_empty() and forged_character.loaded, "forged schema-safe character target loads")
 	var apply_errors: PackedStringArray = authority.apply_character_to(forged_character)
@@ -152,14 +160,7 @@ func _schema_safe_overbudget_fixture() -> Dictionary:
 func _character_raw(
 	character_id: String,
 	max_hp: int,
-	skill_ids: PackedStringArray = PackedStringArray([
-		"overbudget_melee_001",
-		"safe_melee_002",
-		"safe_melee_003",
-		"safe_melee_004",
-		"safe_melee_005",
-		"safe_melee_006"
-	])
+	skill_ids: PackedStringArray
 ) -> Dictionary:
 	return {
 		"schema_version": 1,
