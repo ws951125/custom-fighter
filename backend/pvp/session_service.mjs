@@ -118,7 +118,15 @@ export function createPvpSessionService({ admitLoadout, idFactory } = {}) {
     if (!validation.ok) return fail('LOADOUT_CLAIM_INVALID', { errors: validation.errors });
 
     const claim = validation.claim;
-    const admission = await admitLoadout(clone(claim));
+    let admission;
+    try {
+      admission = await admitLoadout(clone(claim));
+    } catch {
+      participant.ready = false;
+      participant.authority = null;
+      lobby.revision += 1;
+      return fail('AUTHORITY_ADMISSION_ERROR');
+    }
     const authorityValidation = validateAuthorityAdmission(admission, claim);
     if (!authorityValidation.ok) {
       participant.ready = false;
