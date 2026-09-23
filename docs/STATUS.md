@@ -33,7 +33,7 @@ V2-1 delivered visual event timeline authoring, startup/active/recovery timing, 
 
 ### V2-6 implementation checkpoints
 
-Work Unit 1 — **session/lobby + authority admission contract implemented; required PR validation pending**:
+Work Unit 1 — **session/lobby + authority admission contract implemented; required PR validation passed on implementation head**:
 - New `backend/pvp/protocol.mjs` defines protocol v1, `server_authoritative` policy, exact client loadout-claim fields, strict IDs/fingerprint/schema validation, authority-summary validation and compatibility keys.
 - New `backend/pvp/session_service.mjs` provides a transport-neutral two-player lobby: host/create, join, server-owned async loadout admission, ready, host-only start, immutable public snapshots and authority-contract compatibility gating.
 - Client loadout negotiation is intentionally limited to `character_id`, `content_fingerprint`, and `package_schema_version`; direct or disguised top-level client combat fields such as `damage` / `cooldown` are rejected before the server-owned admission adapter is called.
@@ -41,6 +41,7 @@ Work Unit 1 — **session/lobby + authority admission contract implemented; requ
 - Authority-adapter exceptions fail closed as `AUTHORITY_ADMISSION_ERROR`; the participant remains without authority and cannot become ready.
 - New `tests/pvp_session_service_test.mjs` covers lobby capacity, pre-admission ready rejection, forged combat-field rejection, authority callback isolation, fingerprint mismatch fail-closed, host-only start, compatibility mismatch, immutable returned state, post-start mutation rejection, and authority-adapter exception fail-closed behavior.
 - `package.json test:backend` now runs the new PvP session contract test, so the existing required backend CI gate validates WU1 without adding a new browser/process job.
+- PR #197 implementation head `c0831496552bd95104333b19abd60643103777f5` passed CI #566 (`35862684985`): Windows Native, Godot import/boot/domain/AI, trusted-backend tests including `PVP_SESSION_SERVICE_TESTS_PASSED`, Web export/size budget, Chromium `smoke:all`, and hosted Microsoft Edge `smoke:all`.
 - New `docs/V2_6_NETWORK_PVP_INVENTORY.md` freezes the six-work-unit V2-6 sequence through two-client online acceptance.
 - V2 remains **62.5% (5/8 phases complete)** until all V2-6 acceptance criteria pass.
 
