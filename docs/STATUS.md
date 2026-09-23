@@ -33,7 +33,7 @@ V2-1 delivered visual event timeline authoring, startup/active/recovery timing, 
 
 ### V2-5 implementation checkpoints
 
-Work Unit 4 — **authoritative competitive loadout snapshot + deterministic fingerprint implemented; validation pending**:
+Work Unit 4 — **authoritative competitive loadout snapshot + deterministic fingerprint validated; awaiting approved merge**:
 - `CompetitiveLoadoutSnapshot` admits competitive content only from an allow-listed `competitive_standard@1` ruleset plus authority-owned Character/Skill registries; it does not accept raw client-authored combat values as an authoritative snapshot.
 - Character and every occupied skill are re-resolved through the trusted registries before admission, then the exact `competitive_standard_v1` power-budget validator must return eligible.
 - Failed ruleset, registry, skill-resolution or power-budget checks fail closed with stable diagnostic codes. Rejected content receives no admitted character/skill values and no compatibility fingerprint.
@@ -42,10 +42,10 @@ Work Unit 4 — **authoritative competitive loadout snapshot + deterministic fin
 - `tests/competitive_loadout_snapshot_test_runner.gd` covers deterministic same-content fingerprints, different-content separation, exact ruleset/version binding, unregistered content rejection, missing trusted skill-registry entries and over-budget admission rejection.
 - Required GitHub CI is wired to execute the new snapshot domain runner before the existing timeline/character/skill suites.
 - WU4 remains domain-only: no competitive router/UI entry is exposed yet and current Training/Creator/VFX/Single-player behavior is unchanged.
-- Implementation branch: `feat/v2-5-wu4-authoritative-loadout-snapshot`. Latest-head CI/PR evidence is pending.
+- PR #191 implementation head `fc7ec73030e699cab2ff469a8d6a466b70bad83c` completed CI #546 (`35808988376`) successfully on attempt 3: Windows Native, Godot import/boot/domain/backend including the new snapshot runner, Web export/size budget, Chromium `smoke:all`, and hosted Microsoft Edge `smoke:all`. Attempt 1 hit a Godot Web-export segmentation fault (`exit 139`) during asset reimport; the same SHA passed Web export on retry without code changes. Edge then hit the already-documented L-037 `creator_package_vfx_web_smoke.mjs:252` frame-polled U/MP timeout; one allowed same-SHA targeted Edge retry passed without product/runtime changes.
 - V2 remains **50% (4/8 phases complete)** until the full V2-5 acceptance criterion is complete.
 
-Work Unit 3 — **accepted and merged; exact-main validation in progress**:
+Work Unit 3 — **accepted and merged; exact-main product/Web validation complete, production AI backend externally blocked**:
 - `CompetitivePowerBudgetValidator` adds the first executable `competitive_standard_v1` eligibility layer without mutating stored Character/Skill definitions.
 - Competitive hard caps are materially narrower than the outer schema/safety envelope for character HP/MP/mobility and skill damage, MP floor, cooldown/startup/recovery, active time, speed/range, hitstun/knockback, hitbox coverage and family-specific Formation/Buff/Trap/Aura/Teleport/Counter/Grab/Summon dimensions.
 - The policy uses deterministic integer scores with frozen limits: character score `<= 3200`, per-skill score `<= 4500`, and occupied-slot aggregate loadout score `<= 18000`. Reusing one skill in multiple slots counts once per occupied slot, while its diagnostic is emitted only once.
@@ -54,6 +54,7 @@ Work Unit 3 — **accepted and merged; exact-main validation in progress**:
 - `tests/competitive_power_budget_test_runner.gd` covers reference fixtures, same-input/order determinism, no authored-data mutation, unsupported budget, missing/unreferenced skills, hard caps, one-code-per-skill stability, repeated-slot aggregate pressure, inclusive boundary behavior and monotonic damage/cooldown/MP-cost scoring.
 - Required GitHub CI now executes the new competitive power-budget domain runner.
 - PR #190 latest head `3624eed4a1b166f44975a146d06dd14a827342b1` passed CI #544 (`35743432893`) across Windows Native, Godot import/boot/domain/backend including the new power-budget runner, Web export/size budget, Chromium `smoke:all`, and hosted Microsoft Edge `smoke:all`; PR #190 then squash-merged to `main` as `ec68a7ef73464846594b7447c9b447c7917ed253`.
+- Exact-main CI #545 (`35808407510`) passed Windows Native, Godot/domain/backend, Web export/size budget, Chromium `smoke:all`, hosted Microsoft Edge `smoke:all`, GitHub Pages deployment and public-Web reachability. Production AI Backend Readiness remained externally blocked because `https://custom-fighter-ai-vfx.onrender.com` returned HTTP 503 on all 18 attempts, so the dependent production Edge full smoke was skipped; this is a pre-existing external residual risk and not a WU3 regression.
 - WU3 remains domain-only: no competitive UI/router mode is exposed yet, and current Training/Creator/VFX/Single-player controls remain unchanged.
 - V2 remains **50% (4/8 phases complete)** until the full V2-5 acceptance criterion is complete.
 
