@@ -155,12 +155,15 @@ Architecture checkpoint:
 - Exact-main CI #558 (`35818795131`) passed all backend-independent product gates, Chromium/hosted Edge, Pages deployment and public reachability; only the existing external Render AI backend readiness failed after 18 HTTP 503 responses.
 - WU6 adds the final V2-5 acceptance contract: sandbox-safe/competitive-over-budget separation, frozen ruleset/version fail-closed checks, exact deterministic reference fingerprints, direct authority HP/damage/MP/cooldown materialization, and the same acceptance assertions in the shared Chromium/hosted-Edge browser stage.
 - PR #195 implementation head `e0a65026ea5cafb9561e9650f7c9c33254746a76` passed CI #561 (`35823214802`) on Windows Native, Godot/domain/backend, Web export/size budget and Chromium `smoke:all`; hosted Edge attempt 1 timed out in unchanged `match_restart_web_smoke.mjs:100`, and a same-SHA targeted retry of only the failed Edge job passed the complete Edge suite in attempt 2 without code/test changes.
-- A final docs-sync HEAD remains to be validated before WU6 can be merged and V2-5 formally accepted.
-- V2 remains **50% (4/8)** until the complete V2-5 acceptance criterion is satisfied.
+- Final docs-sync head `a939a102e4a70e8cd667c73119bd85d0361d600c` passed CI #562 (`35830131868`). PR #195 was explicitly approved and squash-merged to `main` as `d2fa89d7d20cf9f98917b6e57e38057751c9bd1a`.
+- Exact-main CI #563 (`35834994468`) passed all backend-independent/product gates, Chromium/hosted Edge, Pages deployment and public reachability. The workflow was red only because the existing external Render AI backend returned HTTP 503 on all 18 readiness attempts.
+- V2-5 is accepted complete. V2 is **62.5% (5/8)** and V2-6 is active.
 
 Note: this phase establishes the competitive foundation; full network PvP is V2-6.
 
 ## V2-6 — Network PvP
+
+**Status: active — 62.5% (5/8 V2 phases complete).**
 
 Goal: support player-versus-player matches over the network without trusting player-authored combat state.
 
@@ -174,6 +177,10 @@ Scope:
 - online match regression coverage.
 
 Acceptance: two supported clients can complete an authoritative online match using validated custom characters without either client controlling authoritative damage/cooldown state.
+
+Implementation sequence is frozen in `docs/V2_6_NETWORK_PVP_INVENTORY.md`. WU1 establishes a transport-neutral server-authoritative lobby/admission contract; later work units add trusted package authority, authoritative input/tick/state, duplex transport/client integration, reconnect/forfeit/latency behavior and final two-client online acceptance.
+
+WU1 PR #197 implementation head `c0831496552bd95104333b19abd60643103777f5` passed CI #566 (`35862684985`) across Windows Native, Godot/domain/AI, trusted backend, Web export/size, Chromium and hosted Edge.
 
 ## V2-7 — Creator Sharing Ecosystem
 
@@ -220,4 +227,4 @@ The architecture previously allowed a future local/open-model AI provider such a
 
 ## Next implementation target
 
-Validate **V2-5 Work Unit 6 — full cross-browser phase acceptance**. If required PR gates pass, accept V2-5 and advance to **V2-6 — Network PvP**.
+Validate **V2-6 Work Unit 1 — session/lobby + authority admission contract**. After WU1 validation/merge, continue to **WU2 — server-side package authority admission**.
