@@ -428,7 +428,7 @@ func _switch_router_mode(mode_name: String) -> void:
 		router.call_deferred("switch_mode", mode_name)
 
 func _set_runtime_controllers_processing(enabled: bool) -> void:
-	for node_name in ["AreaSkillController", "FormationSkillController", "BuffSkillController", "MeleeSkillController", "BeamSkillController", "TrapSkillController", "AuraSkillController", "TeleportSkillController", "CounterSkillController"]:
+	for node_name in ["AreaSkillController", "FormationSkillController", "BuffSkillController", "MeleeSkillController", "BeamSkillController", "TrapSkillController", "AuraSkillController", "TeleportSkillController", "CounterSkillController", "GrabSkillController", "SummonSkillController"]:
 		var controller := get_node_or_null(node_name)
 		if controller != null:
 			controller.set_process(enabled)
