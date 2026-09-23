@@ -304,7 +304,17 @@ Implemented on branch `feat/v2-5-wu3-competitive-power-budget`:
 - WU3 remains domain-only; router/UI/runtime combat do not consume the validator until later work units.
 
 ### Work Unit 4 — authoritative loadout snapshot + fingerprint
-Build the derived competitive snapshot only from schema-valid, registry-resolved, budget-valid content. Add deterministic canonical fingerprint/version compatibility coverage.
+Implemented on branch `feat/v2-5-wu4-authoritative-loadout-fingerprint`:
+- `CompetitiveLoadoutSnapshotBuilder` resolves `competitive_standard@1` through the allow-listed ruleset registry, then reloads the selected character and all referenced skills through the default authority registries.
+- The builder emits no snapshot unless schema loading, registry/type resolution and `competitive_standard_v1` WU3 budget admission all succeed.
+- The snapshot contains frozen ruleset/determinism/budget metadata, character ID + normalized combat stats, deterministically ordered slot resolution, normalized unique skill combat values, gameplay-relevant hitbox/hurtbox timeline events and the accepted budget result.
+- VFX/impact visuals and other presentation-only timeline events are intentionally excluded from the authority fingerprint payload; combat-significant values remain included.
+- `content_fingerprint` is a versioned SHA-256 of a recursively canonicalized payload with sorted dictionary keys. It is a compatibility/equality token, not an authentication primitive.
+- Stable fail-closed diagnostics cover ruleset resolution, noncompetitive policy, character/skill registry resolution and budget rejection.
+- `tests/competitive_loadout_snapshot_test_runner.gd` covers deterministic reference snapshots, version/registry rejection, canonical key ordering, presentation-only exclusion and authoritative-value fingerprint sensitivity.
+- The required CI domain gate executes the new runner.
+- PR #192 initial head `2699f8f1e2a7dffc50710a783e80c51cf478ca52` passed Windows Native, Godot/domain/backend, Web export/size budget and Chromium in CI #547 (`35809096254`); an isolated hosted Edge `creator_package_vfx_web_smoke.mjs:252` U/MP timeout passed on a targeted same-SHA Edge retry in attempt 2 without code/test changes.
+- WU4 remains domain-only; local competitive runtime consumption begins in WU5.
 
 ### Work Unit 5 — competitive local simulation boundary
 Route a local competitive mode through the authoritative snapshot/ruleset path and prove raw authored values cannot bypass admitted values. This remains local/host-authoritative foundation, not network PvP.

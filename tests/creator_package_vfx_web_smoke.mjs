@@ -244,6 +244,17 @@ try {
     { timeout: 5_000 },
   );
 
+  // The basic-attack WAV acknowledgement can arrive before AttackChainState leaves
+  // recovery. Skill 1 samples a held key only on its first unlatched frame, so pressing
+  // U during basic-attack recovery can legitimately reject the cast and latch the held
+  // input until release. Wait for the public READY runtime state before starting the
+  // independent Skill 1 assertion instead of making runner frame cadence part of it.
+  await page.waitForFunction(
+    () => document.documentElement.dataset.playerState === 'READY',
+    null,
+    { timeout: 10_000 },
+  );
+
   // Godot Web input is frame-polled. Keep U held until the runtime acknowledges the
   // authored 17 MP spend, then release it even if the observation times out. These
   // state-driven windows match the stable Creator AI-VFX runtime regression.
