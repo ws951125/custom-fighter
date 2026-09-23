@@ -302,9 +302,19 @@ Implemented on branch `feat/v2-5-wu3-competitive-power-budget`:
 - Reference fixtures freeze Ember Vanguard at `2683 / 15649` and Storm Duelist at `2787 / 15426` (character / total), both eligible.
 - Domain tests cover exact-reference scores, skill-order determinism, no mutation, hard caps, aggregate repeated-slot pressure, inclusive boundaries and monotonic score increases for stronger damage, shorter cooldown and cheaper MP cost.
 - WU3 remains domain-only; router/UI/runtime combat do not consume the validator until later work units.
+- PR #190 latest-head CI #544 passed on `3624eed4a1b166f44975a146d06dd14a827342b1`; PR #190 then squash-merged to `main` as `ec68a7ef73464846594b7447c9b447c7917ed253`.
 
 ### Work Unit 4 — authoritative loadout snapshot + fingerprint
-Build the derived competitive snapshot only from schema-valid, registry-resolved, budget-valid content. Add deterministic canonical fingerprint/version compatibility coverage.
+Implemented on branch `feat/v2-5-wu4-authoritative-loadout-snapshot`:
+- `CompetitiveLoadoutSnapshot` accepts only an explicit ruleset ID/version, character ID and authority-owned registries; there is no API that accepts a client-provided snapshot or trusted client combat values.
+- `competitive_standard@1` plus `competitive_standard_v1` character/skill constraints, budget and `deterministic_v1` policy are required. Sandbox or unsupported versions fail closed.
+- Character and skill definitions are re-resolved through the trusted registries, including registry-declared skill type compatibility, before budget admission.
+- The frozen WU3 power-budget result must be eligible. Failed admission emits stable diagnostics and no admitted stats/skill values/fingerprint.
+- Successful snapshots carry `snapshot_version=1`, `fingerprint_version=1`, ruleset identity, character schema/id, authoritative character stats, sorted resolved slot mapping, resolved combat-authoritative skill values and the power-budget result.
+- Fingerprint v1 uses SHA-256 over explicit canonical lines with fixed field ordering and 1e6-scaled integer float representation, avoiding dictionary iteration, locale and wall-clock dependence.
+- Combat fingerprint input includes spatial hitbox/hurtbox timeline events and excludes animation/VFX/audio presentation-only timeline events plus runtime/client telemetry.
+- Domain coverage proves deterministic same-content fingerprints, different-content separation, ruleset/version fail-closed behavior, registry-resolution requirements and budget-rejected content receiving no authoritative snapshot data.
+- WU4 remains domain-only; `main_router.gd` and player-facing controls are intentionally unchanged.
 
 ### Work Unit 5 — competitive local simulation boundary
 Route a local competitive mode through the authoritative snapshot/ruleset path and prove raw authored values cannot bypass admitted values. This remains local/host-authoritative foundation, not network PvP.
