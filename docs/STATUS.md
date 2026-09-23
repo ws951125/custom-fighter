@@ -5,9 +5,9 @@
 **V1/MVP is complete; V2 roadmap is now active.**
 
 - V1 completion remains **100% (13/13 phases complete)**.
-- V2 completion is **50% (4/8 phases complete)**.
-- Completed V2 phases: **V2-1 Advanced Creator Timeline**, **V2-2 Extended Skill Families**, **V2-3 Character Animation & Audio Authoring**, and **V2-4 AI Opponents & Single-player Gameplay**.
-- Active V2 phase: **V2-5 Game Modes, Balance & Competitive Foundation**.
+- V2 completion is **62.5% (5/8 phases complete)**.
+- Completed V2 phases: **V2-1 Advanced Creator Timeline**, **V2-2 Extended Skill Families**, **V2-3 Character Animation & Audio Authoring**, **V2-4 AI Opponents & Single-player Gameplay**, and **V2-5 Game Modes, Balance & Competitive Foundation**.
+- Active V2 phase: **V2-6 Network PvP**.
 
 V1 roadmap:
 - M0–M8 MVP: 9/9 complete.
@@ -24,12 +24,24 @@ V2 roadmap is defined in `docs/V2_ROADMAP.md` and captures previously discussed/
 2. V2-2 Extended Skill Families — **complete**.
 3. V2-3 Character Animation & Audio Authoring — **complete**.
 4. V2-4 AI Opponents & Single-player Gameplay — **complete**.
-5. V2-5 Game Modes, Balance & Competitive Foundation — **in progress**.
-6. V2-6 Network PvP — pending.
+5. V2-5 Game Modes, Balance & Competitive Foundation — **complete**.
+6. V2-6 Network PvP — **in progress**.
 7. V2-7 Creator Sharing Ecosystem — pending.
 8. V2-8 Mobile Targets — pending.
 
-V2-1 delivered visual event timeline authoring, startup/active/recovery timing, animation/VFX/audio events, hitbox/hurtbox timing and spatial editing, safe multi-event compositions, validation, and Creator → Training preview round trip. V2-2 extended the data-driven skill engine beyond the six V1 families and is accepted complete with bounded Beam/Trap/Aura/Teleport/Counter/Grab/Summon families plus safe declarative scripted compositions. V2-3 is accepted complete with safe animation/audio authoring, self-contained package transport, fresh-session restore, runtime Animation PNG rendering, and packaged WAV playback. V2-4 AI Opponents & Single-player Gameplay is accepted complete with deterministic active opponents, bounded difficulty profiles, validated selectable stages, and deployed win/loss/restart/return single-player acceptance. V2-5 Game Modes, Balance & Competitive Foundation is now active.
+V2-1 delivered visual event timeline authoring, startup/active/recovery timing, animation/VFX/audio events, hitbox/hurtbox timing and spatial editing, safe multi-event compositions, validation, and Creator → Training preview round trip. V2-2 extended the data-driven skill engine beyond the six V1 families and is accepted complete with bounded Beam/Trap/Aura/Teleport/Counter/Grab/Summon families plus safe declarative scripted compositions. V2-3 is accepted complete with safe animation/audio authoring, self-contained package transport, fresh-session restore, runtime Animation PNG rendering, and packaged WAV playback. V2-4 AI Opponents & Single-player Gameplay is accepted complete with deterministic active opponents, bounded difficulty profiles, validated selectable stages, and deployed win/loss/restart/return single-player acceptance. V2-5 Game Modes, Balance & Competitive Foundation is accepted complete with frozen competitive rules, power-budget enforcement, deterministic authority snapshots/fingerprints, local competitive authority runtime, and Chromium/hosted-Edge acceptance. V2-6 Network PvP is now active.
+
+### V2-6 implementation checkpoints
+
+Work Unit 1 — **session/lobby + authority admission contract implemented; required PR validation pending**:
+- New `backend/pvp/protocol.mjs` defines protocol v1, `server_authoritative` policy, exact client loadout-claim fields, strict IDs/fingerprint/schema validation, authority-summary validation and compatibility keys.
+- New `backend/pvp/session_service.mjs` provides a transport-neutral two-player lobby: host/create, join, server-owned async loadout admission, ready, host-only start, immutable public snapshots and authority-contract compatibility gating.
+- Client loadout negotiation is intentionally limited to `character_id`, `content_fingerprint`, and `package_schema_version`; direct or disguised top-level client combat fields such as `damage` / `cooldown` are rejected before the server-owned admission adapter is called.
+- A match cannot start until exactly two participants have server-admitted loadouts, are both ready, and share protocol/authority/schema/ruleset/version/power-budget compatibility.
+- New `tests/pvp_session_service_test.mjs` covers lobby capacity, pre-admission ready rejection, forged combat-field rejection, authority callback isolation, fingerprint mismatch fail-closed, host-only start, compatibility mismatch, immutable returned state and post-start mutation rejection.
+- `package.json test:backend` now runs the new PvP session contract test, so the existing required backend CI gate validates WU1 without adding a new browser/process job.
+- New `docs/V2_6_NETWORK_PVP_INVENTORY.md` freezes the six-work-unit V2-6 sequence through two-client online acceptance.
+- V2 remains **62.5% (5/8 phases complete)** until all V2-6 acceptance criteria pass.
 
 ### V2-5 implementation checkpoints
 
@@ -41,8 +53,9 @@ Work Unit 6 — **full V2-5 acceptance regression implemented; required PR valid
 - Competitive runtime publishes diagnostic-only admitted Skill 1 ID/damage/MP/cooldown telemetry so browser acceptance can verify authority values directly without timing-dependent combat inference.
 - The existing `smoke:competitive-local` stage is strengthened in place rather than adding another browser stage, preserving the current Chromium/hosted-Edge CI call budget.
 - Required CI now runs the WU6 acceptance domain runner. PR #195 implementation head `e0a65026ea5cafb9561e9650f7c9c33254746a76` passed CI #561 (`35823214802`): Windows Native, Godot import/boot/domain/backend including `V2_5_COMPETITIVE_ACCEPTANCE_TESTS_PASSED`, Web export/size budget, Chromium `smoke:all`, and hosted Microsoft Edge `smoke:all`. Hosted Edge attempt 1 timed out only in unchanged `match_restart_web_smoke.mjs:100`; a targeted same-SHA retry of only the failed Edge job passed the complete Edge suite in attempt 2 with no product/test change, consistent with L-037/L-043.
-- A final docs-sync HEAD is validated separately before merge.
-- V2 remains **50% (4/8 phases complete)** until WU6 passes required PR validation and V2-5 is accepted.
+- Final docs-sync head `a939a102e4a70e8cd667c73119bd85d0361d600c` passed CI #562 (`35830131868`) across Windows Native, Godot/domain/backend, Web export/size budget, Chromium `smoke:all`, and hosted Microsoft Edge `smoke:all`.
+- PR #195 was explicitly approved and squash-merged to `main` as `d2fa89d7d20cf9f98917b6e57e38057751c9bd1a`. Exact-main CI #563 (`35834994468`) passed all V2-5 product gates, Chromium/hosted Edge, GitHub Pages deployment and public reachability. Overall workflow conclusion was failure only because the pre-existing external Render AI backend returned HTTP 503 for all 18 readiness attempts; production Edge full smoke was skipped behind that external dependency.
+- V2-5 is accepted complete; V2 progress is **62.5% (5/8 phases complete)**.
 
 Work Unit 5 — **local competitive authority runtime implemented; required PR validation passed on implementation head**:
 - New `CompetitiveRuntimeAuthority` resolves only `competitive_local`, requires its frozen `competitive_standard@1` / `competitive_standard_v1` contract, consumes the WU4 authority snapshot, re-validates its SHA-256 fingerprint before runtime materialization, and fails closed on mode/policy/snapshot mismatch.
