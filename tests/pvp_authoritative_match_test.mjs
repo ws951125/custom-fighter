@@ -21,6 +21,28 @@ assert.equal(orderingSim.submitInput('a',{sequence:1,target_tick:2,actions:[]}).
 assert.equal(orderingSim.submitInput('a',{sequence:2,target_tick:1,actions:[]}).code,'INPUT_TICK_STALE');
 assert.equal(orderingSim.submitInput('a',{sequence:2,target_tick:2,actions:[]}).code,'INPUT_TICK_STALE');
 
+
+const simultaneousMatch={match_id:'m2',status:'active',participants:[
+ {client_id:'a',authority:auth('ember_vanguard_001')},
+ {client_id:'b',authority:auth('storm_duelist_001')}
+]};
+const simultaneousSim=createAuthoritativeMatch({
+ match:simultaneousMatch,
+ loadoutResolver:()=>({max_hp:10,max_mp:0})
+});
+assert.equal(simultaneousSim.submitInput('a',{sequence:1,target_tick:1,actions:['move_right','run']}).ok,true);
+assert.equal(simultaneousSim.submitInput('b',{sequence:1,target_tick:1,actions:['move_left','run']}).ok,true);
+simultaneousSim.step();
+assert.equal(simultaneousSim.submitInput('a',{sequence:2,target_tick:2,actions:['move_right','run']}).ok,true);
+assert.equal(simultaneousSim.submitInput('b',{sequence:2,target_tick:2,actions:['move_left','run']}).ok,true);
+simultaneousSim.step();
+assert.equal(simultaneousSim.submitInput('a',{sequence:3,target_tick:3,actions:['move_right','basic_attack']}).ok,true);
+assert.equal(simultaneousSim.submitInput('b',{sequence:3,target_tick:3,actions:['move_left','basic_attack']}).ok,true);
+const simultaneousResult=simultaneousSim.step();
+assert.equal(simultaneousResult.status,'finished');
+assert.equal(simultaneousResult.winner_client_id,null,'same-tick mutual lethal damage must resolve as a draw, not client-id order');
+assert.deepEqual(simultaneousResult.players.map(p=>p.hp),[0,0]);
+
 const sim=createAuthoritativeMatch({match,loadoutResolver});
 const initial=sim.snapshot();
 assert.equal(initial.tick,0);

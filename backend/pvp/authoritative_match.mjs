@@ -55,9 +55,24 @@ export function createAuthoritativeMatch({match,loadoutResolver}={}){
   const inputs=(pending.get(tick)||[]).sort((a,b)=>a.client_id.localeCompare(b.client_id)||a.sequence-b.sequence);
   pending.delete(tick);
 
-  // Resolve same-tick posture/position before attacks so guard/movement do not depend on client-id order.
+  // Resolve same-tick posture/position first, then compute every hit before applying damage.
+  // This keeps guard, movement, lethal damage and winner state independent of client-id iteration order.
   for(const item of inputs)applyMovementAndGuard(players.get(item.client_id),item.actions);
-  for(const item of inputs)applyCombat(players.get(item.client_id),item.actions);
+  const hits=[];
+  for(const item of inputs){
+   const hit=resolveCombatIntent(players.get(item.client_id),item.actions);
+   if(hit)hits.push(hit);
+  }
+  for(const hit of hits){
+   hit.target.hp=Math.max(0,hit.target.hp-hit.damage);
+  }
+  if(hits.length>0){
+   const dead=[...players.values()].filter(p=>p.hp===0);
+   if(dead.length>0){
+    finished=true;
+    winner=dead.length===1?[...players.values()].find(p=>p.client_id!==dead[0].client_id).client_id:null;
+   }
+  }
 
   for(const p of players.values()){
    for(const [k,v] of Object.entries(p.cooldowns))p.cooldowns[k]=Math.max(0,v-1);
@@ -74,16 +89,15 @@ export function createAuthoritativeMatch({match,loadoutResolver}={}){
   p.guarding=actions.includes('guard');
  }
 
- function applyCombat(p,actions){
-  if(!actions.includes('basic_attack'))return;
-  if((p.cooldowns.basic_attack??0)>0)return;
+ function resolveCombatIntent(p,actions){
+  if(!actions.includes('basic_attack'))return null;
+  if((p.cooldowns.basic_attack??0)>0)return null;
   p.cooldowns.basic_attack=BASIC_ATTACK_COOLDOWN_TICKS;
   const opponent=[...players.values()].find(x=>x.client_id!==p.client_id);
   const distance=Math.abs(p.x-opponent.x);
-  if(distance>BASIC_ATTACK_RANGE)return;
+  if(distance>BASIC_ATTACK_RANGE)return null;
   const damage=opponent.guarding?BASIC_ATTACK_DAMAGE/2:BASIC_ATTACK_DAMAGE;
-  opponent.hp=Math.max(0,opponent.hp-damage);
-  if(opponent.hp===0){finished=true;winner=p.client_id;}
+  return {source:p,target:opponent,damage};
  }
 
  function snapshot(){
