@@ -115,3 +115,12 @@ V2 remains **62.5% (5/8 phases complete)** throughout partial V2-6 work. It adva
 - The client fingerprint is equality evidence only: the server resolves and validates trusted package data, computes the authoritative fingerprint, and never accepts client damage/cooldown as authority.
 - Backend regression coverage is wired into the existing trusted-backend CI gate; no extra browser process/job is added.
 - V2 remains 62.5% (5/8) until full V2-6 acceptance.
+
+
+## V2-6 WU3 — authoritative input/tick/state model (2026-09-24)
+- Added a deterministic 60 Hz server-owned match simulation boundary for exactly two admitted participants.
+- Clients submit bounded action intents with monotonic sequence numbers and a small future tick window; unknown fields/actions, stale sequences, and invalid target ticks fail closed.
+- Server state owns position, HP, MP, guard state, cooldowns, hit resolution, damage and match winner. Client-provided combat facts are not accepted by the input schema.
+- Basic attack/cooldown/guard behavior is intentionally minimal in WU3; it establishes authority semantics before WU4 transport/Web integration and is not yet a claim of full Godot combat parity.
+- Deterministic backend regression covers movement, sequence/tick rejection, forged combat fields, server cooldown, server guard mitigation and immutable snapshots.
+- V2 remains 62.5% (5/8) until complete V2-6 acceptance.
