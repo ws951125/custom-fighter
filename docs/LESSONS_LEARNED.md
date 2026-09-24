@@ -551,3 +551,15 @@
 - **Prevention Rule:** Browser/client telemetry is presentation state, not a scheduling clock. Network authority adapters should translate client intent into server-timed simulation input at the trusted boundary instead of trusting a client-computed authority tick.
 - **Validation:** Pending replacement PR #201 CI after the server-scheduled input commit.
 - **Status:** Pending
+
+
+## L-050 — ESM direct-entry checks must use URL conversion on Windows
+
+- **Date:** 2026-09-24
+- **Area:** V2-6 WU4 Node backend startup / hosted Microsoft Edge
+- **Symptom:** PR #201 CI #585 passed Windows Native, Godot/domain/backend, Web export/size and the complete Chromium `smoke:all` including Network PvP, but hosted Microsoft Edge failed when `network_pvp_web_smoke.mjs` could not reach its spawned local PvP backend. The child produced no ready log and every health fetch failed.
+- **Root Cause:** `backend/server.mjs` used `import.meta.url === \`file://${process.argv[1]}\`` as its direct-entry guard. That happens to match POSIX paths but is not a valid cross-platform file-URL conversion for Windows paths such as `D:\\...\`; therefore `node backend/server.mjs` on Windows imported the module but never called `listen()`.
+- **Fix:** Convert `process.argv[1]` with Node's standard `pathToFileURL(...).href` before comparing it with `import.meta.url`.
+- **Prevention Rule:** Never construct ESM file URLs by string-prefixing filesystem paths. Use `pathToFileURL` for filesystem path → URL conversion so direct-entry guards behave identically on Linux and Windows.
+- **Validation:** Pending replacement PR #201 CI; Chromium already passed the full WU4 two-client network smoke on #585.
+- **Status:** Pending

@@ -1,4 +1,5 @@
 import http from 'node:http';
+import { pathToFileURL } from 'node:url';
 import { createVfxResponse } from './vfx_service.mjs';
 import { imageProviderReadiness } from './image_provider_factory.mjs';
 import { createServerPackageAuthorityStore } from './pvp/package_authority.mjs';
@@ -114,7 +115,7 @@ export function createServer({
   return server;
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   createServer().listen(PORT, '0.0.0.0', () => {
     console.log(`CUSTOM_FIGHTER_BACKEND_READY port=${PORT} pvp_ws=${PVP_WS_PATH}`);
   });
