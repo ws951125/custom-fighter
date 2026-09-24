@@ -16,6 +16,22 @@ assert.throws(
  /AUTHORITATIVE_LOADOUT_INVALID/
 );
 
+const sourceMatch=structuredClone(match);
+const sourceIsolationSim=createAuthoritativeMatch({match:sourceMatch,loadoutResolver});
+sourceMatch.match_id='tampered';
+sourceMatch.participants[0].client_id='tampered';
+assert.equal(sourceIsolationSim.snapshot().match_id,'m1');
+assert.deepEqual(sourceIsolationSim.snapshot().players.map(p=>p.client_id),['a','b']);
+assert.throws(
+ ()=>createAuthoritativeMatch({match:{...match,participants:[match.participants[0],match.participants[0]]},loadoutResolver}),
+ /MATCH_PARTICIPANTS_INVALID/
+);
+const sequenceValidationSim=createAuthoritativeMatch({match,loadoutResolver});
+assert.equal(
+ sequenceValidationSim.submitInput('a',{sequence:Number.MAX_SAFE_INTEGER+1,target_tick:1,actions:[]}).code,
+ 'INPUT_SEQUENCE_INVALID'
+);
+
 const orderingSim=createAuthoritativeMatch({match,loadoutResolver});
 assert.equal(orderingSim.submitInput('a',{sequence:1,target_tick:2,actions:[]}).ok,true);
 assert.equal(orderingSim.submitInput('a',{sequence:2,target_tick:1,actions:[]}).code,'INPUT_TICK_STALE');

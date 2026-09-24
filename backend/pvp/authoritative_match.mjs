@@ -28,8 +28,12 @@ function initialPlayer(participant,index,loadoutResolver){
 export function createAuthoritativeMatch({match,loadoutResolver}={}){
  if(!match||match.status!=='active'||!Array.isArray(match.participants)||match.participants.length!==2) throw new Error('ACTIVE_TWO_PLAYER_MATCH_REQUIRED');
  if(typeof loadoutResolver!=='function')throw new Error('AUTHORITATIVE_LOADOUT_RESOLVER_REQUIRED');
+ const matchId=String(match.match_id??'').trim();
+ if(!matchId)throw new Error('MATCH_ID_INVALID');
+ const participantIds=match.participants.map(p=>String(p?.client_id??'').trim());
+ if(participantIds.some(id=>!id)||new Set(participantIds).size!==2)throw new Error('MATCH_PARTICIPANTS_INVALID');
  let tick=0,finished=false,winner=null;
- const players=new Map(match.participants.map((p,i)=>[p.client_id,initialPlayer(p,i,loadoutResolver)]));
+ const players=new Map(match.participants.map((p,i)=>[participantIds[i],initialPlayer({...p,client_id:participantIds[i]},i,loadoutResolver)]));
  const pending=new Map();
 
  function submitInput(clientId,input){
@@ -38,7 +42,7 @@ export function createAuthoritativeMatch({match,loadoutResolver}={}){
   if(!input||typeof input!=='object'||Array.isArray(input))return fail('INPUT_INVALID');
   const allowed=['sequence','target_tick','actions'];
   if(Object.keys(input).some(k=>!allowed.includes(k)))return fail('INPUT_FIELDS_INVALID');
-  if(!Number.isInteger(input.sequence)||input.sequence<=p.last_input_sequence)return fail('INPUT_SEQUENCE_INVALID');
+  if(!Number.isSafeInteger(input.sequence)||input.sequence<=p.last_input_sequence)return fail('INPUT_SEQUENCE_INVALID');
   if(!Number.isInteger(input.target_tick)||input.target_tick<tick+1||input.target_tick>tick+MAX_INPUT_LEAD)return fail('INPUT_TICK_INVALID');
   if(input.target_tick<=p.last_target_tick)return fail('INPUT_TICK_STALE',{last_target_tick:p.last_target_tick});
   if(!Array.isArray(input.actions)||input.actions.length>8||input.actions.some(a=>!ACTIONS.has(a)))return fail('INPUT_ACTION_INVALID');
@@ -101,7 +105,7 @@ export function createAuthoritativeMatch({match,loadoutResolver}={}){
  }
 
  function snapshot(){
-  return clone({match_id:match.match_id,tick,tick_rate:TICK_RATE,status:finished?'finished':'active',winner_client_id:winner,players:[...players.values()].sort((a,b)=>a.client_id.localeCompare(b.client_id))});
+  return clone({match_id:matchId,tick,tick_rate:TICK_RATE,status:finished?'finished':'active',winner_client_id:winner,players:[...players.values()].sort((a,b)=>a.client_id.localeCompare(b.client_id))});
  }
  return Object.freeze({submitInput,step,snapshot});
 }
