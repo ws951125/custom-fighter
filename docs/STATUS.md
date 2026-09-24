@@ -675,7 +675,7 @@ AI VFX backend: `https://custom-fighter-ai-vfx.onrender.com`
 
 ## Next implementation target
 
-V2-6 **Work Unit 5 — reconnect / forfeit / latency handling** is active on `feat/v2-6-wu5-reconnect-forfeit-latency`. Validate bounded reconnect, explicit leave/forfeit, disconnect timeout, heartbeat/RTT and deterministic terminal match results across backend + Chromium + hosted Edge.
+PR #202 is the **V2-6 Work Unit 5 — reconnect / forfeit / latency handling** merge candidate. Latest product head `fe186699a3f0da60312d94811974b0b5ec5b3834` passed CI #590; after latest-head docs CI passes and explicit merge approval is given, squash-merge WU5, validate exact-main, then begin **WU6 — full two-client online acceptance**.
 
 
 ## V2-6 WU2 — server-side package authority admission (2026-09-24)
@@ -734,4 +734,6 @@ V2-6 **Work Unit 5 — reconnect / forfeit / latency handling** is active on `fe
 - Application heartbeat uses bounded `ping/pong`; the Web client calculates RTT from its own monotonic clock, while the server tracks authenticated last-seen time and closes stale sockets into the normal reconnect/timeout path.
 - Godot `competitive_hosted` adds Reconnect, Leave Lobby and Forfeit controls, automatic reconnect attempts, RTT/reconnect/peer status telemetry, and terminal result display.
 - Backend regressions cover reconnect-token rebind, heartbeat, explicit forfeit, disconnect-timeout forfeit, waiting-lobby host leave/promotion and deterministic terminal state. Browser smoke now disconnects the actual Godot guest client, waits for automatic reconnect, then forfeits and verifies the host wins.
-- WU5 is not Done until required latest-head CI passes. V2 remains 62.5% (5/8) until complete V2-6 acceptance.
+- CI #589 exposed the browser close-code restriction recorded in L-051; the intentional reconnect close changed from RFC status 1001 to browser-valid application code 3001.
+- Replacement CI #590 (`36024400048`) passed Windows Native, Godot/domain/backend including all WU5 reconnect/forfeit/timeout regressions, Web export/size budget, Chromium `smoke:all` with real Godot auto-reconnect + forfeit, and hosted Microsoft Edge `smoke:all` with the same WU5 path.
+- WU5 implementation is PR-validated and ready for latest-head docs validation plus explicit merge approval. V2 remains 62.5% (5/8) until complete V2-6 acceptance.

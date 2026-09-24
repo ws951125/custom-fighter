@@ -573,5 +573,5 @@
 - **Root Cause:** The Godot Web client requested close code `1001` for the intentional reconnect test. Although 1001 is a defined WebSocket protocol status, browser JavaScript only permits client-initiated `WebSocket.close()` with code 1000 or application-defined codes 3000–4999.
 - **Fix:** Use application close code `3001` for the intentional client reconnect path. Server-originated heartbeat timeout continues to use an allowed application close code.
 - **Prevention Rule:** For browser-originated WebSocket closure, use 1000 or an application code in 3000–4999. Do not assume every RFC-defined protocol close code is legal through the browser JavaScript API.
-- **Validation:** Pending replacement PR #202 CI after the close-code correction.
-- **Status:** Pending
+- **Validation:** PR #202 product head `fe186699a3f0da60312d94811974b0b5ec5b3834` passed replacement CI #590 (`36024400048`). Windows Native, Godot/domain/backend, Web export/size, Chromium `smoke:all` and hosted Microsoft Edge `smoke:all` all passed, including the real Godot Web disconnect → automatic reconnect → forfeit path.
+- **Status:** Verified on PR #202 CI #590

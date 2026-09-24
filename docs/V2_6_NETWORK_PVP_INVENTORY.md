@@ -95,7 +95,7 @@ Implementation scope:
 
 ### Work Unit 5 — reconnect / forfeit / latency handling
 
-Status: **implementation active on `feat/v2-6-wu5-reconnect-forfeit-latency`; online validation pending**.
+Status: **implementation complete and PR-validated in PR #202; latest product head `fe186699a3f0da60312d94811974b0b5ec5b3834` passed CI #590 (`36024400048`); awaiting latest-head docs validation and explicit merge approval**.
 
 Implementation scope:
 - 10-second bounded reconnect window with server-issued reconnect token kept only in client process memory;
@@ -161,4 +161,5 @@ V2 remains **62.5% (5/8 phases complete)** throughout partial V2-6 work. It adva
 - Explicit `forfeit` and timeout finalization use the same authoritative match terminal-state method so client ordering cannot determine the winner.
 - Heartbeat is application-level because browser WebSocket APIs do not expose protocol control-frame ping/pong. Any authenticated message refreshes last-seen; explicit ping/pong supplies RTT telemetry to the client.
 - Waiting-lobby leave is a session-service operation and never mutates active lobbies; active players must use forfeit.
-- Required validation: trusted-backend WU5 regression, existing Godot/domain gates, Web export/size, Chromium two-client reconnect/forfeit flow and hosted Edge equivalent.
+- Validation: PR #202 product head `fe186699a3f0da60312d94811974b0b5ec5b3834` passed CI #590 (`36024400048`) across Windows Native, Godot/domain/backend, Web export/size, Chromium two-client reconnect/forfeit flow and hosted Edge equivalent.
+- CI #589 failed only on the intentional browser close code 1001; L-051 records the correction to browser-valid application code 3001 and #590 verifies it.
