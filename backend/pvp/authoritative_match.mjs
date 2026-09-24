@@ -21,7 +21,7 @@ function initialPlayer(participant,index,loadoutResolver){
  return {
   client_id:participant.client_id,character_id:participant.authority.character_id,
   hp:loadout.max_hp,mp:loadout.max_mp,x:index===0?-6:6,y:0,facing:index===0?1:-1,
-  guarding:false,cooldowns:{},last_input_sequence:0
+  guarding:false,cooldowns:{},last_input_sequence:0,last_target_tick:0
  };
 }
 
@@ -40,8 +40,10 @@ export function createAuthoritativeMatch({match,loadoutResolver}={}){
   if(Object.keys(input).some(k=>!allowed.includes(k)))return fail('INPUT_FIELDS_INVALID');
   if(!Number.isInteger(input.sequence)||input.sequence<=p.last_input_sequence)return fail('INPUT_SEQUENCE_INVALID');
   if(!Number.isInteger(input.target_tick)||input.target_tick<tick+1||input.target_tick>tick+MAX_INPUT_LEAD)return fail('INPUT_TICK_INVALID');
+  if(input.target_tick<=p.last_target_tick)return fail('INPUT_TICK_STALE',{last_target_tick:p.last_target_tick});
   if(!Array.isArray(input.actions)||input.actions.length>8||input.actions.some(a=>!ACTIONS.has(a)))return fail('INPUT_ACTION_INVALID');
   p.last_input_sequence=input.sequence;
+  p.last_target_tick=input.target_tick;
   if(!pending.has(input.target_tick))pending.set(input.target_tick,[]);
   pending.get(input.target_tick).push({client_id:clientId,sequence:input.sequence,actions:[...new Set(input.actions)]});
   return {ok:true,accepted_sequence:input.sequence,target_tick:input.target_tick};

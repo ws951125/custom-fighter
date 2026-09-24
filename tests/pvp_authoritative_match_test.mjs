@@ -16,6 +16,11 @@ assert.throws(
  /AUTHORITATIVE_LOADOUT_INVALID/
 );
 
+const orderingSim=createAuthoritativeMatch({match,loadoutResolver});
+assert.equal(orderingSim.submitInput('a',{sequence:1,target_tick:2,actions:[]}).ok,true);
+assert.equal(orderingSim.submitInput('a',{sequence:2,target_tick:1,actions:[]}).code,'INPUT_TICK_STALE');
+assert.equal(orderingSim.submitInput('a',{sequence:2,target_tick:2,actions:[]}).code,'INPUT_TICK_STALE');
+
 const sim=createAuthoritativeMatch({match,loadoutResolver});
 const initial=sim.snapshot();
 assert.equal(initial.tick,0);
