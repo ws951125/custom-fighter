@@ -3,6 +3,7 @@ extends Control
 const TRAINING_SCENE = preload("res://game/runtime/main.tscn")
 const CREATOR_SCENE = preload("res://game/creator/creator_studio.tscn")
 const VFX_SCENE = preload("res://game/creator/vfx_editor/vfx_studio.tscn")
+const NETWORK_PVP_SCENE = preload("res://game/network/pvp_lobby.tscn")
 const OpponentBehaviorProfiles = preload("res://game/core/ai/opponent_behavior_profiles.gd")
 const StageRegistry = preload("res://game/core/stage/stage_registry.gd")
 
@@ -54,6 +55,8 @@ func _mount_mode(mode_name: String) -> void:
 		selected_scene = CREATOR_SCENE
 	elif mode_name == "vfx":
 		selected_scene = VFX_SCENE
+	elif mode_name == "competitive_hosted":
+		selected_scene = NETWORK_PVP_SCENE
 	active_instance = selected_scene.instantiate()
 	add_child(active_instance)
 	if active_instance is Control:
@@ -88,6 +91,8 @@ func _normalize_mode(requested_mode: String) -> String:
 		return "single_player"
 	if requested == "competitive_local":
 		return "competitive_local"
+	if requested == "competitive_hosted":
+		return "competitive_hosted"
 	return "training"
 
 func _set_web_state() -> void:

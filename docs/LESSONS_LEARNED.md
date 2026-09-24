@@ -527,3 +527,39 @@
 - **Prevention Rule:** Any authority protocol that schedules future input must define both message order and execution order. Same-tick outcomes that affect combat result must be computed from a common pre-damage state or another explicit deterministic policy, never incidental container/client ordering.
 - **Validation:** PR #200 product head `d4ee2560dc08b6a9e4e93120ce5591f42e2768a5` passed CI #580 (`35947039184`) with regression coverage for target-tick monotonicity, unsafe sequences and simultaneous lethal draw behavior.
 - **Status:** Verified on PR #200 CI #580
+
+
+## L-048 — Network snapshot tests must assert participant identity, not array position
+
+- **Date:** 2026-09-24
+- **Area:** V2-6 WU4 WebSocket transport regression
+- **Symptom:** PR #201 CI #583 reached the new WebSocket authority regression and failed the initial HP assertion with actual `[90, 100]` versus expected `[100, 90]`.
+- **Root Cause:** WU3 intentionally emits deterministic player snapshots sorted by `client_id`. The new WU4 regression incorrectly assumed the array preserved host/guest or loadout-admission order, so the assertion attached HP values to positions instead of participant identities.
+- **Fix:** Backend and browser network regressions now locate participants by `client_id` before asserting authoritative HP or movement state.
+- **Prevention Rule:** Network/state regressions must treat participant collections as identity-addressed data unless the protocol explicitly guarantees semantic positional ordering. Assert per-client facts by stable ID, not incidental array index.
+- **Validation:** PR #201 latest product head `b5ecef0bf364e3e629148e12c29621128f1696a0` passed CI #586 (`35970648404`), including the corrected backend WebSocket regression plus Chromium and hosted Edge two-client Network PvP smoke.
+- **Status:** Verified on PR #201 CI #586
+
+
+## L-049 — Network clients should not schedule authoritative ticks from rendered telemetry
+
+- **Date:** 2026-09-24
+- **Area:** V2-6 WU4 browser input scheduling / authority boundary
+- **Symptom:** PR #201 replacement CI #584 passed WU4 backend transport tests and all existing Chromium stages through Competitive Local, then the new two-client Network PvP smoke timed out waiting for a host movement intent to appear in authoritative state.
+- **Root Cause:** The first WU4 Web client derived `target_tick` from the last server snapshot rendered into browser state. That value is necessarily behind the live authority clock by transport/render delay and can become stale before the intent reaches the server. More importantly, allowing the browser to choose a future authority tick weakens the intended transport boundary.
+- **Fix:** The network message now contains only client sequence + allow-listed actions. The server transport snapshots the live authority clock on receipt and assigns the next monotonic available target tick, bounded to the existing WU3 six-tick window. A client-supplied `target_tick` is rejected as `INPUT_INTENT_FIELDS_INVALID`.
+- **Prevention Rule:** Browser/client telemetry is presentation state, not a scheduling clock. Network authority adapters should translate client intent into server-timed simulation input at the trusted boundary instead of trusting a client-computed authority tick.
+- **Validation:** PR #201 latest product head `b5ecef0bf364e3e629148e12c29621128f1696a0` passed CI #586 (`35970648404`), including backend rejection of client-supplied authority ticks and successful Chromium/hosted Edge authoritative movement synchronization.
+- **Status:** Verified on PR #201 CI #586
+
+
+## L-050 — ESM direct-entry checks must use URL conversion on Windows
+
+- **Date:** 2026-09-24
+- **Area:** V2-6 WU4 Node backend startup / hosted Microsoft Edge
+- **Symptom:** PR #201 CI #585 passed Windows Native, Godot/domain/backend, Web export/size and the complete Chromium `smoke:all` including Network PvP, but hosted Microsoft Edge failed when `network_pvp_web_smoke.mjs` could not reach its spawned local PvP backend. The child produced no ready log and every health fetch failed.
+- **Root Cause:** `backend/server.mjs` used `import.meta.url === \`file://${process.argv[1]}\`` as its direct-entry guard. That happens to match POSIX paths but is not a valid cross-platform file-URL conversion for Windows paths such as `D:\\...\`; therefore `node backend/server.mjs` on Windows imported the module but never called `listen()`.
+- **Fix:** Convert `process.argv[1]` with Node's standard `pathToFileURL(...).href` before comparing it with `import.meta.url`.
+- **Prevention Rule:** Never construct ESM file URLs by string-prefixing filesystem paths. Use `pathToFileURL` for filesystem path → URL conversion so direct-entry guards behave identically on Linux and Windows.
+- **Validation:** PR #201 latest product head `b5ecef0bf364e3e629148e12c29621128f1696a0` passed CI #586 (`35970648404`). The hosted Microsoft Edge job successfully launched the local Node PvP backend on Windows and completed the full `smoke:all`, including two-client Network PvP.
+- **Status:** Verified on PR #201 CI #586

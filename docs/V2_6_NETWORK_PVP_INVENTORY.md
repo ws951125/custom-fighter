@@ -67,7 +67,7 @@ Delivered:
 
 ### Work Unit 3 — authoritative input/tick/state model
 
-Status: **implemented in PR #200; final product head `d4ee2560dc08b6a9e4e93120ce5591f42e2768a5` passed PR CI #580 (`35947039184`); awaiting latest-head docs validation and explicit merge approval**.
+Status: **merged to `main` by PR #200 as `110f86fe7490b86f539589861834100c49877db8`**. PR latest-head CI #581 passed all required PR gates; exact-main CI #582 passed all product/Pages gates and was red only on the pre-existing external Render HTTP 503 readiness blocker.
 
 Delivered:
 - bounded exact-allow-list input-intent envelope;
@@ -82,12 +82,16 @@ Delivered:
 
 ### Work Unit 4 — network transport + Web client integration
 
-Planned:
-- WebSocket or equivalent duplex transport behind the session service;
-- lobby create/join/ready/start messages;
-- authenticated connection-to-client binding appropriate to the current product scope;
-- browser integration for two supported clients;
-- transport error handling without weakening authority.
+Status: **implementation complete and PR-validated in PR #201; awaiting explicit merge approval**.
+
+Implementation scope:
+- RFC-6455 WebSocket transport at `/v1/pvp/ws` behind the existing session/authority services;
+- exact-field allow-listed hello/create/join/admit/ready/start/input/state messages; browser input carries only sequence + actions while the server schedules the bounded authoritative target tick;
+- allow-listed browser Origin plus server-issued per-connection token and socket-bound client identity; reconnect identity is deliberately deferred to WU5;
+- trusted server loadout resolution for WU3 initial HP/MP using WU2-admitted/fingerprint-matched content;
+- `competitive_hosted` Godot Web lobby/client UI for two supported clients;
+- two-browser Chromium/hosted-Edge regression covering lobby, authority admission, ready/start, synchronized server state and bounded input;
+- transport errors fail closed without creating any client-authored combat-state path.
 
 ### Work Unit 5 — reconnect / forfeit / latency handling
 
@@ -136,3 +140,12 @@ V2 remains **62.5% (5/8 phases complete)** throughout partial V2-6 work. It adva
 - Final WU3 product head `d4ee2560dc08b6a9e4e93120ce5591f42e2768a5` passed PR CI #580 (`35947039184`) across Windows Native, Godot/domain/backend, Web export/size budget, Chromium `smoke:all`, and hosted Microsoft Edge `smoke:all`.
 - PR #199 was closed unmerged as superseded by PR #200.
 - V2 remains 62.5% (5/8) until complete V2-6 acceptance.
+
+
+## V2-6 WU4 implementation checkpoint (2026-09-24)
+- Branch: `feat/v2-6-wu4-websocket-web-client`, based on WU3 merge `110f86fe7490b86f539589861834100c49877db8`.
+- Node backend gains `/v1/pvp/ws` using the MIT `ws` package. HTTP health reports PvP protocol/path/authority metadata without changing the existing AI readiness contract.
+- Connection binding is intentionally session-scoped in WU4: validated client ID + server-generated token are bound to the live socket; duplicate live client IDs, wrong tokens, unexpected fields, bad Origin, unsupported message types and wrong lobby/match binding fail closed.
+- WU4 does not implement reconnect tokens, forfeit/disconnect timeout or heartbeat/latency policy; those remain WU5.
+- Godot `competitive_hosted` exposes a user-visible lobby/client scene and server-authoritative intent controls. It does not reuse the local competitive runtime as combat authority.
+- Validation: PR #201 head `b5ecef0bf364e3e629148e12c29621128f1696a0` passed CI #586 (`35970648404`) across Windows Native, Godot/domain/backend, Web export/size, Chromium two-client Network PvP and hosted Edge two-client Network PvP. Production WSS remains a post-merge exact-main gate and is blocked whenever the existing Render service is unavailable.
