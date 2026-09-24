@@ -82,11 +82,11 @@ Delivered:
 
 ### Work Unit 4 — network transport + Web client integration
 
-Status: **implementation active on `feat/v2-6-wu4-websocket-web-client`; online validation pending**.
+Status: **implementation complete and PR-validated in PR #201; awaiting explicit merge approval**.
 
 Implementation scope:
 - RFC-6455 WebSocket transport at `/v1/pvp/ws` behind the existing session/authority services;
-- exact-field allow-listed hello/create/join/admit/ready/start/input/state messages;
+- exact-field allow-listed hello/create/join/admit/ready/start/input/state messages; browser input carries only sequence + actions while the server schedules the bounded authoritative target tick;
 - allow-listed browser Origin plus server-issued per-connection token and socket-bound client identity; reconnect identity is deliberately deferred to WU5;
 - trusted server loadout resolution for WU3 initial HP/MP using WU2-admitted/fingerprint-matched content;
 - `competitive_hosted` Godot Web lobby/client UI for two supported clients;
@@ -148,4 +148,4 @@ V2 remains **62.5% (5/8 phases complete)** throughout partial V2-6 work. It adva
 - Connection binding is intentionally session-scoped in WU4: validated client ID + server-generated token are bound to the live socket; duplicate live client IDs, wrong tokens, unexpected fields, bad Origin, unsupported message types and wrong lobby/match binding fail closed.
 - WU4 does not implement reconnect tokens, forfeit/disconnect timeout or heartbeat/latency policy; those remain WU5.
 - Godot `competitive_hosted` exposes a user-visible lobby/client scene and server-authoritative intent controls. It does not reuse the local competitive runtime as combat authority.
-- Required validation: backend transport regression, existing backend/domain gates, Web export/size, two-client network smoke in Chromium and hosted Edge. Production WSS remains a post-merge gate and is blocked whenever the existing Render service is unavailable.
+- Validation: PR #201 head `b5ecef0bf364e3e629148e12c29621128f1696a0` passed CI #586 (`35970648404`) across Windows Native, Godot/domain/backend, Web export/size, Chromium two-client Network PvP and hosted Edge two-client Network PvP. Production WSS remains a post-merge exact-main gate and is blocked whenever the existing Render service is unavailable.

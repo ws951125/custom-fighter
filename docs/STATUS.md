@@ -675,7 +675,7 @@ AI VFX backend: `https://custom-fighter-ai-vfx.onrender.com`
 
 ## Next implementation target
 
-V2-6 **Work Unit 4 — network transport + Web client integration** is active on `feat/v2-6-wu4-websocket-web-client`. Validate the WebSocket transport/backend contract, two-client Chromium/hosted-Edge browser flow, then synchronize WU4 evidence and prepare the PR for merge approval.
+V2-6 **Work Unit 4 — network transport + Web client integration** is implementation-complete and PR-validated in PR #201. Await explicit merge approval; after merge, validate the exact `main` revision before beginning **WU5 — reconnect / forfeit / latency handling**.
 
 
 ## V2-6 WU2 — server-side package authority admission (2026-09-24)
@@ -710,6 +710,9 @@ V2-6 **Work Unit 4 — network transport + Web client integration** is active on
 - Transport messages are exact-field allow-listed. Lobby create/join, loadout admission, ready/start, authoritative input and state requests call the existing WU1/WU2/WU3 services; client messages cannot author HP/MP/damage/cooldown/winner state.
 - Server package authority now exposes a trusted loadout resolver: built-in Ember/Storm HP/MP are frozen beside their authority fingerprints, while admitted custom package HP/MP is cached only after WU2 validation/fingerprint equality.
 - `competitive_hosted` now mounts a dedicated Network PvP Web scene with Connect, Create/Join Lobby, Admit Loadout, Ready/Unready, Start Match, and bounded authoritative Left/Right/Guard/Neutral/Attack intent controls.
-- Web telemetry plus a CI-only command bridge exercise the same Godot client path. New two-browser regression will create/join one lobby, negotiate Ember/Storm, ready/start one match and verify synchronized authoritative state/input in Chromium and hosted Edge.
+- Web telemetry plus a CI-only command bridge exercise the same Godot client path. The two-browser regression creates/joins one lobby, negotiates Ember/Storm, readies/starts one match and verifies synchronized authoritative state/input.
+- Client input no longer supplies authoritative `target_tick`; the Web client sends only sequence + actions, and the server transport schedules the next bounded authority tick on receipt. Client-supplied `target_tick` fails closed.
 - Added `ws` 8.21.3 (MIT, zero runtime dependencies) for the Node WebSocket server/test client; no paid service or paid dependency was introduced.
-- WU4 is not Done until the branch/PR required online gates pass. V2 remains 62.5% (5/8) until full V2-6 acceptance.
+- PR #201 latest product head `b5ecef0bf364e3e629148e12c29621128f1696a0` passed CI #586 (`35970648404`): Windows Native, Godot/domain/backend including WebSocket transport regression, Web export/size budget, Chromium `smoke:all` including two-client Network PvP, and hosted Microsoft Edge `smoke:all` including the same Network PvP flow.
+- CI #583 exposed an identity-order test assumption (L-048); #584 exposed client-scheduled stale authority ticks (L-049); #585 exposed the Windows ESM direct-entry URL bug (L-050). All are corrected and #586 is green.
+- WU4 implementation is ready for explicit merge approval. V2 remains 62.5% (5/8) until complete V2-6 acceptance.
