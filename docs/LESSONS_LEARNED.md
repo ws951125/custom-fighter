@@ -502,5 +502,5 @@
 - **Root Cause:** The regression attempted the guarded attack while the players were still 4 units apart although the WU3 basic-attack range is 3. Independently, the first WU3 implementation processed each client's complete intent in client-ID order, so an attacker sorted before a defender could resolve damage before the defender's same-tick guard state was applied.
 - **Fix:** Make the regression explicitly move both players into range before the guarded hit. Split authority tick resolution into two deterministic phases: apply movement/guard for every accepted same-tick intent first, then resolve combat actions.
 - **Prevention Rule:** Authority regressions must construct and assert their spatial preconditions before hit/damage expectations. Same-tick defensive posture or movement that affects combat resolution must be applied in an order-independent pre-combat phase rather than depending on participant iteration order.
-- **Validation:** Corrected PR #200 replacement GitHub CI pending.
-- **Status:** Pending replacement CI
+- **Validation:** Corrected PR #200 head `da3a151491c08b7992c64ae30b76e5478fea2c71` passed CI #575 (`35943522365`), including Windows Native, Godot/domain/backend, Web export/size budget, Chromium `smoke:all`, and hosted Microsoft Edge `smoke:all`.
+- **Status:** Verified on PR #200 CI #575
