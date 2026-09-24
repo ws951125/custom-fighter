@@ -6,6 +6,7 @@ const OPEN = 1;
 const MAX_MESSAGE_BYTES = 64 * 1024;
 const LOBBY_ID_PATTERN = /^[A-Za-z0-9_.:-]{1,128}$/;
 const MATCH_ID_PATTERN = /^[A-Za-z0-9_.:-]{1,128}$/;
+const NETWORK_INPUT_KEYS = new Set(['sequence','actions']);
 
 const MESSAGE_KEYS = Object.freeze({
   hello: new Set(['type','protocol_version','client_id']),
@@ -299,7 +300,23 @@ export function createPvpWebSocketTransport({
         sendError(ws, type, 'MATCH_BINDING_REQUIRED');
         return;
       }
-      const result = entry.sim.submitInput(state.client_id, raw.input);
+      if (!exactKeys(raw.input, NETWORK_INPUT_KEYS)) {
+        sendError(ws, type, 'INPUT_INTENT_FIELDS_INVALID');
+        return;
+      }
+      const before = entry.sim.snapshot();
+      const player = before.players.find(item => item.client_id === state.client_id);
+      const lastTargetTick = Number(player?.last_target_tick ?? before.tick);
+      const targetTick = Math.max(before.tick + 1, lastTargetTick + 1);
+      if (targetTick > before.tick + 6) {
+        sendError(ws, type, 'INPUT_WINDOW_FULL');
+        return;
+      }
+      const result = entry.sim.submitInput(state.client_id, {
+        sequence: raw.input.sequence,
+        target_tick: targetTick,
+        actions: raw.input.actions
+      });
       if (!result.ok) {
         sendError(ws, type, result.code, 'last_sequence' in result ? { last_sequence:result.last_sequence } : {});
         return;

@@ -539,3 +539,15 @@
 - **Prevention Rule:** Network/state regressions must treat participant collections as identity-addressed data unless the protocol explicitly guarantees semantic positional ordering. Assert per-client facts by stable ID, not incidental array index.
 - **Validation:** Pending replacement PR #201 CI after the corrected regression commit.
 - **Status:** Pending
+
+
+## L-049 — Network clients should not schedule authoritative ticks from rendered telemetry
+
+- **Date:** 2026-09-24
+- **Area:** V2-6 WU4 browser input scheduling / authority boundary
+- **Symptom:** PR #201 replacement CI #584 passed WU4 backend transport tests and all existing Chromium stages through Competitive Local, then the new two-client Network PvP smoke timed out waiting for a host movement intent to appear in authoritative state.
+- **Root Cause:** The first WU4 Web client derived `target_tick` from the last server snapshot rendered into browser state. That value is necessarily behind the live authority clock by transport/render delay and can become stale before the intent reaches the server. More importantly, allowing the browser to choose a future authority tick weakens the intended transport boundary.
+- **Fix:** The network message now contains only client sequence + allow-listed actions. The server transport snapshots the live authority clock on receipt and assigns the next monotonic available target tick, bounded to the existing WU3 six-tick window. A client-supplied `target_tick` is rejected as `INPUT_INTENT_FIELDS_INVALID`.
+- **Prevention Rule:** Browser/client telemetry is presentation state, not a scheduling clock. Network authority adapters should translate client intent into server-timed simulation input at the trusted boundary instead of trusting a client-computed authority tick.
+- **Validation:** Pending replacement PR #201 CI after the server-scheduled input commit.
+- **Status:** Pending

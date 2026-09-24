@@ -287,7 +287,6 @@ func _send_action(actions: Array) -> void:
 		"match_id": _match_id,
 		"input": {
 			"sequence": _input_sequence,
-			"target_tick": _server_tick + 6,
 			"actions": actions
 		}
 	})

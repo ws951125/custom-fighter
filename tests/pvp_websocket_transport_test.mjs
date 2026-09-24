@@ -178,7 +178,7 @@ try{
     type:'input',
     connection_token:'wrong-token',
     match_id:matchId,
-    input:{sequence:1,target_tick:initial.state.tick+3,actions:['move_right']}
+    input:{sequence:1,actions:['move_right']}
   });
   const authError=await host.inbox.next(message=>message.type==='error'&&message.request_type==='input');
   assert.equal(authError.code,'CONNECTION_AUTH_INVALID');
@@ -188,17 +188,26 @@ try{
     connection_token:hostHello.connection_token,
     match_id:matchId,
     client_id:'guest_client',
-    input:{sequence:1,target_tick:initial.state.tick+3,actions:['move_right']}
+    input:{sequence:1,actions:['move_right']}
   });
   const fieldsError=await host.inbox.next(message=>message.type==='error'&&message.request_type==='input');
   assert.equal(fieldsError.code,'MESSAGE_FIELDS_INVALID');
+
+  host.inbox.send({
+    type:'input',
+    connection_token:hostHello.connection_token,
+    match_id:matchId,
+    input:{sequence:1,target_tick:initial.state.tick+1,actions:['move_right']}
+  });
+  const targetFieldError=await host.inbox.next(message=>message.type==='error'&&message.request_type==='input');
+  assert.equal(targetFieldError.code,'INPUT_INTENT_FIELDS_INVALID');
 
   const latest=await host.inbox.next(message=>message.type==='match_state'&&message.state.tick>=initial.state.tick);
   host.inbox.send({
     type:'input',
     connection_token:hostHello.connection_token,
     match_id:matchId,
-    input:{sequence:1,target_tick:latest.state.tick+5,actions:['move_right']}
+    input:{sequence:1,actions:['move_right']}
   });
   const ack=await host.inbox.next(message=>message.type==='input_ack');
   assert.equal(ack.accepted_sequence,1);
