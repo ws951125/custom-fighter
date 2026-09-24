@@ -171,7 +171,8 @@ try{
   const matchId=hostStarted.match.match_id;
 
   const initial=await host.inbox.next(message=>message.type==='match_state'&&message.state.match_id===matchId);
-  assert.deepEqual(initial.state.players.map(player=>player.hp),[100,90]);
+  assert.equal(initial.state.players.find(player=>player.client_id==='host_client')?.hp,100);
+  assert.equal(initial.state.players.find(player=>player.client_id==='guest_client')?.hp,90);
 
   host.inbox.send({
     type:'input',

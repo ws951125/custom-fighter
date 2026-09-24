@@ -163,7 +163,8 @@ try{
   ]);
 
   const initialPlayers=await players(host);
-  assert.deepEqual(initialPlayers.map(player=>player.hp),[100,90]);
+  assert.equal(initialPlayers.find(player=>player.client_id===hostClient)?.hp,100);
+  assert.equal(initialPlayers.find(player=>player.client_id===guestClient)?.hp,90);
 
   if(!isProduction){
     const before=initialPlayers.find(player=>player.client_id===hostClient).x;

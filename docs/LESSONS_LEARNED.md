@@ -527,3 +527,15 @@
 - **Prevention Rule:** Any authority protocol that schedules future input must define both message order and execution order. Same-tick outcomes that affect combat result must be computed from a common pre-damage state or another explicit deterministic policy, never incidental container/client ordering.
 - **Validation:** PR #200 product head `d4ee2560dc08b6a9e4e93120ce5591f42e2768a5` passed CI #580 (`35947039184`) with regression coverage for target-tick monotonicity, unsafe sequences and simultaneous lethal draw behavior.
 - **Status:** Verified on PR #200 CI #580
+
+
+## L-048 — Network snapshot tests must assert participant identity, not array position
+
+- **Date:** 2026-09-24
+- **Area:** V2-6 WU4 WebSocket transport regression
+- **Symptom:** PR #201 CI #583 reached the new WebSocket authority regression and failed the initial HP assertion with actual `[90, 100]` versus expected `[100, 90]`.
+- **Root Cause:** WU3 intentionally emits deterministic player snapshots sorted by `client_id`. The new WU4 regression incorrectly assumed the array preserved host/guest or loadout-admission order, so the assertion attached HP values to positions instead of participant identities.
+- **Fix:** Backend and browser network regressions now locate participants by `client_id` before asserting authoritative HP or movement state.
+- **Prevention Rule:** Network/state regressions must treat participant collections as identity-addressed data unless the protocol explicitly guarantees semantic positional ordering. Assert per-client facts by stable ID, not incidental array index.
+- **Validation:** Pending replacement PR #201 CI after the corrected regression commit.
+- **Status:** Pending
