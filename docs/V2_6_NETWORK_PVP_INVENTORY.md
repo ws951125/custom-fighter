@@ -123,4 +123,5 @@ V2 remains **62.5% (5/8 phases complete)** throughout partial V2-6 work. It adva
 - Server state owns position, HP, MP, guard state, cooldowns, hit resolution, damage and match winner. Client-provided combat facts are not accepted by the input schema.
 - Basic attack/cooldown/guard behavior is intentionally minimal in WU3; it establishes authority semantics before WU4 transport/Web integration and is not yet a claim of full Godot combat parity.
 - Deterministic backend regression covers movement, sequence/tick rejection, forged combat fields, server cooldown, server guard mitigation and immutable snapshots.
+- Same-tick resolution is phase-ordered: all accepted movement/guard intents are applied before combat actions, preventing guard effectiveness from depending on client-ID iteration order. Regression geometry is explicitly brought within attack range before damage assertions.
 - V2 remains 62.5% (5/8) until complete V2-6 acceptance.

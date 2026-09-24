@@ -492,3 +492,15 @@
 - **Prevention Rule:** For fail-closed authority modes, inventory every independently processing child node. Security/authority shutdown helpers must disable the complete set rather than assuming the root node controls all execution.
 - **Validation:** PR #193 implementation head `9a4c13905fa4307de929f94de952c1896ddb11a0` passed CI #556 (`35815833880`), including the new authority domain runner plus Chromium and hosted Microsoft Edge `smoke:all`.
 - **Status:** Verified on PR #193 CI #556
+
+
+## L-045 — Same-tick authority tests must establish geometry and resolve defensive posture before combat
+
+- **Date:** 2026-09-24
+- **Area:** V2-6 authoritative input/tick/state model
+- **Symptom:** PR #200 CI #574 failed `pvp_authoritative_match_test.mjs` because the expected guarded hit left HP at 100 instead of 95.
+- **Root Cause:** The regression attempted the guarded attack while the players were still 4 units apart although the WU3 basic-attack range is 3. Independently, the first WU3 implementation processed each client's complete intent in client-ID order, so an attacker sorted before a defender could resolve damage before the defender's same-tick guard state was applied.
+- **Fix:** Make the regression explicitly move both players into range before the guarded hit. Split authority tick resolution into two deterministic phases: apply movement/guard for every accepted same-tick intent first, then resolve combat actions.
+- **Prevention Rule:** Authority regressions must construct and assert their spatial preconditions before hit/damage expectations. Same-tick defensive posture or movement that affects combat resolution must be applied in an order-independent pre-combat phase rather than depending on participant iteration order.
+- **Validation:** Corrected PR #200 replacement GitHub CI pending.
+- **Status:** Pending replacement CI

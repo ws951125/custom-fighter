@@ -693,4 +693,6 @@ Validate and merge **V2-4 Work Unit 4 — stage definition + registry**. After W
 - Server state owns position, HP, MP, guard state, cooldowns, hit resolution, damage and match winner. Client-provided combat facts are not accepted by the input schema.
 - Basic attack/cooldown/guard behavior is intentionally minimal in WU3; it establishes authority semantics before WU4 transport/Web integration and is not yet a claim of full Godot combat parity.
 - Deterministic backend regression covers movement, sequence/tick rejection, forged combat fields, server cooldown, server guard mitigation and immutable snapshots.
+- CI #574 exposed a WU3 regression-test/authority-order defect: the guard assertion attempted to hit at distance 4 while attack range is 3, and same-tick guard state was resolved after the attacker when client IDs sorted attacker-first.
+- WU3 now resolves same-tick movement/guard for all accepted intents before combat actions, and the regression explicitly establishes in-range geometry before validating cooldown and guard mitigation. Replacement GitHub CI is pending on the corrected head.
 - V2 remains 62.5% (5/8) until complete V2-6 acceptance.
