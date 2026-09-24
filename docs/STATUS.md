@@ -675,7 +675,7 @@ AI VFX backend: `https://custom-fighter-ai-vfx.onrender.com`
 
 ## Next implementation target
 
-Validate and merge **V2-4 Work Unit 4 — stage definition + registry**. After WU4 merge/exact-main validation, begin **Work Unit 5 — stage selection + single-player entry** using only validated stage IDs and existing bounded opponent profiles.
+PR #200 is the **V2-6 Work Unit 3 — authoritative input/tick/state model** merge candidate. Once latest-head CI is green and explicit merge approval is given, squash-merge WU3, validate the exact `main` revision, then begin **Work Unit 4 — network transport + Web client integration**.
 
 
 ## V2-6 WU2 — server-side package authority admission (2026-09-24)
@@ -685,3 +685,18 @@ Validate and merge **V2-4 Work Unit 4 — stage definition + registry**. After W
 - The client fingerprint is equality evidence only: the server resolves and validates trusted package data, computes the authoritative fingerprint, and never accepts client damage/cooldown as authority.
 - Backend regression coverage is wired into the existing trusted-backend CI gate; no extra browser process/job is added.
 - V2 remains 62.5% (5/8) until full V2-6 acceptance.
+
+
+## V2-6 WU3 — authoritative input/tick/state model (2026-09-24)
+- Added a deterministic 60 Hz server-owned two-player match simulation boundary behind the existing WU1/WU2 admission contract.
+- Client input is intent-only: safe monotonic sequence numbers, strictly monotonic bounded future target ticks, exact allow-listed actions, and no client-authored HP/damage/cooldown fields. Duplicate/out-of-order sequences, stale/same/retrograde target ticks, unsafe integer sequences, unknown actions and unsupported fields fail closed.
+- Authoritative initial HP/MP must come from a required server-owned `loadoutResolver` over the admitted authority identity; missing or out-of-range authoritative loadouts fail closed instead of falling back to hard-coded client-visible defaults.
+- Match/client identity is captured when the authority simulation is constructed, so later caller mutation of the source match object cannot rewrite authoritative snapshots. Duplicate/empty participant identities are rejected.
+- Server state owns position, HP/MP, guard state, cooldowns, hit resolution, damage, terminal status and winner. Returned snapshots are detached copies.
+- Same-tick resolution is order-independent: all movement/guard intent is applied first, all eligible hits are computed next, and damage is then applied simultaneously. Mutual lethal damage resolves as a draw (`winner_client_id=null`) rather than being decided by client-ID iteration order.
+- Basic attack/cooldown/guard behavior remains intentionally minimal in WU3; it establishes network authority semantics before WU4 transport/Web integration and is not a claim of full Godot combat parity.
+- Regression coverage now proves trusted HP/MP materialization, malformed resolver rejection, source-object isolation, duplicate participant rejection, safe sequence bounds, monotonic target-tick ordering, forged-field rejection, movement/range/cooldown behavior, same-tick guard mitigation, simultaneous lethal draw behavior and immutable snapshots.
+- Earlier CI #574 exposed the spatial-precondition / same-tick guard-order issue recorded in L-045. The corrected implementation then received additional authority-boundary hardening before final product validation.
+- Final WU3 product head `d4ee2560dc08b6a9e4e93120ce5591f42e2768a5` passed PR CI #580 (`35947039184`): Windows Native, Godot/domain/backend including `PVP_AUTHORITATIVE_MATCH_TESTS_PASSED`, Web export/size budget, Chromium `smoke:all`, and hosted Microsoft Edge `smoke:all`.
+- PR #199 was closed unmerged as superseded by the fuller PR #200 implementation.
+- V2 remains 62.5% (5/8) until complete V2-6 acceptance.

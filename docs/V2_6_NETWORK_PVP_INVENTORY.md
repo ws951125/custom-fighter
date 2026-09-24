@@ -57,21 +57,28 @@ The server authority adapter must return the admitted character/fingerprint plus
 
 ### Work Unit 2 — server-side package authority admission
 
-Planned:
+Status: **merged to `main` by PR #198 as `a46e9f253d61e610beee450a7abd82c56a01e214`**.
+
+Delivered:
 - validate supported built-in/custom package inputs on the server side;
-- mint or resolve the authoritative competitive snapshot/fingerprint from trusted package data;
+- mint/resolve the authoritative competitive identity/fingerprint from trusted package data;
 - keep gameplay values out of client authority;
 - reject unknown schema/registry/type/ruleset/budget combinations.
 
 ### Work Unit 3 — authoritative input/tick/state model
 
-Planned:
-- bounded input-intent envelope;
-- monotonic input sequence numbers;
-- authoritative server tick;
-- deterministic participant state snapshots;
-- client state is presentation/prediction only, never final combat authority;
-- duplicate/out-of-order input handling.
+Status: **implemented in PR #200; final product head `d4ee2560dc08b6a9e4e93120ce5591f42e2768a5` passed PR CI #580 (`35947039184`); awaiting latest-head docs validation and explicit merge approval**.
+
+Delivered:
+- bounded exact-allow-list input-intent envelope;
+- safe monotonic input sequence numbers plus strictly monotonic bounded future target ticks;
+- deterministic 60 Hz authoritative server tick;
+- trusted server-side loadout resolution for initial HP/MP;
+- deterministic detached participant state snapshots with source-object identity isolation;
+- server-owned movement, guard, cooldown, hit/damage and terminal winner/draw state;
+- phase-ordered same-tick movement/guard plus simultaneous damage application;
+- duplicate/out-of-order/stale/unsafe input handling and forged combat-field rejection;
+- client state remains presentation/prediction only, never final combat authority.
 
 ### Work Unit 4 — network transport + Web client integration
 
@@ -115,3 +122,17 @@ V2 remains **62.5% (5/8 phases complete)** throughout partial V2-6 work. It adva
 - The client fingerprint is equality evidence only: the server resolves and validates trusted package data, computes the authoritative fingerprint, and never accepts client damage/cooldown as authority.
 - Backend regression coverage is wired into the existing trusted-backend CI gate; no extra browser process/job is added.
 - V2 remains 62.5% (5/8) until full V2-6 acceptance.
+
+
+## V2-6 WU3 — authoritative input/tick/state model (2026-09-24)
+- Added a deterministic 60 Hz server-owned match simulation boundary for exactly two admitted participants.
+- Client intents require safe monotonic sequence numbers and strictly increasing bounded future target ticks; unknown fields/actions, unsafe sequences and stale/out-of-order target ticks fail closed.
+- A required trusted `loadoutResolver` materializes authoritative initial HP/MP from admitted authority data; invalid/out-of-range resolution fails closed and no client-authored HP/MP is accepted.
+- Match and participant identity is captured at construction; duplicate/empty participants are rejected and later source-object mutation cannot rewrite authoritative snapshots.
+- Server state owns position, HP/MP, guard state, cooldowns, hit resolution, damage, match status and winner/draw result.
+- Same-tick resolution is phase-ordered and order-independent: movement/guard for all accepted intents, then hit computation, then simultaneous damage application. Mutual lethal damage produces a draw rather than a client-ID-order winner.
+- Basic attack/cooldown/guard behavior remains intentionally minimal in WU3; full duplex transport and Web client integration remain WU4.
+- Regression coverage includes trusted stat materialization, resolver fail-closed behavior, identity/source isolation, safe sequence limits, target-tick monotonicity, forged combat fields, movement/range/cooldown, guard mitigation, simultaneous lethal draw and detached snapshots.
+- Final WU3 product head `d4ee2560dc08b6a9e4e93120ce5591f42e2768a5` passed PR CI #580 (`35947039184`) across Windows Native, Godot/domain/backend, Web export/size budget, Chromium `smoke:all`, and hosted Microsoft Edge `smoke:all`.
+- PR #199 was closed unmerged as superseded by PR #200.
+- V2 remains 62.5% (5/8) until complete V2-6 acceptance.

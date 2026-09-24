@@ -492,3 +492,38 @@
 - **Prevention Rule:** For fail-closed authority modes, inventory every independently processing child node. Security/authority shutdown helpers must disable the complete set rather than assuming the root node controls all execution.
 - **Validation:** PR #193 implementation head `9a4c13905fa4307de929f94de952c1896ddb11a0` passed CI #556 (`35815833880`), including the new authority domain runner plus Chromium and hosted Microsoft Edge `smoke:all`.
 - **Status:** Verified on PR #193 CI #556
+
+
+## L-045 — Same-tick authority tests must establish geometry and resolve defensive posture before combat
+
+- **Date:** 2026-09-24
+- **Area:** V2-6 authoritative input/tick/state model
+- **Symptom:** PR #200 CI #574 failed `pvp_authoritative_match_test.mjs` because the expected guarded hit left HP at 100 instead of 95.
+- **Root Cause:** The regression attempted the guarded attack while the players were still 4 units apart although the WU3 basic-attack range is 3. Independently, the first WU3 implementation processed each client's complete intent in client-ID order, so an attacker sorted before a defender could resolve damage before the defender's same-tick guard state was applied.
+- **Fix:** Make the regression explicitly move both players into range before the guarded hit. Split authority tick resolution into two deterministic phases: apply movement/guard for every accepted same-tick intent first, then resolve combat actions.
+- **Prevention Rule:** Authority regressions must construct and assert their spatial preconditions before hit/damage expectations. Same-tick defensive posture or movement that affects combat resolution must be applied in an order-independent pre-combat phase rather than depending on participant iteration order.
+- **Validation:** Corrected PR #200 head `da3a151491c08b7992c64ae30b76e5478fea2c71` passed CI #575 (`35943522365`), including Windows Native, Godot/domain/backend, Web export/size budget, Chromium `smoke:all`, and hosted Microsoft Edge `smoke:all`.
+- **Status:** Verified on PR #200 CI #575
+
+
+## L-046 — Network authority state must be materialized from trusted data and detached from caller-owned objects
+
+- **Date:** 2026-09-24
+- **Area:** V2-6 authoritative match construction / trust boundary
+- **Symptom:** WU3 review found that the first authority simulation initialized every participant at hard-coded HP/MP 100/100 and retained the caller's `match.match_id` by reference. The client still could not directly set those values, but custom admitted loadouts were not actually the source of initial authoritative stats and later caller mutation could alter snapshot identity.
+- **Root Cause:** The first WU3 slice established server ownership but did not yet require an explicit trusted materialization boundary from WU2 admission data, and snapshot identity read from the original input object instead of captured state.
+- **Fix:** Require a server-owned `loadoutResolver`, validate bounded authoritative `max_hp/max_mp`, fail closed when the resolver is absent/invalid, capture match/client identity at construction, reject duplicate/empty participants and verify source-object mutation cannot alter snapshots.
+- **Prevention Rule:** “Server-owned” is not sufficient by itself. Authoritative combat state must be derived from a named trusted source, validated at the boundary and copied into authority-owned state; caller/client objects must never remain live sources of authoritative identity or combat values.
+- **Validation:** PR #200 product head `d4ee2560dc08b6a9e4e93120ce5591f42e2768a5` passed CI #580 (`35947039184`) including the strengthened backend authority regression plus Windows Native, Chromium and hosted Edge.
+- **Status:** Verified on PR #200 CI #580
+
+## L-047 — Future-tick scheduling and same-tick combat must not let ordering become hidden authority
+
+- **Date:** 2026-09-24
+- **Area:** V2-6 input scheduling / deterministic combat resolution
+- **Symptom:** Review found two ordering hazards: a newer sequence could target an earlier tick while an older accepted input remained scheduled for a later tick, and simultaneous lethal attacks were applied sequentially so the final winner could depend on client-ID iteration order.
+- **Root Cause:** Sequence monotonicity alone did not constrain execution-time monotonicity, and combat mutated HP/winner while iterating participants rather than separating intent evaluation from state application.
+- **Fix:** Track each participant's last accepted target tick and reject same/retrograde target ticks; require safe integer sequences; resolve all same-tick movement/guard first, compute all eligible hits next, then apply damage simultaneously. Mutual lethal damage now terminates as a draw with `winner_client_id=null`.
+- **Prevention Rule:** Any authority protocol that schedules future input must define both message order and execution order. Same-tick outcomes that affect combat result must be computed from a common pre-damage state or another explicit deterministic policy, never incidental container/client ordering.
+- **Validation:** PR #200 product head `d4ee2560dc08b6a9e4e93120ce5591f42e2768a5` passed CI #580 (`35947039184`) with regression coverage for target-tick monotonicity, unsafe sequences and simultaneous lethal draw behavior.
+- **Status:** Verified on PR #200 CI #580
