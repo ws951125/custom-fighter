@@ -6,9 +6,23 @@ const match={match_id:'m1',status:'active',participants:[
  {client_id:'a',authority:auth('ember_vanguard_001')},
  {client_id:'b',authority:auth('storm_duelist_001')}
 ]};
-const sim=createAuthoritativeMatch({match});
+const loadoutResolver=authority=>authority.character_id==='ember_vanguard_001'
+ ? {max_hp:120,max_mp:80}
+ : {max_hp:90,max_mp:110};
 
-assert.equal(sim.snapshot().tick,0);
+assert.throws(()=>createAuthoritativeMatch({match}),/AUTHORITATIVE_LOADOUT_RESOLVER_REQUIRED/);
+assert.throws(
+ ()=>createAuthoritativeMatch({match,loadoutResolver:()=>({max_hp:999,max_mp:100})}),
+ /AUTHORITATIVE_LOADOUT_INVALID/
+);
+
+const sim=createAuthoritativeMatch({match,loadoutResolver});
+const initial=sim.snapshot();
+assert.equal(initial.tick,0);
+assert.equal(initial.players.find(p=>p.client_id==='a').hp,120);
+assert.equal(initial.players.find(p=>p.client_id==='a').mp,80);
+assert.equal(initial.players.find(p=>p.client_id==='b').hp,90);
+assert.equal(initial.players.find(p=>p.client_id==='b').mp,110);
 assert.equal(sim.submitInput('x',{sequence:1,target_tick:1,actions:[]}).code,'PLAYER_NOT_IN_MATCH');
 assert.equal(sim.submitInput('a',{sequence:1,target_tick:1,actions:['move_right'],damage:999}).code,'INPUT_FIELDS_INVALID');
 assert.equal(sim.submitInput('a',{sequence:1,target_tick:1,actions:['move_right','run']}).ok,true);
@@ -24,7 +38,7 @@ assert.equal(sim.submitInput('b',{sequence:1,target_tick:2,actions:['move_left',
 s=sim.step();
 b=s.players.find(p=>p.client_id==='b');
 assert.equal(b.x,4);
-assert.equal(b.hp,100,'out-of-range attack must not damage');
+assert.equal(b.hp,90,'out-of-range attack must not damage');
 
 assert.equal(sim.submitInput('a',{sequence:3,target_tick:3,actions:['move_right','run']}).ok,true);
 assert.equal(sim.submitInput('b',{sequence:2,target_tick:3,actions:['move_left','run']}).ok,true);
@@ -41,7 +55,7 @@ assert.equal(b.x,1);
 assert.equal(sim.submitInput('a',{sequence:5,target_tick:5,actions:['basic_attack']}).ok,true);
 s=sim.step();
 b=s.players.find(p=>p.client_id==='b');
-assert.equal(b.hp,100,'cooldown is server-owned and blocks early repeat');
+assert.equal(b.hp,90,'cooldown is server-owned and blocks early repeat');
 
 while((sim.snapshot().players.find(p=>p.client_id==='a').cooldowns.basic_attack??0)>0) sim.step();
 const target=sim.snapshot().tick+1;
@@ -50,7 +64,7 @@ assert.equal(sim.submitInput('a',{sequence:6,target_tick:target,actions:['basic_
 s=sim.step();
 b=s.players.find(p=>p.client_id==='b');
 assert.equal(b.guarding,true);
-assert.equal(b.hp,95,'same-tick guard must be applied before authority resolves attack damage');
+assert.equal(b.hp,85,'same-tick guard must be applied before authority resolves attack damage');
 
 const copy=sim.snapshot();
 copy.players[0].hp=0;

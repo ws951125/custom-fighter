@@ -8,18 +8,28 @@ const clamp=(n,min,max)=>Math.max(min,Math.min(max,n));
 const clone=v=>structuredClone(v);
 const fail=(code,details={})=>({ok:false,code,...details});
 
-function initialPlayer(participant,index){
+function resolveAuthoritativeLoadout(participant,loadoutResolver){
+ const loadout=loadoutResolver(clone(participant.authority));
+ if(!loadout||typeof loadout!=='object'||Array.isArray(loadout))throw new Error('AUTHORITATIVE_LOADOUT_INVALID');
+ if(typeof loadout.max_hp!=='number'||!Number.isFinite(loadout.max_hp)||loadout.max_hp<1||loadout.max_hp>250)throw new Error('AUTHORITATIVE_LOADOUT_INVALID');
+ if(typeof loadout.max_mp!=='number'||!Number.isFinite(loadout.max_mp)||loadout.max_mp<0||loadout.max_mp>250)throw new Error('AUTHORITATIVE_LOADOUT_INVALID');
+ return {max_hp:loadout.max_hp,max_mp:loadout.max_mp};
+}
+
+function initialPlayer(participant,index,loadoutResolver){
+ const loadout=resolveAuthoritativeLoadout(participant,loadoutResolver);
  return {
   client_id:participant.client_id,character_id:participant.authority.character_id,
-  hp:100,mp:100,x:index===0?-6:6,y:0,facing:index===0?1:-1,
+  hp:loadout.max_hp,mp:loadout.max_mp,x:index===0?-6:6,y:0,facing:index===0?1:-1,
   guarding:false,cooldowns:{},last_input_sequence:0
  };
 }
 
-export function createAuthoritativeMatch({match}){
+export function createAuthoritativeMatch({match,loadoutResolver}={}){
  if(!match||match.status!=='active'||!Array.isArray(match.participants)||match.participants.length!==2) throw new Error('ACTIVE_TWO_PLAYER_MATCH_REQUIRED');
+ if(typeof loadoutResolver!=='function')throw new Error('AUTHORITATIVE_LOADOUT_RESOLVER_REQUIRED');
  let tick=0,finished=false,winner=null;
- const players=new Map(match.participants.map((p,i)=>[p.client_id,initialPlayer(p,i)]));
+ const players=new Map(match.participants.map((p,i)=>[p.client_id,initialPlayer(p,i,loadoutResolver)]));
  const pending=new Map();
 
  function submitInput(clientId,input){
