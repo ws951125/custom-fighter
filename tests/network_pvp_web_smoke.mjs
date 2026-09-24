@@ -181,13 +181,35 @@ try{
     await host.waitForFunction(()=>Number(document.documentElement.dataset.networkPvpTick||'0')>=0,null,{timeout:5000});
   }
 
+  await host.waitForFunction(()=>Number(document.documentElement.dataset.networkPvpLatencyMs||'-1')>=0,null,{timeout:7000});
+  assert.ok(Number(await dataset(host,'networkPvpLatencyMs'))>=0);
+
+  await command(guest,'disconnect');
+  await guest.waitForFunction(()=>document.documentElement.dataset.networkPvpConnection==='RECONNECTING',null,{timeout:5000}).catch(()=>{});
+  await guest.waitForFunction(
+    ()=>document.documentElement.dataset.networkPvpConnection==='BOUND'
+      && Number(document.documentElement.dataset.networkPvpReconnectCount||'0')>=1,
+    null,
+    {timeout:12000}
+  );
+  assert.ok(Number(await dataset(guest,'networkPvpReconnectCount'))>=1);
+  assert.equal(await dataset(guest,'networkPvpMatchId'),hostMatchId);
+
+  await command(guest,'forfeit');
+  await Promise.all([
+    host.waitForFunction(()=>document.documentElement.dataset.networkPvpMatchStatus==='finished',null,{timeout:7000}),
+    guest.waitForFunction(()=>document.documentElement.dataset.networkPvpMatchStatus==='finished',null,{timeout:7000})
+  ]);
+  assert.equal(await dataset(host,'networkPvpWinner'),hostClient);
+  assert.equal(await dataset(host,'networkPvpResultReason'),'forfeit');
+
   const finalPlayers=await players(host);
   const finalTick=Number(await dataset(host,'networkPvpTick'));
   assert.equal(finalPlayers.length,2);
   assert.ok(finalTick>=0);
 
   console.log(
-    `NETWORK_PVP_WEB_SMOKE_PASSED browser=${browserChannel||'chromium'} production=${isProduction} lobby=${lobbyId} match=${hostMatchId} tick=${finalTick} clients=${hostClient},${guestClient}`
+    `NETWORK_PVP_WEB_SMOKE_PASSED browser=${browserChannel||'chromium'} production=${isProduction} lobby=${lobbyId} match=${hostMatchId} tick=${finalTick} reconnects=${await dataset(guest,'networkPvpReconnectCount')} rtt=${await dataset(host,'networkPvpLatencyMs')} result=${await dataset(host,'networkPvpResultReason')} clients=${hostClient},${guestClient}`
   );
 }finally{
   await hostContext.close();

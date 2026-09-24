@@ -4,6 +4,7 @@ const BASIC_ATTACK_RANGE=3;
 const BASIC_ATTACK_DAMAGE=10;
 const BASIC_ATTACK_COOLDOWN_TICKS=30;
 const ACTIONS=new Set(['move_left','move_right','move_up','move_down','run','jump','basic_attack','dash','guard','skill_1','skill_2','skill_3','skill_4','skill_5','skill_6','skill_7','skill_8','skill_9','skill_10','skill_11','skill_12','skill_13']);
+const TERMINAL_REASONS=new Set(['combat','forfeit','disconnect_timeout']);
 const clamp=(n,min,max)=>Math.max(min,Math.min(max,n));
 const clone=v=>structuredClone(v);
 const fail=(code,details={})=>({ok:false,code,...details});
@@ -32,7 +33,7 @@ export function createAuthoritativeMatch({match,loadoutResolver}={}){
  if(!matchId)throw new Error('MATCH_ID_INVALID');
  const participantIds=match.participants.map(p=>String(p?.client_id??'').trim());
  if(participantIds.some(id=>!id)||new Set(participantIds).size!==2)throw new Error('MATCH_PARTICIPANTS_INVALID');
- let tick=0,finished=false,winner=null;
+ let tick=0,finished=false,winner=null,resultReason=null,forfeitedClientId=null;
  const players=new Map(match.participants.map((p,i)=>[participantIds[i],initialPlayer({...p,client_id:participantIds[i]},i,loadoutResolver)]));
  const pending=new Map();
 
@@ -51,6 +52,19 @@ export function createAuthoritativeMatch({match,loadoutResolver}={}){
   if(!pending.has(input.target_tick))pending.set(input.target_tick,[]);
   pending.get(input.target_tick).push({client_id:clientId,sequence:input.sequence,actions:[...new Set(input.actions)]});
   return {ok:true,accepted_sequence:input.sequence,target_tick:input.target_tick};
+ }
+
+ function finishByForfeit(clientId,reason='forfeit'){
+  if(!players.has(clientId))return fail('PLAYER_NOT_IN_MATCH');
+  if(finished)return fail('MATCH_FINISHED');
+  if(!TERMINAL_REASONS.has(reason)||reason==='combat')return fail('MATCH_RESULT_REASON_INVALID');
+  const opponent=[...players.values()].find(p=>p.client_id!==clientId);
+  finished=true;
+  winner=opponent.client_id;
+  resultReason=reason;
+  forfeitedClientId=clientId;
+  pending.clear();
+  return {ok:true,state:snapshot()};
  }
 
  function step(){
@@ -75,6 +89,7 @@ export function createAuthoritativeMatch({match,loadoutResolver}={}){
    if(dead.length>0){
     finished=true;
     winner=dead.length===1?[...players.values()].find(p=>p.client_id!==dead[0].client_id).client_id:null;
+    resultReason='combat';
    }
   }
 
@@ -105,7 +120,16 @@ export function createAuthoritativeMatch({match,loadoutResolver}={}){
  }
 
  function snapshot(){
-  return clone({match_id:matchId,tick,tick_rate:TICK_RATE,status:finished?'finished':'active',winner_client_id:winner,players:[...players.values()].sort((a,b)=>a.client_id.localeCompare(b.client_id))});
+  return clone({
+   match_id:matchId,
+   tick,
+   tick_rate:TICK_RATE,
+   status:finished?'finished':'active',
+   winner_client_id:winner,
+   result_reason:resultReason,
+   forfeited_client_id:forfeitedClientId,
+   players:[...players.values()].sort((a,b)=>a.client_id.localeCompare(b.client_id))
+  });
  }
- return Object.freeze({submitInput,step,snapshot});
+ return Object.freeze({submitInput,finishByForfeit,step,snapshot});
 }

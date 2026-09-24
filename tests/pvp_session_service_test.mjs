@@ -168,3 +168,27 @@ assert.equal(throwingService.getLobby(throwingLobby).lobby.participants[0].autho
 assert.equal(throwingService.setReady(throwingLobby, 'host4', true).code, 'LOADOUT_NOT_ADMITTED');
 
 console.log('PVP_SESSION_SERVICE_TESTS_PASSED');
+
+
+const leaveService=createPvpSessionService({admitLoadout:async claim=>({
+  accepted:true,
+  authority:{
+    protocol_version:PVP_PROTOCOL_VERSION,
+    authority_policy:PVP_AUTHORITY_POLICY,
+    character_id:claim.character_id,
+    content_fingerprint:claim.content_fingerprint,
+    package_schema_version:claim.package_schema_version,
+    ruleset_id:'competitive_standard',
+    ruleset_version:1,
+    power_budget_id:'competitive_standard_v1'
+  }
+})});
+const leaveLobby=leaveService.createLobby({client_id:'leave_host'}).lobby.lobby_id;
+leaveService.joinLobby(leaveLobby,{client_id:'leave_guest'});
+const leaveResult=leaveService.leaveLobby(leaveLobby,'leave_host');
+assert.equal(leaveResult.ok,true);
+assert.equal(leaveResult.closed,false);
+assert.equal(leaveResult.lobby.host_client_id,'leave_guest');
+assert.equal(leaveResult.lobby.participants.length,1);
+assert.equal(leaveService.leaveLobby(leaveLobby,'leave_guest').closed,true);
+assert.equal(leaveService.getLobby(leaveLobby).code,'LOBBY_NOT_FOUND');
