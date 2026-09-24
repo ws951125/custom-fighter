@@ -7,8 +7,16 @@ const POWER_BUDGET_ID = 'competitive_standard_v1';
 const PACKAGE_SCHEMA_VERSION = 1;
 
 const BUILTIN = Object.freeze({
-  ember_vanguard_001: '56451d3bdf1c7bf74852a3620894667730ddb088f350eb598badfa74c6d3c28e',
-  storm_duelist_001: '5822c6cfb4737c29007f2450a598c501b79c17d8ed9a432e4327976cc6a7026e'
+  ember_vanguard_001: Object.freeze({
+    fingerprint: '56451d3bdf1c7bf74852a3620894667730ddb088f350eb598badfa74c6d3c28e',
+    max_hp: 100,
+    max_mp: 100
+  }),
+  storm_duelist_001: Object.freeze({
+    fingerprint: '5822c6cfb4737c29007f2450a598c501b79c17d8ed9a432e4327976cc6a7026e',
+    max_hp: 90,
+    max_mp: 120
+  })
 });
 
 function reject(code, details = {}) {
@@ -38,6 +46,17 @@ function authorityFrom(characterId, contentFingerprint, schemaVersion = PACKAGE_
     ruleset_version: RULESET_VERSION,
     power_budget_id: POWER_BUDGET_ID
   };
+}
+
+function authorityKey(authority) {
+  return String(authority?.character_id ?? '') + '|' + String(authority?.content_fingerprint ?? '').toLowerCase();
+}
+
+function loadoutFromStats(stats) {
+  return Object.freeze({
+    max_hp: Number(stats.max_hp),
+    max_mp: Number(stats.max_mp)
+  });
 }
 
 function validateCustomPackage(pkg) {
@@ -81,13 +100,22 @@ function validateCustomPackage(pkg) {
   return { accepted:true, character_id:pkg.character.id };
 }
 
-export function createServerPackageAuthority({ packageResolver } = {}) {
-  return async function admitLoadout(claim) {
+export function createServerPackageAuthorityStore({ packageResolver } = {}) {
+  const admittedLoadouts = new Map();
+
+  function rememberLoadout(authority, loadout) {
+    admittedLoadouts.set(authorityKey(authority), loadoutFromStats(loadout));
+  }
+
+  async function admitLoadout(claim) {
     if (claim.package_schema_version !== PACKAGE_SCHEMA_VERSION) return reject('PACKAGE_SCHEMA_UNSUPPORTED');
 
-    if (BUILTIN[claim.character_id]) {
-      if (claim.content_fingerprint !== BUILTIN[claim.character_id]) return reject('CONTENT_FINGERPRINT_MISMATCH');
-      return { accepted:true, authority:authorityFrom(claim.character_id, BUILTIN[claim.character_id]) };
+    const builtin = BUILTIN[claim.character_id];
+    if (builtin) {
+      if (claim.content_fingerprint !== builtin.fingerprint) return reject('CONTENT_FINGERPRINT_MISMATCH');
+      const authority = authorityFrom(claim.character_id, builtin.fingerprint);
+      rememberLoadout(authority, builtin);
+      return { accepted:true, authority };
     }
 
     if (typeof packageResolver !== 'function') return reject('PACKAGE_NOT_FOUND');
@@ -100,8 +128,26 @@ export function createServerPackageAuthority({ packageResolver } = {}) {
 
     const authoritativeFingerprint = fingerprint(pkg);
     if (claim.content_fingerprint !== authoritativeFingerprint) return reject('CONTENT_FINGERPRINT_MISMATCH');
-    return { accepted:true, authority:authorityFrom(claim.character_id, authoritativeFingerprint) };
-  };
+    const authority = authorityFrom(claim.character_id, authoritativeFingerprint);
+    rememberLoadout(authority, pkg.character.stats);
+    return { accepted:true, authority };
+  }
+
+  function resolveLoadout(authority) {
+    if (!authority || typeof authority !== 'object') return null;
+    const builtin = BUILTIN[authority.character_id];
+    if (builtin && builtin.fingerprint === String(authority.content_fingerprint ?? '').toLowerCase()) {
+      return { max_hp:builtin.max_hp, max_mp:builtin.max_mp };
+    }
+    const cached = admittedLoadouts.get(authorityKey(authority));
+    return cached ? { max_hp:cached.max_hp, max_mp:cached.max_mp } : null;
+  }
+
+  return Object.freeze({ admitLoadout, resolveLoadout });
 }
 
-export const _test = Object.freeze({ canonical, fingerprint, validateCustomPackage });
+export function createServerPackageAuthority(options = {}) {
+  return createServerPackageAuthorityStore(options).admitLoadout;
+}
+
+export const _test = Object.freeze({ canonical, fingerprint, validateCustomPackage, authorityKey });

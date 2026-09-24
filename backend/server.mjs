@@ -1,21 +1,27 @@
 import http from 'node:http';
 import { createVfxResponse } from './vfx_service.mjs';
 import { imageProviderReadiness } from './image_provider_factory.mjs';
+import { createServerPackageAuthorityStore } from './pvp/package_authority.mjs';
+import { createPvpSessionService } from './pvp/session_service.mjs';
+import { createAuthoritativeMatch } from './pvp/authoritative_match.mjs';
+import { attachPvpWebSocketTransport } from './pvp/websocket_transport.mjs';
+import { PVP_PROTOCOL_VERSION } from './pvp/protocol.mjs';
 
 const PORT = Number(process.env.PORT || 8787);
-const ALLOWED_ORIGIN = process.env.CUSTOM_FIGHTER_ALLOWED_ORIGIN || 'https://ws951125.github.io';
+const DEFAULT_ALLOWED_ORIGIN = process.env.CUSTOM_FIGHTER_ALLOWED_ORIGIN || 'https://ws951125.github.io';
 const MAX_BODY_BYTES = 8 * 1024 * 1024;
+const PVP_WS_PATH = '/v1/pvp/ws';
 
 function deployedRevision() {
   return String(process.env.RENDER_GIT_COMMIT || process.env.CUSTOM_FIGHTER_REVISION || '').trim();
 }
 
-function sendJson(res, status, body, origin = '') {
+function sendJson(res, status, body, origin = '', allowedOrigin = DEFAULT_ALLOWED_ORIGIN) {
   res.statusCode = status;
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
   res.setHeader('Cache-Control', 'no-store');
   res.setHeader('X-Content-Type-Options', 'nosniff');
-  if (origin && origin === ALLOWED_ORIGIN) {
+  if (origin && origin === allowedOrigin) {
     res.setHeader('Access-Control-Allow-Origin', origin);
     res.setHeader('Vary', 'Origin');
   }
@@ -34,15 +40,23 @@ async function readJson(req) {
   return JSON.parse(text || '{}');
 }
 
-export function createServer({ service = createVfxResponse } = {}) {
-  return http.createServer(async (req, res) => {
+export function createServer({
+  service = createVfxResponse,
+  allowedOrigin = DEFAULT_ALLOWED_ORIGIN,
+  pvpPackageResolver,
+  pvpTickIntervalMs = 1000 / 60
+} = {}) {
+  const authorityStore = createServerPackageAuthorityStore({ packageResolver:pvpPackageResolver });
+  const pvpSessionService = createPvpSessionService({ admitLoadout:authorityStore.admitLoadout });
+
+  const server = http.createServer(async (req, res) => {
     const origin = String(req.headers.origin || '');
-    if (origin && origin !== ALLOWED_ORIGIN) {
-      sendJson(res, 403, { ok: false, error: 'origin is not allowed' });
+    if (origin && origin !== allowedOrigin) {
+      sendJson(res, 403, { ok: false, error: 'origin is not allowed' }, '', allowedOrigin);
       return;
     }
     if (req.method === 'OPTIONS') {
-      if (origin === ALLOWED_ORIGIN) {
+      if (origin === allowedOrigin) {
         res.statusCode = 204;
         res.setHeader('Access-Control-Allow-Origin', origin);
         res.setHeader('Access-Control-Allow-Methods', 'POST, GET, OPTIONS');
@@ -50,7 +64,7 @@ export function createServer({ service = createVfxResponse } = {}) {
         res.setHeader('Vary', 'Origin');
         res.end();
       } else {
-        sendJson(res, 403, { ok: false, error: 'origin is not allowed' });
+        sendJson(res, 403, { ok: false, error: 'origin is not allowed' }, '', allowedOrigin);
       }
       return;
     }
@@ -62,29 +76,46 @@ export function createServer({ service = createVfxResponse } = {}) {
           ok: true,
           service: 'custom-fighter-ai-vfx',
           revision: deployedRevision(),
-          ai: imageProviderReadiness()
+          ai: imageProviderReadiness(),
+          pvp: {
+            protocol_version: PVP_PROTOCOL_VERSION,
+            websocket_path: PVP_WS_PATH,
+            authority: 'server_authoritative'
+          }
         },
-        origin
+        origin,
+        allowedOrigin
       );
       return;
     }
     if (req.method !== 'POST' || req.url !== '/v1/vfx/generate') {
-      sendJson(res, 404, { ok: false, error: 'not found' }, origin);
+      sendJson(res, 404, { ok: false, error: 'not found' }, origin, allowedOrigin);
       return;
     }
     try {
       const request = await readJson(req);
       const result = await service(request);
-      sendJson(res, result.ok ? 200 : 400, result, origin);
+      sendJson(res, result.ok ? 200 : 400, result, origin, allowedOrigin);
     } catch (error) {
       const message = error instanceof SyntaxError ? 'request body must be valid JSON' : String(error?.message || 'backend error');
-      sendJson(res, 500, { ok: false, error: message }, origin);
+      sendJson(res, 500, { ok: false, error: message }, origin, allowedOrigin);
     }
   });
+
+  attachPvpWebSocketTransport(server, {
+    sessionService:pvpSessionService,
+    createMatch:createAuthoritativeMatch,
+    resolveLoadout:authorityStore.resolveLoadout,
+    allowedOrigin,
+    path:PVP_WS_PATH,
+    tickIntervalMs:pvpTickIntervalMs
+  });
+
+  return server;
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {
   createServer().listen(PORT, '0.0.0.0', () => {
-    console.log(`CUSTOM_FIGHTER_AI_VFX_BACKEND_READY port=${PORT}`);
+    console.log(`CUSTOM_FIGHTER_BACKEND_READY port=${PORT} pvp_ws=${PVP_WS_PATH}`);
   });
 }

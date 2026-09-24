@@ -675,7 +675,7 @@ AI VFX backend: `https://custom-fighter-ai-vfx.onrender.com`
 
 ## Next implementation target
 
-PR #200 is the **V2-6 Work Unit 3 — authoritative input/tick/state model** merge candidate. Once latest-head CI is green and explicit merge approval is given, squash-merge WU3, validate the exact `main` revision, then begin **Work Unit 4 — network transport + Web client integration**.
+V2-6 **Work Unit 4 — network transport + Web client integration** is active on `feat/v2-6-wu4-websocket-web-client`. Validate the WebSocket transport/backend contract, two-client Chromium/hosted-Edge browser flow, then synchronize WU4 evidence and prepare the PR for merge approval.
 
 
 ## V2-6 WU2 — server-side package authority admission (2026-09-24)
@@ -700,3 +700,16 @@ PR #200 is the **V2-6 Work Unit 3 — authoritative input/tick/state model** mer
 - Final WU3 product head `d4ee2560dc08b6a9e4e93120ce5591f42e2768a5` passed PR CI #580 (`35947039184`): Windows Native, Godot/domain/backend including `PVP_AUTHORITATIVE_MATCH_TESTS_PASSED`, Web export/size budget, Chromium `smoke:all`, and hosted Microsoft Edge `smoke:all`.
 - PR #199 was closed unmerged as superseded by the fuller PR #200 implementation.
 - V2 remains 62.5% (5/8) until complete V2-6 acceptance.
+
+
+## V2-6 WU4 — network transport + Web client integration (2026-09-24)
+- PR #200 was squash-merged to `main` as `110f86fe7490b86f539589861834100c49877db8`.
+- Exact-main CI #582 (`35952680410`) passed Windows Native, Godot/domain/backend, Web export/size budget, Chromium `smoke:all`, hosted Microsoft Edge, GitHub Pages deployment and public-Web reachability. The workflow concluded failure only because the pre-existing external Render backend returned HTTP 503 for all 18 readiness attempts; production Edge full smoke was skipped behind that external dependency.
+- WU4 active branch: `feat/v2-6-wu4-websocket-web-client`.
+- Added an RFC-6455 WebSocket transport at `/v1/pvp/ws` behind the existing HTTP backend. Browser Origin is allow-listed; a successful `hello` binds one validated client ID to one socket and returns a server-issued per-connection token required on subsequent commands.
+- Transport messages are exact-field allow-listed. Lobby create/join, loadout admission, ready/start, authoritative input and state requests call the existing WU1/WU2/WU3 services; client messages cannot author HP/MP/damage/cooldown/winner state.
+- Server package authority now exposes a trusted loadout resolver: built-in Ember/Storm HP/MP are frozen beside their authority fingerprints, while admitted custom package HP/MP is cached only after WU2 validation/fingerprint equality.
+- `competitive_hosted` now mounts a dedicated Network PvP Web scene with Connect, Create/Join Lobby, Admit Loadout, Ready/Unready, Start Match, and bounded authoritative Left/Right/Guard/Neutral/Attack intent controls.
+- Web telemetry plus a CI-only command bridge exercise the same Godot client path. New two-browser regression will create/join one lobby, negotiate Ember/Storm, ready/start one match and verify synchronized authoritative state/input in Chromium and hosted Edge.
+- Added `ws` 8.21.3 (MIT, zero runtime dependencies) for the Node WebSocket server/test client; no paid service or paid dependency was introduced.
+- WU4 is not Done until the branch/PR required online gates pass. V2 remains 62.5% (5/8) until full V2-6 acceptance.

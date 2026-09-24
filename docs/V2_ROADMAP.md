@@ -183,7 +183,9 @@ Implementation sequence is frozen in `docs/V2_6_NETWORK_PVP_INVENTORY.md`. WU1 e
 WU1 PR #197 implementation head `c0831496552bd95104333b19abd60643103777f5` passed CI #566 (`35862684985`) across Windows Native, Godot/domain/AI, trusted backend, Web export/size, Chromium and hosted Edge.
 WU2 PR #198 merged to `main` as `a46e9f253d61e610beee450a7abd82c56a01e214`, adding server-side built-in/custom package authority admission and trusted fingerprint/ruleset/budget validation without accepting client combat values.
 
-WU3 PR #200 implements the transport-neutral 60 Hz authoritative input/tick/state model. Final product head `d4ee2560dc08b6a9e4e93120ce5591f42e2768a5` passed PR CI #580 (`35947039184`) across Windows Native, Godot/domain/backend, Web export/size budget, Chromium and hosted Edge. WU3 remains unmerged until latest-head docs validation and explicit user merge approval.
+WU3 PR #200 was squash-merged to `main` as `110f86fe7490b86f539589861834100c49877db8`. Latest-head PR CI #581 passed all required PR gates. Exact-main CI #582 passed Windows Native, Godot/domain/backend, Web export/size, Chromium, hosted Edge, Pages deployment and public reachability; the workflow was red only because the pre-existing external Render backend returned HTTP 503 for all readiness attempts.
+
+WU4 is active on `feat/v2-6-wu4-websocket-web-client`: RFC-6455 transport, live socket/client binding, lobby/admission/ready/start/input/state messaging and the `competitive_hosted` Godot Web client are being integrated behind the existing server-authority boundary.
 
 ## V2-7 — Creator Sharing Ecosystem
 
@@ -230,4 +232,4 @@ The architecture previously allowed a future local/open-model AI provider such a
 
 ## Next implementation target
 
-PR #200 is the V2-6 WU3 merge candidate. After latest-head CI is green and explicit merge approval is given, merge WU3, validate exact-main, then begin **V2-6 Work Unit 4 — network transport + Web client integration**.
+Complete and validate **V2-6 Work Unit 4 — network transport + Web client integration** on `feat/v2-6-wu4-websocket-web-client`. After WU4 merge/exact-main validation, continue to **WU5 — reconnect / forfeit / latency handling**.

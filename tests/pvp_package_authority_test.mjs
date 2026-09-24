@@ -1,12 +1,25 @@
 import assert from 'node:assert/strict';
-import { createServerPackageAuthority, _test } from '../backend/pvp/package_authority.mjs';
+import {
+  createServerPackageAuthority,
+  createServerPackageAuthorityStore,
+  _test
+} from '../backend/pvp/package_authority.mjs';
 
 const EMBER='56451d3bdf1c7bf74852a3620894667730ddb088f350eb598badfa74c6d3c28e';
+const STORM='5822c6cfb4737c29007f2450a598c501b79c17d8ed9a432e4327976cc6a7026e';
+
 const authority=createServerPackageAuthority();
 assert.equal((await authority({character_id:'ember_vanguard_001',content_fingerprint:EMBER,package_schema_version:1})).accepted,true);
 assert.equal((await authority({character_id:'ember_vanguard_001',content_fingerprint:'0'.repeat(64),package_schema_version:1})).code,'CONTENT_FINGERPRINT_MISMATCH');
 assert.equal((await authority({character_id:'ember_vanguard_001',content_fingerprint:EMBER,package_schema_version:2})).code,'PACKAGE_SCHEMA_UNSUPPORTED');
 assert.equal((await authority({character_id:'unknown_001',content_fingerprint:'a'.repeat(64),package_schema_version:1})).code,'PACKAGE_NOT_FOUND');
+
+const builtinStore=createServerPackageAuthorityStore();
+const emberAdmission=await builtinStore.admitLoadout({character_id:'ember_vanguard_001',content_fingerprint:EMBER,package_schema_version:1});
+const stormAdmission=await builtinStore.admitLoadout({character_id:'storm_duelist_001',content_fingerprint:STORM,package_schema_version:1});
+assert.deepEqual(builtinStore.resolveLoadout(emberAdmission.authority),{max_hp:100,max_mp:100});
+assert.deepEqual(builtinStore.resolveLoadout(stormAdmission.authority),{max_hp:90,max_mp:120});
+assert.equal(builtinStore.resolveLoadout({...emberAdmission.authority,content_fingerprint:STORM}),null);
 
 const pkg={
  schema_version:1,ruleset_id:'competitive_standard',ruleset_version:1,power_budget_id:'competitive_standard_v1',
@@ -14,12 +27,16 @@ const pkg={
  skills:[{id:'bolt_001',type:'projectile',damage:18,mp_cost:20,cooldown:1.8}]
 };
 const fp=_test.fingerprint(pkg);
-const custom=createServerPackageAuthority({packageResolver:async id=>id==='custom_001'?structuredClone(pkg):null});
-const accepted=await custom({character_id:'custom_001',content_fingerprint:fp,package_schema_version:1});
+const customStore=createServerPackageAuthorityStore({packageResolver:async id=>id==='custom_001'?structuredClone(pkg):null});
+const accepted=await customStore.admitLoadout({character_id:'custom_001',content_fingerprint:fp,package_schema_version:1});
 assert.equal(accepted.accepted,true);
 assert.equal(accepted.authority.content_fingerprint,fp);
 assert.equal('damage' in accepted.authority,false);
 assert.equal('cooldown' in accepted.authority,false);
+assert.deepEqual(customStore.resolveLoadout(accepted.authority),{max_hp:100,max_mp:100});
+const resolvedCopy=customStore.resolveLoadout(accepted.authority);
+resolvedCopy.max_hp=1;
+assert.deepEqual(customStore.resolveLoadout(accepted.authority),{max_hp:100,max_mp:100});
 
 const forged=structuredClone(pkg); forged.skills[0].damage=999;
 const forgedFp=_test.fingerprint(forged);
