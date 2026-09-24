@@ -563,3 +563,15 @@
 - **Prevention Rule:** Never construct ESM file URLs by string-prefixing filesystem paths. Use `pathToFileURL` for filesystem path → URL conversion so direct-entry guards behave identically on Linux and Windows.
 - **Validation:** PR #201 latest product head `b5ecef0bf364e3e629148e12c29621128f1696a0` passed CI #586 (`35970648404`). The hosted Microsoft Edge job successfully launched the local Node PvP backend on Windows and completed the full `smoke:all`, including two-client Network PvP.
 - **Status:** Verified on PR #201 CI #586
+
+
+## L-051 — Browser WebSocket clients cannot initiate every RFC close code
+
+- **Date:** 2026-09-24
+- **Area:** V2-6 WU5 Godot Web reconnect / browser WebSocket API
+- **Symptom:** PR #202 CI #589 passed Windows Native, Godot/domain and all trusted-backend WU5 regressions, then Chromium failed at the new Network PvP reconnect step with `InvalidAccessError: Failed to execute 'close' on 'WebSocket'`.
+- **Root Cause:** The Godot Web client requested close code `1001` for the intentional reconnect test. Although 1001 is a defined WebSocket protocol status, browser JavaScript only permits client-initiated `WebSocket.close()` with code 1000 or application-defined codes 3000–4999.
+- **Fix:** Use application close code `3001` for the intentional client reconnect path. Server-originated heartbeat timeout continues to use an allowed application close code.
+- **Prevention Rule:** For browser-originated WebSocket closure, use 1000 or an application code in 3000–4999. Do not assume every RFC-defined protocol close code is legal through the browser JavaScript API.
+- **Validation:** Pending replacement PR #202 CI after the close-code correction.
+- **Status:** Pending

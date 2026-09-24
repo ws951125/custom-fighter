@@ -296,7 +296,7 @@ func _forfeit_match() -> void:
 func _disconnect_for_reconnect() -> void:
 	_manual_close = false
 	if _socket.get_ready_state() in [WebSocketPeer.STATE_OPEN, WebSocketPeer.STATE_CONNECTING]:
-		_socket.close(1001, "client reconnect test")
+		_socket.close(3001, "client reconnect test")
 
 func _admit_selected() -> void:
 	var character_id := str(_character_option.get_item_metadata(_character_option.selected))
