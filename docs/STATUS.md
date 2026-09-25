@@ -675,7 +675,7 @@ AI VFX backend: `https://custom-fighter-ai-vfx-6899.onrender.com`
 
 ## Next implementation target
 
-V2-6 **Work Unit 6 — full two-client online acceptance** is active on `feat/v2-6-wu6-online-acceptance`. Validate two server-trusted custom packages through the real custom-package authority path, reject forged combat fields, complete an authoritative combat result in Chromium/hosted Edge, then merge and require the same smoke against GitHub Pages + Render production before declaring V2-6 complete.
+PR #204 is the **V2-6 Work Unit 6 — full two-client online acceptance** merge candidate. Product head `4dd6c8dcc9cd696cfffab45532db02b7ffd8db6c` passed CI #596; after latest-head docs CI passes and explicit merge approval is given, squash-merge WU6 and require exact-main GitHub Pages + Render production WSS acceptance before declaring V2-6 complete.
 ## V2-6 WU2 — server-side package authority admission (2026-09-24)
 - Added a server-owned PvP package authority adapter for built-in and bounded custom loadouts.
 - Built-in competitive characters are admitted only when the client claim matches the server-frozen V2-5 fingerprint.
@@ -763,4 +763,7 @@ V2-6 **Work Unit 6 — full two-client online acceptance** is active on `feat/v2
 - Added a dedicated WU6 two-client browser acceptance stage. It negotiates both custom packages, starts an authoritative match, intentionally attempts to inject client-authored `damage` + `cooldown` and requires `INPUT_INTENT_FIELDS_INVALID`, moves both clients into combat range, then completes a real server-authoritative combat finish with winner/reason/HP assertions.
 - Existing WU5 Network PvP smoke remains in the same `smoke:all` suite, so reconnect + forfeit remains covered alongside WU6 custom-package combat acceptance.
 - On PRs the WU6 acceptance runs against the GitHub-hosted local backend in Chromium and hosted Edge. After merge, the exact same `smoke:all` runs in Windows Edge Production Full Smoke against GitHub Pages + Render production WSS.
-- WU6 is not Done until PR required gates pass, the PR is explicitly approved/merged, and exact-main production online acceptance passes. V2 remains 62.5% (5/8) until that final evidence is synchronized.
+- PR #204 product head `4dd6c8dcc9cd696cfffab45532db02b7ffd8db6c` passed CI #596 (`36143393328`): Windows Native, Godot/domain/backend including trusted custom-catalog regression, Web export/size, Chromium `smoke:all` and hosted Microsoft Edge `smoke:all`.
+- Both Chromium and Edge executed the dedicated WU6 path: two validated custom packages, forged damage/cooldown rejection, synchronized movement, and a real server-authoritative combat finish; the existing WU5 reconnect/forfeit smoke also remained green in the same suite.
+- PR production/deploy jobs were correctly skipped; exact-main production online acceptance remains the final WU6 gate after merge.
+- WU6 is PR-validated but not Done until explicit merge approval plus exact-main production acceptance. V2 remains 62.5% (5/8) until that evidence is synchronized.

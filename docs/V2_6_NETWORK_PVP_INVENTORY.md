@@ -108,7 +108,7 @@ Implementation scope:
 
 ### Work Unit 6 — full two-client online acceptance
 
-Status: **implementation active on `feat/v2-6-wu6-online-acceptance`; PR and exact-main production validation pending**.
+Status: **implementation complete and PR-validated in PR #204; product head `4dd6c8dcc9cd696cfffab45532db02b7ffd8db6c` passed CI #596 (`36143393328`); awaiting latest-head docs validation, explicit merge approval and exact-main production acceptance**.
 
 Acceptance implementation:
 - two server-trusted declarative custom packages (`creator_blaze_001`, `creator_frost_001`) resolve through the existing custom-package validator and deterministic fingerprint authority path;
@@ -174,3 +174,13 @@ V2 remains **62.5% (5/8 phases complete)** throughout partial V2-6 work. It adva
 - WU6 browser acceptance uses distinct client IDs from WU5 smoke so production reconnect-session residue cannot alias the next test.
 - Combat acceptance verifies both custom character IDs and server materialized HP, rejects forged damage/cooldown, synchronizes position, respects server cooldowns between attacks, and requires `result_reason=combat` with the losing HP at zero.
 - Final V2-6 progress must stay 62.5% until exact-main production acceptance passes and evidence is synchronized.
+
+
+## V2-6 WU6 PR validation checkpoint (2026-09-25)
+- PR #204 product head `4dd6c8dcc9cd696cfffab45532db02b7ffd8db6c` passed CI #596 (`36143393328`).
+- Windows Native: PASS.
+- Godot/domain/backend: PASS, including `PVP_TRUSTED_PACKAGE_CATALOG_TESTS_PASSED`.
+- Web export/size: PASS.
+- Chromium `smoke:all`: PASS, including WU5 reconnect/forfeit and WU6 custom-package authoritative combat acceptance.
+- Hosted Microsoft Edge `smoke:all`: PASS with the same WU5 + WU6 coverage.
+- PR production/deploy jobs are intentionally skipped. Final WU6 acceptance still requires the exact-main Windows Edge Production Full Smoke against GitHub Pages + Render production WSS after merge.
