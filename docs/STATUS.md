@@ -675,7 +675,7 @@ AI VFX backend: `https://custom-fighter-ai-vfx.onrender.com`
 
 ## Next implementation target
 
-V2-6 **Work Unit 4 — network transport + Web client integration** is implementation-complete and PR-validated in PR #201. Await explicit merge approval; after merge, validate the exact `main` revision before beginning **WU5 — reconnect / forfeit / latency handling**.
+PR #202 is the **V2-6 Work Unit 5 — reconnect / forfeit / latency handling** merge candidate. Latest product head `fe186699a3f0da60312d94811974b0b5ec5b3834` passed CI #590; after latest-head docs CI passes and explicit merge approval is given, squash-merge WU5, validate exact-main, then begin **WU6 — full two-client online acceptance**.
 
 
 ## V2-6 WU2 — server-side package authority admission (2026-09-24)
@@ -716,3 +716,24 @@ V2-6 **Work Unit 4 — network transport + Web client integration** is implement
 - PR #201 latest product head `b5ecef0bf364e3e629148e12c29621128f1696a0` passed CI #586 (`35970648404`): Windows Native, Godot/domain/backend including WebSocket transport regression, Web export/size budget, Chromium `smoke:all` including two-client Network PvP, and hosted Microsoft Edge `smoke:all` including the same Network PvP flow.
 - CI #583 exposed an identity-order test assumption (L-048); #584 exposed client-scheduled stale authority ticks (L-049); #585 exposed the Windows ESM direct-entry URL bug (L-050). All are corrected and #586 is green.
 - WU4 implementation is ready for explicit merge approval. V2 remains 62.5% (5/8) until complete V2-6 acceptance.
+
+
+## V2-6 WU4 merge / exact-main checkpoint (2026-09-24)
+- PR #201 was explicitly approved and squash-merged to `main` as `ecb82b34f800d273b9d71fc6c4d295c7acb63e6d`.
+- Exact-main CI #588 (`36019168490`) passed Windows Native, Godot/domain/backend, Web export/size budget, Chromium `smoke:all` including Network PvP, hosted Microsoft Edge `smoke:all`, GitHub Pages deployment and public-Web reachability.
+- The only red job was the pre-existing external Render production backend readiness: 18/18 attempts returned HTTP 503. Production Edge full smoke was skipped behind that external dependency. This is classified as an external deployment blocker, not a WU4 product regression.
+- WU4 is merged and exact-main product validated.
+
+## V2-6 WU5 — reconnect / forfeit / latency handling (2026-09-24)
+- Active branch: `feat/v2-6-wu5-reconnect-forfeit-latency`.
+- Server transport now maintains an in-memory reconnect session per client with a server-issued reconnect token. The token is returned only over the bound WebSocket and the Godot client keeps it in process memory; it is not written to localStorage, query parameters, DOM datasets or Git.
+- Reconnect is bounded to 10 seconds by default. A reconnect rotates the ordinary connection token while retaining the reconnect token and restores lobby/match binding plus current authoritative state.
+- Live duplicate client IDs still fail closed. A disconnected existing session requires the correct reconnect token; missing, wrong, unknown or expired reconnect tokens fail closed.
+- Explicit waiting-lobby Leave is supported. If the host leaves, the remaining participant is deterministically promoted and ready state is reset.
+- Active-match Forfeit is server-authoritative. Disconnect beyond the reconnect window also finalizes the match as a deterministic forfeit with explicit `winner_client_id`, `forfeited_client_id` and `result_reason`.
+- Application heartbeat uses bounded `ping/pong`; the Web client calculates RTT from its own monotonic clock, while the server tracks authenticated last-seen time and closes stale sockets into the normal reconnect/timeout path.
+- Godot `competitive_hosted` adds Reconnect, Leave Lobby and Forfeit controls, automatic reconnect attempts, RTT/reconnect/peer status telemetry, and terminal result display.
+- Backend regressions cover reconnect-token rebind, heartbeat, explicit forfeit, disconnect-timeout forfeit, waiting-lobby host leave/promotion and deterministic terminal state. Browser smoke now disconnects the actual Godot guest client, waits for automatic reconnect, then forfeits and verifies the host wins.
+- CI #589 exposed the browser close-code restriction recorded in L-051; the intentional reconnect close changed from RFC status 1001 to browser-valid application code 3001.
+- Replacement CI #590 (`36024400048`) passed Windows Native, Godot/domain/backend including all WU5 reconnect/forfeit/timeout regressions, Web export/size budget, Chromium `smoke:all` with real Godot auto-reconnect + forfeit, and hosted Microsoft Edge `smoke:all` with the same WU5 path.
+- WU5 implementation is PR-validated and ready for latest-head docs validation plus explicit merge approval. V2 remains 62.5% (5/8) until complete V2-6 acceptance.

@@ -115,3 +115,20 @@ assert.notEqual(sim.snapshot().players[0].hp,0);
 assert.equal(sim.submitInput('a',{sequence:7,target_tick:sim.snapshot().tick+99,actions:[]}).code,'INPUT_TICK_INVALID');
 assert.equal(sim.submitInput('a',{sequence:7,target_tick:sim.snapshot().tick+1,actions:['cheat_damage']}).code,'INPUT_ACTION_INVALID');
 console.log('PVP_AUTHORITATIVE_MATCH_TESTS_PASSED');
+
+
+const terminalSim=createAuthoritativeMatch({match,loadoutResolver});
+const forfeit=terminalSim.finishByForfeit('b','forfeit');
+assert.equal(forfeit.ok,true);
+assert.equal(forfeit.state.status,'finished');
+assert.equal(forfeit.state.winner_client_id,'a');
+assert.equal(forfeit.state.forfeited_client_id,'b');
+assert.equal(forfeit.state.result_reason,'forfeit');
+assert.equal(terminalSim.submitInput('a',{sequence:1,target_tick:1,actions:[]}).code,'MATCH_FINISHED');
+
+const timeoutSim=createAuthoritativeMatch({match,loadoutResolver});
+const timeout=timeoutSim.finishByForfeit('a','disconnect_timeout');
+assert.equal(timeout.ok,true);
+assert.equal(timeout.state.winner_client_id,'b');
+assert.equal(timeout.state.result_reason,'disconnect_timeout');
+assert.equal(timeoutSim.finishByForfeit('b','forfeit').code,'MATCH_FINISHED');

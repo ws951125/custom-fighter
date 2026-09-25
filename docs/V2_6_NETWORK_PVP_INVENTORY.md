@@ -82,7 +82,7 @@ Delivered:
 
 ### Work Unit 4 — network transport + Web client integration
 
-Status: **implementation complete and PR-validated in PR #201; awaiting explicit merge approval**.
+Status: **merged to `main` by PR #201 as `ecb82b34f800d273b9d71fc6c4d295c7acb63e6d`**. Exact-main CI #588 passed all product/Pages gates and was red only on the pre-existing external Render HTTP 503 readiness blocker.
 
 Implementation scope:
 - RFC-6455 WebSocket transport at `/v1/pvp/ws` behind the existing session/authority services;
@@ -95,13 +95,16 @@ Implementation scope:
 
 ### Work Unit 5 — reconnect / forfeit / latency handling
 
-Planned:
-- bounded reconnect window;
-- reconnect token/session binding;
-- explicit forfeit/leave semantics;
-- disconnect timeout;
-- latency/heartbeat handling;
-- deterministic terminal match result.
+Status: **implementation complete and PR-validated in PR #202; latest product head `fe186699a3f0da60312d94811974b0b5ec5b3834` passed CI #590 (`36024400048`); awaiting latest-head docs validation and explicit merge approval**.
+
+Implementation scope:
+- 10-second bounded reconnect window with server-issued reconnect token kept only in client process memory;
+- reconnect restores lobby/match binding and rotates the ordinary connection token;
+- explicit waiting-lobby leave with deterministic host promotion;
+- explicit active-match forfeit plus disconnect-timeout automatic forfeit;
+- application heartbeat/pong, authenticated last-seen watchdog and browser RTT telemetry;
+- deterministic terminal snapshot fields: winner, forfeited client and result reason;
+- Chromium/hosted-Edge regression that disconnects and reconnects the real Godot Web client before completing a forfeit path.
 
 ### Work Unit 6 — full two-client online acceptance
 
@@ -149,3 +152,14 @@ V2 remains **62.5% (5/8 phases complete)** throughout partial V2-6 work. It adva
 - WU4 does not implement reconnect tokens, forfeit/disconnect timeout or heartbeat/latency policy; those remain WU5.
 - Godot `competitive_hosted` exposes a user-visible lobby/client scene and server-authoritative intent controls. It does not reuse the local competitive runtime as combat authority.
 - Validation: PR #201 head `b5ecef0bf364e3e629148e12c29621128f1696a0` passed CI #586 (`35970648404`) across Windows Native, Godot/domain/backend, Web export/size, Chromium two-client Network PvP and hosted Edge two-client Network PvP. Production WSS remains a post-merge exact-main gate and is blocked whenever the existing Render service is unavailable.
+
+
+## V2-6 WU5 implementation checkpoint (2026-09-24)
+- Branch: `feat/v2-6-wu5-reconnect-forfeit-latency`, based on WU4 merge `ecb82b34f800d273b9d71fc6c4d295c7acb63e6d`.
+- Reconnect identity uses a dedicated random server-issued token distinct from the per-socket connection token. Reconnect tokens are memory-only and are never emitted to browser datasets.
+- Server disconnect handling starts the reconnect deadline only when the live socket actually closes. Reconnect within the window restores lobby/match state; timeout finalizes an active match with `disconnect_timeout`.
+- Explicit `forfeit` and timeout finalization use the same authoritative match terminal-state method so client ordering cannot determine the winner.
+- Heartbeat is application-level because browser WebSocket APIs do not expose protocol control-frame ping/pong. Any authenticated message refreshes last-seen; explicit ping/pong supplies RTT telemetry to the client.
+- Waiting-lobby leave is a session-service operation and never mutates active lobbies; active players must use forfeit.
+- Validation: PR #202 product head `fe186699a3f0da60312d94811974b0b5ec5b3834` passed CI #590 (`36024400048`) across Windows Native, Godot/domain/backend, Web export/size, Chromium two-client reconnect/forfeit flow and hosted Edge equivalent.
+- CI #589 failed only on the intentional browser close code 1001; L-051 records the correction to browser-valid application code 3001 and #590 verifies it.

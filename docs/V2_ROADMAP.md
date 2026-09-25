@@ -185,7 +185,9 @@ WU2 PR #198 merged to `main` as `a46e9f253d61e610beee450a7abd82c56a01e214`, addi
 
 WU3 PR #200 was squash-merged to `main` as `110f86fe7490b86f539589861834100c49877db8`. Latest-head PR CI #581 passed all required PR gates. Exact-main CI #582 passed Windows Native, Godot/domain/backend, Web export/size, Chromium, hosted Edge, Pages deployment and public reachability; the workflow was red only because the pre-existing external Render backend returned HTTP 503 for all readiness attempts.
 
-WU4 PR #201 is implementation-complete and PR-validated on head `b5ecef0bf364e3e629148e12c29621128f1696a0`. CI #586 (`35970648404`) passed Windows Native, Godot/domain/backend, Web export/size, Chromium `smoke:all` and hosted Edge `smoke:all`, including the two-client Network PvP path. The transport binds live socket/client identity, routes lobby/admission/ready/start/state messages through WU1/WU2/WU3, and accepts only sequence + action intent while the server schedules authoritative target ticks. WU4 awaits explicit merge approval and exact-main validation.
+WU4 PR #201 was squash-merged to `main` as `ecb82b34f800d273b9d71fc6c4d295c7acb63e6d`. Exact-main CI #588 (`36019168490`) passed Windows Native, Godot/domain/backend, Web export/size, Chromium, hosted Edge, Pages deployment and public reachability; the only red job was the existing external Render backend readiness with 18 HTTP 503 responses.
+
+WU5 PR #202 is implementation-complete and PR-validated. Product head `fe186699a3f0da60312d94811974b0b5ec5b3834` passed CI #590 (`36024400048`) across Windows Native, Godot/domain/backend, Web export/size, Chromium and hosted Edge, including a real Godot Web disconnect → automatic reconnect → forfeit flow. CI #589's browser-invalid close code was corrected and recorded as L-051.
 
 ## V2-7 — Creator Sharing Ecosystem
 
@@ -232,4 +234,4 @@ The architecture previously allowed a future local/open-model AI provider such a
 
 ## Next implementation target
 
-After explicit approval, squash-merge **PR #201 / V2-6 Work Unit 4 — network transport + Web client integration**, validate the exact `main` revision, then begin **WU5 — reconnect / forfeit / latency handling**.
+After latest-head docs CI and explicit approval, squash-merge **PR #202 / V2-6 Work Unit 5 — reconnect / forfeit / latency handling**, validate exact-main, then begin **WU6 — full two-client online acceptance**.

@@ -167,6 +167,32 @@ export function createPvpSessionService({ admitLoadout, idFactory } = {}) {
     return { ok: true, lobby: publicLobby(lobby) };
   }
 
+
+  function leaveLobby(lobbyId, clientIdValue) {
+    const lobby = findLobby(lobbyId);
+    const mutableError = requireMutableLobby(lobby);
+    if (mutableError) return mutableError;
+
+    const clientId = normalizeClientId(clientIdValue);
+    if (!clientId) return fail('CLIENT_ID_INVALID');
+    const index = lobby.participants.findIndex(participant => participant.client_id === clientId);
+    if (index < 0) return fail('CLIENT_NOT_IN_LOBBY');
+
+    lobby.participants.splice(index, 1);
+    lobby.revision += 1;
+
+    if (lobby.participants.length === 0) {
+      lobbies.delete(lobby.lobby_id);
+      return { ok: true, closed: true, lobby: null };
+    }
+
+    if (lobby.host_client_id === clientId) {
+      lobby.host_client_id = lobby.participants[0].client_id;
+    }
+    for (const participant of lobby.participants) participant.ready = false;
+    return { ok: true, closed: false, lobby: publicLobby(lobby) };
+  }
+
   function startMatch(lobbyId, requesterClientIdValue) {
     const lobby = findLobby(lobbyId);
     const mutableError = requireMutableLobby(lobby);
@@ -213,6 +239,7 @@ export function createPvpSessionService({ admitLoadout, idFactory } = {}) {
     joinLobby,
     negotiateLoadout,
     setReady,
+    leaveLobby,
     startMatch,
     getLobby
   });

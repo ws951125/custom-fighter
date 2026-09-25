@@ -45,7 +45,10 @@ export function createServer({
   service = createVfxResponse,
   allowedOrigin = DEFAULT_ALLOWED_ORIGIN,
   pvpPackageResolver,
-  pvpTickIntervalMs = 1000 / 60
+  pvpTickIntervalMs = 1000 / 60,
+  pvpReconnectWindowMs = 10_000,
+  pvpHeartbeatTimeoutMs = 15_000,
+  pvpHeartbeatCheckMs = 1_000
 } = {}) {
   const authorityStore = createServerPackageAuthorityStore({ packageResolver:pvpPackageResolver });
   const pvpSessionService = createPvpSessionService({ admitLoadout:authorityStore.admitLoadout });
@@ -81,7 +84,9 @@ export function createServer({
           pvp: {
             protocol_version: PVP_PROTOCOL_VERSION,
             websocket_path: PVP_WS_PATH,
-            authority: 'server_authoritative'
+            authority: 'server_authoritative',
+            reconnect_window_ms: pvpReconnectWindowMs,
+            heartbeat_timeout_ms: pvpHeartbeatTimeoutMs
           }
         },
         origin,
@@ -109,7 +114,10 @@ export function createServer({
     resolveLoadout:authorityStore.resolveLoadout,
     allowedOrigin,
     path:PVP_WS_PATH,
-    tickIntervalMs:pvpTickIntervalMs
+    tickIntervalMs:pvpTickIntervalMs,
+    reconnectWindowMs:pvpReconnectWindowMs,
+    heartbeatTimeoutMs:pvpHeartbeatTimeoutMs,
+    heartbeatCheckMs:pvpHeartbeatCheckMs
   });
 
   return server;
