@@ -675,9 +675,7 @@ AI VFX backend: `https://custom-fighter-ai-vfx-6899.onrender.com`
 
 ## Next implementation target
 
-PR #202 is the **V2-6 Work Unit 5 — reconnect / forfeit / latency handling** merge candidate. Latest product head `fe186699a3f0da60312d94811974b0b5ec5b3834` passed CI #590; after latest-head docs CI passes and explicit merge approval is given, squash-merge WU5, validate exact-main, then begin **WU6 — full two-client online acceptance**.
-
-
+V2-6 **Work Unit 6 — full two-client online acceptance** is active on `feat/v2-6-wu6-online-acceptance`. Validate two server-trusted custom packages through the real custom-package authority path, reject forged combat fields, complete an authoritative combat result in Chromium/hosted Edge, then merge and require the same smoke against GitHub Pages + Render production before declaring V2-6 complete.
 ## V2-6 WU2 — server-side package authority admission (2026-09-24)
 - Added a server-owned PvP package authority adapter for built-in and bounded custom loadouts.
 - Built-in competitive characters are admitted only when the client claim matches the server-frozen V2-5 fingerprint.
@@ -747,3 +745,22 @@ PR #202 is the **V2-6 Work Unit 5 — reconnect / forfeit / latency handling** m
 - Initial deploy `dep-dar1ue7f3r2c73aro84g` of exact main `0570d53e08950350da6e50d75473aa334fda347c` reached `live`.
 - The replacement service is intentionally deployed without a Gemini API key. Health reports the explicit `provider=disabled` safe-disabled state whenever Gemini is not fully configured, while preserving free-tier policy metadata. Network PvP/backend functionality remains available; AI VFX generation remains disabled until an operator supplies an already-verified free-tier Gemini key.
 - Production HTTP/WSS defaults, CI readiness and production E2E defaults are migrated to the new 6899 endpoint in `fix/render-production-backend-6899`.
+
+
+## V2-6 WU5 merge + production-backend recovery (2026-09-25)
+- PR #202 was explicitly approved and squash-merged to `main` as `0570d53e08950350da6e50d75473aa334fda347c`.
+- Exact-main CI #592 passed Windows Native, Godot/domain/backend, Web export/size, Chromium, hosted Edge, Pages deployment and public reachability; production backend readiness still exposed the legacy Render HTTP 503 blocker.
+- PR #203 migrated production HTTP/WSS defaults to the new free Render service `custom-fighter-ai-vfx-6899` and was squash-merged as `e613356c4de12f07d1cde36043177ead162dc2dd`.
+- Render auto-deploy `dep-dar2g9bl550s73cvhr9g` deployed exact main `e613356c4de12f07d1cde36043177ead162dc2dd` and reached `live`.
+- Exact-main CI #595 (`36109854193`) completed **SUCCESS**: Windows Native, Godot/domain/backend, Web export/size, Chromium `smoke:all`, hosted Edge `smoke:all`, GitHub Pages deployment, public-Web reachability, Production AI Backend Readiness, and Windows Edge Production Full Smoke all passed.
+- The long-running legacy Render 503 blocker is therefore closed. Production AI remains intentionally safe-disabled until a verified free-tier Gemini key is configured; Network PvP/backend is production-live.
+
+## V2-6 WU6 — full two-client online acceptance (2026-09-25)
+- Active branch: `feat/v2-6-wu6-online-acceptance`, based on production-validated main `e613356c4de12f07d1cde36043177ead162dc2dd`.
+- Added a server-trusted declarative custom-package catalog with two bounded competitive packages: `creator_blaze_001` and `creator_frost_001`. These are resolved through the existing WU2 custom-package validation path rather than being promoted into built-in authority.
+- Production/local backend defaults to the trusted resolver. Clients still send only character ID + deterministic fingerprint + package schema version; HP/MP/skills stay server-owned after validation.
+- The Network PvP UI exposes Creator Blaze and Creator Frost as validated competitive loadout options.
+- Added a dedicated WU6 two-client browser acceptance stage. It negotiates both custom packages, starts an authoritative match, intentionally attempts to inject client-authored `damage` + `cooldown` and requires `INPUT_INTENT_FIELDS_INVALID`, moves both clients into combat range, then completes a real server-authoritative combat finish with winner/reason/HP assertions.
+- Existing WU5 Network PvP smoke remains in the same `smoke:all` suite, so reconnect + forfeit remains covered alongside WU6 custom-package combat acceptance.
+- On PRs the WU6 acceptance runs against the GitHub-hosted local backend in Chromium and hosted Edge. After merge, the exact same `smoke:all` runs in Windows Edge Production Full Smoke against GitHub Pages + Render production WSS.
+- WU6 is not Done until PR required gates pass, the PR is explicitly approved/merged, and exact-main production online acceptance passes. V2 remains 62.5% (5/8) until that final evidence is synchronized.

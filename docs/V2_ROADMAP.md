@@ -187,7 +187,9 @@ WU3 PR #200 was squash-merged to `main` as `110f86fe7490b86f539589861834100c4987
 
 WU4 PR #201 was squash-merged to `main` as `ecb82b34f800d273b9d71fc6c4d295c7acb63e6d`. Exact-main CI #588 (`36019168490`) passed Windows Native, Godot/domain/backend, Web export/size, Chromium, hosted Edge, Pages deployment and public reachability; the only red job was the existing external Render backend readiness with 18 HTTP 503 responses.
 
-WU5 PR #202 is implementation-complete and PR-validated. Product head `fe186699a3f0da60312d94811974b0b5ec5b3834` passed CI #590 (`36024400048`) across Windows Native, Godot/domain/backend, Web export/size, Chromium and hosted Edge, including a real Godot Web disconnect → automatic reconnect → forfeit flow. CI #589's browser-invalid close code was corrected and recorded as L-051.
+WU5 PR #202 was squash-merged to `main` as `0570d53e08950350da6e50d75473aa334fda347c`. Its reconnect/forfeit/latency behavior remains in the shared cross-browser smoke suite. The legacy Render 503 blocker was closed by PR #203, merged as `e613356c4de12f07d1cde36043177ead162dc2dd`; exact-main CI #595 (`36109854193`) passed all product gates, Pages/public reachability, production backend readiness and Windows Edge Production Full Smoke.
+
+WU6 is active on `feat/v2-6-wu6-online-acceptance`: two server-trusted custom packages, forged combat-state rejection and a real authoritative combat finish are being added as a dedicated browser acceptance stage while WU5 reconnect/forfeit remains in the same suite.
 
 ## V2-7 — Creator Sharing Ecosystem
 
@@ -234,4 +236,4 @@ The architecture previously allowed a future local/open-model AI provider such a
 
 ## Next implementation target
 
-After latest-head docs CI and explicit approval, squash-merge **PR #202 / V2-6 Work Unit 5 — reconnect / forfeit / latency handling**, validate exact-main, then begin **WU6 — full two-client online acceptance**.
+Complete and PR-validate **V2-6 Work Unit 6 — full two-client online acceptance** on `feat/v2-6-wu6-online-acceptance`. After explicit merge approval, require exact-main Render deployment + Production Backend Readiness + Windows Edge Production Full Smoke with the WU6 custom-package combat acceptance before marking V2-6 complete and advancing V2 to 75%.

@@ -95,7 +95,7 @@ Implementation scope:
 
 ### Work Unit 5 — reconnect / forfeit / latency handling
 
-Status: **implementation complete and PR-validated in PR #202; latest product head `fe186699a3f0da60312d94811974b0b5ec5b3834` passed CI #590 (`36024400048`); awaiting latest-head docs validation and explicit merge approval**.
+Status: **merged to `main` by PR #202 as `0570d53e08950350da6e50d75473aa334fda347c`**. Product behavior was PR-validated by CI #590/#591; exact-main product gates passed in CI #592. The external Render 503 blocker was subsequently closed by PR #203 and exact-main CI #595.
 
 Implementation scope:
 - 10-second bounded reconnect window with server-issued reconnect token kept only in client process memory;
@@ -108,14 +108,16 @@ Implementation scope:
 
 ### Work Unit 6 — full two-client online acceptance
 
-Planned cross-browser/online proof:
-- two supported clients join one lobby;
-- both negotiate validated custom characters;
-- both become ready and start;
-- input/state synchronization completes a real authoritative match;
-- reconnect/forfeit path is covered;
-- attempted client-authored damage/cooldown is rejected;
-- Chromium and hosted Edge online regression evidence is synchronized.
+Status: **implementation active on `feat/v2-6-wu6-online-acceptance`; PR and exact-main production validation pending**.
+
+Acceptance implementation:
+- two server-trusted declarative custom packages (`creator_blaze_001`, `creator_frost_001`) resolve through the existing custom-package validator and deterministic fingerprint authority path;
+- two supported browser clients join one lobby, negotiate those custom packages, ready and start;
+- a diagnostic-only browser bridge attempts to inject client-authored `damage` + `cooldown`; transport must fail closed with `INPUT_INTENT_FIELDS_INVALID` and preserve authoritative HP/cooldown;
+- clients synchronize movement into range and complete a real authoritative combat finish rather than ending only by forfeit;
+- existing WU5 smoke in the same suite continues to cover disconnect/reconnect + explicit forfeit;
+- Chromium and hosted Edge run the combined acceptance on PRs;
+- after merge, Windows Edge Production Full Smoke runs the same suite against GitHub Pages + Render production WSS.
 
 ## Progress rule
 
@@ -163,3 +165,12 @@ V2 remains **62.5% (5/8 phases complete)** throughout partial V2-6 work. It adva
 - Waiting-lobby leave is a session-service operation and never mutates active lobbies; active players must use forfeit.
 - Validation: PR #202 product head `fe186699a3f0da60312d94811974b0b5ec5b3834` passed CI #590 (`36024400048`) across Windows Native, Godot/domain/backend, Web export/size, Chromium two-client reconnect/forfeit flow and hosted Edge equivalent.
 - CI #589 failed only on the intentional browser close code 1001; L-051 records the correction to browser-valid application code 3001 and #590 verifies it.
+
+
+## V2-6 WU6 implementation checkpoint (2026-09-25)
+- Base: production-validated main `e613356c4de12f07d1cde36043177ead162dc2dd`; CI #595 closed the previous production backend blocker and passed full production Edge smoke.
+- Trusted custom package fingerprints are frozen alongside server-owned package data; a client fingerprint is equality evidence only and cannot replace package validation.
+- The default production resolver returns detached copies from a closed server catalog. Unknown custom IDs resolve to null and fail admission.
+- WU6 browser acceptance uses distinct client IDs from WU5 smoke so production reconnect-session residue cannot alias the next test.
+- Combat acceptance verifies both custom character IDs and server materialized HP, rejects forged damage/cooldown, synchronizes position, respects server cooldowns between attacks, and requires `result_reason=combat` with the losing HP at zero.
+- Final V2-6 progress must stay 62.5% until exact-main production acceptance passes and evidence is synchronized.

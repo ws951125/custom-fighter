@@ -6,6 +6,10 @@ const EMBER_ID := "ember_vanguard_001"
 const EMBER_FINGERPRINT := "56451d3bdf1c7bf74852a3620894667730ddb088f350eb598badfa74c6d3c28e"
 const STORM_ID := "storm_duelist_001"
 const STORM_FINGERPRINT := "5822c6cfb4737c29007f2450a598c501b79c17d8ed9a432e4327976cc6a7026e"
+const CREATOR_BLAZE_ID := "creator_blaze_001"
+const CREATOR_BLAZE_FINGERPRINT := "ef1756f3c1a50e3adc36658735cd160a9664f10aef81174fc1eef288a1cfd318"
+const CREATOR_FROST_ID := "creator_frost_001"
+const CREATOR_FROST_FINGERPRINT := "df6fc187ded8159b40abbf9e58a453f5400bcd766b5d5c9cc25087e4bc213d83"
 const HEARTBEAT_INTERVAL_MS := 2000
 const RECONNECT_RETRY_MS := 500
 
@@ -113,7 +117,7 @@ func _build_ui() -> void:
 	panel.add_child(title)
 
 	var note := Label.new()
-	note.text = "WU5 Network PvP: reconnect + heartbeat/RTT + leave/forfeit + authoritative terminal result"
+	note.text = "WU6 Network PvP: validated custom packages + authoritative online combat acceptance"
 	note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	panel.add_child(note)
 
@@ -152,6 +156,10 @@ func _build_ui() -> void:
 	_character_option.set_item_metadata(0, EMBER_ID)
 	_character_option.add_item("Storm Duelist")
 	_character_option.set_item_metadata(1, STORM_ID)
+	_character_option.add_item("Creator Blaze")
+	_character_option.set_item_metadata(2, CREATOR_BLAZE_ID)
+	_character_option.add_item("Creator Frost")
+	_character_option.set_item_metadata(3, CREATOR_FROST_ID)
 	_character_option.custom_minimum_size = Vector2(220, 42)
 	loadout_row.add_child(_character_option)
 	_add_button(loadout_row, "Admit Loadout", _admit_selected)
@@ -308,6 +316,10 @@ func _admit_character(character_id: String) -> void:
 		fingerprint = EMBER_FINGERPRINT
 	elif character_id == STORM_ID:
 		fingerprint = STORM_FINGERPRINT
+	elif character_id == CREATOR_BLAZE_ID:
+		fingerprint = CREATOR_BLAZE_FINGERPRINT
+	elif character_id == CREATOR_FROST_ID:
+		fingerprint = CREATOR_FROST_FINGERPRINT
 	else:
 		_last_error = "CHARACTER_NOT_SUPPORTED"
 		_refresh_ui()
@@ -347,6 +359,24 @@ func _send_neutral() -> void:
 
 func _send_attack() -> void:
 	_send_action(["basic_attack"])
+
+func _send_forged_combat_state_for_acceptance() -> void:
+	if _match_id.is_empty() or _match_status != "active":
+		_last_error = "MATCH_NOT_ACTIVE"
+		_refresh_ui()
+		_set_web_state()
+		return
+	_input_sequence += 1
+	_send_command({
+		"type": "input",
+		"match_id": _match_id,
+		"input": {
+			"sequence": _input_sequence,
+			"actions": [],
+			"damage": 999,
+			"cooldown": 0
+		}
+	})
 
 func _send_action(actions: Array) -> void:
 	if _match_id.is_empty() or _match_status != "active":
@@ -512,6 +542,10 @@ func _web_command(args: Array) -> void:
 		_admit_character(EMBER_ID)
 	elif command == "admit_storm":
 		_admit_character(STORM_ID)
+	elif command == "admit_creator_blaze":
+		_admit_character(CREATOR_BLAZE_ID)
+	elif command == "admit_creator_frost":
+		_admit_character(CREATOR_FROST_ID)
 	elif command == "ready":
 		_toggle_ready()
 	elif command == "start":
@@ -526,6 +560,8 @@ func _web_command(args: Array) -> void:
 		_send_neutral()
 	elif command == "attack":
 		_send_attack()
+	elif command == "forge_combat_state":
+		_send_forged_combat_state_for_acceptance()
 	elif command == "forfeit":
 		_forfeit_match()
 	elif command == "request_state":
