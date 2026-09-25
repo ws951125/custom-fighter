@@ -10,7 +10,7 @@ The free Gemini model analyzes the prompt and optional PNG reference through the
 
 ## Preconditions
 
-The Render service at `https://custom-fighter-ai-vfx.onrender.com` must report through `/healthz`:
+The Render service at `https://custom-fighter-ai-vfx-6899.onrender.com` must report through `/healthz`:
 - `provider=gemini`,
 - `billing_mode=free-tier-only`,
 - `model=gemini-3.6-flash`,
@@ -71,3 +71,20 @@ This closes P4 and the planned roadmap at **13/13 phases complete**.
 - Pricing eligibility and API/model availability are separate checks; verify both against current official Google documentation before changing the allow-list or activating production.
 - Real provider E2E remains the authoritative provider acceptance gate after any model-lifecycle change.
 - Paid provider fallback is prohibited unless the user explicitly reverses the project cost policy.
+
+## 2026-09-25 Render service migration
+
+The legacy `https://custom-fighter-ai-vfx.onrender.com` endpoint became unavailable and returned persistent HTTP 503. The connected `6899's workspace` does not own that legacy service.
+
+Replacement production backend:
+- URL: `https://custom-fighter-ai-vfx-6899.onrender.com`
+- Plan: Render Free
+- Region: Singapore
+- Branch: `main`
+- Auto-deploy: enabled
+- Start: `npm run backend:start`
+- Allowed browser origin: `https://ws951125.github.io`
+
+The replacement service intentionally starts without `GEMINI_API_KEY`. In this state `/healthz` must report `provider=disabled`, `configured=false`, the Gemini provider metadata, and `free_tier_policy_asserted=true`. This is a safe non-generating production state: the backend and Network PvP remain available, while real Gemini generation remains disabled until an operator verifies a Free Tier project and configures the server-side key plus `GEMINI_FREE_TIER_PROJECT_VERIFIED=true`.
+
+The manual **Production Free Gemini E2E** workflow remains the authoritative acceptance before re-enabling real provider calls.

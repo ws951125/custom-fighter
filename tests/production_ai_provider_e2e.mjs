@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import sharp from 'sharp';
 
-const baseUrl = String(process.env.CUSTOM_FIGHTER_AI_BACKEND_URL || 'https://custom-fighter-ai-vfx.onrender.com').replace(/\/$/, '');
+const baseUrl = String(process.env.CUSTOM_FIGHTER_AI_BACKEND_URL || 'https://custom-fighter-ai-vfx-6899.onrender.com').replace(/\/$/, '');
 const expectedProvider = String(process.env.EXPECTED_AI_PROVIDER || '').trim().toLowerCase();
 const expectedRevision = String(process.env.EXPECTED_BACKEND_REVISION || '').trim();
 const origin = 'https://ws951125.github.io';

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 
-const baseUrl = String(process.env.CUSTOM_FIGHTER_AI_BACKEND_URL || 'https://custom-fighter-ai-vfx.onrender.com').replace(/\/$/, '');
+const baseUrl = String(process.env.CUSTOM_FIGHTER_AI_BACKEND_URL || 'https://custom-fighter-ai-vfx-6899.onrender.com').replace(/\/$/, '');
 const expectedRevision = String(process.env.EXPECTED_BACKEND_REVISION || '').trim();
 const origin = 'https://ws951125.github.io';
 const attempts = Number(process.env.BACKEND_READINESS_ATTEMPTS || 18);

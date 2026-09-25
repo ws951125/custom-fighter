@@ -2,7 +2,7 @@ import { chromium } from 'playwright';
 import sharp from 'sharp';
 
 const webUrl = process.env.CUSTOM_FIGHTER_WEB_URL ?? 'https://ws951125.github.io/custom-fighter/';
-const backendUrl = process.env.CUSTOM_FIGHTER_AI_BACKEND_URL ?? 'https://custom-fighter-ai-vfx.onrender.com';
+const backendUrl = process.env.CUSTOM_FIGHTER_AI_BACKEND_URL ?? 'https://custom-fighter-ai-vfx-6899.onrender.com';
 const expectedRevision = String(process.env.EXPECTED_BACKEND_REVISION ?? '').trim();
 if (!expectedRevision) throw new Error('EXPECTED_BACKEND_REVISION is required');
 

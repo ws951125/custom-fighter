@@ -305,7 +305,7 @@ jobs:
 
       - name: Verify Render health, provider schema and deployed revision
         env:
-          CUSTOM_FIGHTER_AI_BACKEND_URL: https://custom-fighter-ai-vfx.onrender.com
+          CUSTOM_FIGHTER_AI_BACKEND_URL: https://custom-fighter-ai-vfx-6899.onrender.com
           EXPECTED_BACKEND_REVISION: ${{ github.sha }}
         run: node tests/production_backend_readiness.mjs
 

@@ -1,7 +1,7 @@
 extends Control
 
 const PROTOCOL_VERSION := 1
-const DEFAULT_WS_URL := "wss://custom-fighter-ai-vfx.onrender.com/v1/pvp/ws"
+const DEFAULT_WS_URL := "wss://custom-fighter-ai-vfx-6899.onrender.com/v1/pvp/ws"
 const EMBER_ID := "ember_vanguard_001"
 const EMBER_FINGERPRINT := "56451d3bdf1c7bf74852a3620894667730ddb088f350eb598badfa74c6d3c28e"
 const STORM_ID := "storm_duelist_001"

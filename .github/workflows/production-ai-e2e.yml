@@ -39,13 +39,13 @@ jobs:
 
       - name: Verify Render readiness and exact deployed revision
         env:
-          CUSTOM_FIGHTER_AI_BACKEND_URL: https://custom-fighter-ai-vfx.onrender.com
+          CUSTOM_FIGHTER_AI_BACKEND_URL: https://custom-fighter-ai-vfx-6899.onrender.com
           EXPECTED_BACKEND_REVISION: ${{ github.sha }}
         run: node tests/production_backend_readiness.mjs
 
       - name: Run real text + reference-image production acceptance
         env:
-          CUSTOM_FIGHTER_AI_BACKEND_URL: https://custom-fighter-ai-vfx.onrender.com
+          CUSTOM_FIGHTER_AI_BACKEND_URL: https://custom-fighter-ai-vfx-6899.onrender.com
           EXPECTED_AI_PROVIDER: gemini
           EXPECTED_BACKEND_REVISION: ${{ github.sha }}
         run: node tests/production_ai_provider_e2e.mjs
@@ -56,6 +56,6 @@ jobs:
       - name: Run production Creator reference → Gemini → confirm → Training cast acceptance
         env:
           CUSTOM_FIGHTER_WEB_URL: https://ws951125.github.io/custom-fighter/
-          CUSTOM_FIGHTER_AI_BACKEND_URL: https://custom-fighter-ai-vfx.onrender.com
+          CUSTOM_FIGHTER_AI_BACKEND_URL: https://custom-fighter-ai-vfx-6899.onrender.com
           EXPECTED_BACKEND_REVISION: ${{ github.sha }}
         run: node tests/production_creator_gemini_e2e.mjs

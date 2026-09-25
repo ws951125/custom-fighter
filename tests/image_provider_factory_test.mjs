@@ -39,7 +39,10 @@ try {
 
   process.env.GEMINI_FREE_TIER_ONLY = 'false';
   readiness = imageProviderReadiness();
+  assert.equal(readiness.provider, 'disabled');
   assert.equal(readiness.configured, false);
+  assert.equal(readiness.model, '');
+  assert.equal(readiness.billing_mode, '');
   assert.equal(readiness.providers.gemini.free_tier_policy_asserted, false);
   assert.equal(readiness.providers.gemini.free_tier_project_verified, true);
   assert.throws(() => createConfiguredImageProvider(), /GEMINI_FREE_TIER_ONLY=true/);
@@ -47,7 +50,10 @@ try {
 
   process.env.GEMINI_FREE_TIER_PROJECT_VERIFIED = 'false';
   readiness = imageProviderReadiness();
+  assert.equal(readiness.provider, 'disabled');
   assert.equal(readiness.configured, false);
+  assert.equal(readiness.model, '');
+  assert.equal(readiness.billing_mode, '');
   assert.equal(readiness.providers.gemini.free_tier_policy_asserted, true);
   assert.equal(readiness.providers.gemini.free_tier_project_verified, false);
   assert.throws(() => createConfiguredImageProvider(), /GEMINI_FREE_TIER_PROJECT_VERIFIED=true/);
@@ -60,13 +66,28 @@ try {
 
   process.env.GEMINI_MODEL = 'gemini-2.5-flash';
   readiness = imageProviderReadiness();
+  assert.equal(readiness.provider, 'disabled');
   assert.equal(readiness.configured, false);
   assert.throws(() => createConfiguredImageProvider(), /approved free-tier model/);
 
   process.env.GEMINI_MODEL = 'gemini-3.1-flash-image';
   readiness = imageProviderReadiness();
+  assert.equal(readiness.provider, 'disabled');
   assert.equal(readiness.configured, false);
   assert.throws(() => createConfiguredImageProvider(), /approved free-tier model/);
+
+  process.env.AI_IMAGE_PROVIDER = 'gemini';
+  process.env.GEMINI_MODEL = 'gemini-3.6-flash';
+  process.env.GEMINI_FREE_TIER_ONLY = 'true';
+  process.env.GEMINI_FREE_TIER_PROJECT_VERIFIED = 'false';
+  delete process.env.GEMINI_API_KEY;
+  readiness = imageProviderReadiness();
+  assert.equal(readiness.provider, 'disabled');
+  assert.equal(readiness.configured, false);
+  assert.equal(readiness.providers.gemini.model, 'gemini-3.6-flash');
+  assert.equal(readiness.providers.gemini.billing_mode, 'free-tier-only');
+  assert.equal(readiness.providers.gemini.free_tier_policy_asserted, true);
+  assert.equal(readiness.providers.gemini.free_tier_project_verified, false);
 
   process.env.AI_IMAGE_PROVIDER = 'openai';
   assert.throws(() => selectedImageProviderId(), /free-Gemini-only/);

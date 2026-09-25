@@ -8,7 +8,7 @@ const productionOrigin='https://ws951125.github.io';
 const isProduction=new URL(baseUrl).origin===productionOrigin;
 const localBackendPort=8791;
 const localWsUrl=`ws://127.0.0.1:${localBackendPort}/v1/pvp/ws`;
-const productionWsUrl='wss://custom-fighter-ai-vfx.onrender.com/v1/pvp/ws';
+const productionWsUrl='wss://custom-fighter-ai-vfx-6899.onrender.com/v1/pvp/ws';
 const suffix=String(process.env.GITHUB_RUN_ID||process.pid).replace(/[^A-Za-z0-9_.:-]/g,'_');
 const hostClient=`host_${suffix}`;
 const guestClient=`guest_${suffix}`;

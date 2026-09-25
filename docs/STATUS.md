@@ -671,7 +671,7 @@ Creator Studio: `https://ws951125.github.io/custom-fighter/?mode=creator`
 
 VFX Creator: `https://ws951125.github.io/custom-fighter/?mode=vfx`
 
-AI VFX backend: `https://custom-fighter-ai-vfx.onrender.com`
+AI VFX backend: `https://custom-fighter-ai-vfx-6899.onrender.com`
 
 ## Next implementation target
 
@@ -737,3 +737,13 @@ PR #202 is the **V2-6 Work Unit 5 — reconnect / forfeit / latency handling** m
 - CI #589 exposed the browser close-code restriction recorded in L-051; the intentional reconnect close changed from RFC status 1001 to browser-valid application code 3001.
 - Replacement CI #590 (`36024400048`) passed Windows Native, Godot/domain/backend including all WU5 reconnect/forfeit/timeout regressions, Web export/size budget, Chromium `smoke:all` with real Godot auto-reconnect + forfeit, and hosted Microsoft Edge `smoke:all` with the same WU5 path.
 - WU5 implementation is PR-validated and ready for latest-head docs validation plus explicit merge approval. V2 remains 62.5% (5/8) until complete V2-6 acceptance.
+
+
+## Render production backend migration — 6899 workspace (2026-09-25)
+- Exact-main WU5 CI #592 passed Windows Native, Godot/domain/backend, Web export/size, Chromium `smoke:all`, hosted Microsoft Edge `smoke:all`, GitHub Pages deployment and public-Web reachability on `0570d53e08950350da6e50d75473aa334fda347c`.
+- The only failure was production backend readiness because the legacy `https://custom-fighter-ai-vfx.onrender.com` endpoint returned HTTP 503 for all 18 attempts.
+- The connected Render workspace `6899's workspace` did not contain that legacy service, confirming it belonged to another/unavailable Render account.
+- Created a replacement **free** Singapore Render Web Service: `custom-fighter-ai-vfx-6899`, URL `https://custom-fighter-ai-vfx-6899.onrender.com`, repo `ws951125/custom-fighter`, branch `main`, auto-deploy enabled, start command `npm run backend:start`.
+- Initial deploy `dep-dar1ue7f3r2c73aro84g` of exact main `0570d53e08950350da6e50d75473aa334fda347c` reached `live`.
+- The replacement service is intentionally deployed without a Gemini API key. Health reports the explicit `provider=disabled` safe-disabled state whenever Gemini is not fully configured, while preserving free-tier policy metadata. Network PvP/backend functionality remains available; AI VFX generation remains disabled until an operator supplies an already-verified free-tier Gemini key.
+- Production HTTP/WSS defaults, CI readiness and production E2E defaults are migrated to the new 6899 endpoint in `fix/render-production-backend-6899`.
