@@ -36,11 +36,13 @@ export function imageProviderReadiness() {
   };
   const providers = { gemini };
   const selected = providers[providerId];
+  const configured = Boolean(selected?.configured);
+  const readinessProvider = providerId === 'gemini' && !configured ? 'disabled' : providerId;
   return {
-    configured: Boolean(selected?.configured),
-    provider: providerId,
-    model: selected?.model || '',
-    billing_mode: selected?.billing_mode || '',
+    configured,
+    provider: readinessProvider,
+    model: configured ? (selected?.model || '') : '',
+    billing_mode: configured ? (selected?.billing_mode || '') : '',
     supported_providers: [...SUPPORTED_IMAGE_PROVIDERS],
     providers
   };

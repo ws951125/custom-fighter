@@ -25,10 +25,13 @@ try {
   assert.equal(healthBody.ok, true);
   assert.equal(healthBody.service, 'custom-fighter-ai-vfx');
   assert.equal(typeof healthBody.revision, 'string');
-  assert.equal(typeof healthBody.ai?.configured, 'boolean');
+  assert.equal(healthBody.ai?.configured, false);
   assert.deepEqual(healthBody.ai?.supported_providers, ['gemini']);
-  assert.equal(healthBody.ai?.provider, 'gemini');
-  assert.equal(healthBody.ai?.billing_mode, 'free-tier-only');
+  assert.equal(healthBody.ai?.provider, 'disabled');
+  assert.equal(healthBody.ai?.model, '');
+  assert.equal(healthBody.ai?.billing_mode, '');
+  assert.equal(healthBody.ai?.providers?.gemini?.billing_mode, 'free-tier-only');
+  assert.equal(typeof healthBody.ai?.providers?.gemini?.configured, 'boolean');
   const blocked = await fetch(`${base}/v1/vfx/generate`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'Origin': 'https://evil.example' },
