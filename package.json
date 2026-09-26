@@ -37,6 +37,7 @@
     "smoke:creator-ai-skill-proposal": "node tests/creator_ai_skill_proposal_web_smoke.mjs",
     "smoke:creator-package": "node tests/creator_package_web_smoke.mjs",
     "smoke:creator-package-vfx": "node tests/creator_package_vfx_web_smoke.mjs",
+    "smoke:creator-gallery": "node tests/creator_gallery_web_smoke.mjs",
     "smoke:mobile": "node tests/mobile_controls_web_smoke.mjs",
     "smoke:all": "node tests/smoke_all_runner.mjs",
     "smoke:creator-remote-reference-ai-vfx": "node tests/creator_remote_reference_ai_vfx_web_smoke.mjs",
