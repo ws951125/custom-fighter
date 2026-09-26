@@ -188,7 +188,7 @@ No public production persistence claim in WU2. No HTTP route or Creator Gallery 
 
 ### Work Unit 3 — HTTP catalog contract
 
-Status: **implementation complete and PR-validated on head `90ab7ea354fb2ce488f7320414ab8ac82c689d90`; PR #208 CI #607 (`36225607371`) passed all required PR gates; awaiting latest-head docs-sync validation and explicit merge approval**.
+Status: **complete and merged by PR #208 to main `27874d5a830a2a529bd03fe710875e75095882c0`; latest docs-sync head passed CI #609 and exact-main Render deploy `dep-darnbru7bikc739g9ie0` is live. GitHub main-push workflow evidence remains unavailable through the current connector.**
 
 Implemented bounded Render API routes:
 
@@ -214,9 +214,30 @@ No durable production repository or production publisher-identity provider is cl
 
 ### Work Unit 4 — durable free-tier persistence + publisher identity
 
-Connect the provider-neutral adapters to a durable no-cost production catalog/object store and publisher-identity mechanism.
+Status: **adapter/schema checkpoint implemented on `feat/v2-7-wu4-supabase-adapters`; PR validation pending; external resource activation not authorized or performed**.
 
-This work unit may require explicit external account/secret authorization. No paid service is permitted.
+Provider decision checkpoint:
+- Supabase is the no-cost candidate because one dedicated project can provide Auth plus durable Postgres/Data API under the connected Free organization.
+- Existing connected Supabase projects are already attributable to ERP and Builder X and must not be reused for Custom Fighter.
+- New Custom Fighter resources must remain free-tier; no project creation or cost-bearing action is authorized by this checkpoint.
+- Current Supabase key guidance is followed: publishable key for low-privilege Auth verification, secret key only on the Render backend; no browser exposure of the secret key.
+- New Data API table exposure is not assumed. The schema contract explicitly grants only the server role needed for the backend and revokes anon/authenticated table/function access.
+
+Implemented repository-side groundwork:
+- `backend/sharing/supabase_provider.mjs` provides environment parsing, Auth-backed trusted publisher identity and provider-neutral durable repository methods using server-only secret-key Data API calls.
+- `backend/sharing/supabase_schema.sql` is a non-applied schema contract with RLS defense in depth, service-role-only grants, immutable revision rows, atomic optimistic revision commit and bounded metadata-only browse/search.
+- `backend/server.mjs` can consume the adapters only when all Custom Fighter Supabase environment values are complete. Missing/partial configuration remains disabled or invalid without leaking secrets.
+- Production Publish is **still intentionally fail-closed** because the authoritative Self-contained Package validator exists in Godot/GDScript but does not yet have a server-side Node parity implementation.
+- Deterministic provider/schema security regressions are wired into the existing backend CI gate.
+
+Remaining WU4 acceptance:
+1. complete server-side Self-contained Package validator parity without weakening existing GDScript validation;
+2. receive explicit authorization before creating/mutating a dedicated no-cost Supabase project;
+3. apply the reviewed schema, run Supabase security/performance advisors and verify Auth/Data API behavior;
+4. configure Render server-only URL/publishable/secret values without Git/browser exposure;
+5. prove durable publish, restart-surviving browse/detail/download and immutable revision behavior in production.
+
+No paid service is permitted.
 
 ### Work Unit 5 — Creator Gallery UX
 
