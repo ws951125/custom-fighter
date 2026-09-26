@@ -115,6 +115,25 @@ begin
     return jsonb_build_object('accepted', false, 'code', 'REVISION_RECORD_INVALID');
   end;
 
+  -- Bound aggregate stored package bytes to 128 MiB on Free-tier deployments.
+  -- A transaction-scoped global lock makes the quota check safe for concurrent publishers.
+  perform pg_advisory_xact_lock(27874, 4);
+  if v_byte_size is null
+     or v_byte_size <> octet_length(p_package_json)
+     or v_content_sha256 is distinct from
+       encode(sha256(convert_to(p_package_json, 'UTF8')), 'hex') then
+    return jsonb_build_object('accepted', false, 'code', 'REVISION_RECORD_INVALID');
+  end if;
+  if p_package_json::jsonb->>'package_id' is distinct from v_package_id
+     or (p_package_json::jsonb->>'package_version')::integer is distinct from v_package_version
+     or (p_package_json::jsonb->>'schema_version')::integer is distinct from v_package_schema_version then
+    return jsonb_build_object('accepted', false, 'code', 'REVISION_RECORD_INVALID');
+  end if;
+  if (select coalesce(sum(byte_size), 0)
+      from public.custom_fighter_sharing_revisions) + v_byte_size > 134217728 then
+    return jsonb_build_object('accepted', false, 'code', 'STORAGE_QUOTA_REACHED');
+  end if;
+
   perform pg_advisory_xact_lock(hashtextextended(v_publication_id, 0));
 
   select *
@@ -281,12 +300,12 @@ begin
     where (coalesce(array_length(p_tags, 1), 0) = 0 or p_tags <@ rev.tags)
       and (
         v_query = ''
-        or lower(
+        or position(v_query in lower(
           rev.package_id || E'\n' ||
           rev.title || E'\n' ||
           rev.description || E'\n' ||
           array_to_string(rev.tags, E'\n')
-        ) like '%' || v_query || '%'
+        )) > 0
       )
     order by rev.updated_at desc, rev.publication_id asc
   ),
