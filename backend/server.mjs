@@ -8,34 +8,55 @@ import { createAuthoritativeMatch } from './pvp/authoritative_match.mjs';
 import { attachPvpWebSocketTransport } from './pvp/websocket_transport.mjs';
 import { PVP_PROTOCOL_VERSION } from './pvp/protocol.mjs';
 import { resolveTrustedCompetitivePackage } from './pvp/trusted_package_catalog.mjs';
+import { createPublicationService } from './sharing/publication_service.mjs';
+import { createCatalogService } from './sharing/catalog_service.mjs';
+import {
+  createSharingHttpApi,
+  DEFAULT_MAX_PUBLICATION_REQUEST_BYTES,
+  SHARING_API_PREFIX
+} from './sharing/http_api.mjs';
 
 const PORT = Number(process.env.PORT || 8787);
 const DEFAULT_ALLOWED_ORIGIN = process.env.CUSTOM_FIGHTER_ALLOWED_ORIGIN || 'https://ws951125.github.io';
-const MAX_BODY_BYTES = 8 * 1024 * 1024;
+const MAX_VFX_BODY_BYTES = 8 * 1024 * 1024;
 const PVP_WS_PATH = '/v1/pvp/ws';
 
 function deployedRevision() {
   return String(process.env.RENDER_GIT_COMMIT || process.env.CUSTOM_FIGHTER_REVISION || '').trim();
 }
 
-function sendJson(res, status, body, origin = '', allowedOrigin = DEFAULT_ALLOWED_ORIGIN) {
-  res.statusCode = status;
-  res.setHeader('Content-Type', 'application/json; charset=utf-8');
+function applyCommonResponseHeaders(res, origin = '', allowedOrigin = DEFAULT_ALLOWED_ORIGIN) {
   res.setHeader('Cache-Control', 'no-store');
   res.setHeader('X-Content-Type-Options', 'nosniff');
   if (origin && origin === allowedOrigin) {
     res.setHeader('Access-Control-Allow-Origin', origin);
     res.setHeader('Vary', 'Origin');
   }
+}
+
+function sendJson(res, status, body, origin = '', allowedOrigin = DEFAULT_ALLOWED_ORIGIN) {
+  res.statusCode = status;
+  res.setHeader('Content-Type', 'application/json; charset=utf-8');
+  applyCommonResponseHeaders(res, origin, allowedOrigin);
   res.end(JSON.stringify(body));
 }
 
-async function readJson(req) {
+function sendRawJson(res, status, json, headers = {}, origin = '', allowedOrigin = DEFAULT_ALLOWED_ORIGIN) {
+  res.statusCode = status;
+  res.setHeader('Content-Type', 'application/json; charset=utf-8');
+  applyCommonResponseHeaders(res, origin, allowedOrigin);
+  for (const [name, value] of Object.entries(headers)) {
+    res.setHeader(name, value);
+  }
+  res.end(json);
+}
+
+async function readJson(req, maxBytes = MAX_VFX_BODY_BYTES) {
   let size = 0;
   const chunks = [];
   for await (const chunk of req) {
     size += chunk.length;
-    if (size > MAX_BODY_BYTES) throw new Error('request body exceeds 8 MB limit');
+    if (size > maxBytes) throw new Error('request body exceeds 8 MB limit');
     chunks.push(chunk);
   }
   const text = Buffer.concat(chunks).toString('utf8');
@@ -49,10 +70,28 @@ export function createServer({
   pvpTickIntervalMs = 1000 / 60,
   pvpReconnectWindowMs = 10_000,
   pvpHeartbeatTimeoutMs = 15_000,
-  pvpHeartbeatCheckMs = 1_000
+  pvpHeartbeatCheckMs = 1_000,
+  sharingRepository = null,
+  sharingRepositoryDurable = false,
+  sharingValidatePackage = null,
+  sharingResolvePublisher = null,
+  sharingMaxPublicationRequestBytes = DEFAULT_MAX_PUBLICATION_REQUEST_BYTES
 } = {}) {
   const authorityStore = createServerPackageAuthorityStore({ packageResolver:pvpPackageResolver });
   const pvpSessionService = createPvpSessionService({ admitLoadout:authorityStore.admitLoadout });
+
+  const publicationService = createPublicationService({
+    repository: sharingRepository,
+    validatePackage: sharingValidatePackage
+  });
+  const catalogService = createCatalogService({ repository: sharingRepository });
+  const sharingApi = createSharingHttpApi({
+    publicationService,
+    catalogService,
+    resolvePublisher: sharingResolvePublisher,
+    repositoryDurable: sharingRepositoryDurable,
+    maxPublicationRequestBytes: sharingMaxPublicationRequestBytes
+  });
 
   const server = http.createServer(async (req, res) => {
     const origin = String(req.headers.origin || '');
@@ -65,7 +104,7 @@ export function createServer({
         res.statusCode = 204;
         res.setHeader('Access-Control-Allow-Origin', origin);
         res.setHeader('Access-Control-Allow-Methods', 'POST, GET, OPTIONS');
-        res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+        res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
         res.setHeader('Vary', 'Origin');
         res.end();
       } else {
@@ -88,6 +127,15 @@ export function createServer({
             authority: 'server_authoritative',
             reconnect_window_ms: pvpReconnectWindowMs,
             heartbeat_timeout_ms: pvpHeartbeatTimeoutMs
+          },
+          sharing: {
+            api_version: 1,
+            publications_path: SHARING_API_PREFIX,
+            repository_configured: Boolean(sharingRepository),
+            durable_repository: sharingRepositoryDurable === true,
+            publisher_auth_configured: typeof sharingResolvePublisher === 'function',
+            package_validator_configured: typeof sharingValidatePackage === 'function',
+            max_publication_request_bytes: sharingMaxPublicationRequestBytes
           }
         },
         origin,
@@ -95,6 +143,24 @@ export function createServer({
       );
       return;
     }
+
+    const sharingResult = await sharingApi.handle(req);
+    if (sharingResult.handled) {
+      if (typeof sharingResult.raw_json === 'string') {
+        sendRawJson(
+          res,
+          sharingResult.status,
+          sharingResult.raw_json,
+          sharingResult.headers || {},
+          origin,
+          allowedOrigin
+        );
+      } else {
+        sendJson(res, sharingResult.status, sharingResult.body, origin, allowedOrigin);
+      }
+      return;
+    }
+
     if (req.method !== 'POST' || req.url !== '/v1/vfx/generate') {
       sendJson(res, 404, { ok: false, error: 'not found' }, origin, allowedOrigin);
       return;
