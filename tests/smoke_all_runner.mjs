@@ -28,6 +28,7 @@ const smokeScripts = [
   'smoke:creator-ai-skill-proposal',
   'smoke:creator-package',
   'smoke:creator-package-vfx',
+  'smoke:creator-gallery',
   'smoke:mobile',
 ];
 
