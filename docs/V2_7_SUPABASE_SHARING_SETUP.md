@@ -67,3 +67,9 @@ Publish remains unavailable when any required boundary is missing:
 - full-package validator.
 
 Read routes also fail closed when the repository is unavailable.
+
+## New API key and Free-tier budget guard
+
+Use the current `sb_secret_...` server key **only** in the `apikey` header for repository RPCs. It is not a JWT and must not be sent as `Authorization: Bearer`. Supabase Auth user access tokens still use the regular Bearer header with the `sb_publishable_...` key in `apikey`.
+
+The SQL transaction checks package UTF-8 bytes and SHA-256 against the server-created manifest and rejects accepted revision writes once aggregate stored package bytes would exceed **128 MiB**. The API returns `STORAGE_QUOTA_REACHED` (507) rather than enabling any paid resource. This is a conservative application quota, not a guarantee about other database/index overhead or public download egress. Monitor actual free-plan usage separately. The reference SQL remains unapplied pending dedicated-project authorization.
