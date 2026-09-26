@@ -576,3 +576,14 @@
 - **Prevention Rule:** For browser-originated WebSocket closure, use 1000 or an application code in 3000–4999. Do not assume every RFC-defined protocol close code is legal through the browser JavaScript API.
 - **Validation:** PR #202 product head `fe186699a3f0da60312d94811974b0b5ec5b3834` passed replacement CI #590 (`36024400048`). Windows Native, Godot/domain/backend, Web export/size, Chromium `smoke:all` and hosted Microsoft Edge `smoke:all` all passed, including the real Godot Web disconnect → automatic reconnect → forfeit path.
 - **Status:** Verified on PR #202 CI #590
+
+## L-052 — Supabase new secret API keys must not be sent as Bearer JWTs
+
+- **Date:** 2026-09-26
+- **Area:** V2-7 WU4 / Supabase sharing repository / external-provider security.
+- **Symptom:** PR #210's repository adapter included both `apikey: sb_secret_...` and `Authorization: Bearer sb_secret_...`; the current Supabase API-key contract rejects a new secret key when it is parsed as a JWT. Found in review before any production provisioning.
+- **Root Cause:** The older JWT-based `service_role` header pattern was carried over to the newer independently rotatable `sb_secret_` key model.
+- **Fix:** Require current-format `sb_secret_` and `sb_publishable_` keys, restrict the configured URL to HTTPS Supabase project hosts, send server repository secret only via `apikey`, and keep `Authorization: Bearer` exclusively for a real Supabase Auth user access token on `/auth/v1/user`. Extend deterministic adapter tests.
+- **Prevention Rule:** Verify the current API-key model from official provider documentation before writing secret-header adapters. Do not treat an API key as a JWT. Keep server keys out of browser responses, code fixtures and version control.
+- **Validation:** PR #210 latest-head GitHub CI is pending. No external Supabase project was modified.
+- **Status:** Pending
