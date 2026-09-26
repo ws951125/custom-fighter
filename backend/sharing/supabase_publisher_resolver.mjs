@@ -10,11 +10,12 @@ function normalizeProjectUrl(value) {
     return '';
   }
   if (url.protocol !== 'https:' || url.username || url.password || url.search || url.hash) return '';
+  if (url.pathname !== '/' || !/^[a-z0-9-]+\.supabase\.co$/i.test(url.hostname)) return '';
   return url.origin;
 }
 
 function validPublishableKey(value) {
-  return typeof value === 'string' && value.trim().length >= 16;
+  return typeof value === 'string' && /^sb_publishable_[A-Za-z0-9_-]{16,}$/.test(value.trim());
 }
 
 function bearerToken(req) {
