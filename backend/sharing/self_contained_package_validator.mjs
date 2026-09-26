@@ -197,8 +197,12 @@ function validateSkill(skill) {
   if (!SUPPORTED_SKILL_TYPES.has(skill.type)) return reject('SKILL_TYPE_INVALID');
   if (!integer(skill.damage) || skill.damage < 0) return reject('SKILL_DAMAGE_INVALID');
   if (!integer(skill.mp_cost) || skill.mp_cost < 0) return reject('SKILL_MP_COST_INVALID');
+  for (const key of ['cooldown', 'startup', 'active', 'recovery', 'speed', 'range', 'hitstun', 'knockback', 'hitbox_half_width', 'hitbox_half_depth', 'formation_spacing', 'formation_interval', 'formation_offset', 'buff_duration', 'move_speed_multiplier', 'basic_attack_damage_multiplier', 'trap_duration', 'aura_duration']) {
+    if (Object.hasOwn(skill, key) && !finiteNumber(skill[key])) return reject('SKILL_NUMERIC_INVALID');
+  }
+  if (Object.hasOwn(skill, 'formation_count') && !integer(skill.formation_count)) return reject('SKILL_NUMERIC_INVALID');
   for (const key of ['cooldown', 'startup', 'active', 'recovery', 'hitstun', 'knockback']) {
-    if (Object.hasOwn(skill, key) && (!finiteNumber(skill[key]) || skill[key] < 0)) return reject('SKILL_NUMERIC_INVALID');
+    if (skill[key] < 0) return reject('SKILL_NUMERIC_INVALID');
   }
   if (!safeToken(skill.visual) || !safeToken(skill.impact_visual)) return reject('SKILL_VISUAL_INVALID');
 
