@@ -16,6 +16,7 @@ import {
   SHARING_API_PREFIX
 } from './sharing/http_api.mjs';
 import { createSupabaseSharingIntegration } from './sharing/supabase_integration.mjs';
+import { validateSelfContainedPackage } from './sharing/self_contained_package_validator.mjs';
 
 const PORT = Number(process.env.PORT || 8787);
 const DEFAULT_ALLOWED_ORIGIN = process.env.CUSTOM_FIGHTER_ALLOWED_ORIGIN || 'https://ws951125.github.io';
@@ -75,7 +76,7 @@ export function createServer({
   pvpHeartbeatCheckMs = 1_000,
   sharingRepository = DEFAULT_SHARING_INTEGRATION.repository,
   sharingRepositoryDurable = DEFAULT_SHARING_INTEGRATION.repositoryDurable,
-  sharingValidatePackage = null,
+  sharingValidatePackage = validateSelfContainedPackage,
   sharingResolvePublisher = DEFAULT_SHARING_INTEGRATION.resolvePublisher,
   sharingProvider = DEFAULT_SHARING_INTEGRATION.provider,
   sharingProviderConfigured = DEFAULT_SHARING_INTEGRATION.configured,
