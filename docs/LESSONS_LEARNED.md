@@ -597,4 +597,5 @@
 - **Fix:** Use `var safe_cursor: bool = str(next_cursor).length() <= 32` and iterate the explicit string. No schema/API change and no local test path.
 - **Prevention Rule:** At JSON/HTTP/JS Variant boundaries, explicitly declare the intended GDScript type and normalize raw values rather than depending on `:=` inference.
 - **Validation:** Replacement latest-head GitHub CI pending; initial failure evidence is CI #629 (`36232444457`).
-- **Status:** Pending
+- **Additional validation:** Follow-on PR #212 CI #634 completed failure at new Gallery browser smoke selection-state wait, after successful Godot import and Windows Native. The JavaScriptBridge test-only selection callback accepted only float input, potentially ignoring integer-index 0. Fix accepts exact nonnegative int/float indices, and adds on-failure browser telemetry. Replacement latest-head CI is pending. This does not change the package safety boundary.
+- **Status:** Godot parser fix verified by CI #634; follow-on Gallery browser fix pending online validation.
