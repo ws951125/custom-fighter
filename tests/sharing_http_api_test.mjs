@@ -355,4 +355,18 @@ try {
   await close(boundedServer);
 }
 
+const quotaRepository = {
+  getLatest: async () => null,
+  commitRevision: async () => ({ accepted: false, code: 'STORAGE_QUOTA_REACHED' })
+};
+const { server: quotaServer } = configuredServer({ repository: quotaRepository });
+const quotaBase = await listen(quotaServer);
+try {
+  const quotaResponse = await publish(quotaBase, packageFixture(), metadataFor('Gallery Hero'));
+  assert.equal(quotaResponse.status, 507);
+  assert.equal((await quotaResponse.json()).code, 'STORAGE_QUOTA_REACHED');
+} finally {
+  await close(quotaServer);
+}
+
 console.log('SHARING_HTTP_API_TESTS_PASSED');

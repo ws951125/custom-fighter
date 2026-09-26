@@ -208,15 +208,27 @@ Contract details:
 - exact revision download returns the immutable canonical package bytes stored for that revision;
 - read/write failures have stable 400/401/404/405/409/413/503 error-code contracts;
 - `tests/sharing_http_api_test.mjs` is wired into the existing backend CI gate.
-- PR #208 implementation head `90ab7ea354fb2ce488f7320414ab8ac82c689d90` passed CI #607 (`36225607371`) across Windows Native, Godot/domain/backend, Web export/size budget, Chromium and hosted Microsoft Edge.
+- PR #208 implementation head `90ab7ea354fb2ce488f7320414ab8ac82c689d90` passed CI #607 (`36225607371`), latest docs-sync head `668d13ad7b04ff2678c4bc7484c8f99a3a8ab5f6` passed CI #609 (`36226449934`), and PR #208 was squash-merged as `27874d5a830a2a529bd03fe710875e75095882c0`.
+- Render deploy `dep-darnbru7bikc739g9ie0` reached `live` on that exact merge SHA. Main-push GitHub Actions evidence remains unobservable through the current connector.
 
-No durable production repository or production publisher-identity provider is claimed in WU3; those remain Work Unit 4.
+No durable production repository or production publisher-identity provider is claimed in WU3; those are implemented/configured in Work Unit 4.
 
 ### Work Unit 4 — durable free-tier persistence + publisher identity
 
-Connect the provider-neutral adapters to a durable no-cost production catalog/object store and publisher-identity mechanism.
+Status: **provider adapters, schema contract and server package validator implemented on `feat/v2-7-wu4-supabase-persistence-auth`; GitHub-hosted PR validation pending; production provider provisioning requires explicit authorization**.
 
-This work unit may require explicit external account/secret authorization. No paid service is permitted.
+Current implementation:
+
+- `backend/sharing/supabase_publication_repository.mjs`: server-only durable repository adapter over bounded Supabase RPCs;
+- `backend/sharing/supabase_publisher_resolver.mjs`: authenticated publisher identity from Supabase Auth `/auth/v1/user` only; browser metadata is not trusted;
+- `backend/sharing/supabase_integration.mjs`: all-or-nothing environment configuration; incomplete configuration remains fail-closed;
+- `backend/sharing/self_contained_package_validator.mjs`: independent Node validation of the current package v1/v2 safety contract before persistence;
+- `backend/sharing/supabase_schema.sql`: reviewed RLS-enabled append-only publication/revision schema + atomic RPC contract, not automatically applied;
+- WU4 security review hardened the new-key headers (`sb_secret_` only via `apikey`), SQL SHA-256/byte parity, 128 MiB aggregate package quota under transactional locking, literal metadata query semantics and HTTP 507 quota contract;
+- `tests/supabase_sharing_adapter_test.mjs` and `tests/self_contained_package_validator_test.mjs`: deterministic backend coverage wired into `test:backend`;
+- `docs/V2_7_SUPABASE_SHARING_SETUP.md`: no-cost/server-secret deployment contract.
+
+Production activation still requires an explicitly approved dedicated no-cost Supabase project and server-side credentials. Existing unrelated projects are not reused or modified automatically. No paid service is permitted.
 
 ### Work Unit 5 — Creator Gallery UX
 

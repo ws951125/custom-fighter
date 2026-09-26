@@ -15,11 +15,14 @@ import {
   DEFAULT_MAX_PUBLICATION_REQUEST_BYTES,
   SHARING_API_PREFIX
 } from './sharing/http_api.mjs';
+import { createSupabaseSharingIntegration } from './sharing/supabase_integration.mjs';
+import { validateSelfContainedPackage } from './sharing/self_contained_package_validator.mjs';
 
 const PORT = Number(process.env.PORT || 8787);
 const DEFAULT_ALLOWED_ORIGIN = process.env.CUSTOM_FIGHTER_ALLOWED_ORIGIN || 'https://ws951125.github.io';
 const MAX_VFX_BODY_BYTES = 8 * 1024 * 1024;
 const PVP_WS_PATH = '/v1/pvp/ws';
+const DEFAULT_SHARING_INTEGRATION = createSupabaseSharingIntegration();
 
 function deployedRevision() {
   return String(process.env.RENDER_GIT_COMMIT || process.env.CUSTOM_FIGHTER_REVISION || '').trim();
@@ -71,10 +74,13 @@ export function createServer({
   pvpReconnectWindowMs = 10_000,
   pvpHeartbeatTimeoutMs = 15_000,
   pvpHeartbeatCheckMs = 1_000,
-  sharingRepository = null,
-  sharingRepositoryDurable = false,
-  sharingValidatePackage = null,
-  sharingResolvePublisher = null,
+  sharingRepository = DEFAULT_SHARING_INTEGRATION.repository,
+  sharingRepositoryDurable = DEFAULT_SHARING_INTEGRATION.repositoryDurable,
+  sharingValidatePackage = validateSelfContainedPackage,
+  sharingResolvePublisher = DEFAULT_SHARING_INTEGRATION.resolvePublisher,
+  sharingProvider = DEFAULT_SHARING_INTEGRATION.provider,
+  sharingProviderConfigured = DEFAULT_SHARING_INTEGRATION.configured,
+  sharingProviderReason = DEFAULT_SHARING_INTEGRATION.reason,
   sharingMaxPublicationRequestBytes = DEFAULT_MAX_PUBLICATION_REQUEST_BYTES
 } = {}) {
   const authorityStore = createServerPackageAuthorityStore({ packageResolver:pvpPackageResolver });
@@ -131,6 +137,9 @@ export function createServer({
           sharing: {
             api_version: 1,
             publications_path: SHARING_API_PREFIX,
+            persistence_provider: String(sharingProvider || 'none'),
+            provider_configured: sharingProviderConfigured === true || Boolean(sharingRepository),
+            provider_reason: String(sharingProviderReason || ''),
             repository_configured: Boolean(sharingRepository),
             durable_repository: sharingRepositoryDurable === true,
             publisher_auth_configured: typeof sharingResolvePublisher === 'function',
