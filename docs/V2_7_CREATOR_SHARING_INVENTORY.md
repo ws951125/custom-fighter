@@ -240,7 +240,7 @@ Delivered in this slice:
 - no automatic competitive/PvP trust, no catalogue-driven draft mutation; unavailable/invalid/tampered responses fail closed;
 - Publish is visibly disabled until separately authorized dedicated free provider plus trusted user sign-in;
 - hosted Chromium/Edge regression covers 503 unavailable, browse/detail, exact revision and tampered download rejection;
-- branch-side WU5 hardening binds revision manifest's package/publisher identity to the selected publication, and binds SHA-verified downloaded package ID/version/schema back to the immutable manifest before Creator draft mutation. Cross-package and wrong-version mock responses must fail closed; new exact-head CI verification is required.
+- branch-side WU5 hardening binds revision manifest's package/publisher identity to the selected publication, and binds SHA-verified downloaded package ID/version/schema back to the immutable manifest before Creator draft mutation. Cross-package and wrong-version mock responses fail closed; implementation SHA `ca54a980f5b3a49af7904dbda95fce89dc556749` passed CI #646 (`36256148248`) on attempt 2, with Chromium/Edge `manifestEnvelopeBound=true`, `paginationBounded=true` and 29 stages. Unchanged Network PvP hosted Edge first-attempt timeout cleared on same-SHA failed-job retry.
 
 Remaining: approved durable production provider/schema/keys, real publisher authentication and publish/update UX, separately authorized standalone no-charge preview site and manual UX acceptance, and WU6 cross-user production contract. GitHub Pages production remains on PR #211, not PR #212.
 

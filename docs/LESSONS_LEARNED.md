@@ -608,8 +608,8 @@
 - **Root Cause:** Diagnostic convenience callback modeled the result after consent instead of the user action before consent, silently allowing a second unconfirmed import path.
 - **Fix:** Route the test callback through `_gallery_confirm_import()`, expose read-only dialog visibility, and test opening and Escape cancellation with zero revision/package requests followed by real UI Enter confirmation for valid and tampered packages. Capture a sixth screenshot for UI review.
 - **Prevention Rule:** Never give browser diagnostic helpers a more privileged action path than the actual UI, and explicitly test no mutation or network download before acknowledgement and after cancellation.
-- **Validation:** Pending latest-head GitHub-hosted Chromium/Edge CI; older #642 does not validate this fix.
-- **Status:** Pending CI; leave PR #212 unmerged until separately accepted/approved.
+- **Validation:** PR #212 CI #642 (`36240010652`) completed SUCCESS in Chromium and Edge, confirming dialog cancellation, no download before consent and accepted import.
+- **Status:** Verified in hosted browsers; PR #212 remains unmerged pending UX acceptance and explicit approval.
 
 ## L-055 — Bound client-side catalogue accumulation and reject non-advancing cursors
 
@@ -619,10 +619,10 @@
 - **Root Cause:** Per-response validation was not accompanied by an overall displayed-record ceiling or explicit pagination progress check.
 - **Fix:** Limit requested pages to 20 entries, cap in-memory and visible results at 100, reject repeated/non-advancing continuation before appending and disable Next on the display ceiling. Add hosted-browser oversized, stalled, repeat-cursor and five-page regressions without altering package trust.
 - **Prevention Rule:** Check aggregate resource limits and forward progress, not only per-request schema/size, at every untrusted pagination boundary.
-- **Validation:** Pending exact-head GitHub-hosted Chromium and Edge CI; previous CI #643 predates the pagination correction.
-- **Status:** Pending CI, #212 not merged.
+- **Validation:** PR #212 CI #644 (`36250217352`) completed SUCCESS on attempt 2. Chromium and Edge reported `paginationBounded=true`, 29 smoke stages. Attempt 1 Edge alone timed out in unchanged Network PvP; same-SHA failed-job retry passed without product or test changes.
+- **Status:** Verified in hosted browsers; #212 unmerged.
 
-## L-054 — Digest parity alone does not bind a Gallery revision to its selected package envelope
+## L-056 — Digest parity alone does not bind a Gallery revision to its selected package envelope
 
 - **Date:** 2026-09-27
 - **Area:** V2-7 WU5 / Creator Gallery / immutable package import.
@@ -630,5 +630,5 @@
 - **Root Cause:** Digest parity proves the bytes match the supplied hash; it does not prove that supplied metadata describes the item selected by the user.
 - **Fix:** Reject revision metadata with a different package/publisher identity; after SHA/size/UTF-8 checks, parse the package envelope and require exact ID/version/schema parity before invoking existing Self-contained Package validation/import.
 - **Prevention Rule:** Validate both the content digest and its intended selected-resource identity at each client/server data boundary. Mock distinct mismatch stages, asserting no network download where early rejection is possible and no draft mutation throughout.
-- **Validation:** Pending latest-head GitHub-hosted Chromium and Edge Gallery regression. No production Gallery/provider change.
-- **Status:** Pending exact-head CI.
+- **Validation:** PR #212 exact implementation SHA `ca54a980f5b3a49af7904dbda95fce89dc556749`, CI #646 (`36256148248`) completed SUCCESS on attempt 2. Chromium and Edge logged `manifestEnvelopeBound=true`, `paginationBounded=true` and `SMOKE_SUITE_PASSED count=29`. First Edge failure was only in unchanged Network PvP ready wait, cleared on same-SHA failed-job retry; no product/test/timeout changes.
+- **Status:** Verified in hosted browsers. Production Gallery/provider and manual UX remain unverified.
