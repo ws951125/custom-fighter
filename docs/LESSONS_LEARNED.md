@@ -587,3 +587,14 @@
 - **Prevention Rule:** Verify the current API-key model from official provider documentation before writing secret-header adapters. Do not treat an API key as a JWT. Keep server keys out of browser responses, code fixtures and version control.
 - **Validation:** PR #210 latest-head GitHub CI is pending. No external Supabase project was modified.
 - **Status:** Pending
+
+## L-053 — Explicitly type GDScript values derived from Variant API records
+
+- **Date:** 2026-09-26
+- **Area:** V2-7 WU5 / Creator Gallery / Godot import parser.
+- **Symptom:** PR #212 initial CI #629 failed during Godot headless import at `gallery_creator_studio.gd:331`: could not infer `safe_cursor` type from `Variant` catalogue response `next_cursor.length()`.
+- **Root Cause:** A value narrowed by `is String` in a branch still did not produce an inferable static type for `var :=` from a dynamic Variant method call.
+- **Fix:** Use `var safe_cursor: bool = str(next_cursor).length() <= 32` and iterate the explicit string. No schema/API change and no local test path.
+- **Prevention Rule:** At JSON/HTTP/JS Variant boundaries, explicitly declare the intended GDScript type and normalize raw values rather than depending on `:=` inference.
+- **Validation:** Replacement latest-head GitHub CI pending; initial failure evidence is CI #629 (`36232444457`).
+- **Status:** Pending
