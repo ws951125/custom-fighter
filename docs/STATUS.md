@@ -31,6 +31,18 @@ V2 roadmap is defined in `docs/V2_ROADMAP.md` and captures previously discussed/
 
 V2-1 delivered visual event timeline authoring, startup/active/recovery timing, animation/VFX/audio events, hitbox/hurtbox timing and spatial editing, safe multi-event compositions, validation, and Creator → Training preview round trip. V2-2 extended the data-driven skill engine beyond the six V1 families and is accepted complete with bounded Beam/Trap/Aura/Teleport/Counter/Grab/Summon families plus safe declarative scripted compositions. V2-3 is accepted complete with safe animation/audio authoring, self-contained package transport, fresh-session restore, runtime Animation PNG rendering, and packaged WAV playback. V2-4 AI Opponents & Single-player Gameplay is accepted complete with deterministic active opponents, bounded difficulty profiles, validated selectable stages, and deployed win/loss/restart/return single-player acceptance. V2-5 Game Modes, Balance & Competitive Foundation is accepted complete with frozen competitive rules, power-budget enforcement, deterministic authority snapshots/fingerprints, local competitive authority runtime, and Chromium/hosted-Edge acceptance. V2-6 Network PvP is accepted complete with server-trusted custom-package admission, server-authoritative input/state/combat, reconnect/forfeit/latency handling, and exact-main two-client Production Edge acceptance. V2-7 Creator Sharing Ecosystem is now active.
 
+### V2-7 implementation checkpoints
+
+Work Unit 1 — **inventory + architecture freeze implemented; awaiting PR validation and explicit merge approval**:
+- Added `docs/V2_7_CREATOR_SHARING_INVENTORY.md` from the actual main package/Creator/backend state.
+- Current Creator sharing is confirmed to be manual-file-only: Self-contained Package schema v2 supports validated animation/audio/VFX assets and legacy schema-v1 import, while Creator Web export/import is bounded to 16 MiB.
+- The backend currently has no publish/catalog/search/download persistence path. Existing routes are health, VFX generation and PvP WebSocket only; repository search found no current Supabase/storage integration.
+- Frozen manifest v1 keeps Gallery metadata separate from runtime package authority and makes publication ID, revision, digest, byte size, publisher identity and timestamps server-owned.
+- Frozen update semantics use immutable server revisions, monotonic package versions and idempotent same-digest re-upload; same-version/different-content updates fail closed.
+- Gallery publication does not grant competitive/PvP trust. Downloaded packages must pass the existing Self-contained Package validator again before Creator state changes.
+- Frozen six-work-unit sequence: architecture → sharing domain service → HTTP catalog → durable free-tier persistence/auth → Creator Gallery UX → cross-user production acceptance.
+- V2 remains **75% (6/8)** until the whole V2-7 acceptance contract passes.
+
 ### V2-6 implementation checkpoints
 
 Work Unit 6 / phase completion — **merged and exact-main production accepted**:
@@ -683,7 +695,9 @@ AI VFX backend: `https://custom-fighter-ai-vfx-6899.onrender.com`
 
 ## Next implementation target
 
-V2-6 is accepted complete on exact main `26563016e986126dde4104f8093d6ec3cbaa9a01` after CI #598 attempt 2 passed the complete Production Edge smoke suite. Next implementation target: begin **V2-7 Creator Sharing Ecosystem** with a repository inventory of current package export/import, metadata/versioning, trust/validation boundaries, and the minimum safe publish → discover → download/import architecture.
+After V2-7 Work Unit 1 PR validation and explicit merge approval, implement **V2-7 Work Unit 2 — publication manifest + provider-neutral sharing domain service** with deterministic backend tests, server-derived digest/size, immutable revision rules and an in-memory test repository only. Production durable storage/auth remains a later adapter work unit and must stay no-cost.
+
+
 ## V2-6 WU2 — server-side package authority admission (2026-09-24)
 - Added a server-owned PvP package authority adapter for built-in and bounded custom loadouts.
 - Built-in competitive characters are admitted only when the client claim matches the server-frozen V2-5 fingerprint.
