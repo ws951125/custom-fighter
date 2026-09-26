@@ -117,7 +117,15 @@ try {
     document.documentElement.dataset.creatorGalleryItems === '1', null, { timeout: 15_000 });
   await page.evaluate(() => window.customFighterCreatorGallerySelect(0));
   await page.waitForFunction(id => document.documentElement.dataset.creatorGalleryStatus === 'ready' &&
-    document.documentElement.dataset.creatorGallerySelectedPublication === id, publicationId, { timeout: 15_000 });
+    document.documentElement.dataset.creatorGallerySelectedPublication === id, publicationId, { timeout: 15_000 })
+    .catch(async error => {
+      console.error('CREATOR_GALLERY_SELECTION_DIAGNOSTIC=' + JSON.stringify({
+        state: await page.evaluate(() => ({ ...document.documentElement.dataset })),
+        requests: count,
+        pageErrors
+      }));
+      throw error;
+    });
 
   // The user explicitly confirms the revision import; both digest and the existing
   // self-contained package/Creator validation path must pass.
