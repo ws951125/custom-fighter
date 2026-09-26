@@ -33,7 +33,7 @@ V2-1 delivered visual event timeline authoring, startup/active/recovery timing, 
 
 ### V2-7 implementation checkpoints
 
-Work Unit 1 — **inventory + architecture freeze implemented and PR-validated; awaiting explicit merge approval**:
+Work Unit 1 — **merged and exact-main production validated**:
 - Added `docs/V2_7_CREATOR_SHARING_INVENTORY.md` from the actual main package/Creator/backend state.
 - Current Creator sharing is confirmed to be manual-file-only: Self-contained Package schema v2 supports validated animation/audio/VFX assets and legacy schema-v1 import, while Creator Web export/import is bounded to 16 MiB.
 - The backend currently has no publish/catalog/search/download persistence path. Existing routes are health, VFX generation and PvP WebSocket only; repository search found no current Supabase/storage integration.
@@ -42,7 +42,18 @@ Work Unit 1 — **inventory + architecture freeze implemented and PR-validated; 
 - Gallery publication does not grant competitive/PvP trust. Downloaded packages must pass the existing Self-contained Package validator again before Creator state changes.
 - Frozen six-work-unit sequence: architecture → sharing domain service → HTTP catalog → durable free-tier persistence/auth → Creator Gallery UX → cross-user production acceptance.
 - V2 remains **75% (6/8)** until the whole V2-7 acceptance contract passes.
-- PR #206 head `b41636a1a750fa28e9c5ae067566914182362dc6` passed CI #601 (`36215932319`): Windows Native, Godot import/boot/domain/backend, Web export/size budget, Chromium `smoke:all`, and GitHub-hosted Microsoft Edge `smoke:all` all passed. The PR is docs/status only; production runtime is unchanged until merge.
+- PR #206 latest head `74ed26be6d39b117b31078252890a17100c85524` passed CI #602 (`36216830845`) across Windows Native, Godot import/boot/domain/backend, Web export/size budget, Chromium `smoke:all` and hosted Microsoft Edge `smoke:all`.
+- PR #206 was merged to `main` as `25c3c9f330e06d83375413fc715579d6b2571dae`. Exact-main CI #603 (`36218509698`) completed SUCCESS, including Pages deployment/public reachability, Production Backend Readiness and Windows Edge Production Full Smoke. Render deploy `dep-darkpa8ae00c73ac8vmg` is live on the exact merge SHA.
+
+Work Unit 2 — **publication manifest + provider-neutral sharing domain service implemented and PR-validated; awaiting explicit merge approval**:
+- Added `backend/sharing/publication_service.mjs` with manifest-v1 metadata validation, trusted publisher ID boundary, canonical package JSON, server-derived SHA-256/byte size, deterministic stable publication IDs, immutable revision semantics, package-version rollback/reuse rejection and exact-replay idempotency.
+- Added `backend/sharing/in_memory_publication_repository.mjs` as a deterministic provider-neutral test repository with optimistic revision checks, immutable revision history and defensive copies. This is test infrastructure only, not a production persistence claim.
+- The service requires an injected full-package validator and fails closed when the validator or repository is unavailable. Validator output must exactly match the package envelope identity/schema/version before persistence.
+- Added `tests/sharing_publication_service_test.mjs` covering metadata allow-list/limits, canonical digest stability, idempotent replay, metadata revisioning, same-version/different-content rejection, monotonic package versions, cross-publisher identity separation, unsafe package rejection through the validator adapter, validator failures/mismatch, repository absence/conflict and package-size limits.
+- Wired the sharing regression into `npm run test:backend`.
+- PR #207 implementation head `6e44a3e0ff4a3e74b163768038e8d17bb225195a` passed CI #604 (`36221329852`): Windows Native, Godot import/boot/domain, trusted-backend tests including the new sharing publication regressions, Web export/size budget, Chromium `smoke:all`, and GitHub-hosted Microsoft Edge `smoke:all` all passed.
+- No HTTP route, Creator Gallery UX, durable provider, auth provider, production catalog or automatic PvP trust is added in WU2.
+- V2 remains **75% (6/8)** until complete V2-7 acceptance.
 
 ### V2-6 implementation checkpoints
 
@@ -696,7 +707,7 @@ AI VFX backend: `https://custom-fighter-ai-vfx-6899.onrender.com`
 
 ## Next implementation target
 
-After V2-7 Work Unit 1 PR validation and explicit merge approval, implement **V2-7 Work Unit 2 — publication manifest + provider-neutral sharing domain service** with deterministic backend tests, server-derived digest/size, immutable revision rules and an in-memory test repository only. Production durable storage/auth remains a later adapter work unit and must stay no-cost.
+Complete V2-7 **Work Unit 2** through PR CI on the sharing domain branch. After WU2 is merged and exact-main validated, begin **Work Unit 3 — HTTP catalog contract** with bounded publish/browse/search/detail/download routes while keeping production writes fail-closed until durable free-tier persistence and publisher identity are configured.
 
 
 ## V2-6 WU2 — server-side package authority admission (2026-09-24)

@@ -236,4 +236,4 @@ The architecture previously allowed a future local/open-model AI provider such a
 
 ## Next implementation target
 
-V2-7 Work Unit 1 freezes the sharing architecture in `docs/V2_7_CREATOR_SHARING_INVENTORY.md`. After PR validation and explicit merge approval, implement **Work Unit 2 — publication manifest + provider-neutral sharing domain service**: bounded metadata validation, full-package validation adapter, server-derived SHA-256/byte size, immutable revision/idempotency rules, repository interface and deterministic backend tests. Production persistence/auth is deliberately deferred to the later no-cost adapter work unit.
+V2-7 Work Unit 2 is implemented and PR-validated on `feat/v2-7-wu2-sharing-domain`; PR #207 awaits explicit merge approval. After WU2 merge/exact-main acceptance, begin **Work Unit 3 — HTTP catalog contract**: bounded publish, browse/search, publication/revision detail and exact package download routes. Production writes must remain fail-closed until the later durable free-tier persistence + publisher-identity work unit is configured.

@@ -155,7 +155,7 @@ Production persistence must be durable and **no-cost/free-tier** under the proje
 
 ### Work Unit 1 — inventory + architecture freeze
 
-Status: **this work unit**.
+Status: **complete; merged by PR #206 and exact-main validated by CI #603**.
 
 - inventory existing package/Creator/backend boundaries;
 - freeze manifest v1;
@@ -167,7 +167,9 @@ Acceptance: repository docs describe an implementation-ready sharing contract wi
 
 ### Work Unit 2 — publication manifest + sharing domain service
 
-Implement provider-neutral backend domain logic for:
+Status: **implementation complete and PR-validated on head `6e44a3e0ff4a3e74b163768038e8d17bb225195a`; awaiting explicit merge approval**.
+
+Implemented provider-neutral backend domain logic for:
 
 - metadata validation;
 - full package validation adapter;
@@ -176,7 +178,13 @@ Implement provider-neutral backend domain logic for:
 - repository interface;
 - deterministic unit tests with an in-memory test repository only.
 
-No public production persistence claim in WU2.
+Current WU2 implementation:
+- `backend/sharing/publication_service.mjs`: manifest-v1 metadata validation, canonical package bytes, SHA-256/byte size derivation, stable publication identity, immutable revisions, optimistic revision expectations and fail-closed validator/repository boundaries.
+- `backend/sharing/in_memory_publication_repository.mjs`: deterministic in-memory repository used only for regression tests.
+- `tests/sharing_publication_service_test.mjs`: revision/idempotency/security/adapter regression coverage wired into `test:backend`.
+- PR #207 CI #604 (`36221329852`) passed the sharing backend regression plus Windows Native, Godot/domain, Web export/size budget, Chromium and hosted Microsoft Edge gates on implementation head `6e44a3e0ff4a3e74b163768038e8d17bb225195a`.
+
+No public production persistence claim in WU2. No HTTP route or Creator Gallery UI is introduced in this work unit.
 
 ### Work Unit 3 — HTTP catalog contract
 
