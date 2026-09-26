@@ -188,7 +188,7 @@ No public production persistence claim in WU2. No HTTP route or Creator Gallery 
 
 ### Work Unit 3 — HTTP catalog contract
 
-Status: **implemented on `feat/v2-7-wu3-http-catalog`; GitHub-hosted PR validation pending**.
+Status: **implementation complete and PR-validated on head `90ab7ea354fb2ce488f7320414ab8ac82c689d90`; PR #208 CI #607 (`36225607371`) passed all required PR gates; awaiting latest-head docs-sync validation and explicit merge approval**.
 
 Implemented bounded Render API routes:
 
@@ -208,6 +208,7 @@ Contract details:
 - exact revision download returns the immutable canonical package bytes stored for that revision;
 - read/write failures have stable 400/401/404/405/409/413/503 error-code contracts;
 - `tests/sharing_http_api_test.mjs` is wired into the existing backend CI gate.
+- PR #208 implementation head `90ab7ea354fb2ce488f7320414ab8ac82c689d90` passed CI #607 (`36225607371`) across Windows Native, Godot/domain/backend, Web export/size budget, Chromium and hosted Microsoft Edge.
 
 No durable production repository or production publisher-identity provider is claimed in WU3; those remain Work Unit 4.
 
