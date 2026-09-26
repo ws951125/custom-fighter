@@ -30,6 +30,11 @@ assert.equal(/grant\s+(?:select|insert|update|delete|all)[\s\S]*?\s+to\s+(?:anon
 
 assert.match(normalized, /security invoker/g);
 assert.match(normalized, /pg_advisory_xact_lock/);
+assert.match(normalized, /octet_length\(p_package_json\)/);
+assert.match(normalized, /sha256\(convert_to\(p_package_json, 'utf8'\)\)/);
+assert.match(normalized, /storage_quota_reached/);
+assert.match(normalized, /134217728/);
+assert.match(normalized, /position\(v_query in lower\(/);
 assert.match(normalized, /for update/);
 assert.match(normalized, /package_version_rollback/);
 assert.match(normalized, /package_version_reuse/);
