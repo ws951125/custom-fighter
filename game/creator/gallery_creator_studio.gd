@@ -28,6 +28,8 @@ var _gallery_requested_revision := 0
 var _gallery_last_status := "idle"
 var _gallery_import_status := "idle"
 var _gallery_web_open_callback
+var _gallery_web_select_callback
+var _gallery_web_confirm_import_callback
 
 func _ready() -> void:
 	super()
@@ -152,10 +154,25 @@ func _install_gallery_ui() -> void:
 		_gallery_web_open_callback = JavaScriptBridge.create_callback(_gallery_web_open)
 		var window: Variant = JavaScriptBridge.get_interface("window")
 		window.customFighterCreatorOpenGallery = _gallery_web_open_callback
+		_gallery_web_select_callback = JavaScriptBridge.create_callback(_gallery_web_select)
+		_gallery_web_confirm_import_callback = JavaScriptBridge.create_callback(_gallery_web_confirm_import)
+		window.customFighterCreatorGallerySelect = _gallery_web_select_callback
+		window.customFighterCreatorGalleryConfirmImport = _gallery_web_confirm_import_callback
 	_gallery_status_update("idle", "Open Gallery to browse published metadata. No stored package is trusted automatically.")
 
 func _gallery_web_open(_args: Array) -> void:
 	_gallery_open()
+
+func _gallery_web_select(args: Array) -> void:
+	if not args.is_empty() and args[0] is float:
+		var index := int(args[0])
+		if float(index) == args[0]:
+			_gallery_select(index)
+
+func _gallery_web_confirm_import(_args: Array) -> void:
+	# Test bridge mirrors the result of the explicit visible ConfirmationDialog.
+	if gallery_overlay.visible and gallery_import_button != null and not gallery_import_button.disabled:
+		_gallery_download_import()
 
 func _gallery_open() -> void:
 	if not OS.has_feature("web"):
@@ -257,10 +274,14 @@ func _gallery_request_completed(result: int, response_code: int, _headers: Packe
 	var kind := _gallery_pending
 	_gallery_pending = ""
 	if result != HTTPRequest.RESULT_SUCCESS:
+		if kind == "manifest" or kind == "package":
+			_gallery_import_status = "blocked"
 		_gallery_status_update("unavailable", "Gallery request unavailable. Existing Creator drafts are unchanged.")
 		_gallery_refresh_buttons()
 		return
 	if response_code != 200:
+		if kind == "manifest" or kind == "package":
+			_gallery_import_status = "blocked"
 		_gallery_status_update("unavailable" if response_code == 503 else "error", "Gallery HTTP " + str(response_code) + ". No Creator data was changed.")
 		_gallery_refresh_buttons()
 		return
@@ -269,11 +290,15 @@ func _gallery_request_completed(result: int, response_code: int, _headers: Packe
 		_gallery_refresh_buttons()
 		return
 	if body.size() > 262144:
+		if kind == "manifest":
+			_gallery_import_status = "blocked"
 		_gallery_status_update("blocked", "Catalog metadata response exceeded the safety limit.")
 		_gallery_refresh_buttons()
 		return
 	var payload: Variant = JSON.parse_string(body.get_string_from_utf8())
 	if not payload is Dictionary or payload.get("ok", false) != true:
+		if kind == "manifest":
+			_gallery_import_status = "blocked"
 		_gallery_status_update("blocked", "Catalog returned an invalid response.")
 		_gallery_refresh_buttons()
 		return
