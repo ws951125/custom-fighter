@@ -215,7 +215,7 @@ No durable production repository or production publisher-identity provider is cl
 
 ### Work Unit 4 — durable free-tier persistence + publisher identity
 
-Status: **provider adapters, schema contract and server package validator implemented on `feat/v2-7-wu4-supabase-persistence-auth`; GitHub-hosted PR validation pending; production provider provisioning requires explicit authorization**.
+Status: **server adapters/schema/validator merged via PR #210 as main `a154e748662d66305938fb81202234a03c4ffea5`; latest-head CI #626 succeeded; exact-SHA Render deploy `dep-daroec7f3r2c73a8tgkg` is live. Production Supabase provider/schema/keys and cross-user durable acceptance remain unprovisioned, blocked pending separate user authorization; main-push GitHub Actions evidence is unobservable through the current connector.**.
 
 Current implementation:
 
