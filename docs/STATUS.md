@@ -55,7 +55,7 @@ Work Unit 2 — **merged to main; PR validation complete**:
 - The currently available GitHub connector exposes PR-triggered workflow runs but not the `main` push run for that merge SHA, so exact-main workflow/deployment acceptance for #207 remains **Residual Risk / evidence not currently observable through the connector** rather than being guessed as PASS.
 - No Creator Gallery UX, durable provider, auth provider, production catalog or automatic PvP trust is added in WU2.
 
-Work Unit 3 — **HTTP catalog contract implemented and PR-validated on `feat/v2-7-wu3-http-catalog`; awaiting explicit merge approval**:
+Work Unit 3 — **merged to main and production backend deployed on the exact merge revision**:
 - Added `backend/sharing/http_api.mjs` with bounded HTTP routes:
   - `POST /v1/sharing/publications` — publish;
   - `GET /v1/sharing/publications` — browse/search with bounded query/tags/page size/cursor;
@@ -68,8 +68,19 @@ Work Unit 3 — **HTTP catalog contract implemented and PR-validated on `feat/v2
 - Added `backend/sharing/catalog_service.mjs` and extended the deterministic in-memory test repository with bounded metadata-only search, stable pagination, latest-publication detail and exact immutable revision reads. Search indexes manifest metadata only and never package runtime fields.
 - Existing server Origin/CORS policy is preserved; preflight now allows the future `Authorization` header without weakening the origin allow-list.
 - Added `tests/sharing_http_api_test.mjs` covering trusted identity, body publisher forgery rejection, CORS/origin rules, publish/idempotency/version-conflict status contracts, metadata-only search, pagination, exact revision download, 404/405/413/503 contracts and default production fail-closed behavior. It is wired into `test:backend`.
-- PR #208 implementation head `90ab7ea354fb2ce488f7320414ab8ac82c689d90` passed CI #607 (`36225607371`): Windows Native, Godot import/boot/domain tests, trusted-backend tests including `SHARING_HTTP_API_TESTS_PASSED`, Web export/size budget, Chromium `smoke:all`, and GitHub-hosted Microsoft Edge `smoke:all` all completed SUCCESS.
+- PR #208 implementation head `90ab7ea354fb2ce488f7320414ab8ac82c689d90` passed CI #607 (`36225607371`) and the latest docs-sync head `668d13ad7b04ff2678c4bc7484c8f99a3a8ab5f6` passed CI #609 (`36226449934`): Windows Native, Godot/backend/Web/Chromium and hosted Microsoft Edge all completed SUCCESS.
+- PR #208 was explicitly approved and squash-merged to `main` as `27874d5a830a2a529bd03fe710875e75095882c0`.
+- Render auto-deploy `dep-darnbru7bikc739g9ie0` deployed that exact merge revision to `custom-fighter-ai-vfx-6899` and reached `live`. The available GitHub connector still does not expose the main-push workflow run, so exact-main GitHub Actions evidence remains unobservable rather than being guessed as PASS.
 - V2 remains **75% (6/8)** until complete V2-7 acceptance.
+
+Work Unit 4 — **durable free-tier persistence + publisher identity implementation in progress on `feat/v2-7-wu4-supabase-persistence-auth`**:
+- Added a server-only Supabase durable repository adapter using a bounded RPC contract for latest revision lookup, atomic revision commit, catalog browsing, publication detail and exact immutable revision reads.
+- Added a Supabase Auth publisher resolver that validates browser bearer tokens through Supabase Auth `/auth/v1/user`, derives publisher identity only from the authenticated user UUID, rejects anonymous users and never trusts user-editable `user_metadata`.
+- Added fail-closed environment integration using `CUSTOM_FIGHTER_SHARING_SUPABASE_URL`, `CUSTOM_FIGHTER_SHARING_SUPABASE_SECRET_KEY` and `CUSTOM_FIGHTER_SHARING_SUPABASE_PUBLISHABLE_KEY`. Partial/missing configuration does not enable durable writes.
+- Added `backend/sharing/self_contained_package_validator.mjs` so the Node backend independently enforces the current Self-contained Package v1/v2 safety boundary before persistence, including strict package/character/skill fields, cross-references, bounded timeline data, Animation PNG, WAV audio and VFX PNG validation.
+- Added reviewed `backend/sharing/supabase_schema.sql`: RLS-enabled catalog/revision tables, append-only revision storage, optimistic revision checks, bounded catalog RPCs and execution restricted to `service_role`; it is a deployment reference and has not been applied to any existing external project.
+- Added deterministic backend regressions for the Supabase adapters and server package validator. GitHub-hosted PR validation is still pending.
+- Production provisioning remains blocked pending explicit authorization for a dedicated no-cost Supabase project and its server-side credentials. No existing unrelated Supabase project is modified or reused automatically.
 
 ### V2-6 implementation checkpoints
 
