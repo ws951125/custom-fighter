@@ -164,10 +164,13 @@ func _gallery_web_open(_args: Array) -> void:
 	_gallery_open()
 
 func _gallery_web_select(args: Array) -> void:
-	if not args.is_empty() and args[0] is float:
-		var index := int(args[0])
-		if float(index) == args[0]:
-			_gallery_select(index)
+	# JS numeric callback arguments can cross the Godot Web bridge as int or float.
+	# This is diagnostic parity with the real ItemList item_selected signal.
+	if args.is_empty() or not (args[0] is int or args[0] is float):
+		return
+	var index: int = int(args[0])
+	if index >= 0 and float(index) == float(args[0]):
+		_gallery_select(index)
 
 func _gallery_web_confirm_import(_args: Array) -> void:
 	# Test bridge mirrors the result of the explicit visible ConfirmationDialog.
