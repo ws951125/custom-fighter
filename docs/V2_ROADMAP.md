@@ -163,7 +163,7 @@ Note: this phase establishes the competitive foundation; full network PvP is V2-
 
 ## V2-6 — Network PvP
 
-**Status: active — 62.5% (5/8 V2 phases complete).**
+**Status: complete — 75% (6/8 V2 phases complete).**
 
 Goal: support player-versus-player matches over the network without trusting player-authored combat state.
 
@@ -189,7 +189,7 @@ WU4 PR #201 was squash-merged to `main` as `ecb82b34f800d273b9d71fc6c4d295c7acb6
 
 WU5 PR #202 was squash-merged to `main` as `0570d53e08950350da6e50d75473aa334fda347c`. Its reconnect/forfeit/latency behavior remains in the shared cross-browser smoke suite. The legacy Render 503 blocker was closed by PR #203, merged as `e613356c4de12f07d1cde36043177ead162dc2dd`; exact-main CI #595 (`36109854193`) passed all product gates, Pages/public reachability, production backend readiness and Windows Edge Production Full Smoke.
 
-WU6 PR #204 is implementation-complete and PR-validated. Product head `4dd6c8dcc9cd696cfffab45532db02b7ffd8db6c` passed CI #596 (`36143393328`) across Windows Native, Godot/domain/backend, Web export/size, Chromium and hosted Edge. The dedicated browser acceptance validated two server-trusted custom packages, forged damage/cooldown rejection and a real authoritative combat finish while the shared WU5 reconnect/forfeit regression stayed green.
+WU6 PR #204 was explicitly approved and squash-merged to `main` as `26563016e986126dde4104f8093d6ec3cbaa9a01`. Render auto-deploy `dep-darhf8ou01pc73e7526g` reached `live` on the exact revision. Exact-main CI #598 (`36206515990`) attempt 1 proved the WU6 Production Edge path itself (`NETWORK_PVP_WU6_ONLINE_ACCEPTANCE_PASSED`) before a later unchanged Creator AI skill-proposal 6-second observation timed out; same-SHA attempt 2 completed **SUCCESS** without product/test/timeout changes. V2-6 is therefore accepted complete and V2 advances to **75% (6/8)**.
 
 ## V2-7 — Creator Sharing Ecosystem
 
@@ -236,4 +236,4 @@ The architecture previously allowed a future local/open-model AI provider such a
 
 ## Next implementation target
 
-After latest-head docs CI and explicit approval, squash-merge **PR #204 / V2-6 Work Unit 6 — full two-client online acceptance**. Then require exact-main Render deployment + Production Backend Readiness + Windows Edge Production Full Smoke with the WU6 custom-package combat acceptance before marking V2-6 complete and advancing V2 to 75%.
+Begin **V2-7 — Creator Sharing Ecosystem**. First, inventory the existing package export/import, schema/version metadata, storage/trust boundaries and Creator/package UX; then freeze a safe publish → browse/discover → download/import sequence before implementation.
