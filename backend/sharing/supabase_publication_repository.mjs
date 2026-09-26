@@ -16,11 +16,12 @@ function normalizeProjectUrl(value) {
     return '';
   }
   if (url.protocol !== 'https:' || url.username || url.password || url.search || url.hash) return '';
+  if (url.pathname !== '/' || !/^[a-z0-9-]+\.supabase\.co$/i.test(url.hostname)) return '';
   return url.origin;
 }
 
 function validSecretKey(value) {
-  return typeof value === 'string' && value.trim().length >= 16;
+  return typeof value === 'string' && /^sb_secret_[A-Za-z0-9_-]{16,}$/.test(value.trim());
 }
 
 function clone(value) {
@@ -53,8 +54,8 @@ export function createSupabasePublicationRepository({
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
-        'apikey': serverKey,
-        'Authorization': `Bearer ${serverKey}`
+        // New sb_secret_ keys are API keys, not JWTs. Never send them as Bearer tokens.
+        'apikey': serverKey
       },
       body: safeJson(payload)
     });
