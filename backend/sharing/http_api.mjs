@@ -44,6 +44,7 @@ function failure(status, code) {
 
 function mapServiceFailure(result) {
   const code = String(result?.code || 'SHARING_REQUEST_FAILED');
+  if (code === 'STORAGE_QUOTA_REACHED') return failure(507, code);
   if (SIZE_CODES.has(code)) return failure(413, code);
   if (CONFLICT_CODES.has(code)) return failure(409, code);
   if (NOT_FOUND_CODES.has(code)) return failure(404, code);
