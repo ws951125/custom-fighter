@@ -34,3 +34,9 @@ If a behavior cannot currently be validated through GitHub Actions or the deploy
 ## Evidence
 
 When reporting a development step, record the relevant GitHub workflow status and any error/fix history. Never report a check as passed unless GitHub Actions or GitHub Pages actually executed the validation and produced that evidence.
+
+## Same-origin Gallery preview package (proposed infrastructure)
+
+A dedicated PR may attach a validated, SHA-pinned PR Web artifact into the existing main Pages deployment under `/preview/pr-212/`, **not** overwrite the root `index.html` or launch external hosting. The preflight contract is `node tests/pages_preview_contract_test.mjs` in GitHub Actions, which verifies script syntax, exact SHA gating, preservation of main root and fail-closed behavior for missing/mismatched artifacts. Main-push Pages validation must additionally confirm public `index.html`, `index.js` and `preview-source.txt` on that subpath when it was attached. An expired or unavailable preview artifact must not break a production main release. This workflow does not enable a real sharing backend or provide a mock-provider interactive catalogue; screenshots from PR #212 are explicitly mock-only.
+
+Do not deploy unmerged #212 by replacing the production Pages root. Do not enable a billed third-party preview host. The preview infrastructure PR and Gallery PR require separate explicit merge approval after applicable checks and human acceptance.

@@ -9,6 +9,7 @@ on:
 
 permissions:
   contents: read
+  actions: read
   pages: write
   id-token: write
 
@@ -21,6 +22,8 @@ jobs:
     name: Godot + Backend + Web + Chromium
     runs-on: ubuntu-latest
     timeout-minutes: 25
+    outputs:
+      gallery_preview: ${{ steps.gallery-preview.outputs.enabled }}
 
     steps:
       - name: Checkout
@@ -108,6 +111,9 @@ jobs:
           npm run test:backend
           node tests/reference_image_backend_test.mjs
 
+      - name: Validate same-origin Pages preview packaging contract
+        run: node tests/pages_preview_contract_test.mjs
+
       - name: Install Chromium
         run: npx playwright install --with-deps chromium
 
@@ -152,6 +158,15 @@ jobs:
         uses: actions/configure-pages@v5
         with:
           enablement: true
+
+      - name: Attach pinned WU5 Gallery preview without changing main Web root
+        id: gallery-preview
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PREVIEW_RUN_ID: '36250217352'
+          PREVIEW_HEAD_SHA: '9b8de45959f9e382f3ba90333cd7855709c8e5cd'
+        run: bash tools/attach_pages_preview.sh
 
       - name: Upload GitHub Pages artifact
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
@@ -258,7 +273,7 @@ jobs:
   verify-production:
     name: Verify Public Web Demo
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    needs: deploy-pages
+    needs: [deploy-pages, validate-web]
     runs-on: ubuntu-latest
     timeout-minutes: 5
 
@@ -286,6 +301,17 @@ jobs:
             test -s /tmp/custom-fighter-live.html
           done
           echo "PUBLIC_WEB_DEMO_REACHABLE"
+
+      - name: Verify separate Gallery preview when attached
+        if: needs.validate-web.outputs.gallery_preview == 'true'
+        run: |
+          set -euo pipefail
+          for ASSET in index.html index.js preview-source.txt; do
+            curl --fail --silent --show-error --location --retry 6 --retry-delay 3               "https://ws951125.github.io/custom-fighter/preview/pr-212/$ASSET"               -o "/tmp/gallery-preview-$ASSET"
+            test -s "/tmp/gallery-preview-$ASSET"
+          done
+          grep -Fqx '9b8de45959f9e382f3ba90333cd7855709c8e5cd' /tmp/gallery-preview-preview-source.txt
+          echo "WU5_PAGES_PREVIEW_REACHABLE source=9b8de45959f9e382f3ba90333cd7855709c8e5cd"
 
   verify-ai-backend:
     name: Verify Production AI Backend Readiness

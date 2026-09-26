@@ -31,6 +31,14 @@ V2 roadmap is defined in `docs/V2_ROADMAP.md` and captures previously discussed/
 
 V2-1 delivered visual event timeline authoring, startup/active/recovery timing, animation/VFX/audio events, hitbox/hurtbox timing and spatial editing, safe multi-event compositions, validation, and Creator → Training preview round trip. V2-2 extended the data-driven skill engine beyond the six V1 families and is accepted complete with bounded Beam/Trap/Aura/Teleport/Counter/Grab/Summon families plus safe declarative scripted compositions. V2-3 is accepted complete with safe animation/audio authoring, self-contained package transport, fresh-session restore, runtime Animation PNG rendering, and packaged WAV playback. V2-4 AI Opponents & Single-player Gameplay is accepted complete with deterministic active opponents, bounded difficulty profiles, validated selectable stages, and deployed win/loss/restart/return single-player acceptance. V2-5 Game Modes, Balance & Competitive Foundation is accepted complete with frozen competitive rules, power-budget enforcement, deterministic authority snapshots/fingerprints, local competitive authority runtime, and Chromium/hosted-Edge acceptance. V2-6 Network PvP is accepted complete with server-trusted custom-package admission, server-authoritative input/state/combat, reconnect/forfeit/latency handling, and exact-main two-client Production Edge acceptance. V2-7 Creator Sharing Ecosystem is now active.
 
+### Pages preview packaging (separate infrastructure PR, not yet deployed)
+
+- Preparing a same-origin, zero-additional-host GitHub Pages preview under `/custom-fighter/preview/pr-212/`, using already successful PR #212 CI #644 Web artifact, pinned to `9b8de45959f9e382f3ba90333cd7855709c8e5cd`.
+- Keep the validated main Web build at site root unchanged; attach static preview files only for main pushes after full PR-reviewed workflow change. Verify exact source SHA and completed-success Actions run before download. Invalid/expired artifact fails closed for preview and cannot block production root deployment.
+- This is independent **preview infrastructure code awaiting its own PR, CI, and explicit merge authorization**; it is NOT a live preview link yet, NOT a merge of PR #212 and NOT a production sharing provider.
+- The Pages same-origin path preserves the backend's current strict allowed-origin policy without weakening CORS. No Render/Vercel service, external database, paid plan, new credentials or billing has been created.
+- Remaining after infrastructure approval: exact main Pages attachment + public reachability, human Gallery UX acceptance (the unconfigured production catalogue still reports unavailable), and separate PR #212 merge approval.
+
 ### V2-7 implementation checkpoints
 
 Work Unit 1 — **merged and exact-main production validated**:
