@@ -164,8 +164,8 @@ jobs:
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         env:
           GH_TOKEN: ${{ github.token }}
-          PREVIEW_RUN_ID: '36250217352'
-          PREVIEW_HEAD_SHA: '9b8de45959f9e382f3ba90333cd7855709c8e5cd'
+          PREVIEW_RUN_ID: '36258807815'
+          PREVIEW_HEAD_SHA: 'c74060bda8527f78b96af7f52b8b99e3e24aa396'
         run: bash tools/attach_pages_preview.sh
 
       - name: Upload GitHub Pages artifact
@@ -310,8 +310,8 @@ jobs:
             curl --fail --silent --show-error --location --retry 6 --retry-delay 3               "https://ws951125.github.io/custom-fighter/preview/pr-212/$ASSET"               -o "/tmp/gallery-preview-$ASSET"
             test -s "/tmp/gallery-preview-$ASSET"
           done
-          grep -Fqx '9b8de45959f9e382f3ba90333cd7855709c8e5cd' /tmp/gallery-preview-preview-source.txt
-          echo "WU5_PAGES_PREVIEW_REACHABLE source=9b8de45959f9e382f3ba90333cd7855709c8e5cd"
+          grep -Fqx 'c74060bda8527f78b96af7f52b8b99e3e24aa396' /tmp/gallery-preview-preview-source.txt
+          echo "WU5_PAGES_PREVIEW_REACHABLE source=c74060bda8527f78b96af7f52b8b99e3e24aa396"
 
   verify-ai-backend:
     name: Verify Production AI Backend Readiness

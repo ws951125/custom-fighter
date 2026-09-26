@@ -5,6 +5,10 @@ import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 
 const script = resolve('tools/attach_pages_preview.sh');
+const workflow = await readFile(resolve('.github/workflows/ci.yml'), 'utf8');
+assert.match(workflow, /PREVIEW_RUN_ID: '36258807815'/, 'Preview run must match the tested pin');
+assert.match(workflow, /PREVIEW_HEAD_SHA: 'c74060bda8527f78b96af7f52b8b99e3e24aa396'/, 'Preview source must match the tested pin');
+assert.match(workflow, /grep -Fqx 'c74060bda8527f78b96af7f52b8b99e3e24aa396'/, 'Published source marker must match the source pin');
 assert.equal(spawnSync('bash', ['-n', script], { encoding: 'utf8' }).status, 0, 'Preview attachment script must parse');
 const temp = await mkdtemp(join(tmpdir(), 'cf-pages-preview-'));
 try {
@@ -47,8 +51,8 @@ fi
         GH_TOKEN: 'mock-only',
         GITHUB_REPOSITORY: 'ws951125/custom-fighter',
         GITHUB_OUTPUT: output,
-        PREVIEW_RUN_ID: '36250217352',
-        PREVIEW_HEAD_SHA: '9b8de45959f9e382f3ba90333cd7855709c8e5cd'
+        PREVIEW_RUN_ID: '36258807815',
+        PREVIEW_HEAD_SHA: 'c74060bda8527f78b96af7f52b8b99e3e24aa396'
       }
     });
     assert.equal(run.status, 0, mode + ' must never break the main site: ' + run.stderr);
@@ -57,7 +61,7 @@ fi
     const previewDir = join(cwd, 'build/web/preview/pr-212');
     if (mode === 'success') {
       await access(join(previewDir, 'index.html'));
-      assert.equal((await readFile(join(previewDir, 'preview-source.txt'), 'utf8')).trim(), '9b8de45959f9e382f3ba90333cd7855709c8e5cd');
+      assert.equal((await readFile(join(previewDir, 'preview-source.txt'), 'utf8')).trim(), 'c74060bda8527f78b96af7f52b8b99e3e24aa396');
     } else {
       await assert.rejects(access(previewDir), 'Invalid/expired preview artifacts must leave no partial publish directory');
     }
