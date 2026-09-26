@@ -4,8 +4,8 @@ import { createSupabasePublisherResolver, _test as resolverTest } from '../backe
 import { createSupabaseSharingIntegration, _test as integrationTest } from '../backend/sharing/supabase_integration.mjs';
 
 const PROJECT_URL = 'https://abcdefghijklmnopqrst.supabase.co';
-const SECRET_KEY = 'server-only-test-key-not-a-real-credential';
-const PUBLISHABLE_KEY = 'publishable-test-key-not-a-real-credential';
+const SECRET_KEY = 'sb_secret_test_not_a_real_credential_123456';
+const PUBLISHABLE_KEY = 'sb_publishable_test_not_a_real_credential_123456';
 const USER_TOKEN = 'header.payload.signature-token-value';
 const USER_ID = '123e4567-e89b-42d3-a456-426614174000';
 const PUBLICATION_ID = 'pub_0123456789abcdef0123456789abcdef';
@@ -31,9 +31,14 @@ function requestWithBearer(token = USER_TOKEN) {
 assert.equal(repositoryTest.normalizeProjectUrl(PROJECT_URL + '/'), PROJECT_URL);
 assert.equal(repositoryTest.normalizeProjectUrl('http://example.com'), '');
 assert.equal(repositoryTest.normalizeProjectUrl('https://user:pass@example.com'), '');
+assert.equal(repositoryTest.normalizeProjectUrl('https://example.com'), '');
+assert.equal(repositoryTest.normalizeProjectUrl(PROJECT_URL + '/rest/v1'), '');
+assert.equal(repositoryTest.validSecretKey('server-only-test-key-not-a-real-credential'), false);
 assert.equal(repositoryTest.validSecretKey('short'), false);
 assert.equal(resolverTest.normalizeProjectUrl(PROJECT_URL + '/'), PROJECT_URL);
 assert.equal(resolverTest.normalizeProjectUrl('not a url'), '');
+assert.equal(resolverTest.normalizeProjectUrl('https://example.com'), '');
+assert.equal(resolverTest.validPublishableKey('publishable-test-key-not-a-real-credential'), false);
 assert.equal(resolverTest.validPublishableKey('short'), false);
 assert.equal(resolverTest.bearerToken({ headers: {} }), '');
 assert.equal(resolverTest.bearerToken({ headers: { authorization: 'Basic abc' } }), '');
@@ -129,7 +134,7 @@ assert.equal(calls.length, 7);
 for (const call of calls) {
   assert.equal(call.options.method, 'POST');
   assert.equal(call.options.headers.apikey, SECRET_KEY);
-  assert.equal(call.options.headers.Authorization, `Bearer ${SECRET_KEY}`);
+  assert.equal(Object.hasOwn(call.options.headers, 'Authorization'), false, 'sb_secret_ must be apikey-only');
   assert.equal(call.options.headers['Content-Type'], 'application/json');
   assert.equal(String(call.url).startsWith(PROJECT_URL + '/rest/v1/rpc/'), true);
 }
