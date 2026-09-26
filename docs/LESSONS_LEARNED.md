@@ -481,6 +481,7 @@
 - **Validation:** CI #543 first failed only hosted Edge job `106782115749` at `creator_vfx_runtime_binding_web_smoke.mjs` revision wait. Same-head retry Edge job `106794918924` then passed the complete Microsoft Edge `smoke:all` suite with no code/test changes.
 - **Status:** Verified by same-SHA hosted Edge retry on PR #190
 
+- **2026-09-26 recurrence:** Exact-main V2-6 CI #598 attempt 1 passed the new Production Edge WU6 custom-package authoritative combat acceptance and every preceding product/deployment gate, then the unchanged `creator_ai_skill_proposal_web_smoke.mjs:103` wait missed its 6-second post-cast observation window. The exact same main SHA `26563016e986126dde4104f8093d6ec3cbaa9a01` was retried without product, assertion or timeout changes; attempt 2 passed the complete workflow, including Windows Edge Production Full Smoke. This recurrence reinforces the same-SHA-first rule for isolated hosted-Edge `waitForFunction` timeouts after the changed feature path has already passed.
 
 ## L-044 — Competitive fail-closed gates must disable every independent child combat processor
 
