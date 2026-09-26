@@ -33,7 +33,7 @@ V2-1 delivered visual event timeline authoring, startup/active/recovery timing, 
 
 ### Pages preview packaging (separate infrastructure PR, not yet deployed)
 
-- Preparing a same-origin, zero-additional-host GitHub Pages preview under `/custom-fighter/preview/pr-212/`, using already successful PR #212 CI #644 Web artifact, pinned to `c74060bda8527f78b96af7f52b8b99e3e24aa396`.
+- Preparing a same-origin, zero-additional-host GitHub Pages preview under `/custom-fighter/preview/pr-212/`, using the latest successful PR #212 CI #647 Web artifact (run `36258807815`), pinned to `c74060bda8527f78b96af7f52b8b99e3e24aa396`.
 - Refresh preview pin to PR #212 latest successful exact-head CI #647 (run `36258807815`), with retained `custom-fighter-web` artifact; previous CI #644 pin is obsolete. This is a PR-branch-only update and no preview has been deployed.
 - Keep the validated main Web build at site root unchanged; attach static preview files only for main pushes after full PR-reviewed workflow change. Verify exact source SHA and completed-success Actions run before download. Invalid/expired artifact fails closed for preview and cannot block production root deployment.
 - This is independent **preview infrastructure code awaiting its own PR, CI, and explicit merge authorization**; it is NOT a live preview link yet, NOT a merge of PR #212 and NOT a production sharing provider.
