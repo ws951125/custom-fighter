@@ -12,7 +12,7 @@
   },
   "scripts": {
     "backend:start": "node backend/server.mjs",
-    "test:backend": "node tests/backend_vfx_test.mjs && node tests/backend_server_test.mjs && node tests/sharing_publication_service_test.mjs && node tests/sharing_http_api_test.mjs && node tests/supabase_sharing_adapter_test.mjs && node tests/self_contained_package_validator_test.mjs && node tests/pvp_session_service_test.mjs && node tests/pvp_package_authority_test.mjs && node tests/pvp_trusted_package_catalog_test.mjs && node tests/pvp_authoritative_match_test.mjs && node tests/pvp_websocket_transport_test.mjs && node tests/image_provider_factory_test.mjs && node tests/gemini_image_provider_test.mjs && node --check tests/production_ai_provider_e2e.mjs && node --check tests/production_creator_gemini_e2e.mjs",
+    "test:backend": "node tests/backend_vfx_test.mjs && node tests/backend_server_test.mjs && node tests/sharing_publication_service_test.mjs && node tests/sharing_http_api_test.mjs && node tests/supabase_sharing_adapter_test.mjs && node tests/supabase_schema_contract_test.mjs && node tests/self_contained_package_validator_test.mjs && node tests/pvp_session_service_test.mjs && node tests/pvp_package_authority_test.mjs && node tests/pvp_trusted_package_catalog_test.mjs && node tests/pvp_authoritative_match_test.mjs && node tests/pvp_websocket_transport_test.mjs && node tests/image_provider_factory_test.mjs && node tests/gemini_image_provider_test.mjs && node --check tests/production_ai_provider_e2e.mjs && node --check tests/production_creator_gemini_e2e.mjs",
     "smoke:web": "node tests/web_smoke.mjs",
     "smoke:match-restart": "node tests/match_restart_web_smoke.mjs",
     "smoke:opponent-ai": "node tests/opponent_ai_web_smoke.mjs",
