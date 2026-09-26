@@ -79,7 +79,7 @@ Work Unit 4 — **durable free-tier persistence + publisher identity implementat
 - Added fail-closed environment integration using `CUSTOM_FIGHTER_SHARING_SUPABASE_URL`, `CUSTOM_FIGHTER_SHARING_SUPABASE_SECRET_KEY` and `CUSTOM_FIGHTER_SHARING_SUPABASE_PUBLISHABLE_KEY`. Partial/missing configuration does not enable durable writes.
 - Added `backend/sharing/self_contained_package_validator.mjs` so the Node backend independently enforces the current Self-contained Package v1/v2 safety boundary before persistence, including strict package/character/skill fields, cross-references, bounded timeline data, Animation PNG, WAV audio and VFX PNG validation.
 - Added reviewed `backend/sharing/supabase_schema.sql`: RLS-enabled catalog/revision tables, append-only revision storage, optimistic revision checks, bounded catalog RPCs and execution restricted to `service_role`; it is a deployment reference and has not been applied to any existing external project.
-- Added deterministic backend regressions for the Supabase adapters and server package validator. GitHub-hosted PR validation is still pending.
+- Added deterministic backend regressions for the Supabase adapters and server package validator. Added `tests/supabase_schema_contract_test.mjs` so CI also freezes RLS, no-browser table grants, `SECURITY INVOKER`, service-role-only RPC execution, atomic revision locking and the 16 MiB storage bound. GitHub-hosted PR validation is still pending.
 - Production provisioning remains blocked pending explicit authorization for a dedicated no-cost Supabase project and its server-side credentials. No existing unrelated Supabase project is modified or reused automatically.
 
 ### V2-6 implementation checkpoints
