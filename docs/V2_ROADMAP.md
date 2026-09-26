@@ -236,4 +236,4 @@ The architecture previously allowed a future local/open-model AI provider such a
 
 ## Next implementation target
 
-Begin **V2-7 — Creator Sharing Ecosystem**. First, inventory the existing package export/import, schema/version metadata, storage/trust boundaries and Creator/package UX; then freeze a safe publish → browse/discover → download/import sequence before implementation.
+V2-7 Work Unit 1 freezes the sharing architecture in `docs/V2_7_CREATOR_SHARING_INVENTORY.md`. After PR validation and explicit merge approval, implement **Work Unit 2 — publication manifest + provider-neutral sharing domain service**: bounded metadata validation, full-package validation adapter, server-derived SHA-256/byte size, immutable revision/idempotency rules, repository interface and deterministic backend tests. Production persistence/auth is deliberately deferred to the later no-cost adapter work unit.
