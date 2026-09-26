@@ -167,7 +167,7 @@ Acceptance: repository docs describe an implementation-ready sharing contract wi
 
 ### Work Unit 2 — publication manifest + sharing domain service
 
-Status: **implementation complete and PR-validated on head `6e44a3e0ff4a3e74b163768038e8d17bb225195a`; awaiting explicit merge approval**.
+Status: **complete and merged by PR #207 to main `5ff4dfcd5b8ff4e330a7873ad36852f7f085554f`; latest PR CI #605 succeeded. Exact-main push-run evidence is not currently observable through the available connector and remains residual evidence risk.**
 
 Implemented provider-neutral backend domain logic for:
 
@@ -188,20 +188,28 @@ No public production persistence claim in WU2. No HTTP route or Creator Gallery 
 
 ### Work Unit 3 — HTTP catalog contract
 
-Add bounded Render API routes:
+Status: **implemented on `feat/v2-7-wu3-http-catalog`; GitHub-hosted PR validation pending**.
 
-- publish;
-- browse/search;
-- publication/revision detail;
-- exact package download.
+Implemented bounded Render API routes:
 
-Requirements:
+- `POST /v1/sharing/publications` — publish;
+- `GET /v1/sharing/publications` — bounded browse/search;
+- publication latest detail + revision inventory;
+- exact revision manifest;
+- exact immutable package download.
 
-- existing origin policy;
-- route-specific 16 MiB publication body cap;
-- read/write error contracts;
-- publish fails closed when publisher authentication or durable repository is unavailable;
-- backend regression coverage.
+Contract details:
+
+- existing Origin allow-list remains authoritative;
+- publication request body has an independent 16 MiB cap; VFX remains independently capped at 8 MiB;
+- browser payloads cannot provide publisher identity; identity comes only from an injected server-side adapter;
+- Publish requires an explicit durable-repository configuration flag and fails closed when durable persistence, publisher authentication or package validation is unavailable;
+- browse/search indexes manifest metadata only, never package runtime content;
+- exact revision download returns the immutable canonical package bytes stored for that revision;
+- read/write failures have stable 400/401/404/405/409/413/503 error-code contracts;
+- `tests/sharing_http_api_test.mjs` is wired into the existing backend CI gate.
+
+No durable production repository or production publisher-identity provider is claimed in WU3; those remain Work Unit 4.
 
 ### Work Unit 4 — durable free-tier persistence + publisher identity
 
