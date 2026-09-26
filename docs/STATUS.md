@@ -83,6 +83,15 @@ Work Unit 4 — **durable free-tier persistence + publisher identity implementat
 - Added deterministic backend regressions for the Supabase adapters and server package validator. Added `tests/supabase_schema_contract_test.mjs` so CI also freezes RLS, no-browser table grants, `SECURITY INVOKER`, service-role-only RPC execution, atomic revision locking and the 16 MiB storage bound. GitHub-hosted PR validation is still pending.
 - Production provisioning remains blocked pending explicit authorization for a dedicated no-cost Supabase project and its server-side credentials. No existing unrelated Supabase project is modified or reused automatically.
 
+Work Unit 5, slice 1 — **Creator Gallery browse/details/exact revision import implemented on `feat/v2-7-wu5-creator-gallery-browse`; GitHub-hosted validation required**:
+- Introduced `game/creator/gallery_creator_studio.gd`, mounted from `game/creator/creator_studio.tscn`: an explicit Creator Gallery overlay, bounded search, metadata-only list, pagination, publication detail and immutable revision picker.
+- The Gallery uses the existing Render `GET /v1/sharing/publications` catalog, detail, revision manifest and canonical-package routes. No credentials or browser-supplied publisher identity are collected.
+- A visible user confirmation precedes exact-revision download; downloaded bytes are bounded to 16 MiB and must match the manifest's UTF-8 size and SHA-256 before invoking the existing Self-contained Package v1/v2 + Creator compatibility import path. Invalid/unavailable responses fail closed without automatic import. Gallery publication never grants competitive/PvP trust.
+- The Publish action is deliberately disabled with an accurate missing-provider/login explanation; actual production durable provider/Auth remains blocked pending separate explicit authorization, not silently replaced by in-memory persistence.
+- Added `tests/creator_gallery_web_smoke.mjs` and wired `smoke:creator-gallery` into existing Chromium and hosted Edge `smoke:all` to verify 503 unavailable state, browse/detail, exact revision SHA match, valid import and tampered download rejection.
+- The prior WU4 documentation checkpoint is open in PR #211, CI #628 succeeded on exact head `a1ac1c38b5a0d54dbb25829c807a17a0a24384ae`; it is **not merged** without its own approval. WU4 implementation PR #210 merged as `a154e748662d66305938fb81202234a03c4ffea5` and the exact revision is live on Render.
+- WU5's Publish/Auth UI, production catalogue and cross-user acceptance are not claimed complete; V2 stays 75% (6/8).
+
 ### V2-6 implementation checkpoints
 
 Work Unit 6 / phase completion — **merged and exact-main production accepted**:
