@@ -142,6 +142,7 @@ func _install_gallery_ui() -> void:
 	gallery_confirm.title = "Import Gallery package?"
 	gallery_confirm.dialog_text = "The downloaded revision will be verified, then replace the current Creator draft. Continue?"
 	gallery_confirm.confirmed.connect(_gallery_download_import)
+	gallery_confirm.visibility_changed.connect(_set_gallery_web_state)
 	add_child(gallery_confirm)
 
 	gallery_request = HTTPRequest.new()
@@ -173,9 +174,9 @@ func _gallery_web_select(args: Array) -> void:
 		_gallery_select(index)
 
 func _gallery_web_confirm_import(_args: Array) -> void:
-	# Test bridge mirrors the result of the explicit visible ConfirmationDialog.
-	if gallery_overlay.visible and gallery_import_button != null and not gallery_import_button.disabled:
-		_gallery_download_import()
+	# The test bridge invokes the same visible/cancellable action as the real button.
+	# It must not bypass explicit confirmation and directly start a download.
+	_gallery_confirm_import()
 
 func _gallery_open() -> void:
 	if not OS.has_feature("web"):
@@ -257,8 +258,9 @@ func _gallery_select(index: int) -> void:
 	_gallery_send("detail", GALLERY_API + "/" + publication_id)
 
 func _gallery_confirm_import() -> void:
-	if _gallery_pending.is_empty() and _gallery_safe_publication_id(_gallery_publication_id) and gallery_revision.get_selected_id() > 0:
+	if gallery_overlay.visible and gallery_import_button != null and not gallery_import_button.disabled and _gallery_pending.is_empty() and _gallery_safe_publication_id(_gallery_publication_id) and gallery_revision.get_selected_id() > 0:
 		gallery_confirm.popup_centered()
+		_set_gallery_web_state()
 
 func _gallery_download_import() -> void:
 	if not _gallery_pending.is_empty() or not _gallery_safe_publication_id(_gallery_publication_id):
@@ -443,5 +445,6 @@ func _set_gallery_web_state() -> void:
 		"document.documentElement.dataset.creatorGalleryStatus=%s;" % JSON.stringify(_gallery_last_status) +
 		"document.documentElement.dataset.creatorGalleryItems='%d';" % _gallery_records.size() +
 		"document.documentElement.dataset.creatorGallerySelectedPublication=%s;" % JSON.stringify(_gallery_publication_id) +
-		"document.documentElement.dataset.creatorGalleryImportStatus=%s;" % JSON.stringify(_gallery_import_status)
+		"document.documentElement.dataset.creatorGalleryImportStatus=%s;" % JSON.stringify(_gallery_import_status) +
+		"document.documentElement.dataset.creatorGalleryConfirmationVisible='%s';" % ("true" if gallery_confirm != null and gallery_confirm.visible else "false")
 	)

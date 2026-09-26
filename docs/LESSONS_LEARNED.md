@@ -599,3 +599,14 @@
 - **Validation:** Initial parser failure evidence is CI #629 (`36232444457`); follow-up exact-head CI #638 (`36234225075`) completed SUCCESS on `d560192cd59320c29b5add24db6cfaee44270750`, including Godot import, Windows Native, Chromium and hosted Edge.
 - **Additional validation:** Follow-on PR #212 CI #634 completed failure at new Gallery browser smoke selection-state wait, after successful Godot import and Windows Native. The JavaScriptBridge test-only selection callback accepted only float input, potentially ignoring integer-index 0. Fix accepts exact nonnegative int/float indices, and adds on-failure browser telemetry. Both Chromium and hosted Edge in CI #638 report `CREATOR_GALLERY_BROWSER_SMOKE_PASSED` including exact-revision SHA and tamper rejection. This does not change the package safety boundary.
 - **Status:** Verified by exact-head CI #638 for both Chromium and Microsoft Edge. Main-reconciliation HEAD `6320229e25fe600458a79c524432b22b138422d0` was also validated by CI #640 (`36236310673`), completing SUCCESS for Windows Native, Chromium and Microsoft Edge with 29 smoke stages in each browser.
+
+## L-054 — Diagnostic browser bridges must preserve user-facing confirmation
+
+- **Date:** 2026-09-26
+- **Area:** V2-7 WU5 Creator Gallery / JavaScriptBridge / browser smoke.
+- **Symptom:** The exposed `customFighterCreatorGalleryConfirmImport()` callback invoked `_gallery_download_import()` directly while the real Download & Import button opened a cancellable ConfirmationDialog. The browser smoke was not exercising the visible confirmation and could not test cancellation.
+- **Root Cause:** Diagnostic convenience callback modeled the result after consent instead of the user action before consent, silently allowing a second unconfirmed import path.
+- **Fix:** Route the test callback through `_gallery_confirm_import()`, expose read-only dialog visibility, and test opening and Escape cancellation with zero revision/package requests followed by real UI Enter confirmation for valid and tampered packages. Capture a sixth screenshot for UI review.
+- **Prevention Rule:** Never give browser diagnostic helpers a more privileged action path than the actual UI, and explicitly test no mutation or network download before acknowledgement and after cancellation.
+- **Validation:** Pending latest-head GitHub-hosted Chromium/Edge CI; older #642 does not validate this fix.
+- **Status:** Pending CI; leave PR #212 unmerged until separately accepted/approved.

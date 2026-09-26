@@ -139,9 +139,24 @@ try {
     });
 
   await captureGallery('03-publication-details');
-  // The user explicitly confirms the revision import; both digest and the existing
-  // self-contained package/Creator validation path must pass.
-  await page.evaluate(() => window.customFighterCreatorGalleryConfirmImport());
+  // Diagnostic bridge must show the *same* cancellable dialog as the real UI.
+  // Opening it and cancelling must not request any immutable content or mutate draft.
+  async function openImportDialog() {
+    await page.evaluate(() => window.customFighterCreatorGalleryConfirmImport());
+    await page.waitForFunction(() => document.documentElement.dataset.creatorGalleryConfirmationVisible === 'true', null, { timeout: 10_000 });
+  }
+  await openImportDialog();
+  await captureGallery('03-confirmation-dialog');
+  assert.equal(count.revision, 0, 'Opening confirmation must not request a revision');
+  assert.equal(count.download, 0, 'Opening confirmation must not download a package');
+  await page.keyboard.press('Escape');
+  await page.waitForFunction(() => document.documentElement.dataset.creatorGalleryConfirmationVisible === 'false', null, { timeout: 10_000 });
+  assert.equal(count.revision, 0, 'Cancelling must not request a revision');
+  assert.equal(await page.evaluate(() => document.documentElement.dataset.creatorDraftName), initialName);
+
+  // Only a real UI acceptance event is allowed to start package download/import.
+  await openImportDialog();
+  await page.keyboard.press('Enter');
   await page.waitForFunction(() => document.documentElement.dataset.creatorGalleryImportStatus === 'valid' &&
     document.documentElement.dataset.creatorGalleryStatus === 'imported' &&
     Number(document.documentElement.dataset.creatorPackageImportCount || '0') >= 1, null, { timeout: 20_000 });
@@ -150,7 +165,8 @@ try {
   assert.equal(await page.evaluate(() => document.documentElement.dataset.creatorDraftName), initialName);
 
   tamperPackage = true;
-  await page.evaluate(() => window.customFighterCreatorGalleryConfirmImport());
+  await openImportDialog();
+  await page.keyboard.press('Enter');
   await page.waitForFunction(() => document.documentElement.dataset.creatorGalleryImportStatus === 'blocked' &&
     document.documentElement.dataset.creatorGalleryStatus === 'blocked', null, { timeout: 20_000 });
   await captureGallery('05-tampered-blocked');
@@ -162,9 +178,9 @@ try {
   if (visualCaptureDir) {
     assert.deepEqual(visualCaptures, [
       '01-provider-unavailable', '02-catalog-list', '03-publication-details',
-      '04-imported', '05-tampered-blocked'
+      '03-confirmation-dialog', '04-imported', '05-tampered-blocked'
     ]);
-    console.log('CREATOR_GALLERY_VISUAL_CAPTURED count=5 source=mock-catalog no-live-provider=true');
+    console.log('CREATOR_GALLERY_VISUAL_CAPTURED count=6 source=mock-catalog no-live-provider=true');
   }
   console.log('CREATOR_GALLERY_BROWSER_SMOKE_PASSED unavailable=true metadataOnly=true exactRevision=true digestVerified=true tamperedRejected=true existingCreatorImport=true');
 } finally {
