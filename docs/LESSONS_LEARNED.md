@@ -610,3 +610,14 @@
 - **Prevention Rule:** Never give browser diagnostic helpers a more privileged action path than the actual UI, and explicitly test no mutation or network download before acknowledgement and after cancellation.
 - **Validation:** Pending latest-head GitHub-hosted Chromium/Edge CI; older #642 does not validate this fix.
 - **Status:** Pending CI; leave PR #212 unmerged until separately accepted/approved.
+
+## L-055 — Bound client-side catalogue accumulation and reject non-advancing cursors
+
+- **Date:** 2026-09-26
+- **Area:** V2-7 WU5 Creator Gallery / untrusted paginated catalogue.
+- **Symptom:** Review found that the client bounded an individual page but could keep appending pages indefinitely, including a repeated cursor or an empty page falsely advertising continuation.
+- **Root Cause:** Per-response validation was not accompanied by an overall displayed-record ceiling or explicit pagination progress check.
+- **Fix:** Limit requested pages to 20 entries, cap in-memory and visible results at 100, reject repeated/non-advancing continuation before appending and disable Next on the display ceiling. Add hosted-browser oversized, stalled, repeat-cursor and five-page regressions without altering package trust.
+- **Prevention Rule:** Check aggregate resource limits and forward progress, not only per-request schema/size, at every untrusted pagination boundary.
+- **Validation:** Pending exact-head GitHub-hosted Chromium and Edge CI; previous CI #643 predates the pagination correction.
+- **Status:** Pending CI, #212 not merged.

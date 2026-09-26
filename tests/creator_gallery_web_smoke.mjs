@@ -53,6 +53,25 @@ try {
     const pathname = url.pathname;
     if (pathname === apiPrefix) {
       count.browse += 1;
+      const cursor = url.searchParams.get('cursor');
+      if (mode === 'oversized') {
+        return route.fulfill({ status: 200, headers, body: JSON.stringify({ ok: true, items: Array.from({ length: 21 }, () => manifest), next_cursor: null }) });
+      }
+      if (mode === 'stalled') {
+        return route.fulfill({ status: 200, headers, body: JSON.stringify({ ok: true, items: [], next_cursor: 'bzox' }) });
+      }
+      if (mode === 'repeat') {
+        return route.fulfill({ status: 200, headers, body: JSON.stringify({ ok: true, items: [manifest], next_cursor: 'bzox' }) });
+      }
+      if (mode === 'bounded') {
+        const pageIndex = cursor === null ? 0 : Number(cursor.slice(1));
+        assert.ok(Number.isInteger(pageIndex) && pageIndex >= 0 && pageIndex < 5 && (cursor === null || cursor === 'p' + pageIndex));
+        const items = Array.from({ length: 20 }, (_, i) => ({
+          ...manifest,
+          publication_id: 'pub_' + String(pageIndex * 20 + i + 1).padStart(32, '0')
+        }));
+        return route.fulfill({ status: 200, headers, body: JSON.stringify({ ok: true, items, next_cursor: 'p' + (pageIndex + 1) }) });
+      }
       return route.fulfill({ status: 200, headers, body: JSON.stringify({ ok: true, items: [manifest], next_cursor: null }) });
     }
     if (pathname === apiPrefix + '/' + publicationId) {
@@ -83,6 +102,8 @@ try {
       document.documentElement.dataset.creatorPackageReady === 'true' &&
       document.documentElement.dataset.creatorPackageCanExport === 'true' &&
       typeof window.customFighterCreatorOpenGallery === 'function' &&
+      typeof window.customFighterCreatorGalleryRefresh === 'function' &&
+      typeof window.customFighterCreatorGalleryNext === 'function' &&
       typeof window.customFighterCreatorGallerySelect === 'function' &&
       typeof window.customFighterCreatorGalleryConfirmImport === 'function',
     null, { timeout: 60_000 }
@@ -121,8 +142,40 @@ try {
   assert.equal(await page.evaluate(() => document.documentElement.dataset.creatorDraftName), initialName);
   assert.equal(await page.evaluate(() => document.documentElement.dataset.creatorGalleryImportStatus), 'idle');
 
-  mode = 'ready';
+  // Malformed pages fail closed without adding rows or changing the Creator draft.
+  for (const malformedMode of ['oversized', 'stalled']) {
+    mode = malformedMode;
+    await page.evaluate(() => window.customFighterCreatorOpenGallery());
+    await page.waitForFunction(() => document.documentElement.dataset.creatorGalleryStatus === 'blocked' &&
+      document.documentElement.dataset.creatorGalleryItems === '0', null, { timeout: 15_000 });
+    assert.equal(await page.evaluate(() => document.documentElement.dataset.creatorDraftName), initialName);
+  }
+
+  // Repeated cursor must never append a duplicate page.
+  mode = 'repeat';
   await page.evaluate(() => window.customFighterCreatorOpenGallery());
+  await page.waitForFunction(() => document.documentElement.dataset.creatorGalleryStatus === 'ready' &&
+    document.documentElement.dataset.creatorGalleryItems === '1', null, { timeout: 15_000 });
+  await page.evaluate(() => window.customFighterCreatorGalleryNext());
+  await page.waitForFunction(() => document.documentElement.dataset.creatorGalleryStatus === 'blocked' &&
+    document.documentElement.dataset.creatorGalleryItems === '1', null, { timeout: 15_000 });
+  assert.equal(await page.evaluate(() => document.documentElement.dataset.creatorDraftName), initialName);
+
+  // A real-looking multi-page catalog stops at the explicit 100-item view limit.
+  mode = 'bounded';
+  await page.evaluate(() => window.customFighterCreatorGalleryRefresh());
+  for (let pageNumber = 1; pageNumber <= 5; pageNumber += 1) {
+    await page.waitForFunction(expected => document.documentElement.dataset.creatorGalleryStatus === 'ready' &&
+      document.documentElement.dataset.creatorGalleryItems === String(expected), pageNumber * 20, { timeout: 15_000 });
+    if (pageNumber < 5) await page.evaluate(() => window.customFighterCreatorGalleryNext());
+  }
+  const browsesAtLimit = count.browse;
+  await page.evaluate(() => window.customFighterCreatorGalleryNext());
+  assert.equal(count.browse, browsesAtLimit, 'Next must be disabled after 100 visible records');
+  assert.equal(await page.evaluate(() => document.documentElement.dataset.creatorDraftName), initialName);
+
+  mode = 'ready';
+  await page.evaluate(() => window.customFighterCreatorGalleryRefresh());
   await page.waitForFunction(() => document.documentElement.dataset.creatorGalleryStatus === 'ready' &&
     document.documentElement.dataset.creatorGalleryItems === '1', null, { timeout: 15_000 });
   await captureGallery('02-catalog-list');
@@ -182,7 +235,7 @@ try {
     ]);
     console.log('CREATOR_GALLERY_VISUAL_CAPTURED count=6 source=mock-catalog no-live-provider=true');
   }
-  console.log('CREATOR_GALLERY_BROWSER_SMOKE_PASSED unavailable=true metadataOnly=true exactRevision=true digestVerified=true tamperedRejected=true existingCreatorImport=true');
+  console.log('CREATOR_GALLERY_BROWSER_SMOKE_PASSED unavailable=true metadataOnly=true exactRevision=true digestVerified=true tamperedRejected=true existingCreatorImport=true paginationBounded=true');
 } finally {
   await browser.close();
 }

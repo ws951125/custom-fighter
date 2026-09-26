@@ -5,7 +5,8 @@ extends "res://game/creator/timeline_creator_studio.gd"
 const GALLERY_API := "https://custom-fighter-ai-vfx-6899.onrender.com/v1/sharing/publications"
 const MAX_GALLERY_PACKAGE_BYTES := 16 * 1024 * 1024
 const MAX_GALLERY_QUERY := 80
-const MAX_GALLERY_RECORDS := 50
+const MAX_GALLERY_PAGE_RECORDS := 20
+const MAX_GALLERY_RECORDS := 100
 
 var gallery_open_button: Button
 var gallery_overlay: ColorRect
@@ -21,6 +22,7 @@ var gallery_confirm: ConfirmationDialog
 
 var _gallery_records: Array = []
 var _gallery_cursor := ""
+var _gallery_requested_cursor := ""
 var _gallery_publication_id := ""
 var _gallery_manifest: Dictionary = {}
 var _gallery_pending := ""
@@ -28,6 +30,8 @@ var _gallery_requested_revision := 0
 var _gallery_last_status := "idle"
 var _gallery_import_status := "idle"
 var _gallery_web_open_callback
+var _gallery_web_refresh_callback
+var _gallery_web_next_callback
 var _gallery_web_select_callback
 var _gallery_web_confirm_import_callback
 
@@ -155,14 +159,28 @@ func _install_gallery_ui() -> void:
 		_gallery_web_open_callback = JavaScriptBridge.create_callback(_gallery_web_open)
 		var window: Variant = JavaScriptBridge.get_interface("window")
 		window.customFighterCreatorOpenGallery = _gallery_web_open_callback
+		_gallery_web_refresh_callback = JavaScriptBridge.create_callback(_gallery_web_refresh)
+		_gallery_web_next_callback = JavaScriptBridge.create_callback(_gallery_web_next)
 		_gallery_web_select_callback = JavaScriptBridge.create_callback(_gallery_web_select)
 		_gallery_web_confirm_import_callback = JavaScriptBridge.create_callback(_gallery_web_confirm_import)
+		window.customFighterCreatorGalleryRefresh = _gallery_web_refresh_callback
+		window.customFighterCreatorGalleryNext = _gallery_web_next_callback
 		window.customFighterCreatorGallerySelect = _gallery_web_select_callback
 		window.customFighterCreatorGalleryConfirmImport = _gallery_web_confirm_import_callback
 	_gallery_status_update("idle", "Open Gallery to browse published metadata. No stored package is trusted automatically.")
 
 func _gallery_web_open(_args: Array) -> void:
 	_gallery_open()
+
+func _gallery_web_refresh(_args: Array) -> void:
+	# Test parity with the visible Refresh button; metadata-only GET.
+	if gallery_overlay.visible:
+		_gallery_search()
+
+func _gallery_web_next(_args: Array) -> void:
+	# Test parity with the visible Next 20 button; no direct import path.
+	if gallery_overlay.visible:
+		_gallery_next()
 
 func _gallery_web_select(args: Array) -> void:
 	# JS numeric callback arguments can cross the Godot Web bridge as int or float.
@@ -215,6 +233,7 @@ func _gallery_search() -> void:
 	if not _gallery_pending.is_empty():
 		return
 	_gallery_cursor = ""
+	_gallery_requested_cursor = ""
 	_gallery_records.clear()
 	_gallery_publication_id = ""
 	_gallery_manifest.clear()
@@ -238,6 +257,7 @@ func _gallery_browse(cursor: String) -> void:
 	var url := GALLERY_API + "?limit=20&q=" + query.uri_encode()
 	if not cursor.is_empty():
 		url += "&cursor=" + cursor.uri_encode()
+	_gallery_requested_cursor = cursor
 	_gallery_send("browse", url)
 
 func _gallery_select(index: int) -> void:
@@ -330,27 +350,40 @@ func _gallery_request_completed(result: int, response_code: int, _headers: Packe
 
 func _gallery_accept_browse(payload: Dictionary) -> void:
 	var items: Variant = payload.get("items")
-	if not items is Array or items.size() > MAX_GALLERY_RECORDS:
-		_gallery_status_update("blocked", "Catalog page was invalid.")
+	if not items is Array or items.size() > MAX_GALLERY_PAGE_RECORDS or _gallery_records.size() + items.size() > MAX_GALLERY_RECORDS:
+		_gallery_cursor = ""
+		_gallery_status_update("blocked", "Catalog page exceeded the browsing limit. Refresh or narrow your search.")
 		return
 	for item in items:
 		if not item is Dictionary or not _gallery_safe_publication_id(str(item.get("publication_id", ""))):
+			_gallery_cursor = ""
 			_gallery_status_update("blocked", "Catalog metadata contains an invalid publication.")
 			return
-	for item in items:
-		_gallery_records.append(item)
-		gallery_items.add_item(str(item.get("title", "Untitled")).substr(0, 80) + " · " + str(item.get("package_id", "")).substr(0, 100) + " · r" + str(item.get("revision", "?")))
+	var safe_next_cursor := ""
 	var next_cursor: Variant = payload.get("next_cursor")
-	_gallery_cursor = ""
 	if next_cursor is String:
-		var safe_cursor: bool = str(next_cursor).length() <= 32
-		for character in str(next_cursor):
+		var cursor_text: String = str(next_cursor)
+		var safe_cursor: bool = cursor_text.length() <= 32
+		for character in cursor_text:
 			if not ("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_-".contains(character)):
 				safe_cursor = false
 				break
 		if safe_cursor:
-			_gallery_cursor = next_cursor
-	_gallery_status_update("ready", "Loaded " + str(_gallery_records.size()) + " publication(s)." if not _gallery_records.is_empty() else "No publications found. The current Creator draft is unchanged.")
+			safe_next_cursor = cursor_text
+	# Reject a repeated cursor or an empty page with a claimed continuation
+	# *before* appending records, to avoid a loop or duplicating visible rows.
+	if not safe_next_cursor.is_empty() and (items.is_empty() or safe_next_cursor == _gallery_requested_cursor):
+		_gallery_cursor = ""
+		_gallery_status_update("blocked", "Catalog pagination did not advance. Refresh or refine the search.")
+		return
+	for item in items:
+		_gallery_records.append(item)
+		gallery_items.add_item(str(item.get("title", "Untitled")).substr(0, 80) + " · " + str(item.get("package_id", "")).substr(0, 100) + " · r" + str(item.get("revision", "?")))
+	_gallery_cursor = safe_next_cursor if _gallery_records.size() < MAX_GALLERY_RECORDS else ""
+	if _gallery_records.size() >= MAX_GALLERY_RECORDS:
+		_gallery_status_update("ready", "Loaded 100 publications (view limit). Narrow search for more.")
+	else:
+		_gallery_status_update("ready", "Loaded " + str(_gallery_records.size()) + " publication(s)." if not _gallery_records.is_empty() else "No publications found. The current Creator draft is unchanged.")
 
 func _gallery_accept_detail(payload: Dictionary) -> void:
 	var manifest: Variant = payload.get("manifest")
