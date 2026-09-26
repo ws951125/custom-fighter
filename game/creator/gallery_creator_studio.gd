@@ -328,8 +328,8 @@ func _gallery_accept_browse(payload: Dictionary) -> void:
 	var next_cursor: Variant = payload.get("next_cursor")
 	_gallery_cursor = ""
 	if next_cursor is String:
-		var safe_cursor := next_cursor.length() <= 32
-		for character in next_cursor:
+		var safe_cursor: bool = str(next_cursor).length() <= 32
+		for character in str(next_cursor):
 			if not ("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_-".contains(character)):
 				safe_cursor = false
 				break
