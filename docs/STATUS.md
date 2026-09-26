@@ -55,7 +55,7 @@ Work Unit 2 — **merged to main; PR validation complete**:
 - The currently available GitHub connector exposes PR-triggered workflow runs but not the `main` push run for that merge SHA, so exact-main workflow/deployment acceptance for #207 remains **Residual Risk / evidence not currently observable through the connector** rather than being guessed as PASS.
 - No Creator Gallery UX, durable provider, auth provider, production catalog or automatic PvP trust is added in WU2.
 
-Work Unit 3 — **HTTP catalog contract implemented on `feat/v2-7-wu3-http-catalog`; PR validation pending**:
+Work Unit 3 — **HTTP catalog contract implemented and PR-validated on `feat/v2-7-wu3-http-catalog`; awaiting explicit merge approval**:
 - Added `backend/sharing/http_api.mjs` with bounded HTTP routes:
   - `POST /v1/sharing/publications` — publish;
   - `GET /v1/sharing/publications` — browse/search with bounded query/tags/page size/cursor;
@@ -68,7 +68,7 @@ Work Unit 3 — **HTTP catalog contract implemented on `feat/v2-7-wu3-http-catal
 - Added `backend/sharing/catalog_service.mjs` and extended the deterministic in-memory test repository with bounded metadata-only search, stable pagination, latest-publication detail and exact immutable revision reads. Search indexes manifest metadata only and never package runtime fields.
 - Existing server Origin/CORS policy is preserved; preflight now allows the future `Authorization` header without weakening the origin allow-list.
 - Added `tests/sharing_http_api_test.mjs` covering trusted identity, body publisher forgery rejection, CORS/origin rules, publish/idempotency/version-conflict status contracts, metadata-only search, pagination, exact revision download, 404/405/413/503 contracts and default production fail-closed behavior. It is wired into `test:backend`.
-- GitHub-hosted PR validation is still pending; no PASS is claimed yet.
+- PR #208 implementation head `90ab7ea354fb2ce488f7320414ab8ac82c689d90` passed CI #607 (`36225607371`): Windows Native, Godot import/boot/domain tests, trusted-backend tests including `SHARING_HTTP_API_TESTS_PASSED`, Web export/size budget, Chromium `smoke:all`, and GitHub-hosted Microsoft Edge `smoke:all` all completed SUCCESS.
 - V2 remains **75% (6/8)** until complete V2-7 acceptance.
 
 ### V2-6 implementation checkpoints
@@ -723,7 +723,7 @@ AI VFX backend: `https://custom-fighter-ai-vfx-6899.onrender.com`
 
 ## Next implementation target
 
-Complete V2-7 **Work Unit 3** through GitHub-hosted PR validation on `feat/v2-7-wu3-http-catalog`. After WU3 is merged and exact-main evidence is available, begin **Work Unit 4 — durable free-tier persistence + publisher identity**, using only no-cost production infrastructure and keeping credentials server-side.
+Complete V2-7 **Work Unit 3** through latest-head PR validation and explicit merge approval on `feat/v2-7-wu3-http-catalog`. After WU3 is merged and exact-main evidence is available, begin **Work Unit 4 — durable free-tier persistence + publisher identity**, using only no-cost production infrastructure and keeping credentials server-side.
 
 
 ## V2-6 WU2 — server-side package authority admission (2026-09-24)
