@@ -7,6 +7,7 @@ import { createPvpSessionService } from './pvp/session_service.mjs';
 import { createAuthoritativeMatch } from './pvp/authoritative_match.mjs';
 import { attachPvpWebSocketTransport } from './pvp/websocket_transport.mjs';
 import { PVP_PROTOCOL_VERSION } from './pvp/protocol.mjs';
+import { resolveTrustedCompetitivePackage } from './pvp/trusted_package_catalog.mjs';
 
 const PORT = Number(process.env.PORT || 8787);
 const DEFAULT_ALLOWED_ORIGIN = process.env.CUSTOM_FIGHTER_ALLOWED_ORIGIN || 'https://ws951125.github.io';
@@ -44,7 +45,7 @@ async function readJson(req) {
 export function createServer({
   service = createVfxResponse,
   allowedOrigin = DEFAULT_ALLOWED_ORIGIN,
-  pvpPackageResolver,
+  pvpPackageResolver = resolveTrustedCompetitivePackage,
   pvpTickIntervalMs = 1000 / 60,
   pvpReconnectWindowMs = 10_000,
   pvpHeartbeatTimeoutMs = 15_000,

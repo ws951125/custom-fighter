@@ -13,6 +13,7 @@ const smokeScripts = [
   'smoke:character-selection',
   'smoke:competitive-local',
   'smoke:network-pvp',
+  'smoke:network-pvp-online-acceptance',
   'smoke:character-animation',
   'smoke:creator',
   'smoke:creator-skill',
