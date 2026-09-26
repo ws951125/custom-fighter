@@ -1,0 +1,239 @@
+# V2-7 Creator Sharing Ecosystem — Inventory and Architecture Freeze
+
+Date: 2026-09-26  
+Base main: `6d06639b9c1ceea859dcf1c58a35cd7dbb9d93cb`
+
+## Purpose
+
+Freeze the existing package/sharing boundary and the minimum safe sequence for V2-7 before product implementation. V2 remains **75% (6/8 phases complete)** until the full V2-7 acceptance criterion passes.
+
+V2-7 acceptance remains:
+
+> One user can publish a safe character package and another user can discover, download, validate, import and play it without exchanging files manually.
+
+## Current package capability
+
+### Runtime/package formats
+
+- `CharacterPackageDefinition` is the legacy/core package contract:
+  - schema version **1**;
+  - required `package_id`, `package_version`, character and skills;
+  - `package_id` must match character ID;
+  - strict top-level and skill allow-lists;
+  - safe lowercase reference tokens;
+  - referenced skills must resolve exactly;
+  - no arbitrary executable content.
+- `SelfContainedCharacterPackageDefinition` is the current Creator transport contract:
+  - current schema version **2**;
+  - legacy schema-v1 import compatibility;
+  - optional validated `animation_map`, Animation PNG, `audio_bindings`, WAV and VFX PNG;
+  - malformed/oversized/unknown/mismatched assets fail closed;
+  - embedded asset bytes are decoded and validated before becoming runtime state.
+- Creator package JSON is bounded by `MAX_PACKAGE_JSON_BYTES = 16 MiB`.
+- `package_version` already exists and must be at least 1, but Creator export currently emits version **1** and there is no update/revision workflow.
+
+### Current Creator UX
+
+`game/creator/package_creator_studio.gd` provides:
+
+- **Export Package** — validates Creator state, serializes the package and downloads `<package_id>.custom-fighter.json`;
+- **Import Package** — opens a Web JSON file picker, enforces the package size boundary, validates the package, checks Creator compatibility, restores drafts and refreshes Creator state;
+- Web bridge functions for export/import and package-file errors.
+
+`package_vfx_creator_studio.gd` extends this flow to self-contained schema v2 with optional animation/audio/VFX assets.
+
+The current flow is therefore **manual file exchange only**.
+
+## Existing trust boundaries that V2-7 must preserve
+
+1. Player-created content stays declarative. Publishing/downloading must never introduce GDScript, executables, native libraries, shell/Python code or arbitrary script execution.
+2. A downloaded package is never trusted merely because the catalog returned it. The full package must pass the existing package validator again before import/apply.
+3. Catalog metadata is display/search data only. It must never override character/skill/runtime fields inside the validated package.
+4. Browser-supplied identifiers, fingerprints, author IDs or compatibility claims are not authority.
+5. PvP trust remains a separate boundary. Publishing a Gallery package must **not** automatically make it a server-trusted competitive package. Competitive admission continues through the V2-6 server authority/fingerprint/ruleset/power-budget path.
+6. Package payloads remain lazy-loaded/on-demand so user content is not bundled into the core GitHub Pages PCK.
+
+## Current backend/infrastructure inventory
+
+The Render backend currently exposes:
+
+- `GET /healthz`;
+- `POST /v1/vfx/generate`;
+- `WS /v1/pvp/ws`.
+
+There is currently:
+
+- no sharing/catalog HTTP API;
+- no publish endpoint;
+- no browse/search endpoint;
+- no package download endpoint;
+- no persistent catalog/object storage adapter;
+- no publisher-auth/identity adapter;
+- no Supabase or other storage integration in this repository.
+
+The existing backend body reader is capped at **8 MiB**, which is lower than the Creator package ceiling. A future sharing upload route must use its own bounded **16 MiB** body policy without widening unrelated VFX routes.
+
+## Missing sharing metadata
+
+The current package carries runtime identity/version data but not Gallery metadata. V2-7 needs a separate server-derived publication manifest rather than adding untrusted Gallery fields into the runtime package.
+
+Frozen manifest-v1 public fields:
+
+- `manifest_schema_version` — 1;
+- `publication_id` — server-owned stable publication identity;
+- `package_id`;
+- `package_version`;
+- `package_schema_version`;
+- `revision` — server-assigned immutable revision number;
+- `content_sha256` — server-derived digest of the stored package payload/canonical publication bytes;
+- `byte_size` — server-derived;
+- `title` — plain text, 1–80 chars;
+- `description` — plain text, max 500 chars;
+- `tags` — max 8 lowercase safe tokens, each max 24 chars;
+- `publisher_id` — opaque server-owned public publisher identifier;
+- `created_at` / `updated_at` — server-owned timestamps.
+
+Rules:
+
+- no HTML/Markdown execution;
+- no arbitrary URLs in manifest v1;
+- title/description/tags never participate in runtime authority;
+- search indexes only bounded manifest metadata;
+- `content_sha256`, byte size, schema/version and timestamps are derived/validated server-side, never trusted from request JSON.
+
+## Frozen revision/update semantics
+
+- `publication_id` is stable for one publisher + package identity.
+- Every accepted content change creates an immutable server-assigned `revision = previous + 1`.
+- `package_version` may stay the same only when the uploaded content digest is identical; same package version with a different digest is rejected.
+- `package_version` must never decrease for an existing publication.
+- Re-uploading the exact same digest is idempotent and must not create duplicate revisions.
+- Download URLs/API responses identify an exact revision; Gallery "latest" resolves to the latest accepted revision.
+- Old revisions remain addressable for deterministic compatibility/rollback testing unless a later moderation/deletion policy explicitly marks them unavailable.
+
+## Frozen service boundaries
+
+### Client / Creator
+
+Creator is responsible for:
+
+- building the existing self-contained package;
+- sending bounded publication metadata plus the package payload;
+- browsing/searching manifest data;
+- downloading an exact revision;
+- re-running the existing package validator before applying downloaded content;
+- showing validation/import failure without mutating the current valid draft.
+
+Creator is **not** responsible for assigning publication IDs, revisions, digests, publisher identity or trust.
+
+### Sharing backend
+
+The Render sharing API will be responsible for:
+
+- authenticating/resolving a publisher through an adapter boundary;
+- validating publication metadata;
+- validating the full self-contained package before persistence;
+- deriving digest/byte size/schema/version/package identity;
+- applying immutable revision rules;
+- persisting package bytes and manifest atomically through a repository/storage adapter;
+- serving bounded browse/search metadata;
+- serving exact package revisions.
+
+Until a production publisher-identity adapter is configured, publish must fail closed; public read-only browsing can remain independently available.
+
+### Persistence
+
+V2-7 must use a provider-neutral repository/storage interface:
+
+- metadata/catalog store;
+- package-object store;
+- publisher identity adapter.
+
+Production persistence must be durable and **no-cost/free-tier** under the project cost policy. No provider is silently selected in this inventory work unit. Provider credentials remain server-side and never enter Git or browser storage.
+
+## Work-unit sequence
+
+### Work Unit 1 — inventory + architecture freeze
+
+Status: **this work unit**.
+
+- inventory existing package/Creator/backend boundaries;
+- freeze manifest v1;
+- freeze revision/update semantics;
+- freeze client/server/trust boundaries;
+- freeze the implementation sequence below.
+
+Acceptance: repository docs describe an implementation-ready sharing contract without weakening existing package/PvP security.
+
+### Work Unit 2 — publication manifest + sharing domain service
+
+Implement provider-neutral backend domain logic for:
+
+- metadata validation;
+- full package validation adapter;
+- server-derived SHA-256 / byte size;
+- immutable revision/idempotency rules;
+- repository interface;
+- deterministic unit tests with an in-memory test repository only.
+
+No public production persistence claim in WU2.
+
+### Work Unit 3 — HTTP catalog contract
+
+Add bounded Render API routes:
+
+- publish;
+- browse/search;
+- publication/revision detail;
+- exact package download.
+
+Requirements:
+
+- existing origin policy;
+- route-specific 16 MiB publication body cap;
+- read/write error contracts;
+- publish fails closed when publisher authentication or durable repository is unavailable;
+- backend regression coverage.
+
+### Work Unit 4 — durable free-tier persistence + publisher identity
+
+Connect the provider-neutral adapters to a durable no-cost production catalog/object store and publisher-identity mechanism.
+
+This work unit may require explicit external account/secret authorization. No paid service is permitted.
+
+### Work Unit 5 — Creator Gallery UX
+
+Add Creator-facing:
+
+- Publish;
+- Gallery/Browse;
+- Search;
+- package detail/revision view;
+- Download & Import.
+
+Downloaded content must be revalidated through the existing self-contained package path before draft mutation.
+
+### Work Unit 6 — update/revision UX + cross-user production acceptance
+
+Add safe update/revision handling and prove the complete production contract:
+
+1. User A publishes a safe package.
+2. User B discovers it through Gallery/search.
+3. User B downloads one exact revision.
+4. Client validation succeeds.
+5. Creator import succeeds.
+6. Training can play the imported package.
+7. Tampered/incompatible packages fail closed.
+8. Same-version/different-content update is rejected; valid monotonic update creates a new immutable revision.
+9. Existing package/PvP regressions stay green.
+
+V2 advances from **75% to 87.5% (7/8)** only after this full acceptance and evidence are synchronized.
+
+## Explicit non-goals for early V2-7 work
+
+- Do not turn Gallery publication into automatic competitive/PvP trust.
+- Do not execute uploaded code.
+- Do not bundle Gallery packages into the startup PCK.
+- Do not choose a paid persistence/auth provider.
+- Do not weaken current package size/type/schema validation.
+- Do not overwrite historical package revisions in place.
