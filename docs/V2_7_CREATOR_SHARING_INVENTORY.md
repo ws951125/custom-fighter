@@ -232,7 +232,17 @@ Production activation still requires an explicitly approved dedicated no-cost Su
 
 ### Work Unit 5 — Creator Gallery UX
 
-Add Creator-facing:
+Status: **read-side first slice implemented on `feat/v2-7-wu5-creator-gallery-browse`, pending hosted PR CI and user UX acceptance. Production persistence/auth is not yet provisioned.**
+
+Delivered in this slice:
+- Creator Gallery overlay with bounded metadata browse/search, pagination, publication detail/revision selector;
+- explicit download/import confirmation and immutable revision retrieval;
+- 16 MiB byte cap, UTF-8 byte-size + SHA-256 parity and existing Self-contained Package validation before Creator import;
+- unavailable/invalid/error states; no silent draft mutation from catalogue data;
+- Publish button clearly disabled until a separately approved dedicated Free storage provider and real sign-in path exist;
+- deterministic browser mock for 503 fail-closed, metadata read/detail, exact revision import and tampered download rejection in Chromium and Edge `smoke:all`.
+
+Still to add or complete:
 
 - Publish;
 - Gallery/Browse;
