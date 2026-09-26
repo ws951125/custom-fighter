@@ -45,12 +45,13 @@ Work Unit 1 — **merged and exact-main production validated**:
 - PR #206 latest head `74ed26be6d39b117b31078252890a17100c85524` passed CI #602 (`36216830845`) across Windows Native, Godot import/boot/domain/backend, Web export/size budget, Chromium `smoke:all` and hosted Microsoft Edge `smoke:all`.
 - PR #206 was merged to `main` as `25c3c9f330e06d83375413fc715579d6b2571dae`. Exact-main CI #603 (`36218509698`) completed SUCCESS, including Pages deployment/public reachability, Production Backend Readiness and Windows Edge Production Full Smoke. Render deploy `dep-darkpa8ae00c73ac8vmg` is live on the exact merge SHA.
 
-Work Unit 2 — **publication manifest + provider-neutral sharing domain service implementation in progress on feature branch**:
+Work Unit 2 — **publication manifest + provider-neutral sharing domain service implemented and PR-validated; awaiting explicit merge approval**:
 - Added `backend/sharing/publication_service.mjs` with manifest-v1 metadata validation, trusted publisher ID boundary, canonical package JSON, server-derived SHA-256/byte size, deterministic stable publication IDs, immutable revision semantics, package-version rollback/reuse rejection and exact-replay idempotency.
 - Added `backend/sharing/in_memory_publication_repository.mjs` as a deterministic provider-neutral test repository with optimistic revision checks, immutable revision history and defensive copies. This is test infrastructure only, not a production persistence claim.
 - The service requires an injected full-package validator and fails closed when the validator or repository is unavailable. Validator output must exactly match the package envelope identity/schema/version before persistence.
 - Added `tests/sharing_publication_service_test.mjs` covering metadata allow-list/limits, canonical digest stability, idempotent replay, metadata revisioning, same-version/different-content rejection, monotonic package versions, cross-publisher identity separation, unsafe package rejection through the validator adapter, validator failures/mismatch, repository absence/conflict and package-size limits.
 - Wired the sharing regression into `npm run test:backend`.
+- PR #207 implementation head `6e44a3e0ff4a3e74b163768038e8d17bb225195a` passed CI #604 (`36221329852`): Windows Native, Godot import/boot/domain, trusted-backend tests including the new sharing publication regressions, Web export/size budget, Chromium `smoke:all`, and GitHub-hosted Microsoft Edge `smoke:all` all passed.
 - No HTTP route, Creator Gallery UX, durable provider, auth provider, production catalog or automatic PvP trust is added in WU2.
 - V2 remains **75% (6/8)** until complete V2-7 acceptance.
 

@@ -236,4 +236,4 @@ The architecture previously allowed a future local/open-model AI provider such a
 
 ## Next implementation target
 
-V2-7 Work Unit 2 is implemented on `feat/v2-7-wu2-sharing-domain` and awaits GitHub PR validation. After WU2 merge/exact-main acceptance, begin **Work Unit 3 — HTTP catalog contract**: bounded publish, browse/search, publication/revision detail and exact package download routes. Production writes must remain fail-closed until the later durable free-tier persistence + publisher-identity work unit is configured.
+V2-7 Work Unit 2 is implemented and PR-validated on `feat/v2-7-wu2-sharing-domain`; PR #207 awaits explicit merge approval. After WU2 merge/exact-main acceptance, begin **Work Unit 3 — HTTP catalog contract**: bounded publish, browse/search, publication/revision detail and exact package download routes. Production writes must remain fail-closed until the later durable free-tier persistence + publisher-identity work unit is configured.
