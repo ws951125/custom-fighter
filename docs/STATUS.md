@@ -5,9 +5,9 @@
 **V1/MVP is complete; V2 roadmap is now active.**
 
 - V1 completion remains **100% (13/13 phases complete)**.
-- V2 completion is **62.5% (5/8 phases complete)**.
-- Completed V2 phases: **V2-1 Advanced Creator Timeline**, **V2-2 Extended Skill Families**, **V2-3 Character Animation & Audio Authoring**, **V2-4 AI Opponents & Single-player Gameplay**, and **V2-5 Game Modes, Balance & Competitive Foundation**.
-- Active V2 phase: **V2-6 Network PvP**.
+- V2 completion is **75% (6/8 phases complete)**.
+- Completed V2 phases: **V2-1 Advanced Creator Timeline**, **V2-2 Extended Skill Families**, **V2-3 Character Animation & Audio Authoring**, **V2-4 AI Opponents & Single-player Gameplay**, **V2-5 Game Modes, Balance & Competitive Foundation**, and **V2-6 Network PvP**.
+- Active V2 phase: **V2-7 Creator Sharing Ecosystem**.
 
 V1 roadmap:
 - M0–M8 MVP: 9/9 complete.
@@ -25,13 +25,21 @@ V2 roadmap is defined in `docs/V2_ROADMAP.md` and captures previously discussed/
 3. V2-3 Character Animation & Audio Authoring — **complete**.
 4. V2-4 AI Opponents & Single-player Gameplay — **complete**.
 5. V2-5 Game Modes, Balance & Competitive Foundation — **complete**.
-6. V2-6 Network PvP — **in progress**.
-7. V2-7 Creator Sharing Ecosystem — pending.
+6. V2-6 Network PvP — **complete**.
+7. V2-7 Creator Sharing Ecosystem — **in progress**.
 8. V2-8 Mobile Targets — pending.
 
-V2-1 delivered visual event timeline authoring, startup/active/recovery timing, animation/VFX/audio events, hitbox/hurtbox timing and spatial editing, safe multi-event compositions, validation, and Creator → Training preview round trip. V2-2 extended the data-driven skill engine beyond the six V1 families and is accepted complete with bounded Beam/Trap/Aura/Teleport/Counter/Grab/Summon families plus safe declarative scripted compositions. V2-3 is accepted complete with safe animation/audio authoring, self-contained package transport, fresh-session restore, runtime Animation PNG rendering, and packaged WAV playback. V2-4 AI Opponents & Single-player Gameplay is accepted complete with deterministic active opponents, bounded difficulty profiles, validated selectable stages, and deployed win/loss/restart/return single-player acceptance. V2-5 Game Modes, Balance & Competitive Foundation is accepted complete with frozen competitive rules, power-budget enforcement, deterministic authority snapshots/fingerprints, local competitive authority runtime, and Chromium/hosted-Edge acceptance. V2-6 Network PvP is now active.
+V2-1 delivered visual event timeline authoring, startup/active/recovery timing, animation/VFX/audio events, hitbox/hurtbox timing and spatial editing, safe multi-event compositions, validation, and Creator → Training preview round trip. V2-2 extended the data-driven skill engine beyond the six V1 families and is accepted complete with bounded Beam/Trap/Aura/Teleport/Counter/Grab/Summon families plus safe declarative scripted compositions. V2-3 is accepted complete with safe animation/audio authoring, self-contained package transport, fresh-session restore, runtime Animation PNG rendering, and packaged WAV playback. V2-4 AI Opponents & Single-player Gameplay is accepted complete with deterministic active opponents, bounded difficulty profiles, validated selectable stages, and deployed win/loss/restart/return single-player acceptance. V2-5 Game Modes, Balance & Competitive Foundation is accepted complete with frozen competitive rules, power-budget enforcement, deterministic authority snapshots/fingerprints, local competitive authority runtime, and Chromium/hosted-Edge acceptance. V2-6 Network PvP is accepted complete with server-trusted custom-package admission, server-authoritative input/state/combat, reconnect/forfeit/latency handling, and exact-main two-client Production Edge acceptance. V2-7 Creator Sharing Ecosystem is now active.
 
 ### V2-6 implementation checkpoints
+
+Work Unit 6 / phase completion — **merged and exact-main production accepted**:
+- PR #204 was explicitly approved and squash-merged to `main` as `26563016e986126dde4104f8093d6ec3cbaa9a01`.
+- Render auto-deploy `dep-darhf8ou01pc73e7526g` deployed that exact main revision to `custom-fighter-ai-vfx-6899` and reached `live`.
+- Exact-main CI #598 (`36206515990`) attempt 1 passed Windows Native, Godot/domain/backend, Web export/size, Chromium, hosted Edge, Pages deployment, public reachability and Production Backend Readiness. Production Edge also emitted `NETWORK_PVP_WU6_ONLINE_ACCEPTANCE_PASSED` for Creator Blaze/Frost, forged damage/cooldown rejection and a real authoritative combat finish before a later unchanged `creator_ai_skill_proposal_web_smoke.mjs:103` 6-second wait timed out.
+- Per L-043, the unchanged exact-main SHA was retried without product/test/timeout changes. CI #598 attempt 2 completed **SUCCESS**, including Windows Edge Production Full Smoke against GitHub Pages + Render production WSS.
+- The attempt-1 failure is therefore classified as a hosted-Edge timing transient rather than a V2-6 regression.
+- V2-6 acceptance is complete. V2 advances to **75% (6/8 phases complete)** and V2-7 is the active phase.
 
 Work Unit 1 — **session/lobby + authority admission contract implemented; required PR validation passed on implementation head**:
 - New `backend/pvp/protocol.mjs` defines protocol v1, `server_authoritative` policy, exact client loadout-claim fields, strict IDs/fingerprint/schema validation, authority-summary validation and compatibility keys.
@@ -675,7 +683,7 @@ AI VFX backend: `https://custom-fighter-ai-vfx-6899.onrender.com`
 
 ## Next implementation target
 
-PR #204 is the **V2-6 Work Unit 6 — full two-client online acceptance** merge candidate. Product head `4dd6c8dcc9cd696cfffab45532db02b7ffd8db6c` passed CI #596; after latest-head docs CI passes and explicit merge approval is given, squash-merge WU6 and require exact-main GitHub Pages + Render production WSS acceptance before declaring V2-6 complete.
+V2-6 is accepted complete on exact main `26563016e986126dde4104f8093d6ec3cbaa9a01` after CI #598 attempt 2 passed the complete Production Edge smoke suite. Next implementation target: begin **V2-7 Creator Sharing Ecosystem** with a repository inventory of current package export/import, metadata/versioning, trust/validation boundaries, and the minimum safe publish → discover → download/import architecture.
 ## V2-6 WU2 — server-side package authority admission (2026-09-24)
 - Added a server-owned PvP package authority adapter for built-in and bounded custom loadouts.
 - Built-in competitive characters are admitted only when the client claim matches the server-frozen V2-5 fingerprint.

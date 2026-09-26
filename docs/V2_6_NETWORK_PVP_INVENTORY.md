@@ -108,7 +108,7 @@ Implementation scope:
 
 ### Work Unit 6 — full two-client online acceptance
 
-Status: **implementation complete and PR-validated in PR #204; product head `4dd6c8dcc9cd696cfffab45532db02b7ffd8db6c` passed CI #596 (`36143393328`); awaiting latest-head docs validation, explicit merge approval and exact-main production acceptance**.
+Status: **complete — PR #204 merged to `main` as `26563016e986126dde4104f8093d6ec3cbaa9a01`; exact-main CI #598 (`36206515990`) attempt 2 passed the complete GitHub Pages + Render production WSS acceptance suite**.
 
 Acceptance implementation:
 - two server-trusted declarative custom packages (`creator_blaze_001`, `creator_frost_001`) resolve through the existing custom-package validator and deterministic fingerprint authority path;
@@ -121,7 +121,14 @@ Acceptance implementation:
 
 ## Progress rule
 
-V2 remains **62.5% (5/8 phases complete)** throughout partial V2-6 work. It advances to **75% (6/8)** only after the complete V2-6 acceptance criterion passes and evidence is synchronized.
+V2-6 is **complete**. V2 is now **75% (6/8 phases complete)**; the next active phase is V2-7 Creator Sharing Ecosystem.
+
+## V2-6 WU6 production acceptance (2026-09-26)
+- PR #204 was squash-merged to `main` as `26563016e986126dde4104f8093d6ec3cbaa9a01` after explicit approval.
+- Render auto-deploy `dep-darhf8ou01pc73e7526g` reached `live` on that exact revision.
+- Main CI #598 attempt 1 passed the WU6 production acceptance itself: two server-trusted custom characters joined one lobby, forged client combat state was rejected with `INPUT_INTENT_FIELDS_INVALID`, movement synchronized and combat finished server-authoritatively with `result_reason=combat`.
+- A later unchanged Creator AI skill-proposal smoke missed a 6-second hosted-Edge observation window at line 103. Same-SHA attempt 2 passed the complete workflow without any product/test/timeout change, consistent with L-043.
+- Final gates: Windows Native PASS; Godot/domain/backend PASS; Chromium `smoke:all` PASS; hosted Edge `smoke:all` PASS; GitHub Pages deploy/public reachability PASS; Render exact-revision readiness PASS; Windows Edge Production Full Smoke PASS.
 
 
 ## V2-6 WU2 — server-side package authority admission (2026-09-24)
