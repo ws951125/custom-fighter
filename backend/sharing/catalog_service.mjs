@@ -1,11 +1,12 @@
 const PUBLICATION_ID_RE = /^pub_[a-f0-9]{32}$/;
 const TAG_RE = /^[a-z0-9][a-z0-9_-]{0,23}$/;
-const CURSOR_RE = /^[A-Za-z0-9_-]{0,128}$/;
+const CURSOR_RE = /^[A-Za-z0-9_-]{0,32}$/;
 const CONTROL_RE = /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/;
 
 export const DEFAULT_CATALOG_PAGE_SIZE = 20;
 export const MAX_CATALOG_PAGE_SIZE = 50;
 export const MAX_SEARCH_QUERY_LENGTH = 80;
+export const MAX_CATALOG_OFFSET = 100_000;
 
 function reject(code, details = {}) {
   return { ok: false, code, ...details };
@@ -42,6 +43,30 @@ function normalizeTags(value) {
   return { ok: true, tags };
 }
 
+function encodeCursor(offset) {
+  return Buffer.from(`o:${offset}`, 'utf8').toString('base64url');
+}
+
+function decodeCursor(cursor) {
+  if (cursor === '') return { ok: true, offset: 0 };
+  if (!CURSOR_RE.test(cursor)) return reject('CATALOG_CURSOR_INVALID');
+
+  let text = '';
+  try {
+    text = Buffer.from(cursor, 'base64url').toString('utf8');
+  } catch {
+    return reject('CATALOG_CURSOR_INVALID');
+  }
+  const match = text.match(/^o:(\d+)$/);
+  if (!match || encodeCursor(Number(match[1])) !== cursor) return reject('CATALOG_CURSOR_INVALID');
+
+  const offset = Number(match[1]);
+  if (!Number.isSafeInteger(offset) || offset < 0 || offset > MAX_CATALOG_OFFSET) {
+    return reject('CATALOG_CURSOR_INVALID');
+  }
+  return { ok: true, offset };
+}
+
 export function normalizeCatalogQuery(input = {}) {
   if (!input || typeof input !== 'object' || Array.isArray(input)) {
     return reject('CATALOG_QUERY_INVALID');
@@ -70,16 +95,16 @@ export function normalizeCatalogQuery(input = {}) {
   }
 
   const cursor = input.cursor === undefined ? '' : input.cursor;
-  if (typeof cursor !== 'string' || !CURSOR_RE.test(cursor)) {
-    return reject('CATALOG_CURSOR_INVALID');
-  }
+  if (typeof cursor !== 'string') return reject('CATALOG_CURSOR_INVALID');
+  const cursorResult = decodeCursor(cursor);
+  if (!cursorResult.ok) return cursorResult;
 
   return {
     ok: true,
     query: query.trim().toLowerCase(),
     tags: tagsResult.tags,
     limit,
-    cursor
+    offset: cursorResult.offset
   };
 }
 
@@ -102,19 +127,18 @@ export function createCatalogService({ repository } = {}) {
         query: normalized.query,
         tags: normalized.tags,
         limit: normalized.limit,
-        cursor: normalized.cursor
+        offset: normalized.offset
       });
-      if (
-        !result ||
-        !Array.isArray(result.items) ||
-        !(result.next_cursor === null || typeof result.next_cursor === 'string')
-      ) {
+      if (!result || !Array.isArray(result.items) || typeof result.has_more !== 'boolean') {
         return reject('REPOSITORY_RESULT_INVALID');
       }
+      if (result.items.length > normalized.limit) return reject('REPOSITORY_RESULT_INVALID');
+
+      const nextOffset = normalized.offset + result.items.length;
       return {
         ok: true,
         items: clone(result.items),
-        next_cursor: result.next_cursor
+        next_cursor: result.has_more ? encodeCursor(nextOffset) : null
       };
     } catch {
       return reject('REPOSITORY_ERROR');
@@ -185,3 +209,5 @@ export function createCatalogService({ repository } = {}) {
     downloadRevision
   });
 }
+
+export const _test = Object.freeze({ encodeCursor, decodeCursor });
