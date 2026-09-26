@@ -214,7 +214,7 @@ No durable production repository or production publisher-identity provider is cl
 
 ### Work Unit 4 — durable free-tier persistence + publisher identity
 
-Status: **adapter/schema checkpoint implemented on `feat/v2-7-wu4-supabase-adapters`; PR validation pending; external resource activation not authorized or performed**.
+Status: **adapter/schema checkpoint implemented and PR-validated on `feat/v2-7-wu4-supabase-adapters`; PR #209 implementation head `4d5273395c7900a7ce4fcadb7b84652a7d8374f8` passed CI #611 (`36227868025`); awaiting explicit merge approval. External resource activation is not authorized or performed.**
 
 Provider decision checkpoint:
 - Supabase is the no-cost candidate because one dedicated project can provide Auth plus durable Postgres/Data API under the connected Free organization.
@@ -229,6 +229,7 @@ Implemented repository-side groundwork:
 - `backend/server.mjs` can consume the adapters only when all Custom Fighter Supabase environment values are complete. Missing/partial configuration remains disabled or invalid without leaking secrets.
 - Production Publish is **still intentionally fail-closed** because the authoritative Self-contained Package validator exists in Godot/GDScript but does not yet have a server-side Node parity implementation.
 - Deterministic provider/schema security regressions are wired into the existing backend CI gate.
+- PR #209 CI #611 passed Windows Native, Godot/domain/backend including the Supabase regressions, Web export/size budget, Chromium and hosted Microsoft Edge on the exact implementation head.
 
 Remaining WU4 acceptance:
 1. complete server-side Self-contained Package validator parity without weakening existing GDScript validation;
