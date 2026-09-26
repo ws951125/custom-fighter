@@ -194,6 +194,16 @@ func _gallery_safe_publication_id(value: String) -> bool:
 			return false
 	return true
 
+func _gallery_positive_integer(raw: Variant, maximum: int) -> int:
+	# JSON.parse_string can represent integer-looking JSON numbers as floats.
+	# Reject fractions, strings, negative values, and out-of-range values.
+	if not (raw is int or raw is float):
+		return -1
+	var value: int = int(raw)
+	if value < 1 or value > maximum or float(value) != float(raw):
+		return -1
+	return value
+
 func _gallery_search_submitted(_value: String) -> void:
 	_gallery_search()
 
@@ -346,11 +356,12 @@ func _gallery_accept_detail(payload: Dictionary) -> void:
 	_gallery_manifest = manifest.duplicate(true)
 	gallery_revision.clear()
 	for raw_revision in revisions:
-		if not raw_revision is int or raw_revision < 1 or raw_revision > 1000000:
+		var revision_number: int = _gallery_positive_integer(raw_revision, 1000000)
+		if revision_number < 1:
 			gallery_revision.clear()
 			_gallery_status_update("blocked", "Publication revision list was invalid.")
 			return
-		gallery_revision.add_item(str(raw_revision), raw_revision)
+		gallery_revision.add_item(str(revision_number), revision_number)
 	if gallery_revision.item_count == 0:
 		_gallery_status_update("blocked", "No accepted revisions were returned.")
 		return
@@ -361,13 +372,13 @@ func _gallery_accept_detail(payload: Dictionary) -> void:
 
 func _gallery_accept_manifest(payload: Dictionary) -> void:
 	var manifest: Variant = payload.get("manifest")
-	if not manifest is Dictionary or str(manifest.get("publication_id", "")) != _gallery_publication_id or manifest.get("revision", -1) != _gallery_requested_revision:
+	if not manifest is Dictionary or str(manifest.get("publication_id", "")) != _gallery_publication_id or _gallery_positive_integer(manifest.get("revision"), 1000000) != _gallery_requested_revision:
 		_gallery_import_status = "blocked"
 		_gallery_status_update("blocked", "Revision identity mismatch. No Creator data was changed.")
 		return
 	var digest := str(manifest.get("content_sha256", ""))
-	var byte_size: Variant = manifest.get("byte_size", 0)
-	if digest.length() != 64 or not byte_size is int or byte_size <= 0 or byte_size > MAX_GALLERY_PACKAGE_BYTES:
+	var byte_size: int = _gallery_positive_integer(manifest.get("byte_size"), MAX_GALLERY_PACKAGE_BYTES)
+	if digest.length() != 64 or byte_size < 1:
 		_gallery_import_status = "blocked"
 		_gallery_status_update("blocked", "Revision integrity metadata was invalid.")
 		return
