@@ -15,6 +15,7 @@ import {
   DEFAULT_MAX_PUBLICATION_REQUEST_BYTES,
   SHARING_API_PREFIX
 } from './sharing/http_api.mjs';
+import { createSupabaseSharingAdapters } from './sharing/supabase_provider.mjs';
 
 const PORT = Number(process.env.PORT || 8787);
 const DEFAULT_ALLOWED_ORIGIN = process.env.CUSTOM_FIGHTER_ALLOWED_ORIGIN || 'https://ws951125.github.io';
@@ -71,25 +72,36 @@ export function createServer({
   pvpReconnectWindowMs = 10_000,
   pvpHeartbeatTimeoutMs = 15_000,
   pvpHeartbeatCheckMs = 1_000,
-  sharingRepository = null,
-  sharingRepositoryDurable = false,
+  sharingRepository = undefined,
+  sharingRepositoryDurable = undefined,
   sharingValidatePackage = null,
-  sharingResolvePublisher = null,
+  sharingResolvePublisher = undefined,
   sharingMaxPublicationRequestBytes = DEFAULT_MAX_PUBLICATION_REQUEST_BYTES
 } = {}) {
   const authorityStore = createServerPackageAuthorityStore({ packageResolver:pvpPackageResolver });
   const pvpSessionService = createPvpSessionService({ admitLoadout:authorityStore.admitLoadout });
 
+  const productionSharing = createSupabaseSharingAdapters();
+  const effectiveSharingRepository = sharingRepository === undefined
+    ? productionSharing.repository
+    : sharingRepository;
+  const effectiveSharingRepositoryDurable = sharingRepositoryDurable === undefined
+    ? productionSharing.durable
+    : sharingRepositoryDurable;
+  const effectiveSharingResolvePublisher = sharingResolvePublisher === undefined
+    ? productionSharing.resolvePublisher
+    : sharingResolvePublisher;
+
   const publicationService = createPublicationService({
-    repository: sharingRepository,
+    repository: effectiveSharingRepository,
     validatePackage: sharingValidatePackage
   });
-  const catalogService = createCatalogService({ repository: sharingRepository });
+  const catalogService = createCatalogService({ repository: effectiveSharingRepository });
   const sharingApi = createSharingHttpApi({
     publicationService,
     catalogService,
-    resolvePublisher: sharingResolvePublisher,
-    repositoryDurable: sharingRepositoryDurable,
+    resolvePublisher: effectiveSharingResolvePublisher,
+    repositoryDurable: effectiveSharingRepositoryDurable,
     maxPublicationRequestBytes: sharingMaxPublicationRequestBytes
   });
 
@@ -131,9 +143,11 @@ export function createServer({
           sharing: {
             api_version: 1,
             publications_path: SHARING_API_PREFIX,
-            repository_configured: Boolean(sharingRepository),
-            durable_repository: sharingRepositoryDurable === true,
-            publisher_auth_configured: typeof sharingResolvePublisher === 'function',
+            provider: productionSharing.configured ? 'supabase' : 'disabled',
+            provider_config_invalid: productionSharing.invalid === true,
+            repository_configured: Boolean(effectiveSharingRepository),
+            durable_repository: effectiveSharingRepositoryDurable === true,
+            publisher_auth_configured: typeof effectiveSharingResolvePublisher === 'function',
             package_validator_configured: typeof sharingValidatePackage === 'function',
             max_publication_request_bytes: sharingMaxPublicationRequestBytes
           }
