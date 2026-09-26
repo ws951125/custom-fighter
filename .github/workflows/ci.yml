@@ -128,6 +128,7 @@ jobs:
       - name: Smoke-test exported Web game in Chromium
         env:
           CUSTOM_FIGHTER_WEB_URL: http://127.0.0.1:8000
+          CREATOR_GALLERY_CAPTURE_DIR: ${{ github.event_name == 'pull_request' && 'artifacts/creator-gallery' || '' }}
         run: |
           python3 -m http.server 8000 --directory build/web >/tmp/custom-fighter-http.log 2>&1 &
           SERVER_PID=$!
@@ -145,6 +146,24 @@ jobs:
         with:
           name: custom-fighter-web
           path: build/web
+          if-no-files-found: error
+
+      - name: Upload mock Gallery visual evidence for PR review
+        if: github.event_name == 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: creator-gallery-visual-evidence
+          path: artifacts/creator-gallery/*.png
+          retention-days: 7
+          if-no-files-found: error
+
+      - name: Upload Gallery detail screenshot for inline browser viewing
+        if: github.event_name == 'pull_request'
+        uses: actions/upload-artifact@v7
+        with:
+          path: artifacts/creator-gallery/03-publication-details.png
+          archive: false
+          retention-days: 7
           if-no-files-found: error
 
       - name: Configure GitHub Pages

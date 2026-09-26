@@ -232,15 +232,17 @@ Production activation still requires an explicitly approved dedicated no-cost Su
 
 ### Work Unit 5 — Creator Gallery UX
 
-Add Creator-facing:
+Status: **read-side Gallery slice implemented on PR #212 (`feat/v2-7-wu5-creator-gallery-browse`), exact previous HEAD `d560192cd59320c29b5add24db6cfaee44270750` passed CI #638 (`36234225075`) in both Chromium and hosted Edge, including all 29 smoke stages. The reconciled HEAD `6320229e25fe600458a79c524432b22b138422d0` independently passed exact-head CI #640 (`36236310673`), with all three required jobs SUCCESS and Chromium/Edge `CREATOR_GALLERY_BROWSER_SMOKE_PASSED`; PR remains unmerged. Production persistence/auth and manual UI/UX acceptance are not yet complete.**
 
-- Publish;
-- Gallery/Browse;
-- Search;
-- package detail/revision view;
-- Download & Import.
+Delivered in this slice:
+- Creator Gallery overlay with metadata browse/search, cursor pagination, publication detail and immutable revision selector;
+- explicit download/import confirmation; 16 MiB byte bound, manifest UTF-8 byte-size and SHA-256 parity, existing Self-contained Package validation before Creator import;
+- no automatic competitive/PvP trust, no catalogue-driven draft mutation; unavailable/invalid/tampered responses fail closed;
+- Publish is visibly disabled until separately authorized dedicated free provider plus trusted user sign-in;
+- hosted Chromium/Edge regression covers 503 unavailable, browse/detail, exact revision and tampered download rejection;
+- branch-side WU5 hardening binds revision manifest's package/publisher identity to the selected publication, and binds SHA-verified downloaded package ID/version/schema back to the immutable manifest before Creator draft mutation. Cross-package and wrong-version mock responses fail closed; implementation SHA `ca54a980f5b3a49af7904dbda95fce89dc556749` passed CI #646 (`36256148248`) on attempt 2, with Chromium/Edge `manifestEnvelopeBound=true`, `paginationBounded=true` and 29 stages. Unchanged Network PvP hosted Edge first-attempt timeout cleared on same-SHA failed-job retry.
 
-Downloaded content must be revalidated through the existing self-contained package path before draft mutation.
+Remaining: approved durable production provider/schema/keys, real publisher authentication and publish/update UX, separately authorized standalone no-charge preview site and manual UX acceptance, and WU6 cross-user production contract. GitHub Pages production remains on PR #211, not PR #212.
 
 ### Work Unit 6 — update/revision UX + cross-user production acceptance
 

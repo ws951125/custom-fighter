@@ -587,3 +587,48 @@
 - **Prevention Rule:** Verify the current API-key model from official provider documentation before writing secret-header adapters. Do not treat an API key as a JWT. Keep server keys out of browser responses, code fixtures and version control.
 - **Validation:** PR #210 latest-head CI #626 (`36228811804`) completed SUCCESS including trusted-backend adapter regression, Windows Native, Chromium and hosted Edge. Squash merge `a154e748662d66305938fb81202234a03c4ffea5` deployed to Render as `dep-daroec7f3r2c73a8tgkg` live. No external Supabase project was modified; live key/schema integration remains untested until separately authorized.
 - **Status:** Verified in GitHub CI; production provider integration unverified.
+
+## L-053 — Explicitly type GDScript values derived from Variant API records
+
+- **Date:** 2026-09-26
+- **Area:** V2-7 WU5 / Creator Gallery / Godot import parser.
+- **Symptom:** PR #212 initial CI #629 failed during Godot headless import at `gallery_creator_studio.gd:331`: could not infer `safe_cursor` type from `Variant` catalogue response `next_cursor.length()`.
+- **Root Cause:** A value narrowed by `is String` in a branch still did not produce an inferable static type for `var :=` from a dynamic Variant method call.
+- **Fix:** Use `var safe_cursor: bool = str(next_cursor).length() <= 32` and iterate the explicit string. No schema/API change and no local test path.
+- **Prevention Rule:** At JSON/HTTP/JS Variant boundaries, explicitly declare the intended GDScript type and normalize raw values rather than depending on `:=` inference.
+- **Validation:** Initial parser failure evidence is CI #629 (`36232444457`); follow-up exact-head CI #638 (`36234225075`) completed SUCCESS on `d560192cd59320c29b5add24db6cfaee44270750`, including Godot import, Windows Native, Chromium and hosted Edge.
+- **Additional validation:** Follow-on PR #212 CI #634 completed failure at new Gallery browser smoke selection-state wait, after successful Godot import and Windows Native. The JavaScriptBridge test-only selection callback accepted only float input, potentially ignoring integer-index 0. Fix accepts exact nonnegative int/float indices, and adds on-failure browser telemetry. Both Chromium and hosted Edge in CI #638 report `CREATOR_GALLERY_BROWSER_SMOKE_PASSED` including exact-revision SHA and tamper rejection. This does not change the package safety boundary.
+- **Status:** Verified by exact-head CI #638 for both Chromium and Microsoft Edge. Main-reconciliation HEAD `6320229e25fe600458a79c524432b22b138422d0` was also validated by CI #640 (`36236310673`), completing SUCCESS for Windows Native, Chromium and Microsoft Edge with 29 smoke stages in each browser.
+
+## L-054 — Diagnostic browser bridges must preserve user-facing confirmation
+
+- **Date:** 2026-09-26
+- **Area:** V2-7 WU5 Creator Gallery / JavaScriptBridge / browser smoke.
+- **Symptom:** The exposed `customFighterCreatorGalleryConfirmImport()` callback invoked `_gallery_download_import()` directly while the real Download & Import button opened a cancellable ConfirmationDialog. The browser smoke was not exercising the visible confirmation and could not test cancellation.
+- **Root Cause:** Diagnostic convenience callback modeled the result after consent instead of the user action before consent, silently allowing a second unconfirmed import path.
+- **Fix:** Route the test callback through `_gallery_confirm_import()`, expose read-only dialog visibility, and test opening and Escape cancellation with zero revision/package requests followed by real UI Enter confirmation for valid and tampered packages. Capture a sixth screenshot for UI review.
+- **Prevention Rule:** Never give browser diagnostic helpers a more privileged action path than the actual UI, and explicitly test no mutation or network download before acknowledgement and after cancellation.
+- **Validation:** PR #212 CI #642 (`36240010652`) completed SUCCESS in Chromium and Edge, confirming dialog cancellation, no download before consent and accepted import.
+- **Status:** Verified in hosted browsers; PR #212 remains unmerged pending UX acceptance and explicit approval.
+
+## L-055 — Bound client-side catalogue accumulation and reject non-advancing cursors
+
+- **Date:** 2026-09-26
+- **Area:** V2-7 WU5 Creator Gallery / untrusted paginated catalogue.
+- **Symptom:** Review found that the client bounded an individual page but could keep appending pages indefinitely, including a repeated cursor or an empty page falsely advertising continuation.
+- **Root Cause:** Per-response validation was not accompanied by an overall displayed-record ceiling or explicit pagination progress check.
+- **Fix:** Limit requested pages to 20 entries, cap in-memory and visible results at 100, reject repeated/non-advancing continuation before appending and disable Next on the display ceiling. Add hosted-browser oversized, stalled, repeat-cursor and five-page regressions without altering package trust.
+- **Prevention Rule:** Check aggregate resource limits and forward progress, not only per-request schema/size, at every untrusted pagination boundary.
+- **Validation:** PR #212 CI #644 (`36250217352`) completed SUCCESS on attempt 2. Chromium and Edge reported `paginationBounded=true`, 29 smoke stages. Attempt 1 Edge alone timed out in unchanged Network PvP; same-SHA failed-job retry passed without product or test changes.
+- **Status:** Verified in hosted browsers; #212 unmerged.
+
+## L-056 — Digest parity alone does not bind a Gallery revision to its selected package envelope
+
+- **Date:** 2026-09-27
+- **Area:** V2-7 WU5 / Creator Gallery / immutable package import.
+- **Symptom:** During pre-merge review, the client correctly checked manifest byte size and SHA-256 but did not independently bind the selected publication's package/publisher identity or the downloaded package's ID/version/schema to the exact revision manifest. A consistently forged manifest could identify the wrong package without failing the digest comparison alone.
+- **Root Cause:** Digest parity proves the bytes match the supplied hash; it does not prove that supplied metadata describes the item selected by the user.
+- **Fix:** Reject revision metadata with a different package/publisher identity; after SHA/size/UTF-8 checks, parse the package envelope and require exact ID/version/schema parity before invoking existing Self-contained Package validation/import.
+- **Prevention Rule:** Validate both the content digest and its intended selected-resource identity at each client/server data boundary. Mock distinct mismatch stages, asserting no network download where early rejection is possible and no draft mutation throughout.
+- **Validation:** PR #212 exact implementation SHA `ca54a980f5b3a49af7904dbda95fce89dc556749`, CI #646 (`36256148248`) completed SUCCESS on attempt 2. Chromium and Edge logged `manifestEnvelopeBound=true`, `paginationBounded=true` and `SMOKE_SUITE_PASSED count=29`. First Edge failure was only in unchanged Network PvP ready wait, cleared on same-SHA failed-job retry; no product/test/timeout changes.
+- **Status:** Verified in hosted browsers. Production Gallery/provider and manual UX remain unverified.
