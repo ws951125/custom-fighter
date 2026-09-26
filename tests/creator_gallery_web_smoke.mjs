@@ -25,6 +25,8 @@ let downloadedJson = '';
 let manifest = null;
 let count = { browse: 0, detail: 0, revision: 0, download: 0, unexpected: 0 };
 let tamperPackage = false;
+let wrongRevisionPackage = false;
+let wrongRevisionVersion = false;
 
 try {
   const context = await browser.newContext({ viewport: { width: 1280, height: 720 }, acceptDownloads: true });
@@ -80,7 +82,9 @@ try {
     }
     if (pathname === apiPrefix + '/' + publicationId + '/revisions/1') {
       count.revision += 1;
-      return route.fulfill({ status: 200, headers, body: JSON.stringify({ ok: true, manifest }) });
+      const exactManifest = wrongRevisionPackage ? { ...manifest, package_id: 'other_safe_package' } :
+        wrongRevisionVersion ? { ...manifest, package_version: manifest.package_version + 1 } : manifest;
+      return route.fulfill({ status: 200, headers, body: JSON.stringify({ ok: true, manifest: exactManifest }) });
     }
     if (pathname === apiPrefix + '/' + publicationId + '/revisions/1/package') {
       count.download += 1;
@@ -207,7 +211,31 @@ try {
   assert.equal(count.revision, 0, 'Cancelling must not request a revision');
   assert.equal(await page.evaluate(() => document.documentElement.dataset.creatorDraftName), initialName);
 
-  // Only a real UI acceptance event is allowed to start package download/import.
+  // A forged exact-revision manifest must keep the selected package/publisher identity;
+  // reject mismatches before requesting package bytes or mutating the Creator draft.
+  wrongRevisionPackage = true;
+  const downloadsBeforeWrongPackage = count.download;
+  await openImportDialog();
+  await page.keyboard.press('Enter');
+  await page.waitForFunction(() => document.documentElement.dataset.creatorGalleryImportStatus === 'blocked' &&
+    document.documentElement.dataset.creatorGalleryStatus === 'blocked', null, { timeout: 20_000 });
+  assert.equal(count.download, downloadsBeforeWrongPackage, 'Mismatched package id must not download');
+  assert.equal(await page.evaluate(() => document.documentElement.dataset.creatorDraftName), initialName);
+  wrongRevisionPackage = false;
+
+  // Even matching SHA-256 bytes are not importable when their immutable revision
+  // manifest claims a different package version from the actual package envelope.
+  wrongRevisionVersion = true;
+  await openImportDialog();
+  await page.keyboard.press('Enter');
+  await page.waitForFunction(() => document.documentElement.dataset.creatorGalleryImportStatus === 'blocked' &&
+    document.documentElement.dataset.creatorGalleryStatus === 'blocked', null, { timeout: 20_000 });
+  assert.equal(await page.evaluate(() => document.documentElement.dataset.creatorPackageImportCount || '0'), '0');
+  assert.equal(await page.evaluate(() => document.documentElement.dataset.creatorDraftName), initialName);
+  wrongRevisionVersion = false;
+
+  // Only a real UI acceptance event with coherent manifest and package envelope
+  // is allowed to complete package download/import.
   await openImportDialog();
   await page.keyboard.press('Enter');
   await page.waitForFunction(() => document.documentElement.dataset.creatorGalleryImportStatus === 'valid' &&
@@ -235,7 +263,7 @@ try {
     ]);
     console.log('CREATOR_GALLERY_VISUAL_CAPTURED count=6 source=mock-catalog no-live-provider=true');
   }
-  console.log('CREATOR_GALLERY_BROWSER_SMOKE_PASSED unavailable=true metadataOnly=true exactRevision=true digestVerified=true tamperedRejected=true existingCreatorImport=true paginationBounded=true');
+  console.log('CREATOR_GALLERY_BROWSER_SMOKE_PASSED unavailable=true metadataOnly=true exactRevision=true digestVerified=true tamperedRejected=true existingCreatorImport=true paginationBounded=true manifestEnvelopeBound=true');
 } finally {
   await browser.close();
 }

@@ -239,7 +239,8 @@ Delivered in this slice:
 - explicit download/import confirmation; 16 MiB byte bound, manifest UTF-8 byte-size and SHA-256 parity, existing Self-contained Package validation before Creator import;
 - no automatic competitive/PvP trust, no catalogue-driven draft mutation; unavailable/invalid/tampered responses fail closed;
 - Publish is visibly disabled until separately authorized dedicated free provider plus trusted user sign-in;
-- hosted Chromium/Edge regression covers 503 unavailable, browse/detail, exact revision and tampered download rejection.
+- hosted Chromium/Edge regression covers 503 unavailable, browse/detail, exact revision and tampered download rejection;
+- branch-side WU5 hardening binds revision manifest's package/publisher identity to the selected publication, and binds SHA-verified downloaded package ID/version/schema back to the immutable manifest before Creator draft mutation. Cross-package and wrong-version mock responses must fail closed; new exact-head CI verification is required.
 
 Remaining: approved durable production provider/schema/keys, real publisher authentication and publish/update UX, separately authorized standalone no-charge preview site and manual UX acceptance, and WU6 cross-user production contract. GitHub Pages production remains on PR #211, not PR #212.
 

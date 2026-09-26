@@ -414,6 +414,12 @@ func _gallery_accept_manifest(payload: Dictionary) -> void:
 		_gallery_import_status = "blocked"
 		_gallery_status_update("blocked", "Revision identity mismatch. No Creator data was changed.")
 		return
+	# An immutable revision must still belong to the selected publication/publisher.
+	# Never accept content metadata that silently points to a different package.
+	if str(manifest.get("package_id", "")) != str(_gallery_manifest.get("package_id", "")) or str(manifest.get("publisher_id", "")) != str(_gallery_manifest.get("publisher_id", "")):
+		_gallery_import_status = "blocked"
+		_gallery_status_update("blocked", "Revision publication metadata mismatch. No Creator data was changed.")
+		return
 	var digest := str(manifest.get("content_sha256", ""))
 	var byte_size: int = _gallery_positive_integer(manifest.get("byte_size"), MAX_GALLERY_PACKAGE_BYTES)
 	if digest.length() != 64 or byte_size < 1:
@@ -446,6 +452,13 @@ func _gallery_accept_package(body: PackedByteArray) -> void:
 	if json_text.to_utf8_buffer() != body:
 		_gallery_import_status = "blocked"
 		_gallery_status_update("blocked", "Downloaded package is not valid UTF-8.")
+		return
+	# Matching SHA-256 authenticates bytes relative to the manifest, but a manifest
+	# also must identify the exact package envelope selected by the user.
+	var package_data: Variant = JSON.parse_string(json_text)
+	if not package_data is Dictionary or str(package_data.get("package_id", "")) != str(_gallery_manifest.get("package_id", "")) or _gallery_positive_integer(package_data.get("package_version"), 2147483647) != _gallery_positive_integer(_gallery_manifest.get("package_version"), 2147483647) or _gallery_positive_integer(package_data.get("schema_version"), 2) != _gallery_positive_integer(_gallery_manifest.get("package_schema_version"), 2):
+		_gallery_import_status = "blocked"
+		_gallery_status_update("blocked", "Downloaded package identity/version differs from selected revision. Creator draft unchanged.")
 		return
 	# Use the existing Self-contained Package schema + Creator compatibility gate.
 	# A Gallery manifest never becomes a PvP trusted package.

@@ -621,3 +621,14 @@
 - **Prevention Rule:** Check aggregate resource limits and forward progress, not only per-request schema/size, at every untrusted pagination boundary.
 - **Validation:** Pending exact-head GitHub-hosted Chromium and Edge CI; previous CI #643 predates the pagination correction.
 - **Status:** Pending CI, #212 not merged.
+
+## L-054 — Digest parity alone does not bind a Gallery revision to its selected package envelope
+
+- **Date:** 2026-09-27
+- **Area:** V2-7 WU5 / Creator Gallery / immutable package import.
+- **Symptom:** During pre-merge review, the client correctly checked manifest byte size and SHA-256 but did not independently bind the selected publication's package/publisher identity or the downloaded package's ID/version/schema to the exact revision manifest. A consistently forged manifest could identify the wrong package without failing the digest comparison alone.
+- **Root Cause:** Digest parity proves the bytes match the supplied hash; it does not prove that supplied metadata describes the item selected by the user.
+- **Fix:** Reject revision metadata with a different package/publisher identity; after SHA/size/UTF-8 checks, parse the package envelope and require exact ID/version/schema parity before invoking existing Self-contained Package validation/import.
+- **Prevention Rule:** Validate both the content digest and its intended selected-resource identity at each client/server data boundary. Mock distinct mismatch stages, asserting no network download where early rejection is possible and no draft mutation throughout.
+- **Validation:** Pending latest-head GitHub-hosted Chromium and Edge Gallery regression. No production Gallery/provider change.
+- **Status:** Pending exact-head CI.
