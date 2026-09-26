@@ -33,7 +33,7 @@ V2-1 delivered visual event timeline authoring, startup/active/recovery timing, 
 
 ### V2-7 implementation checkpoints
 
-Work Unit 1 — **inventory + architecture freeze implemented; awaiting PR validation and explicit merge approval**:
+Work Unit 1 — **inventory + architecture freeze implemented and PR-validated; awaiting explicit merge approval**:
 - Added `docs/V2_7_CREATOR_SHARING_INVENTORY.md` from the actual main package/Creator/backend state.
 - Current Creator sharing is confirmed to be manual-file-only: Self-contained Package schema v2 supports validated animation/audio/VFX assets and legacy schema-v1 import, while Creator Web export/import is bounded to 16 MiB.
 - The backend currently has no publish/catalog/search/download persistence path. Existing routes are health, VFX generation and PvP WebSocket only; repository search found no current Supabase/storage integration.
@@ -42,6 +42,7 @@ Work Unit 1 — **inventory + architecture freeze implemented; awaiting PR valid
 - Gallery publication does not grant competitive/PvP trust. Downloaded packages must pass the existing Self-contained Package validator again before Creator state changes.
 - Frozen six-work-unit sequence: architecture → sharing domain service → HTTP catalog → durable free-tier persistence/auth → Creator Gallery UX → cross-user production acceptance.
 - V2 remains **75% (6/8)** until the whole V2-7 acceptance contract passes.
+- PR #206 head `b41636a1a750fa28e9c5ae067566914182362dc6` passed CI #601 (`36215932319`): Windows Native, Godot import/boot/domain/backend, Web export/size budget, Chromium `smoke:all`, and GitHub-hosted Microsoft Edge `smoke:all` all passed. The PR is docs/status only; production runtime is unchanged until merge.
 
 ### V2-6 implementation checkpoints
 
