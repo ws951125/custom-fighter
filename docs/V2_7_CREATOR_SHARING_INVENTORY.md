@@ -224,6 +224,7 @@ Current implementation:
 - `backend/sharing/supabase_integration.mjs`: all-or-nothing environment configuration; incomplete configuration remains fail-closed;
 - `backend/sharing/self_contained_package_validator.mjs`: independent Node validation of the current package v1/v2 safety contract before persistence;
 - `backend/sharing/supabase_schema.sql`: reviewed RLS-enabled append-only publication/revision schema + atomic RPC contract, not automatically applied;
+- WU4 security review hardened the new-key headers (`sb_secret_` only via `apikey`), SQL SHA-256/byte parity, 128 MiB aggregate package quota under transactional locking, literal metadata query semantics and HTTP 507 quota contract;
 - `tests/supabase_sharing_adapter_test.mjs` and `tests/self_contained_package_validator_test.mjs`: deterministic backend coverage wired into `test:backend`;
 - `docs/V2_7_SUPABASE_SHARING_SETUP.md`: no-cost/server-secret deployment contract.
 
