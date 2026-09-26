@@ -34,3 +34,7 @@ If a behavior cannot currently be validated through GitHub Actions or the deploy
 ## Evidence
 
 When reporting a development step, record the relevant GitHub workflow status and any error/fix history. Never report a check as passed unless GitHub Actions or GitHub Pages actually executed the validation and produced that evidence.
+
+## PR-only Creator Gallery visual evidence
+
+When Creator Gallery code is on an unmerged PR and a separate no-charge interactive preview is unavailable, the Chromium test may capture bounded **mock-API** screenshots for human layout review. The PR-only workflow uploads a short-retention `creator-gallery-visual-evidence` screenshot bundle and a standalone `03-publication-details.png` artifact that a GitHub-signed-in reviewer can open in a browser. These screenshots are not production catalogue or interactive UX acceptance; they do not imply that the PR is deployed to GitHub Pages. The real production Pages site remains main-only, no other project/site is overwritten, and actual manual interaction remains a separate gate before merge.

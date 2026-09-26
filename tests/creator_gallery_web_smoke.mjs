@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
+import { mkdir } from 'node:fs/promises';
 import { chromium } from 'playwright';
 
 const baseUrl = process.env.CUSTOM_FIGHTER_WEB_URL ?? 'http://127.0.0.1:8000';
@@ -28,6 +29,14 @@ let tamperPackage = false;
 try {
   const context = await browser.newContext({ viewport: { width: 1280, height: 720 }, acceptDownloads: true });
   const page = await context.newPage();
+  const visualCaptureDir = (process.env.CREATOR_GALLERY_CAPTURE_DIR ?? '').trim();
+  const visualCaptures = [];
+  async function captureGallery(name) {
+    if (!visualCaptureDir) return;
+    await mkdir(visualCaptureDir, { recursive: true });
+    await page.screenshot({ path: `${visualCaptureDir}/${name}.png`, animations: 'disabled' });
+    visualCaptures.push(name);
+  }
   page.on('pageerror', error => pageErrors.push(error.message));
 
   await page.route('**/v1/sharing/publications**', async route => {
@@ -108,6 +117,7 @@ try {
   await page.evaluate(() => window.customFighterCreatorOpenGallery());
   await page.waitForFunction(() => document.documentElement.dataset.creatorGalleryOpen === 'true' &&
     document.documentElement.dataset.creatorGalleryStatus === 'unavailable', null, { timeout: 15_000 });
+  await captureGallery('01-provider-unavailable');
   assert.equal(await page.evaluate(() => document.documentElement.dataset.creatorDraftName), initialName);
   assert.equal(await page.evaluate(() => document.documentElement.dataset.creatorGalleryImportStatus), 'idle');
 
@@ -115,6 +125,7 @@ try {
   await page.evaluate(() => window.customFighterCreatorOpenGallery());
   await page.waitForFunction(() => document.documentElement.dataset.creatorGalleryStatus === 'ready' &&
     document.documentElement.dataset.creatorGalleryItems === '1', null, { timeout: 15_000 });
+  await captureGallery('02-catalog-list');
   await page.evaluate(() => window.customFighterCreatorGallerySelect(0));
   await page.waitForFunction(id => document.documentElement.dataset.creatorGalleryStatus === 'ready' &&
     document.documentElement.dataset.creatorGallerySelectedPublication === id, publicationId, { timeout: 15_000 })
@@ -127,12 +138,14 @@ try {
       throw error;
     });
 
+  await captureGallery('03-publication-details');
   // The user explicitly confirms the revision import; both digest and the existing
   // self-contained package/Creator validation path must pass.
   await page.evaluate(() => window.customFighterCreatorGalleryConfirmImport());
   await page.waitForFunction(() => document.documentElement.dataset.creatorGalleryImportStatus === 'valid' &&
     document.documentElement.dataset.creatorGalleryStatus === 'imported' &&
     Number(document.documentElement.dataset.creatorPackageImportCount || '0') >= 1, null, { timeout: 20_000 });
+  await captureGallery('04-imported');
   const importCount = await page.evaluate(() => Number(document.documentElement.dataset.creatorPackageImportCount));
   assert.equal(await page.evaluate(() => document.documentElement.dataset.creatorDraftName), initialName);
 
@@ -140,11 +153,19 @@ try {
   await page.evaluate(() => window.customFighterCreatorGalleryConfirmImport());
   await page.waitForFunction(() => document.documentElement.dataset.creatorGalleryImportStatus === 'blocked' &&
     document.documentElement.dataset.creatorGalleryStatus === 'blocked', null, { timeout: 20_000 });
+  await captureGallery('05-tampered-blocked');
   assert.equal(await page.evaluate(() => Number(document.documentElement.dataset.creatorPackageImportCount)), importCount);
   assert.equal(await page.evaluate(() => document.documentElement.dataset.creatorDraftName), initialName);
   assert.ok(count.browse >= 1 && count.detail >= 1 && count.revision >= 2 && count.download >= 2);
   assert.equal(count.unexpected, 0, 'Only bounded GET sharing routes may be called');
   assert.deepEqual(pageErrors, [], 'No uncaught browser JS error expected');
+  if (visualCaptureDir) {
+    assert.deepEqual(visualCaptures, [
+      '01-provider-unavailable', '02-catalog-list', '03-publication-details',
+      '04-imported', '05-tampered-blocked'
+    ]);
+    console.log('CREATOR_GALLERY_VISUAL_CAPTURED count=5 source=mock-catalog no-live-provider=true');
+  }
   console.log('CREATOR_GALLERY_BROWSER_SMOKE_PASSED unavailable=true metadataOnly=true exactRevision=true digestVerified=true tamperedRejected=true existingCreatorImport=true');
 } finally {
   await browser.close();
