@@ -215,7 +215,7 @@ No durable production repository or production publisher-identity provider is cl
 
 ### Work Unit 4 — durable free-tier persistence + publisher identity
 
-Status: **provider adapters, schema contract and server package validator implemented on `feat/v2-7-wu4-supabase-persistence-auth`; GitHub-hosted PR validation pending; production provider provisioning requires explicit authorization**.
+Status: **server adapters/schema/validator merged via PR #210 as main `a154e748662d66305938fb81202234a03c4ffea5`; latest-head CI #626 succeeded; exact-SHA Render deploy `dep-daroec7f3r2c73a8tgkg` is live. Production Supabase provider/schema/keys and cross-user durable acceptance remain unprovisioned, blocked pending separate user authorization; main-push GitHub Actions evidence is unobservable through the current connector.**.
 
 Current implementation:
 
@@ -232,25 +232,16 @@ Production activation still requires an explicitly approved dedicated no-cost Su
 
 ### Work Unit 5 — Creator Gallery UX
 
-Status: **read-side first slice implemented on `feat/v2-7-wu5-creator-gallery-browse`, pending hosted PR CI and user UX acceptance. Production persistence/auth is not yet provisioned.**
+Status: **read-side Gallery slice implemented on PR #212 (`feat/v2-7-wu5-creator-gallery-browse`), exact previous HEAD `d560192cd59320c29b5add24db6cfaee44270750` passed CI #638 (`36234225075`) in both Chromium and hosted Edge, including all 29 smoke stages. PR remains unmerged; production persistence/auth and manual UI/UX acceptance are not yet complete.**
 
 Delivered in this slice:
-- Creator Gallery overlay with bounded metadata browse/search, pagination, publication detail/revision selector;
-- explicit download/import confirmation and immutable revision retrieval;
-- 16 MiB byte cap, UTF-8 byte-size + SHA-256 parity and existing Self-contained Package validation before Creator import;
-- unavailable/invalid/error states; no silent draft mutation from catalogue data;
-- Publish button clearly disabled until a separately approved dedicated Free storage provider and real sign-in path exist;
-- deterministic browser mock for 503 fail-closed, metadata read/detail, exact revision import and tampered download rejection in Chromium and Edge `smoke:all`.
+- Creator Gallery overlay with metadata browse/search, cursor pagination, publication detail and immutable revision selector;
+- explicit download/import confirmation; 16 MiB byte bound, manifest UTF-8 byte-size and SHA-256 parity, existing Self-contained Package validation before Creator import;
+- no automatic competitive/PvP trust, no catalogue-driven draft mutation; unavailable/invalid/tampered responses fail closed;
+- Publish is visibly disabled until separately authorized dedicated free provider plus trusted user sign-in;
+- hosted Chromium/Edge regression covers 503 unavailable, browse/detail, exact revision and tampered download rejection.
 
-Still to add or complete:
-
-- Publish;
-- Gallery/Browse;
-- Search;
-- package detail/revision view;
-- Download & Import.
-
-Downloaded content must be revalidated through the existing self-contained package path before draft mutation.
+Remaining: approved durable production provider/schema/keys, real publisher authentication and publish/update UX, separate preview/manual UX acceptance, and WU6 cross-user production contract.
 
 ### Work Unit 6 — update/revision UX + cross-user production acceptance
 
