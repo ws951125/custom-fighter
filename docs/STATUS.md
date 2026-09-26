@@ -45,14 +45,30 @@ Work Unit 1 — **merged and exact-main production validated**:
 - PR #206 latest head `74ed26be6d39b117b31078252890a17100c85524` passed CI #602 (`36216830845`) across Windows Native, Godot import/boot/domain/backend, Web export/size budget, Chromium `smoke:all` and hosted Microsoft Edge `smoke:all`.
 - PR #206 was merged to `main` as `25c3c9f330e06d83375413fc715579d6b2571dae`. Exact-main CI #603 (`36218509698`) completed SUCCESS, including Pages deployment/public reachability, Production Backend Readiness and Windows Edge Production Full Smoke. Render deploy `dep-darkpa8ae00c73ac8vmg` is live on the exact merge SHA.
 
-Work Unit 2 — **publication manifest + provider-neutral sharing domain service implemented and PR-validated; awaiting explicit merge approval**:
+Work Unit 2 — **merged to main; PR validation complete**:
 - Added `backend/sharing/publication_service.mjs` with manifest-v1 metadata validation, trusted publisher ID boundary, canonical package JSON, server-derived SHA-256/byte size, deterministic stable publication IDs, immutable revision semantics, package-version rollback/reuse rejection and exact-replay idempotency.
-- Added `backend/sharing/in_memory_publication_repository.mjs` as a deterministic provider-neutral test repository with optimistic revision checks, immutable revision history and defensive copies. This is test infrastructure only, not a production persistence claim.
+- Added `backend/sharing/in_memory_publication_repository.mjs` as a deterministic provider-neutral test repository with optimistic revision checks, immutable revision history and defensive copies. This remains test infrastructure only, not a production persistence claim.
 - The service requires an injected full-package validator and fails closed when the validator or repository is unavailable. Validator output must exactly match the package envelope identity/schema/version before persistence.
-- Added `tests/sharing_publication_service_test.mjs` covering metadata allow-list/limits, canonical digest stability, idempotent replay, metadata revisioning, same-version/different-content rejection, monotonic package versions, cross-publisher identity separation, unsafe package rejection through the validator adapter, validator failures/mismatch, repository absence/conflict and package-size limits.
-- Wired the sharing regression into `npm run test:backend`.
-- PR #207 implementation head `6e44a3e0ff4a3e74b163768038e8d17bb225195a` passed CI #604 (`36221329852`): Windows Native, Godot import/boot/domain, trusted-backend tests including the new sharing publication regressions, Web export/size budget, Chromium `smoke:all`, and GitHub-hosted Microsoft Edge `smoke:all` all passed.
-- No HTTP route, Creator Gallery UX, durable provider, auth provider, production catalog or automatic PvP trust is added in WU2.
+- Added `tests/sharing_publication_service_test.mjs` and wired it into `npm run test:backend`.
+- PR #207 latest head `1a1af18e3dc0c77bb581bbe3806848c77524d7b3` completed CI #605 (`36222184835`) SUCCESS after a same-SHA targeted retry of an isolated hosted-Edge timing timeout; no product/test/timeout change was required.
+- PR #207 was explicitly approved and squash-merged to `main` as `5ff4dfcd5b8ff4e330a7873ad36852f7f085554f`.
+- The currently available GitHub connector exposes PR-triggered workflow runs but not the `main` push run for that merge SHA, so exact-main workflow/deployment acceptance for #207 remains **Residual Risk / evidence not currently observable through the connector** rather than being guessed as PASS.
+- No Creator Gallery UX, durable provider, auth provider, production catalog or automatic PvP trust is added in WU2.
+
+Work Unit 3 — **HTTP catalog contract implemented on `feat/v2-7-wu3-http-catalog`; PR validation pending**:
+- Added `backend/sharing/http_api.mjs` with bounded HTTP routes:
+  - `POST /v1/sharing/publications` — publish;
+  - `GET /v1/sharing/publications` — browse/search with bounded query/tags/page size/cursor;
+  - `GET /v1/sharing/publications/:publication_id` — latest publication detail + immutable revision list;
+  - `GET /v1/sharing/publications/:publication_id/revisions/:revision` — exact revision manifest;
+  - `GET /v1/sharing/publications/:publication_id/revisions/:revision/package` — exact immutable package download.
+- Browser request bodies cannot supply `publisher_id`; Publish resolves publisher identity only through the injected server-side identity adapter.
+- Publish fails closed with `DURABLE_REPOSITORY_UNAVAILABLE` unless the server is explicitly configured with a durable repository boundary, and independently fails closed when publisher authentication or the package validator is unavailable.
+- Publication upload uses its own **16 MiB request-body cap** while the existing VFX route remains on its independent **8 MiB** cap.
+- Added `backend/sharing/catalog_service.mjs` and extended the deterministic in-memory test repository with bounded metadata-only search, stable pagination, latest-publication detail and exact immutable revision reads. Search indexes manifest metadata only and never package runtime fields.
+- Existing server Origin/CORS policy is preserved; preflight now allows the future `Authorization` header without weakening the origin allow-list.
+- Added `tests/sharing_http_api_test.mjs` covering trusted identity, body publisher forgery rejection, CORS/origin rules, publish/idempotency/version-conflict status contracts, metadata-only search, pagination, exact revision download, 404/405/413/503 contracts and default production fail-closed behavior. It is wired into `test:backend`.
+- GitHub-hosted PR validation is still pending; no PASS is claimed yet.
 - V2 remains **75% (6/8)** until complete V2-7 acceptance.
 
 ### V2-6 implementation checkpoints
@@ -707,7 +723,7 @@ AI VFX backend: `https://custom-fighter-ai-vfx-6899.onrender.com`
 
 ## Next implementation target
 
-Complete V2-7 **Work Unit 2** through PR CI on the sharing domain branch. After WU2 is merged and exact-main validated, begin **Work Unit 3 — HTTP catalog contract** with bounded publish/browse/search/detail/download routes while keeping production writes fail-closed until durable free-tier persistence and publisher identity are configured.
+Complete V2-7 **Work Unit 3** through GitHub-hosted PR validation on `feat/v2-7-wu3-http-catalog`. After WU3 is merged and exact-main evidence is available, begin **Work Unit 4 — durable free-tier persistence + publisher identity**, using only no-cost production infrastructure and keeping credentials server-side.
 
 
 ## V2-6 WU2 — server-side package authority admission (2026-09-24)
