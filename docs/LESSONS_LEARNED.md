@@ -585,5 +585,5 @@
 - **Root Cause:** The older JWT-based `service_role` header pattern was carried over to the newer independently rotatable `sb_secret_` key model.
 - **Fix:** Require current-format `sb_secret_` and `sb_publishable_` keys, restrict the configured URL to HTTPS Supabase project hosts, send server repository secret only via `apikey`, and keep `Authorization: Bearer` exclusively for a real Supabase Auth user access token on `/auth/v1/user`. Extend deterministic adapter tests.
 - **Prevention Rule:** Verify the current API-key model from official provider documentation before writing secret-header adapters. Do not treat an API key as a JWT. Keep server keys out of browser responses, code fixtures and version control.
-- **Validation:** PR #210 latest-head GitHub CI is pending. No external Supabase project was modified.
-- **Status:** Pending
+- **Validation:** PR #210 latest-head CI #626 (`36228811804`) completed SUCCESS including trusted-backend adapter regression, Windows Native, Chromium and hosted Edge. Squash merge `a154e748662d66305938fb81202234a03c4ffea5` deployed to Render as `dep-daroec7f3r2c73a8tgkg` live. No external Supabase project was modified; live key/schema integration remains untested until separately authorized.
+- **Status:** Verified in GitHub CI; production provider integration unverified.
