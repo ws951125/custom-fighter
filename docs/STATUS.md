@@ -90,6 +90,7 @@ Work Unit 5, slice 1 — **Creator Gallery browse/details/exact revision import 
 - The Publish action is deliberately disabled with an accurate missing-provider/login explanation; actual production durable provider/Auth remains blocked pending separate explicit authorization, not silently replaced by in-memory persistence.
 - Added `tests/creator_gallery_web_smoke.mjs` and wired `smoke:creator-gallery` into existing Chromium and hosted Edge `smoke:all` to verify 503 unavailable state, browse/detail, exact revision SHA match, valid import and tampered download rejection.
 - The prior WU4 documentation checkpoint is open in PR #211, CI #628 succeeded on exact head `a1ac1c38b5a0d54dbb25829c807a17a0a24384ae`; it is **not merged** without its own approval. WU4 implementation PR #210 merged as `a154e748662d66305938fb81202234a03c4ffea5` and the exact revision is live on Render.
+- First PR CI #629 (`36232444457`) found a Godot import parser failure in new `gallery_creator_studio.gd:331`: `var safe_cursor := next_cursor.length() <= 32` tried to infer a type from a Variant. Fixed on the same branch with an explicit `bool` and bounded string conversion; latest-head CI revalidation is required.
 - WU5's Publish/Auth UI, production catalogue and cross-user acceptance are not claimed complete; V2 stays 75% (6/8).
 
 ### V2-6 implementation checkpoints
