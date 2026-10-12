@@ -310,3 +310,17 @@ These rules supplement, and do not replace, the existing Playwright, regression,
 - After targeted tests pass, a full Playwright/E2E/regression run is not automatically required after every small correction. Run the broader applicable regression at the appropriate existing gate, such as completion of the coherent work unit, an important milestone, a substantial cross-module change, release-candidate validation, or before PR merge when required by the repository's existing merge/Definition-of-Done policy.
 - Preserve autonomous AI validation behavior: the Agent should still discover failures, diagnose them, fix them, and revalidate without unnecessary stop-and-wait. The efficiency rule changes test scope/order, not the requirement to obtain actual online evidence for required checks.
 - Minimize unnecessary browser launches, repeated full E2E runs, duplicate checks, and resource consumption while retaining all existing required final validation gates. If an existing rule explicitly requires a broader test at a particular milestone or merge gate, that requirement remains authoritative and is not weakened by this section.
+
+## 跨專案共用測試下載快取（2026-10-12）
+
+使用者明確批准的本機永久規則：**下載快取可跨專案共用；執行依賴、測試工作區和每輪測試資料必須彼此隔離**。這只適用於本機測試／開發驗證，不變更原專案工作樹、正式資料庫、網站部署、Production 環境或既有備份政策。
+
+- 固定測試根目錄：`E:\test`，不得改用 E 槽根目錄、C 槽或 D 槽；若不可用，應暫停並向使用者確認替代方案，不可默默 fallback。
+- 各專案共用的**套件下載快取**：`E:\test\shared\cache\npm`、`E:\test\shared\cache\pip`、`E:\test\shared\cache\pnpm-store`；相容 Playwright browser binaries 共用 `E:\test\shared\cache\playwright-browsers`，由 Playwright 按實際 revision 決定可否重用。第一次可能需要下載，之後有快取時不應每輪重新下載。
+- 本專案自己使用 `E:\test\custom_fighter\workspaces` 作為長期可重用的安全隔離 checkout、`E:\test\custom_fighter\shared\venvs` 保留依 Python 版本與 dependencies 分隔的 venv、`E:\test\custom_fighter\runs` 按輪次建立獨立 `tmp`／`artifacts`／測試輸出；`node_modules` 留在**本專案**版本相容的工作區，**不得跨不同專案強行共享**。
+- 共用入口：`E:\test\shared\scripts\use_cross_project_test_cache.ps1`。`-Project custom_fighter -Mode Inspect` 只讀；`-Mode Enter` 只為目前 PowerShell process/child process 設定 npm/pip/Playwright 快取，不修改全域 Windows 或使用者 npm/pip 設定；`-Mode NewRun` 另建立唯一 run/`tmp`/`artifacts` 並指定暫存。PowerShell 腳本版本來源存放在 `ws951125/sunzi-advisor/scripts/use_cross_project_test_cache.ps1`。
+- `pnpm` 使用 `--store-dir "E:\test\shared\cache\pnpm-store"`（或同等**僅限當次程序**的設定）以重用 store；不得執行影響其他專案的全域 `pnpm config set`、`npm config set` 或 `setx`。
+- 開始前先檢查該專案 `package-lock.json` / `pnpm-lock.yaml` / `pyproject.toml` / requirements、Node/Python/套件版本及既有 checkout 的 `git status`。符合版本時直接重用已安裝的 `node_modules`／venv；不因只改程式碼、測試碼或切換工作項就重新 clone、`npm ci`、新建 venv、下載 Playwright。尤其 **`npm ci` 會刪除並重建 node_modules**，絕對不可對既有可用環境例行執行。
+- 版本不相容、lockfile 有異動或有必要執行真正的 clean-install gate 時，先規劃**新的版本隔離環境**，優先使用相同的跨專案下載快取，不得覆寫現存可用依賴；涉及刪除、覆寫、搬移既有目錄或套件，需列出精確範圍、原因、復原方案並取得使用者本次明確批准。
+- 允許不同專案同時執行：分開各自的 Python venv、`node_modules`、source checkout、port、test DB、browser profile、`runs`，共享的只是不含機密的套件下載快取／相容瀏覽器 binaries；不可共享 session、正式業務資料、cookie、.env 或資料庫寫入操作。
+- **禁止未經逐次批准的任何刪除、清理、搬移、覆寫測試／暫存檔**，包含以前本系統建立、目前跑完或過期的目錄。測試腳本若含 `Remove-Item`、stale cleanup 或 `finally` 自動刪除，需先檢查並避免執行破壞性段落；新架構的初始化只新增缺少目錄、不搬移舊快取、不刪舊測試。每次回報需分開說明「共用目錄已建立」、「套件實際已可重用」及「品質測試已通過」，不得混稱。
