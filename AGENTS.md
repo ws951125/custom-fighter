@@ -310,3 +310,13 @@ These rules supplement, and do not replace, the existing Playwright, regression,
 - After targeted tests pass, a full Playwright/E2E/regression run is not automatically required after every small correction. Run the broader applicable regression at the appropriate existing gate, such as completion of the coherent work unit, an important milestone, a substantial cross-module change, release-candidate validation, or before PR merge when required by the repository's existing merge/Definition-of-Done policy.
 - Preserve autonomous AI validation behavior: the Agent should still discover failures, diagnose them, fix them, and revalidate without unnecessary stop-and-wait. The efficiency rule changes test scope/order, not the requirement to obtain actual online evidence for required checks.
 - Minimize unnecessary browser launches, repeated full E2E runs, duplicate checks, and resource consumption while retaining all existing required final validation gates. If an existing rule explicitly requires a broader test at a particular milestone or merge gate, that requirement remains authoritative and is not weakened by this section.
+
+## 跨專案 UI Skill 共用規範（2026-10-13，引用版）
+
+- 共用規範來源：`ws951125/shared-ui-skills`，**固定 Commit `882ce194b970ef4fcde368d55188d44feaefe26b`**；參考 `skills/catalog.json`、`docs/upstream-review.md`、`docs/integration.md` 與 `AGENTS.md`。禁止自動追蹤共用中心的移動版 `main`。
+- 本專案 `AGENTS.md`、既有 UI 設計、功能規格、無障礙、安全、測試與部署規則優先；外部 Skill 只提供適用情境下的建議，不得覆蓋既有產品行為。
+- UI 開發按任務選用：Impeccable（表單、RWD、可用性、無障礙檢視）、UI/UX Pro Max（元件、設計系統、排版）、Emil Kowalski（必要的動畫／微互動）；Taste Skill 的主要規則偏向 Landing Page／作品集，不得直接套用在 ERP 表格、排班表或資料密集型應用介面。非 UI 任務不載入。
+- 目前四套來源狀態都是 `reviewed-reference`，**不是已安裝或可自動執行**。可閱讀已鎖定的上游指引，但禁止自動執行第三方 CLI／二進位檔、下載新依賴、啟用付費服務或 Codex；如有必要須另外取得使用者明確批准。
+- UI 變更提交 PR 前，依原專案規範執行既有 lint／build／測試及必要的本機 Playwright（含桌機與手機視角、互動、錯誤監測）；共用中心的 `node scripts/validate-catalog.mjs` 與 `node --test scripts/validate-catalog.test.mjs` **只驗證 Skill 清單完整性，不是 UI 視覺驗收**。不得以清單檢查通過宣稱 UI 已驗收。
+- 沿用 Windows `E:\\test` 隔離測試資料及跨專案相容快取，不重建已有環境；禁止未經逐次核准刪除／清理／覆寫測試或正式資料。**不使用 GitHub Actions 進行額外 UI 複驗**；不變更原有 CI/Runner 的其他職責。
+- 未經當前對話明確批准，不合併 PR、不部署、不修改 Production DB。未來新增 Skill 須先確認來源、授權、固定版本、依賴及適用範圍，再更新共用中心並逐案評估接入。
